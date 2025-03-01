@@ -50,7 +50,6 @@ export const allProducts = async(): Promise<Produto[]> =>{
     const data = await apiRequest("/products/allproducts", "GET", undefined, token)
 
     if(data){
-        console.log("Response data is:",data.products)
         return data.products
     }
      return []
@@ -71,16 +70,64 @@ export const getProductByCode = async(code: number): Promise<Produto[]> => {
     return []
 }
 
+// # UPDATE PRODUCTS
+export const updateProduct = async(id: string, updateFields: Partial<Produto>) => {
+    const token = localStorage.getItem('tokenAdmin')
+
+    if(!token) {
+        console.error('Token não fornecido ou não encontrado')
+        return
+    }
+
+    try {
+        const currentProduct = await apiRequest(`/products/product/${id}`,'GET', undefined, token)
+
+        if(!currentProduct) {
+            console.error("Erro ao buscar dados da vaga")
+            console.log(currentProduct)
+            return
+        }
+        const updatedProduct =  { ...currentProduct, ...updateFields }
+
+        const response = await apiRequest(`/products/update/${id}`, 'PUT', updatedProduct, token)
+
+        if(response.product.id || !updateProduct) {
+            console.log('produto atualizado com sucesso:', response)
+        }else {
+            console.error('Erro ao atualizar informações do produto!', response)
+        }
+    }catch(exe) {
+        console.error('Erro ao atualizar infomações do produto:',exe)
+    }
+}
+
+// # DELETE PRODUCT
+export const deleteProduct = async(id: string) => {
+    const token = localStorage.getItem('tokenAdmin')
+
+    if(!token) {
+        console.error('Token não encontrado ou não fornecido')
+        throw new Error('Erro não encontrado ou não fornecido')
+    }
+    try {
+        const response = await apiRequest(`/products/delete/${id}`, "DELETE", undefined, token)
+
+        if(response.success) {
+            console.log('Produto apagado com sucesso!')
+        }
+
+    }catch(exe) {
+        console.error('Erro ao apagar produto', exe)
+        return []
+    }
+}
+
+
+
+
+
 export const handleProductWithId = async(id: string) => {
     return apiRequest("Produtos/${id", "GET", `name=${id}`)
-}
-
-export const updateProductWhitId = async(id: string): Promise<Produto> =>{
-    return apiRequest("Produtos/${id}", "PUT", `name=${id}`)
-}
-
-export const deleteProductWidthId = async(id: string): Promise<Produto> => {
-    return apiRequest("Produtos/${id}", "DELETE", `name=${id}`)
 }
 
 export const submitProduct = async(produto: Produto) =>{
