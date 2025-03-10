@@ -12,7 +12,7 @@ export default function Dashboard({ children }: any) {
                 <img src={logo} alt="Logo keppler" className="mb-6" />
                 <h1 className="text-xl font-bold mb-6">Painel Admin</h1>
                 <nav className="flex flex-col gap-4">
-                    <a href="#" className="p-2 hover:bg-gray-700 rounded">Dashboard</a>
+                    <a href="/dashboard" className="p-2 hover:bg-gray-700 rounded">Dashboard</a>
                     <a href="/consultarProdutos" className="p-2 hover:bg-gray-700 rounded">Buscar Produtos</a>
                     <a href="/buscarClientes" className="p-2 hover:bg-gray-700 rounded">Buscar Clientes</a>
                     <a href="/consultarEstoque" className="p-2 hover:bg-gray-700 rounded">Consultar Estoque</a>

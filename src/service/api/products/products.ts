@@ -44,6 +44,22 @@ export const apiRequest = async (
 };
 
 
+export const submitProduct = async(product: Produto) => {
+    const token = localStorage.getItem("tokenAdmin")
+    const data = await apiRequest("/products/register", "POST", product, token)
+
+    try {
+        if(data.success) {
+            console.log(data)
+        }
+        
+    }catch(exe) {
+        console.error("Erro ao cadastrar produto, Verifique todos os campos.")
+    }
+    return data
+
+}
+
 // PRODUCTS REQUESTS IN API 
 export const allProducts = async(): Promise<Produto[]> =>{
     const token = localStorage.getItem('tokenAdmin')
@@ -130,7 +146,4 @@ export const handleProductWithId = async(id: string) => {
     return apiRequest("Produtos/${id", "GET", `name=${id}`)
 }
 
-export const submitProduct = async(produto: Produto) =>{
-    return apiRequest("Produtos/cadastrar", "POST", produto)
-}
 

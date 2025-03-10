@@ -3,7 +3,6 @@ import LoginPage from './login'
 
 import CadColaboradores from './pages/cadastro/colaborador';
 import CadastroDeClients from './pages/cadastro/clientes';
-import CadastrarProdutos from './pages/cadastro/produtos';
 
 import SearchProdutos from './pages/consultas/produtos';
 import SearchClientes from './pages/consultas/clientes';
@@ -11,6 +10,7 @@ import CadastroFornecedores from './pages/cadastro/fornecedor';
 import SearchFornecedores from './pages/consultas/fornecedores';
 import PaginaDeRegistroDeVendas from './pages/vendas';
 import PainelAdmin from './components/painelAdmin';
+
 
 const App = () => {  
     return (
@@ -25,7 +25,7 @@ const App = () => {
                     <Route path='/colaboradores' element={<CadColaboradores />} />
                     <Route path='/cadastrarFornecedor' element={<CadastroFornecedores/>} />
                     <Route path='/cadastrarCliente' element={<CadastroDeClients />} />
-                    <Route path='/cadastrarProdutos' element={<CadastrarProdutos />} />   
+                     
                     {/*CONSULTAS CLIENTES PRODUTOS E FORNECEDORES*/}
                     <Route path='/consultarProdutos' element={<SearchProdutos />} />
                     <Route path='/buscarClientes' element={<SearchClientes />} />
