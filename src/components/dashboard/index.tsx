@@ -13,10 +13,11 @@ export default function Dashboard({ children }: any) {
                 <h1 className="text-xl font-bold mb-6">Painel Admin</h1>
                 <nav className="flex flex-col gap-4">
                     <a href="/dashboard" className="p-2 hover:bg-gray-700 rounded">Dashboard</a>
-                    <a href="/consultarProdutos" className="p-2 hover:bg-gray-700 rounded">Buscar Produtos</a>
-                    <a href="/buscarClientes" className="p-2 hover:bg-gray-700 rounded">Buscar Clientes</a>
-                    <a href="/consultarEstoque" className="p-2 hover:bg-gray-700 rounded">Consultar Estoque</a>
-                    <a href="/consultarSaidas" className="p-2 hover:bg-gray-700 rounded">Consultar Saídas</a>
+                    <a href="/products" className="p-2 hover:bg-gray-700 rounded">Produtos</a>
+                    <a href="/customer" className="p-2 hover:bg-gray-700 rounded">Clientes</a>
+                    <a href="/suppliers" className="p-2 hover:bg-gray-700 rounded">Fornecedores</a>
+                    <a href="/stock" className="p-2 hover:bg-gray-700 rounded">Estoque</a>
+                    <a href="/sales" className="p-2 hover:bg-gray-700 rounded">Saidas</a>
                 </nav>
             </aside>
 

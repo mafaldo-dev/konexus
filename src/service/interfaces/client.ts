@@ -1,13 +1,11 @@
 export interface Cliente {
     id?: number;
-    nome: string;
-    sobrenome: string;
-    telefone: string;
+    name: string;
+    phone: string;
     email: string;
-    estado: string;
-    cidade: string;
-    bairro: string;
-    logradouro: string;
-    numero: string;
-    cep: string;
+    state: string;
+    city: string;
+    number: string
+    street: string;
+    zip_code: string;
 }

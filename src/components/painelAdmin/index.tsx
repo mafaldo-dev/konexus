@@ -34,7 +34,7 @@ const PainelAdmin = () => {
       setLoading(true)
       const response = await allProducts()
       setProducts(response)
-      console.log("Response painel admin:", response)
+
     } catch (exe) {
       console.error("Erro ao recuperar produtos", exe)
       setError("Erro ao recuperar dados dos produtos")
