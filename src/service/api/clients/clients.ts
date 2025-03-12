@@ -8,7 +8,7 @@ export const apiRequest = async (
     body?: any,
     token?: string | any,
 ) => {
-    const url = `http://localhost:3001/${endpoint}`;
+    const url = `http://localhost:3001/admin${endpoint}`;
 
     try {
         // SALVA NA VARIAVEL HEADERS O FORMATO DA REQUISIÇÃO 
@@ -46,17 +46,38 @@ export const apiRequest = async (
 };
 
 // CLIENT REQUESTS IN API
-export const handleAllClientes = async(searcTerm: string): Promise<Cliente[]> => {
-    return apiRequest("clients/allclients", "GET", `nome=${searcTerm}`)
+export const allClients = async(client: Cliente):Promise<Cliente[]> => {
+    const token = localStorage.getItem('tokenAdmin')
+    
+    
+    try {
+        const data = await apiRequest("/clients/allclients", "GET", client, token)
+        console.log(data)
+        if(data.clients) {
+            console.log(data.clients)
+            return data.clients
+        } else {
+            console.error("O retorno de data e null")
+        }
+        
+    }catch(exe) {
+        console.error("Erro ao recuperar clientes", exe)
+    }
+    return []
 }
+
+export const registerClient = async(client: Cliente): Promise<Cliente> => {
+    const token = localStorage.getItem("tokenAdmin")
+    return apiRequest("/clients/register", "POST", client, token )
+}
+
+
+
 
 export const handleClienteWithId = async(id: string): Promise<Cliente[]> => {
     return apiRequest(`Cliente/${id}`, "GET", `name=${id}`)
 }
 
-export const submitClient = async(cliente: Cliente): Promise<Cliente> => {
-    return apiRequest("clients/register", "POST", cliente)
-}
 
 export const updateClient = async(id: string): Promise<Cliente> => {
     return apiRequest(`clients/${id}`, "PUT", undefined)

@@ -44,19 +44,9 @@ export const apiRequest = async (
 };
 
 
-export const submitProduct = async(product: Produto) => {
+export const submitProduct = async(data: Produto) => {
     const token = localStorage.getItem("tokenAdmin")
-    const data = await apiRequest("/products/register", "POST", product, token)
-
-    try {
-        if(data.success) {
-            console.log(data)
-        }
-        
-    }catch(exe) {
-        console.error("Erro ao cadastrar produto, Verifique todos os campos.")
-    }
-    return data
+    return apiRequest("/products/register", "POST", data, token)
 
 }
 

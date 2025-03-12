@@ -58,7 +58,6 @@ export const handleLogin = async({username, password}: Login)=>{
 
         if(data?.token){
             localStorage.setItem('tokenAdmin', data.token)
-            console.log('Segue o token:',data.token)
         }else {
             console.error('Erro ao capturar o token')
         }

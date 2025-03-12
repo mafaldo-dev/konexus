@@ -21,7 +21,7 @@ function createWindow() {
   );
 
   if (isDev) {
-    win.webContents.openDevTools();
+    //win.webContents.openDevTools();
   }
 }
 
