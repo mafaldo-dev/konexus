@@ -1,40 +1,43 @@
 import { useState, useEffect } from "react"
-
 import { useForm, SubmitHandler } from 'react-hook-form'
 
 import type { Produto } from "../../../service/interfaces/produtos"
 import Dashboard from "../../../components/dashboard"
+import { insertProduct, updateProduct } from "../../../service/api/products"
+import { getAllProducts } from "../../../service/api/products/index"
 
 import lupa from "../../../assets/image/search.png"
 import pencil from "../../../assets/image/edit.png"
 import trash from "../../../assets/image/delete.png"
-import { insertProduct } from "../../../service/api/products"
-import { getAllProducts } from "../../../service/api/products/products"
+
+import { doc, deleteDoc } from "firebase/firestore"
+import { db } from "../../../firebaseConfig"
 
 
 const SearchProdutos = () => {
   const {register, handleSubmit, formState: {errors}, reset} = useForm<Produto>()
 
-  // const [modalOpen, setIsModalOpen] = useState(false)
+  const [modalOpen, setIsModalOpen] = useState(false)
   const [openRegister, setOpenRegister] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
   const [render, setRender] = useState<Produto[]>([])
   const [error, setError] = useState("")
-  // const [newInfos, setNewInfos] = useState(false)
+  const [newInfos, setNewInfos] = useState<Produto>()
+  const [item, setItem] = useState<Produto[]>([])
 
-
-  const onSubmit: SubmitHandler<Produto> = async (data) => {
+             // REGISTER ITENS IN DATABASE
+const onSubmit: SubmitHandler<Produto> = async (data) => {
     try {
       await insertProduct({...data, added: new Date() })
       reset()
       setOpenRegister(false)
-      console.log(data)
+      return getAllProducts()
   }catch(Exception){
     console.error("Erro ao adicionar Item", Exception)
   }
 }
 
-
+              // RENDER ITENS REGISTERED IN DATABASE
 useEffect(() => {
   const fetchProducts = async () => {
     try {
@@ -47,10 +50,58 @@ useEffect(() => {
       setLoading(false);
     }
   };
-
   fetchProducts();
-}, []);
+}, [getAllProducts]);
 
+              // PERMITE ATUALIZAR OS DADOS PARCIALMENTE
+const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { name,  value } = e.target
+  setNewInfos((prev: any) => ({
+    ...prev,
+    [name]: value
+  })) 
+}
+                // FUNÇAO PRA SALVAR OS NOVOS DADOS DO PRODUTO
+const saveUpdate = async () => {
+  if(!newInfos || !newInfos.id) {
+    alert("ID do produto não encontrado!")
+    return
+  }
+
+  try {
+    await updateProduct(newInfos.id, {
+      name: newInfos.name,
+      description: newInfos.description,
+      quantity: newInfos.quantity,
+      price: newInfos.price,
+      code: newInfos.code,
+      fornecedor: newInfos.fornecedor
+    })
+    alert("Produto atualizado com sucesso!")
+    setIsModalOpen(false)
+    return getAllProducts
+  } catch(Exception) {
+    console.error("Erro ao atualizar os dados do Produto")
+    alert("Erro ao atualizar os dados do Produto!")
+  }
+}
+                       // ABRE O MODAL PARA EDIÇÃO DE PRODUTOS
+const editProduct = (product: Produto) => {
+  setNewInfos(product)
+  setIsModalOpen(true)
+}
+
+async function deleteProduct(id: any) {
+  try {
+    await deleteDoc(doc(db, "Estoque", id));
+    setItem(item.filter(product => product.id !== id));
+    alert("Produto deletado com sucesso!");
+  
+  } catch (error) {
+    console.error("Erro ao deletar produto: ", error);
+    alert("Erro ao deletar produto, tente novamente.");
+  }
+}
   return (
     <Dashboard>
       <div className="w-full flex flex-col items-center m-auto p-4">
@@ -128,7 +179,7 @@ useEffect(() => {
                                 src={pencil || "/placeholder.svg"}
                                 alt="Ícone de pincel"
                                 className="h-6 bg-green-400 rounded-sm cursor-pointer"
-                                // onClick={() => editProduct(produto)}
+                                onClick={() => editProduct(item)}
                               />
                             </button>
                             <button>
@@ -136,7 +187,7 @@ useEffect(() => {
                                 src={trash || "/placeholder.svg"}
                                 alt="Ícone de lata de lixo"
                                 className="h-6 bg-red-400 rounded-sm cursor-pointer"
-                                // onClick={() => deleteProduct(produto)}
+                                onClick={() => deleteProduct(item.id)}
                               />
                             </button>
                           </div>
@@ -161,7 +212,7 @@ useEffect(() => {
           Voltar
         </a>
       </div>
-      {/* {modalOpen && newInfos && (
+      {modalOpen && newInfos && (
         <>
           <div className="modal">
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
@@ -204,7 +255,14 @@ useEffect(() => {
                   name="code"
                   value={newInfos.code}
                   onChange={handleChange}
-                  placeholder="Requisitos"
+                  placeholder="Codigo"
+                  className="w-full border p-2 mb-2 rounded h-20"
+                />
+                <input
+                  name="fornecedor"
+                  value={newInfos.fornecedor}
+                  onChange={handleChange}
+                  placeholder="Fornecedor"
                   className="w-full border p-2 mb-2 rounded h-20"
                 />
                 <div className="flex justify-between">
@@ -224,7 +282,7 @@ useEffect(() => {
             <button onClick={() => setIsModalOpen(false)}>Fechar</button>
           </div>
         </>
-      )} */}
+      )}
       {openRegister ? (
         <>
           <div className="fixed inset-0 bg-black/50 z-40"></div>

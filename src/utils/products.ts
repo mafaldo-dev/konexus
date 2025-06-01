@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Produto } from "../service/interfaces/produtos";
-import { getAllProducts } from "../service/api/products/products";
+import { getAllProducts } from "../service/api/products/index";
 
 
 export const useProductsArea = () => {

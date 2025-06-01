@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 
-import { getAllProducts } from "../../service/api/products/products"
+import { getAllProducts } from "../../service/api/products/index"
 import type { Produto } from "../../service/interfaces/produtos"
 import Dashboard from "../dashboard"
 
