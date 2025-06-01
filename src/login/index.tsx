@@ -1,35 +1,45 @@
 import React, { useState } from "react";
-import { data, useNavigate } from 'react-router-dom';
-import { useForm, SubmitHandler } from 'react-hook-form'
-
-import { handleLogin } from "../service/api/api";
-
+import { useNavigate } from 'react-router-dom';
 
 import logo from '../assets/image/iconeGlobo.png'
-import { Login } from "../utils/login";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 
 const LoginPage: React.FC = () => {
-    const { register, handleSubmit, formState: {errors} } = useForm<Login>()  
-    const [login, setLogin] = useState(false);
-    const [loading,setLoading] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [admin, setAdmin] = useState<string>("")
+    const [pass, setPassword] = useState<string>("")
+    const [error, setError] = useState("")
+    const [logged, setLogged] = useState<boolean>(false)
+
     const navigate = useNavigate();
 
-    const onSubmit: SubmitHandler<Login> = async (data) => {     
-        try {        
-            setLoading(true)
-            const response = await handleLogin(data)
-            if(response.admin){
-                navigate('/dashboard')
-                setLogin(true)
-            } else {
-                navigate('/')
-            }          
-        } catch(exe){
-            console.error('Erro ao realizar login:', exe)
-        } finally {
-            setLoading(false)
-        }
-    };
+async function loginAdmin(username: string, password: string) {
+  const adminsRef = collection(db, "Administracao"); // nome da coleção que você criou
+  const q = query(adminsRef, where("Admin", "==", username), where("Password", "==", password));
+  
+  const querySnapshot = await getDocs(q);
+  
+  if (!querySnapshot.empty) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+async function handleSubmit (e: any) {
+    e.preventDefault()     
+    const success = await loginAdmin(admin, pass)
+    if(success) {
+        setLogged(true)
+        localStorage.setItem("userlogged", admin)
+        navigate("/dashboard")
+        setError("")
+    }else {
+        console.error("Verifique suas credenciais de acesso")
+        setError("Verifique suas credenciais de acesso!")
+    }
+};
 
     return (
         <section className="flex flex-col mt-72 items-center justify-center p-4">
@@ -39,29 +49,32 @@ const LoginPage: React.FC = () => {
             <div className="flex flex-col bg-gray-200 h-92 w-84">
                 <h2 className="text-xl font-bold text-center mt-12">Login</h2>
                 <div className="flex flex-col gap-2">
-                    <form className="flex flex-col w-62 m-auto mt-4 gap-2" onSubmit={handleSubmit(onSubmit)}>
+                    <form className="flex flex-col w-62 m-auto mt-4 gap-2"  onSubmit={handleSubmit}>
                         <div>
                             <input  
                                 className="bg-white p-2 rounded-lg w-full"
                                 type="text"
                                 placeholder="Usuário"
                                 autoFocus
-                                {...register("username", {required: true})}
-                            />  
-                            {errors?.username?.type === 'required' && <span className="text-red-500">Digite o username</span>}
+                                value={admin}
+                                onChange={(e) => setAdmin(e.target.value)}
+                                required
+                            /> 
                         </div>
                         <div>
                             <input 
                                 className="bg-white p-2 rounded-lg w-full"
                                 type="password" 
-                                placeholder="Senha" 
-                                {...register("password", {required: true})}
-                            />  
-                            {errors?.password?.type === 'required' && <span className="text-red-500">Digite a senha</span>} 
+                                placeholder="Senha"
+                                value={pass}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
                         </div>
                         <button className="bg-black text-white font-bold w-22 rounded-lg p-1 m-auto ml-40" type="submit" disabled={loading}>
                             {loading ? 'Entrando...' : 'Entrar'}
                         </button>
+                        {error && <p className="text-red-500 text-sm">{error}</p>}
                     </form>
                 </div>
                 <div className=" h-8 w-72 flex p-2 items-center justify-between m-auto">

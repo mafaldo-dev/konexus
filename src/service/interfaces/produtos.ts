@@ -5,4 +5,5 @@ export interface Produto {
     price: number
     quantity: number 
     code: number | string
+    fornecedor: string
 }

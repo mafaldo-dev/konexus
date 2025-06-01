@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Produto } from "../service/interfaces/produtos";
-import { allProducts } from "../service/api/products/products";
+import { getAllProducts } from "../service/api/products/products";
 
 
 export const useProductsArea = () => {
@@ -16,7 +16,7 @@ export const useProductsArea = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await allProducts();
+      const res = await getAllProducts();
       console.log(res)
       setProducts(res);
       setFilteredProducts(res); // Inicialmente, a lista filtrada está vazia

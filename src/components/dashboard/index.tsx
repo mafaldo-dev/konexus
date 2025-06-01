@@ -2,8 +2,9 @@ import logo from '../../assets/image/logo1.png'
 import { useDataHora } from "../../utils/data-hora"
 
 export default function Dashboard({ children }: any) {
-    const username = localStorage.getItem("username");
+    const username = localStorage.getItem("userlogged");
     const dataHora = useDataHora();
+    
     
     return (
         <div className="flex h-screen">

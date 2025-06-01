@@ -2,124 +2,54 @@ import { useState, useEffect } from "react"
 
 import { useForm, SubmitHandler } from 'react-hook-form'
 
-import { allProducts, deleteProduct, submitProduct, updateProduct } from "../../../service/api/products/products"
 import type { Produto } from "../../../service/interfaces/produtos"
 import Dashboard from "../../../components/dashboard"
 
 import lupa from "../../../assets/image/search.png"
 import pencil from "../../../assets/image/edit.png"
 import trash from "../../../assets/image/delete.png"
+import { insertProduct } from "../../../service/api/products"
+import { getAllProducts } from "../../../service/api/products/products"
+
 
 const SearchProdutos = () => {
   const {register, handleSubmit, formState: {errors}, reset} = useForm<Produto>()
 
-  const [products, setProducts] = useState<Produto[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [filter, setFilter] = useState({ name: "", code: "" })
-  const [show, setShow] = useState(false)
-  const [newInfos, setNewInfos] = useState<Produto | any>()
-  const [modalOpen, setIsModalOpen] = useState(false)
+  // const [modalOpen, setIsModalOpen] = useState(false)
   const [openRegister, setOpenRegister] = useState<boolean>(false)
+  const [loading, setLoading] = useState(false)
+  const [render, setRender] = useState<Produto[]>([])
+  const [error, setError] = useState("")
+  // const [newInfos, setNewInfos] = useState(false)
 
-
-
-  const renderProducts = async () => {
-    try {
-      setLoading(true)
-      const response = await allProducts()
-      setProducts(response)
-    } catch (exe) {
-      console.error("Erro ao recuperar produtos disponiveis.", exe)
-      setError("Erro ao recuperar produtos")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    renderProducts()
-  }, [])
-
-  const handleFilter = () => {
-    const normalizeString = (str: any) =>
-      typeof str === "string"
-        ? str
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase()
-        : String(str).toLowerCase() // Converte números para string
-
-    const filteredProducts = products.filter((product: any) => {
-      const matchName = filter.name ? normalizeString(product.name).includes(normalizeString(filter.name)) : true
-
-      const matchCode = filter.code.toString() ? normalizeString(product.code).includes(normalizeString(filter.code)) : true
-
-      return matchName && matchCode
-    })
-
-    return show ? filteredProducts : filteredProducts
-  }
-
-  const render = handleFilter()
-
-  const editProduct = (product: Produto) => {
-    setNewInfos(product)
-    setIsModalOpen(true)
-  }
-
-  const handleChange = (e: any) => {
-    const { name, value } = e.target
-    setNewInfos({ ...newInfos, [name]: value })
-  }
-
-  const saveUpdate = async (e: any) => {
-    e.preventDefault()
-    try {
-      await updateProduct(newInfos.id, newInfos)
-      setIsModalOpen(false)
-      renderProducts()
-    } catch (exe) {
-      console.error("Erro ao salvar produto:", exe)
-    }
-  }
-
-  const deleteProduct = async (product: Produto | any) => {
-    if (!product) {
-      console.error("Produto deletado")
-      return
-    }
-
-    try {
-      console.log("Deletando produto:", product.id)
-      await deleteProduct(product.id)
-      renderProducts() // Recarrega as vagas
-    } catch (exe) {
-      console.error("Erro ao deletar produto", exe)
-    }
-  }
 
   const onSubmit: SubmitHandler<Produto> = async (data) => {
     try {
-      setLoading(true)
-      await submitProduct(data)
-      setIsModalOpen(false)
-
-      reset({
-        name:'',
-        description:'',
-        quantity:0,
-        price:0,
-        code:0
-      })
-      renderProducts()
-    } catch (exe) {
-      console.error("Erro ao adicionar novo produto:", exe)
-      setError("Erro ao cadastrar produto no estoque.")
-    } finally {
-      setLoading(false)
-    }
+      await insertProduct({...data, added: new Date() })
+      reset()
+      setOpenRegister(false)
+      console.log(data)
+  }catch(Exception){
+    console.error("Erro ao adicionar Item", Exception)
   }
+}
+
+
+useEffect(() => {
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const produtos = await getAllProducts();
+      setRender(produtos); // Aqui 'render' deve ser o estado com os produtos
+    } catch (err) {
+      setError("Erro ao buscar produtos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchProducts();
+}, []);
 
   return (
     <Dashboard>
@@ -135,7 +65,7 @@ const SearchProdutos = () => {
               +
             </button>
           </div>
-          <div className="flex">
+          {/* <div className="flex">
             <input
               type="text"
               value={filter.name}
@@ -155,7 +85,7 @@ const SearchProdutos = () => {
               src={lupa || "/placeholder.svg"}
               alt=""
             />
-          </div>
+          </div> */}
         </div>
         {loading ? (
           <p>Carregando...</p>
@@ -184,13 +114,13 @@ const SearchProdutos = () => {
               <table className="w-full p-2 table-fixed border-collapse">
                 <tbody>
                   {render.length > 0 ? (
-                    render.map((produto: any) => (
-                      <tr className="border-t cursor-pointer hover:bg-cyan-100" key={produto.id}>
-                        <td className="p-1">{produto.code}</td>
-                        <td className="p-1 text-left  font-normal w-3/15">{produto.name}</td>
-                        <td className="p-1 text-left">R$ {produto.price}</td>
-                        <td className="p-1 text-center">{produto.quantity}</td>
-                        <td className="p-1 text-left w-3/10 font-normal">{produto.description}</td>
+                    render.map((item) => (
+                      <tr className="border-t cursor-pointer hover:bg-cyan-100" key={item.id}>
+                        <td className="p-1">{item.code}</td>
+                        <td className="p-1 text-left  font-normal w-3/15">{item.name}</td>
+                        <td className="p-1 text-left">R$ {item.price}</td>
+                        <td className="p-1 text-center">{item.quantity}</td>
+                        <td className="p-1 text-left w-3/10 font-normal">{item.description}</td>
                         <td className="p-1">
                           <div className="flex gap-1 ml-12">
                             <button>
@@ -198,7 +128,7 @@ const SearchProdutos = () => {
                                 src={pencil || "/placeholder.svg"}
                                 alt="Ícone de pincel"
                                 className="h-6 bg-green-400 rounded-sm cursor-pointer"
-                                onClick={() => editProduct(produto)}
+                                // onClick={() => editProduct(produto)}
                               />
                             </button>
                             <button>
@@ -206,7 +136,7 @@ const SearchProdutos = () => {
                                 src={trash || "/placeholder.svg"}
                                 alt="Ícone de lata de lixo"
                                 className="h-6 bg-red-400 rounded-sm cursor-pointer"
-                                onClick={() => deleteProduct(produto)}
+                                // onClick={() => deleteProduct(produto)}
                               />
                             </button>
                           </div>
@@ -231,7 +161,7 @@ const SearchProdutos = () => {
           Voltar
         </a>
       </div>
-      {modalOpen && newInfos && (
+      {/* {modalOpen && newInfos && (
         <>
           <div className="modal">
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
@@ -294,7 +224,7 @@ const SearchProdutos = () => {
             <button onClick={() => setIsModalOpen(false)}>Fechar</button>
           </div>
         </>
-      )}
+      )} */}
       {openRegister ? (
         <>
           <div className="fixed inset-0 bg-black/50 z-40"></div>

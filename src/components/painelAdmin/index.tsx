@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 
-import { allProducts } from "../../service/api/products/products"
+import { getAllProducts } from "../../service/api/products/products"
 import type { Produto } from "../../service/interfaces/produtos"
 import Dashboard from "../dashboard"
 
@@ -32,7 +32,7 @@ const PainelAdmin = () => {
   const lowProducts = async () => {
     try {
       setLoading(true)
-      const response = await allProducts()
+      const response = await getAllProducts()
       setProducts(response)
 
     } catch (exe) {
