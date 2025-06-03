@@ -1,7 +1,7 @@
 import { ReactEventHandler, useEffect, useState } from "react"
 import { useForm, SubmitHandler } from 'react-hook-form'
 
-import { allClients, registerClient } from "../../../service/api/clients/clients"
+import { getAllClients, insertClient, updateClient } from "../../../service/api/clients/clients"
 import type { Cliente } from "../../../service/interfaces/client"
 
 import Dashboard from "../../../components/dashboard"
@@ -14,32 +14,45 @@ const SearchClientes = () => {
   const [filtered, setFiltered] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [client, setClient] = useState<Cliente[]| any>([])
+  const [client, setClient] = useState<Cliente[]>([])
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
-
+  const [newInfos, setNewInfos] = useState<Cliente>()
   const [editClient, setEditClient] = useState(false)
-
-
-  // Função para buscar clientes
-  const renderClients = async () => {
+                  // INSERT CLIENTS DATA
+  const onSubmit: SubmitHandler<Cliente> = async (data) => {
     try {
-      setIsLoading(true)
-      setError(null)
-      const response = await allClients(client)
-      setClient(response)
-      setFilteredResults(response)
-    } catch (exe) {
-      console.error("Erro ao recuperar dados dos clientes:", exe)
-      setError("Erro ao buscar dados")
+      await insertClient({...data, added:  new Date()})
+      reset()
+      getAllClients()     
+      const reload = await getAllClients() 
+      setClient(reload)
+      setIsModalOpen(false)
+    } catch(Exception) {
+      console.error("Erro ao adicionar novo cliente", Exception)
+      setError("Erro ao cadastrar cliente")
     } finally {
       setIsLoading(false)
     }
   }
 
+  // RENDER CLIENTS
   useEffect(() => {
+    const renderClients = async () => {
+      try {
+        setIsLoading(true)
+        const clients = await getAllClients()
+        setClient(clients)
+      } catch (Exception) {
+        console.error("Erro ao recuperar dados dos clientes:", Exception)
+        setError("Erro ao buscar dados")
+      } finally {
+        setIsLoading(false)
+      }
+    }
     renderClients()
-  }, [])
+  }, [getAllClients])
 
+    // FILTER OF CLIENTS BY NAME
   useEffect(() => {
     if (filtered) {
       const filter = client.filter((cliente: Cliente) => cliente.name.toLowerCase().includes(filtered.toLowerCase()))
@@ -49,31 +62,20 @@ const SearchClientes = () => {
     }
   }, [filtered, client])
 
-  const onSubmit: SubmitHandler<Cliente> = async (data) => {
+  const handleChange = async(e: React.ChangeEvent<HTMLInputElement>) =>{
+    const { name, value } = e.target 
+    setNewInfos((prev: any) => ({
+      ...prev,
+      [name]: value
+    }))
+  }
 
-    try {
-      setIsLoading(true)
-      await registerClient(data)
-
-      reset({
-        name: "",
-        email: "",
-        phone: "",
-        street: "",
-        city: "",
-        state: "",
-        zip_code: "",
-      })
-      setIsModalOpen(false)
-      renderClients()
-
-    } catch (exe) {
-      console.error("Erro ao adicionar novo cliente", exe)
-      setError("Erro ao cadastrar cliente")
-    } finally {
-      setIsLoading(false)
+  const saveUpdate = async () => {
+    if(!newInfos || !newInfos.id) {
+      alert("ID do cliente nao ecnon")
     }
   }
+
 
   const onClose = () => {
     setIsModalOpen(false)
@@ -118,7 +120,7 @@ const SearchClientes = () => {
               />
             </div>
             <button
-              onClick={renderClients}
+              onClick={getAllClients}
               className="px-4 py-2 bg-cyan-500 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors shrink-0"
             >
               Buscar
@@ -182,7 +184,7 @@ const SearchClientes = () => {
           </a>
           <button
             className="border border-gray-300 rounded-lg cursor-pointer text-gray-500 hover:bg-cyan-500 hover:text-white hover:font-semibold px-4 py-2"
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => setIsModalOpen(!isModalOpen)}
           >
             Novo cliente
           </button>
@@ -192,7 +194,7 @@ const SearchClientes = () => {
 
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-9/12 mx-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Cadastrar Novo Cliente</h2>
               <button onClick={onClose} className="text-gray-500 hover:text-gray-700 focus:outline-none">
@@ -207,8 +209,252 @@ const SearchClientes = () => {
                 </svg>
               </button>
             </div>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Informações Pessoais */}
+          <div className="space-y-4">
+            <div className="border-b border-gray-200 pb-2">
+              <h3 className="text-lg font-semibold text-gray-700 flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                Informações Pessoais
+              </h3>
+            </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
+                <input
+                  type="text"
+                  placeholder="Digite o nome completo"
+                  {...register("name", {
+                    required: "Nome é obrigatório",
+                    minLength: { value: 2, message: "Nome deve ter pelo menos 2 caracteres" },
+                  })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                />
+                {errors.name && <span className="text-red-500 text-sm mt-1 block">{errors.name.message}</span>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código do Cliente *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: CLI001"
+                  {...register("code", {
+                    required: "Código é obrigatório",
+                    minLength: { value: 3, message: "Código deve ter pelo menos 3 caracteres" },
+                  })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                />
+                {errors.code && <span className="text-red-500 text-sm mt-1 block">{errors.code.message}</span>}
+              </div>
+            </div>
+          </div>
+
+          {/* Informações de Contato */}
+          <div className="space-y-4">
+            <div className="border-b border-gray-200 pb-2">
+              <h3 className="text-lg font-semibold text-gray-700 flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                Informações de Contato
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <input
+                  type="email"
+                  placeholder="cliente@exemplo.com"
+                  {...register("email", {
+                    required: "Email é obrigatório",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Email inválido",
+                    },
+                  })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                />
+                {errors.email && <span className="text-red-500 text-sm mt-1 block">{errors.email.message}</span>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone *</label>
+                <input
+                  type="text"
+                  placeholder="(11) 99999-9999"
+                  {...register("phone", {
+                    required: "Telefone é obrigatório",
+                    minLength: { value: 10, message: "Telefone deve ter pelo menos 10 dígitos" },
+                  })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                />
+                {errors.phone && <span className="text-red-500 text-sm mt-1 block">{errors.phone.message}</span>}
+              </div>
+            </div>
+          </div>
+
+          {/* Endereço */}
+          <div className="space-y-4">
+            <div className="border-b border-gray-200 pb-2">
+              <h3 className="text-lg font-semibold text-gray-700 flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                Endereço
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">CEP *</label>
+                <input
+                  type="text"
+                  placeholder="00000-000"
+                  {...register("zip_code", {
+                    required: "CEP é obrigatório",
+                    pattern: {
+                      value: /^\d{5}-?\d{3}$/,
+                      message: "CEP inválido",
+                    },
+                  })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                />
+                {errors.zip_code && <span className="text-red-500 text-sm mt-1 block">{errors.zip_code.message}</span>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: SP"
+                  {...register("state", {
+                    required: "Estado é obrigatório",
+                    minLength: { value: 2, message: "Estado deve ter pelo menos 2 caracteres" },
+                  })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                />
+                {errors.state && <span className="text-red-500 text-sm mt-1 block">{errors.state.message}</span>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cidade *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: São Paulo"
+                  {...register("city", {
+                    required: "Cidade é obrigatória",
+                    minLength: { value: 2, message: "Cidade deve ter pelo menos 2 caracteres" },
+                  })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                />
+                {errors.city && <span className="text-red-500 text-sm mt-1 block">{errors.city.message}</span>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rua/Avenida *</label>
+                <input
+                  type="text"
+                  placeholder="Digite o nome da rua"
+                  {...register("street", {
+                    required: "Endereço é obrigatório",
+                    minLength: { value: 5, message: "Endereço deve ter pelo menos 5 caracteres" },
+                  })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                />
+                {errors.street && <span className="text-red-500 text-sm mt-1 block">{errors.street.message}</span>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Número *</label>
+                <input
+                  type="text"
+                  placeholder="123"
+                  {...register("number", {
+                    required: "Número é obrigatório",
+                  })}
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                />
+                {errors.number && <span className="text-red-500 text-sm mt-1 block">{errors.number.message}</span>}
+              </div>
+            </div>
+          </div>
+
+          {/* Botões de Ação */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex-1 sm:flex-none sm:min-w-[200px] py-3 px-6 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+           Cadastrar
+            </button>
+
+            <button
+              type="button"
+              //onClick={handleReset}
+              disabled={isLoading}
+              className="flex-1 sm:flex-none py-3 px-6 bg-gray-100 text-gray-700 font-semibold rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Limpar
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="flex-1 sm:flex-none py-3 px-6 border border-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+
+            {/* <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
               <div>
                 <input
                   type="text"
@@ -294,9 +540,8 @@ const SearchClientes = () => {
                   Salvar
                 </button>
               </div>
-            </form>
+            </form> */}
           </div>
-        <EditModal />
         </div>
       )}
     </Dashboard>

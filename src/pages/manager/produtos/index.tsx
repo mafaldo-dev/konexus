@@ -30,10 +30,12 @@ const onSubmit: SubmitHandler<Produto> = async (data) => {
     try {
       await insertProduct({...data, added: new Date() })
       reset()
+      const reload = await getAllProducts()
+      setRender(reload)
       setOpenRegister(false)
-      return getAllProducts()
   }catch(Exception){
     console.error("Erro ao adicionar Item", Exception)
+    setError("Erro ao cadastrar produto!")
   }
 }
 
@@ -44,14 +46,15 @@ useEffect(() => {
       setLoading(true);
       const produtos = await getAllProducts();
       setRender(produtos); // Aqui 'render' deve ser o estado com os produtos
-    } catch (err) {
+    } catch (Exception) {
+      console.error("Erro ao recuperar a lista de produtos.", Exception)
       setError("Erro ao buscar produtos");
     } finally {
       setLoading(false);
     }
   };
   fetchProducts();
-}, [getAllProducts]);
+}, []);
 
               // PERMITE ATUALIZAR OS DADOS PARCIALMENTE
 const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,7 +82,8 @@ const saveUpdate = async () => {
     })
     alert("Produto atualizado com sucesso!")
     setIsModalOpen(false)
-    return getAllProducts
+    const reload = await getAllProducts()
+    setNewInfos(reload)
   } catch(Exception) {
     console.error("Erro ao atualizar os dados do Produto")
     alert("Erro ao atualizar os dados do Produto!")

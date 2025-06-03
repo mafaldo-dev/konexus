@@ -18,9 +18,9 @@ export const updateProduct = async (id: string, updatedData: any) => {
     const productRef = doc(db, "Estoque", id);
     await updateDoc(productRef, updatedData);
     console.log("Produto atualizado com sucesso!");
-  } catch (error) {
-    console.error("Erro ao atualizar o produto:", error);
-    throw error;
+  } catch (Exception) {
+    console.error("Erro ao atualizar o produto:", Exception);
+    throw new Error;
   }
 };
 

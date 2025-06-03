@@ -1,5 +1,5 @@
 export interface Cliente {
-    id?: number;
+    id?: number | any;
     name: string;
     phone: string;
     email: string;
@@ -8,4 +8,6 @@ export interface Cliente {
     number: string
     street: string;
     zip_code: string;
+    code: string
+    added: string | any
 }
