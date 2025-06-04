@@ -152,7 +152,10 @@ const SearchClientes = () => {
                 <tbody>
                   {filteredResults.length > 0 ? (
                     filteredResults.map((cliente) => (
-                      <tr onClick={() => setEditClient(!editClient)} key={cliente.id} className=" cursor-pointer border-b border-gray-200 hover:bg-gray-50">
+                      <tr 
+                        onClick={() => setEditClient(!editClient)} 
+                        key={cliente.id} 
+                        className=" cursor-pointer border-b border-gray-200 hover:bg-gray-50">
                         <td className="p-4 text-gray-900">{cliente.name}</td>
                         <td className="p-4 font-medium text-gray-900">{cliente.email}</td>
                         <td className="p-4 text-gray-700">{cliente.phone}</td>
@@ -178,12 +181,12 @@ const SearchClientes = () => {
         <div className="flex justify-start gap-2">
           <a
             href="/dashboard"
-            className="px-4 py-2 border border-gray-300 hover:bg-cyan-500 hover:text-white hover:font-semibold rounded-md text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            className="px-4 py-2 text-gray-400 border border-gray-300 hover:bg-cyan-500 hover:text-white hover:font-semibold rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
           >
             Voltar
           </a>
           <button
-            className="border border-gray-300 rounded-lg cursor-pointer text-gray-500 hover:bg-cyan-500 hover:text-white hover:font-semibold px-4 py-2"
+            className="border border-gray-300 rounded-lg cursor-pointer text-gray-400 hover:bg-cyan-500 hover:text-white hover:font-semibold px-4 py-2"
             onClick={() => setIsModalOpen(!isModalOpen)}
           >
             Novo cliente

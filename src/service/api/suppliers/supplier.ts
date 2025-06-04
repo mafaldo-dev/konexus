@@ -1,57 +1,44 @@
-import { Fornecedor } from "../../interfaces/fornecedor";
+import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore"
+import { db } from "../../../firebaseConfig"
+import { Fornecedor } from "../../interfaces/fornecedor"
 
-
-export const apiRequest = async (
-    endpoint: string,
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-    body?: any,
-    token?: string | any,
-) => {
-    const url = `http://localhost:3001/${endpoint}`;
-
+export async function insertSupplier (supplier: Fornecedor) {
     try {
-        // SALVA NA VARIAVEL HEADERS O FORMATO DA REQUISIÇÃO 
-        const headers: Record<string, string> = {
-            "Content-Type": "application/json",
-        };
-        // FAZ A PASSAGEM DO TOKEN NO HEADERS PRA AUTENTICAÇAO
-        if (token) {
-            headers["Authorization"] = `Bearer ${token}`; // Garante que o token seja enviado corretamente
-        }
-        //DEFINI O QUE VAI SER PASSADO NA REQUISIÇÃO
-        const options: RequestInit = {
-            method,
-            headers,
-        };
-// VERIFICA O METODO QUE ESTA SENDO PASSADO E SO EXIGE BODY CASO ATENDA O QUE FOI SETADO
-        if (body && (method === "POST" || method === "PUT")) {
-            options.body = JSON.stringify(body);
-        }
-        // PEGA A RESPOSTA DA REQUISIÇÃO
-        const response = await fetch(url, options);
-
-// VERIFICA SI OS ENDPOINTS ESTAO CORRETOS E FUNCIONANDO CASO CONTRARIO RETORNA STATUS 500
-        if (!response.ok) {
-            const errorDetails = await response.text();
-            console.error(`Erro na API (${endpoint}):`, response.status, errorDetails);
-            throw new Error(`Erro na requisição ${endpoint}: ${response.statusText}`);
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error(`Erro ao acessar a API (${endpoint}):`, error);
-        return null;
+        const docRef = await addDoc(collection(db, "Suppliers"), supplier)
+        console.log("Fornecedor cadastrado com sucesso:", docRef.id)
+        return docRef.id
+    }catch(Exception) {
+        console.error("Erro ao adicionar novo fornecedor: ", Exception)
+        alert("Erro ao adicionar novo FORNECEDOR... Tente novamente.")
+        throw new Error
     }
-};
-
-//REQUESTS FORNECEDORES IN API
-export const handleAllFornecedores = async(searchTerms: string) : Promise<Fornecedor[]> =>{
-    return apiRequest("Fornecedor/fornecedores", "GET",  `nome=${searchTerms}`)
-}
-export const handleFornecedor = async(id: string): Promise<Fornecedor> =>{
-    return apiRequest("Fornecedor/${id}", "GET", `name=${id}`)
 }
 
-export const submitFornecedor = async(fornecedor: Fornecedor) =>{
-    return apiRequest("Fornecedor/cadastrar", "POST", fornecedor)
+export async function updateSupplier (id: string, updateData: any)  {
+    try {
+        const supplierRef = doc(db, "Suppliers", id)
+        await updateDoc(supplierRef, updateData)
+        console.log("Dados do fornecedor atualizados com sucesso!", updateData)
+    }catch(Exception) {
+        console.error("Erro ao atualizar informações do Fornecedor: ", Exception)
+        alert("Erro ao atualizar as informaçoes do Fornecedor.")
+        throw new Error
+    }
+}
+
+export async function getAllSuppliers (serchTerm?: string): Promise<Fornecedor[]> {
+    try {
+        const supplierRef = collection(db, "Suppliers")
+        const snapshot = await getDocs(supplierRef)
+
+        const suppliers: Fornecedor[] = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data()
+        })) as Fornecedor[]
+        return suppliers
+    }catch(Exception) {
+        console.error("Erro ao recuperar Fornecedores: ", Exception)
+        alert("Erro ao recuperar a lista de fornecedores")
+        throw new Error
+    }
 }
