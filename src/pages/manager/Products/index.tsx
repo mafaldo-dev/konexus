@@ -33,6 +33,7 @@ const SearchProdutos = () => {
       await insertProduct({ ...data, added: new Date() })
       reset()
       const reload = await getAllProducts()
+      alert("Produto adicionado com sucesso!")
       setRender(reload)
       setOpenRegister(false)
     } catch (Exception) {
@@ -143,7 +144,7 @@ const SearchProdutos = () => {
   return (
     <Dashboard>
       <div className="w-full flex flex-col items-center m-auto p-4">
-        <h1 className="text-3xl text-center mb-4">Consultar produtos</h1>
+        <h1 className="text-3xl text-center mb-4">Consultar Produtos</h1>
         <div className="flex justify-between items-center mr-2 mb-1 w-full">
           <div className="flex flex-col mb-3 cursor-pointer hover:zoonIn">
             <span className="ml-1">Novo produto</span>

@@ -6,8 +6,6 @@ import SearchClientes from './pages/manager/Clients';
 import SearchFornecedores from './pages/manager/Suppliers';
 import PaginaDeRegistroDeVendas from './pages/vendas';
 import PainelAdmin from './components/AdminScreen';
-
-
 const App = () => {  
     return (         
             <Router>
@@ -26,4 +24,5 @@ const App = () => {
             </Router>      
     );
 };
-export default App;
+
+export default App

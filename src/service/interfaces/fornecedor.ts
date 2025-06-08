@@ -2,11 +2,12 @@ export interface Fornecedor {
     id?:string,
     name: string,
     email: string,
-    telefone: number,
-    estado: string
-    cidade: string,
-    endereco: string,
-    numero: number,
-    razaoSocial: string,
+    phone: number,
+    state: string
+    city: string,
+    address: string,
+    number: number,
+    socialName: string,
+    code: string
     added: string | any
 }
