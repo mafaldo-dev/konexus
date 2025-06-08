@@ -2,7 +2,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 
 import { getAllProducts } from "../../service/api/products/index"
-import type { Produto } from "../../service/interfaces/products"
+import type { Products } from "../../service/interfaces/products"
 import Dashboard from "../dashboard"
 
 
@@ -11,7 +11,7 @@ const PainelAdmin = () => {
   const [rememberTitle, setRememberTitle] = useState(localStorage.getItem("RememberTitle") || "")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [products, setProducts] = useState<Produto[]>([])
+  const [products, setProducts] = useState<Products[]>([])
   const [activeTab, setActiveTab] = useState("notifications")
 
   const handleChangeRemembers = (e: React.ChangeEvent<HTMLInputElement>) => {

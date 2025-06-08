@@ -1,8 +1,8 @@
 import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
-import { Fornecedor } from "../../interfaces/suppliers"
+import { Supplier } from "../../interfaces/suppliers"
 
-export async function insertSupplier (supplier: Fornecedor) {
+export async function insertSupplier (supplier: Supplier) {
     try {
         const docRef = await addDoc(collection(db, "Suppliers"), supplier)
         console.log("Fornecedor cadastrado com sucesso:", docRef.id)
@@ -26,15 +26,15 @@ export async function updateSupplier (id: string, updateData: any)  {
     }
 }
 
-export async function getAllSuppliers (serchTerm?: string): Promise<Fornecedor[]> {
+export async function getAllSuppliers (serchTerm?: string): Promise<Supplier[]> {
     try {
         const supplierRef = collection(db, "Suppliers")
         const snapshot = await getDocs(supplierRef)
 
-        const suppliers: Fornecedor[] = snapshot.docs.map((doc) => ({
+        const suppliers: Supplier[] = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data()
-        })) as Fornecedor[]
+        })) as Supplier[]
         return suppliers
     }catch(Exception) {
         console.error("Erro ao recuperar Fornecedores: ", Exception)

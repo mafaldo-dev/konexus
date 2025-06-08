@@ -44,6 +44,27 @@ export const handleKardex = async (code?: string) => {
   }
 }
 
+export const handleProductWithCode = async (code: string | number) => {
+  try {
+    const productRef = collection(db, "Estoque")
+    const get = query(productRef, where("code", "==", String (code)))
+    const snapshot = await getDocs(get)
+    console.log(snapshot)
+
+    if(!snapshot.empty) {
+      const doc = snapshot.docs[0]
+      console.log(doc)
+      return { id: doc.id, ...doc.data() }
+    }else {
+      console.log("Produto não existe ou não encontrado!")
+      return null
+    }
+  }catch(Exception) {
+    console.error("Erro ao recuperar Informações do produto: ", Exception)
+    throw new Error ("Erro ao buscar produto pelo codigo")
+  }
+}
+
 
 export const getAllProducts = async (searchTerm?: string): Promise<Products[] | any> => {
   try {

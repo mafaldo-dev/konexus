@@ -16,8 +16,8 @@ export default function Dashboard({ children }: any) {
                     <a href="/products" className="p-2 hover:bg-gray-700 rounded">Produtos</a>
                     <a href="/customer" className="p-2 hover:bg-gray-700 rounded">Clientes</a>
                     <a href="/suppliers" className="p-2 hover:bg-gray-700 rounded">Fornecedores</a>
-                    <a href="/stock" className="p-2 hover:bg-gray-700 rounded">Estoque</a>
-                    <a href="/sales" className="p-2 hover:bg-gray-700 rounded">Saidas</a>
+                    <a href="/sales" className="p-2 hover:bg-gray-700 rounded">Nota fiscal</a>
+                    <a href="/report" className="p-2 hover:bg-gray-700 rounded">Relatorios</a>
                 </nav>
             </aside>
 

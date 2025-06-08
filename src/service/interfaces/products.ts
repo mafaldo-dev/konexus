@@ -5,6 +5,6 @@ export interface Products {
     price: number
     quantity: number 
     code: number | string
-    supplier: string
     added: string | any
+    supplier: string
 }

@@ -5,7 +5,7 @@ import { deleteDoc, doc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
 
 import { getAllClients, insertClient, updateClient } from "../../../service/api/clients/clients"
-import type { Cliente } from "../../../service/interfaces/clients"
+import type { Clients } from "../../../service/interfaces/clients"
 
 import Dashboard from "../../../components/dashboard"
 
@@ -15,21 +15,21 @@ import lupa from "../../../assets/image/search.png"
 
 
 const SearchClientes = () => {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<Cliente>()
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<Clients>()
 
   const [modalOpen, setIsModalOpen] = useState<boolean>(false)
   const [openRegister, setOpenRegister] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
-  const [render, setRender] = useState<Cliente[]>([])
+  const [render, setRender] = useState<Clients[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [newInfos, setNewInfos] = useState<Cliente>()
-  const [addedClient, setAddedClient] = useState<Cliente[]>([])
+  const [newInfos, setNewInfos] = useState<Clients>()
+  const [addedClient, setAddedClient] = useState<Clients[]>([])
   const [searchTerm, setSearchTerm] = useState<string>("")
-  const [filter, setFilter] = useState<Cliente[]>([])
+  const [filter, setFilter] = useState<Clients[]>([])
 
 
   // INSERT CLIENTS DATA
-  const onSubmit: SubmitHandler<Cliente> = async (data) => {
+  const onSubmit: SubmitHandler<Clients> = async (data) => {
     try {
       await insertClient({ ...data, added: new Date() })
       reset()
@@ -98,7 +98,7 @@ const SearchClientes = () => {
       throw new Error
     }
   }
-  const editClient = (client: Cliente) => {
+  const editClient = (client: Clients) => {
     setNewInfos(client)
     setIsModalOpen(true)
   }

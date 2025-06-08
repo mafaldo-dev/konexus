@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Produto } from "../service/interfaces/products";
+import { Products } from "../service/interfaces/products";
 import { getAllProducts } from "../service/api/products/index";
 
 
@@ -8,8 +8,8 @@ export const useProductsArea = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showResults, setShowResults] = useState<boolean>(false);
-  const [products, setProducts] = useState<Produto[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Produto[]>([]);
+  const [products, setProducts] = useState<Products[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Products[]>([]);
 
   // Função para buscar produtos no banco de dados
   const searchProducts = async () => {
