@@ -1,9 +1,9 @@
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../../firebaseConfig"
-import { Cliente } from "../../interfaces/client"
+import { Clients } from "../../interfaces/clients"
 
 
-export async function insertClient(client: Cliente) {
+export async function insertClient(client: Clients) {
     try {
         const docRef = await addDoc(collection(db, "Clients"), client)
         console.log("Cliente cadastrado com sucesso, ID: ", docRef.id)
@@ -27,15 +27,15 @@ export async function updateClient(id: string, updatedData: any) {
     }
 }
 
-export async function getAllClients(searchTerm?: string): Promise<Cliente[]> {
+export async function getAllClients(searchTerm?: string): Promise<Clients[]> {
     try {
         const clientRef = collection(db, "Clients")
         const snapshot = await getDocs(clientRef)
 
-        const clients: Cliente[] = snapshot.docs.map((doc) => ({
+        const clients: Clients[] = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data()
-        })) as Cliente[]
+        })) as Clients[]
         return clients
     } catch (Exception) {
         console.error("Erro ao recuperar a lista de Clientes!", Exception)

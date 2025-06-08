@@ -2,7 +2,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 
 import { getAllProducts } from "../../service/api/products/index"
-import type { Produto } from "../../service/interfaces/produtos"
+import type { Produto } from "../../service/interfaces/products"
 import Dashboard from "../dashboard"
 
 

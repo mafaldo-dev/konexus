@@ -5,7 +5,7 @@ import { deleteDoc, doc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
 
 import { getAllClients, insertClient, updateClient } from "../../../service/api/clients/clients"
-import type { Cliente } from "../../../service/interfaces/client"
+import type { Cliente } from "../../../service/interfaces/clients"
 
 import Dashboard from "../../../components/dashboard"
 

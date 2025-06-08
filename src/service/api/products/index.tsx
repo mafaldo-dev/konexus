@@ -1,8 +1,8 @@
-import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore"
+import { collection, addDoc, getDocs, updateDoc, doc, getDoc, query, where } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
-import { Produto } from "../../interfaces/produtos"
+import { Products } from "../../interfaces/products"
 
-export async function insertProduct(produto: Produto) {
+export async function insertProduct(produto: Products) {
   try {
     const docRef = await addDoc(collection(db, "Estoque"), produto)
     console.log("Produto cadastrado com sucesso, ID:", docRef.id)
@@ -24,15 +24,36 @@ export const updateProduct = async (id: string, updatedData: any) => {
     throw new Error
   }
 }
-export const getAllProducts = async (searchTerm?: string): Promise<Produto[] | any> => {
+
+export const handleKardex = async (code?: string) => {
+  try {
+    const productSelected = collection(db, "Estoque")
+    const q = query(productSelected, where("code", "==", code))
+    const snap = await getDocs(q)
+
+    if(!snap.empty) {
+      const doc = snap.docs[0]
+      return { id: doc.id, ...doc.data()}
+    } else {
+      console.log("Produto nao encontrado")
+      return null
+    }
+  }catch(Exception){
+    console.error("Erro ao buscar produto com ID:", Exception)
+    throw new Error
+  }
+}
+
+
+export const getAllProducts = async (searchTerm?: string): Promise<Products[] | any> => {
   try {
     const productRef = collection(db, "Estoque")
     const snapshot = await getDocs(productRef)
 
-    const produtos: Produto[] = snapshot.docs.map((doc) => ({
+    const produtos: Products[] = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data()
-    })) as Produto[]
+    })) as Products[]
     return produtos
   } catch (Exception) {
     console.error("Erro ao recuperar a lista de itens: ", Exception)

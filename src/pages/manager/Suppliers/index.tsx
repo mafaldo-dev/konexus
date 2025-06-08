@@ -3,7 +3,7 @@ import { useForm, SubmitHandler } from 'react-hook-form'
 import { doc, deleteDoc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
 
-import { Fornecedor } from '../../../service/interfaces/fornecedor'
+import { Supplier } from '../../../service/interfaces/suppliers'
 import { getAllSuppliers, insertSupplier, updateSupplier } from '../../../service/api/suppliers/supplier'
 import Dashboard from '../../../components/dashboard'
 
@@ -13,20 +13,20 @@ import trash from "../../../assets/image/delete.png"
 
 
 const SearchSuppliers = () => {
-    const { register, handleSubmit, formState: { errors }, reset } = useForm<Fornecedor>()
+    const { register, handleSubmit, formState: { errors }, reset } = useForm<Supplier>()
 
     const [modalOpen, setModalOpen] = useState<boolean>(false)
     const [openRegister, setOpenRegister] = useState<boolean>(false)
     const [isLoading, setIsLoading] = useState<Boolean>(false)
-    const [render, setRender] = useState<Fornecedor[]>([])
-    const [error, setError] = useState<string | any>(null)
-    const [newInfos, setNewInfos] = useState<Fornecedor>()
-    const [supplier, setSupplier] = useState<Fornecedor[]>([])
+    const [render, setRender] = useState<Supplier[]>([])
+    const [error, setError] = useState<string | null>(null)
+    const [newInfos, setNewInfos] = useState<Supplier>()
+    const [supplier, setSupplier] = useState<Supplier[]>([])
     const [searchTerm, setSearchTerm] = useState<string>("")
-    const [filter, setFilter] = useState<Fornecedor[]>([])
+    const [filter, setFilter] = useState<Supplier[]>([])
 
 
-    const onSubmit: SubmitHandler<Fornecedor> = async (data) => {
+    const onSubmit: SubmitHandler<Supplier> = async (data) => {
         try {
             await insertSupplier({ ...data, added: new Date() })
             reset()
@@ -91,11 +91,11 @@ const SearchSuppliers = () => {
         }
     }
     // ABRE O MODAL PARA EDIÇÃO DE PRODUTOS
-    const editSupplier = (supplier: Fornecedor) => {
+    const editSupplier = (supplier: Supplier) => {
         setNewInfos(supplier)
         setModalOpen(true)
     }
-    async function deleteSupplier(id: any) {
+    async function deleteSupplier(id: string | any) {
         try {
             await deleteDoc(doc(db, "Suppliers", id))
             setSupplier(supplier.filter(s => s.id !== id));

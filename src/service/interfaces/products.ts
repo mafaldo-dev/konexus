@@ -1,10 +1,10 @@
-export interface Produto {
+export interface Products {
     id?: number | any;
     name: string;
     description: string;
     price: number
     quantity: number 
     code: number | string
-    fornecedor: string
+    supplier: string
     added: string | any
 }

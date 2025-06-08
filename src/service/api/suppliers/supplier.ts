@@ -1,6 +1,6 @@
 import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
-import { Fornecedor } from "../../interfaces/fornecedor"
+import { Fornecedor } from "../../interfaces/suppliers"
 
 export async function insertSupplier (supplier: Fornecedor) {
     try {

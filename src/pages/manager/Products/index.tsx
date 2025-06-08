@@ -1,34 +1,75 @@
 import { useState, useEffect } from "react"
 import { useForm, SubmitHandler } from 'react-hook-form'
-import { doc, deleteDoc } from "firebase/firestore"
+import { doc, deleteDoc, collection, getDocs, orderBy, query } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
 
 import { insertProduct, updateProduct } from "../../../service/api/products"
 import { getAllProducts } from "../../../service/api/products/index"
 
-import type { Produto } from "../../../service/interfaces/produtos"
+import type { Products } from "../../../service/interfaces/products"
 import Dashboard from "../../../components/dashboard"
 
 import lupa from "../../../assets/image/search.png"
 import pencil from "../../../assets/image/edit.png"
 import trash from "../../../assets/image/delete.png"
+import { Moviment } from "../../../service/interfaces/movements"
 
 
 const SearchProdutos = () => {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<Produto>()
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<Products>()
 
   const [modalOpen, setIsModalOpen] = useState<boolean>(false)
   const [openRegister, setOpenRegister] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
-  const [render, setRender] = useState<Produto[]>([])
+  const [render, setRender] = useState<Products[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [newInfos, setNewInfos] = useState<Produto>()
-  const [items, setItem] = useState<Produto[]>([])
+  const [newInfos, setNewInfos] = useState<Products>()
+  const [items, setItem] = useState<Products[]>([])
   const [searchTerm, setSearchTerm] = useState<string>("")
-  const [filter, setFilter] = useState<Produto[]>([])
+  const [filter, setFilter] = useState<Products[]>([])
+  const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
+  const [movimentacoes, setMovimentacoes] = useState<Moviment[]>([])
+  const [kardex, setKardex] = useState<boolean>(false)
+
+  // Atualize handleKardex:
+  const handleKardex = async (product: Products) => {
+    setKardex(true);
+    setSelectedProduct(product);
+
+    try {
+      const movRef = collection(db, "Estoque", product.id, "movimentacoes");
+      const q = query(movRef, orderBy("data", "asc"));
+      const snapshot = await getDocs(q);
+
+      const movs: any[] = [];
+      let saldo = 0;
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const qtde = data.quantidade;
+        const tipo = data.tipo;
+
+        saldo += tipo === "entrada" ? qtde : -qtde;
+
+        movs.push({
+          id: doc.id,
+          ...data,
+          saldoAtual: saldo
+        });
+      });
+
+      setMovimentacoes(movs);
+    } catch (error) {
+      console.error("Erro ao buscar movimentações:", error);
+      alert("Erro ao carregar movimentações do produto.");
+    }
+  };
+
+
+
 
   // REGISTER ITENS IN DATABASE
-  const onSubmit: SubmitHandler<Produto> = async (data) => {
+  const onSubmit: SubmitHandler<Products> = async (data) => {
     try {
       await insertProduct({ ...data, added: new Date() })
       reset()
@@ -81,7 +122,7 @@ const SearchProdutos = () => {
         quantity: newInfos.quantity,
         price: newInfos.price,
         code: newInfos.code,
-        fornecedor: newInfos.fornecedor
+        fornecedor: newInfos.supplier
       })
       alert("Produto atualizado com sucesso!")
       setIsModalOpen(false)
@@ -94,7 +135,7 @@ const SearchProdutos = () => {
     }
   }
   // ABRE O MODAL PARA EDIÇÃO DE PRODUTOS
-  const editProduct = (product: Produto) => {
+  const editProduct = (product: Products) => {
     setNewInfos(product)
     setIsModalOpen(true)
   }
@@ -141,6 +182,7 @@ const SearchProdutos = () => {
     handleProducts()
   }, [])
   // TERMINA AQUI
+
   return (
     <Dashboard>
       <div className="w-full flex flex-col items-center m-auto p-4">
@@ -193,7 +235,7 @@ const SearchProdutos = () => {
                           <td className="p-4 text-gray-900 ">{item.name}</td>
                           <td className="p-4 text-gray-900">R$ {item.price}</td>
                           <td className="p-4 text-gray-900">{item.quantity}</td>
-                          <td className="p-4 text-gray-900">{item.fornecedor}</td>
+                          <td className="p-4 text-gray-900">{item.supplier}</td>
                           <td className="p-1">
                             <div className="flex gap-1 ml-12">
                               <button>
@@ -212,9 +254,16 @@ const SearchProdutos = () => {
                                   onClick={() => deleteProduct(item.id)}
                                 />
                               </button>
+                              <button
+                                className="px-2 py-3 font-bold bg-gray-200 h-2 flex items-center rounded-sm"
+                                onClick={() => handleKardex(item)}
+                              >
+                                <span className="mb-2 py-4 text-lg">...</span>
+                              </button>
                             </div>
                           </td>
                         </tr>
+
                       ))
                     ) : (
                       <tr>
@@ -223,6 +272,50 @@ const SearchProdutos = () => {
                         </td>
                       </tr>
                     )}
+                    {kardex && selectedProduct && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                        <div className="bg-white rounded-2xl p-6 w-full max-w-3xl shadow-lg relative">
+                          <button
+                            className="absolute top-3 right-4 text-gray-500 hover:text-red-500"
+                            onClick={() => {
+                              setKardex(false);
+                              setSelectedProduct(null);
+                              setMovimentacoes([]);
+                            }}
+                          >
+                            ✖
+                          </button>
+                          <h2 className="text-xl font-bold mb-4">Kardex - {selectedProduct.name}</h2>
+                          <table className="w-full border border-gray-300 rounded">
+                            <thead>
+                              <tr className="bg-gray-100 border-b border-gray-200">
+                                <th className="p-2 text-left">Data</th>
+                                <th className="p-2 text-left">Tipo</th>
+                                <th className="p-2 text-left">Quantidade</th>
+                                <th className="p-2 text-left">Saldo Atual</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {movimentacoes.length > 0 ? (
+                                movimentacoes.map((mov: any) => (
+                                  <tr key={mov.id} className="border-b">
+                                    <td className="p-2">{new Date(mov.data.seconds * 1000).toLocaleDateString()}</td>
+                                    <td className="p-2">{mov.tipo}</td>
+                                    <td className="p-2">{mov.quantidade}</td>
+                                    <td className="p-2">{mov.saldoAtual}</td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={4} className="p-2 text-center">Nenhuma movimentação encontrada</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
                   </tbody>
                 </table>
               </div>
@@ -280,7 +373,7 @@ const SearchProdutos = () => {
                 />
                 <input
                   name="fornecedor"
-                  value={newInfos.fornecedor}
+                  value={newInfos.supplier}
                   onChange={handleChange}
                   placeholder="Fornecedor"
                   className="w-full border p-2 mb-2 rounded h-20"
@@ -366,11 +459,11 @@ const SearchProdutos = () => {
                     <label htmlFor="code" className="font-medium">Fornecedor</label>
                     <input
                       type="text"
-                      {...register("fornecedor", { required: true })}
+                      {...register("supplier", { required: true })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                       required
                     />
-                    {errors.fornecedor && <span className="color-red-500">Vincule o produto a um fornecedor!!! requerido</span>}
+                    {errors.supplier && <span className="color-red-500">Vincule o produto a um fornecedor!!! requerido</span>}
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">

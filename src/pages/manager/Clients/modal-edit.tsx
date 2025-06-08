@@ -1,5 +1,5 @@
 import { useForm, SubmitHandler } from 'react-hook-form'
-import { Cliente } from '../../../service/interfaces/client'
+import { Cliente } from '../../../service/interfaces/clients'
 
 
 const EditClient = () => {
