@@ -27,7 +27,7 @@ export async function updateClient(id: string, updatedData: any) {
     }
 }
 
-export async function getAllClients(): Promise<Cliente[]> {
+export async function getAllClients(searchTerm?: string): Promise<Cliente[]> {
     try {
         const clientRef = collection(db, "Clients")
         const snapshot = await getDocs(clientRef)

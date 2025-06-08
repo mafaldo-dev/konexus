@@ -14,33 +14,32 @@ const LoginPage: React.FC = () => {
 
     const navigate = useNavigate();
 
-async function loginAdmin(username: string, password: string) {
-  const adminsRef = collection(db, "Administracao"); // nome da coleção que você criou
-  const q = query(adminsRef, where("Admin", "==", username), where("Password", "==", password));
-  
-  const querySnapshot = await getDocs(q);
-  
-  if (!querySnapshot.empty) {
-    return true;
-  } else {
-    return false;
-  }
-}
+    async function loginAdmin(username: string, password: string) {
+        const adminsRef = collection(db, "Administracao"); // nome da coleção que você criou
+        const data = query(adminsRef, where("Admin", "==", username), where("Password", "==", password));
 
-async function handleSubmit (e: any) {
-    e.preventDefault()     
-    const success = await loginAdmin(admin, pass)
-    if(success) {
-        setLogged(true)
-        localStorage.setItem("userlogged", admin)
-        navigate("/dashboard")
-        setError("")
-    }else {
-        console.error("Verifique suas credenciais de acesso")
-        setError("Verifique suas credenciais de acesso!")
+        const querySnapshot = await getDocs(data);
+
+        if (!querySnapshot.empty) {
+            return true;
+        } else {
+            return false;
+        }
     }
-};
 
+    async function handleSubmit(e: any) {
+        e.preventDefault()
+        const success = await loginAdmin(admin, pass)
+        if (success) {
+            setLogged(true)
+            localStorage.setItem("userlogged", admin)
+            navigate("/dashboard")
+            setError("")
+        } else {
+            console.error("Verifique suas credenciais de acesso")
+            setError("Verifique suas credenciais de acesso!")
+        }
+    };
     return (
         <section className="flex flex-col mt-72 items-center justify-center p-4">
             <header className="bg-black w-84 h-20 rounded-t-xl flex items-center justify-center ">
@@ -49,9 +48,9 @@ async function handleSubmit (e: any) {
             <div className="flex flex-col bg-gray-200 h-92 w-84">
                 <h2 className="text-xl font-bold text-center mt-12">Login</h2>
                 <div className="flex flex-col gap-2">
-                    <form className="flex flex-col w-62 m-auto mt-4 gap-2"  onSubmit={handleSubmit}>
+                    <form className="flex flex-col w-62 m-auto mt-4 gap-2" onSubmit={handleSubmit}>
                         <div>
-                            <input  
+                            <input
                                 className="bg-white p-2 rounded-lg w-full"
                                 type="text"
                                 placeholder="Usuário"
@@ -59,12 +58,12 @@ async function handleSubmit (e: any) {
                                 value={admin}
                                 onChange={(e) => setAdmin(e.target.value)}
                                 required
-                            /> 
+                            />
                         </div>
                         <div>
-                            <input 
+                            <input
                                 className="bg-white p-2 rounded-lg w-full"
-                                type="password" 
+                                type="password"
                                 placeholder="Senha"
                                 value={pass}
                                 onChange={(e) => setPassword(e.target.value)}

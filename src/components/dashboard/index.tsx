@@ -3,9 +3,8 @@ import { useDataHora } from "../../utils/data-hora"
 
 export default function Dashboard({ children }: any) {
     const username = localStorage.getItem("userlogged");
-    const dataHora = useDataHora();
-    
-    
+    const getNowHour = useDataHora();
+      
     return (
         <div className="flex h-screen">
             {/* Sidebar */}
@@ -32,13 +31,12 @@ export default function Dashboard({ children }: any) {
                             <ul className='flex gap-4 items-center'>
                                 <li className='font-semibold'>Central</li>
                                 <li className='font-bold'>{username}</li>
-                                <li className='text-blue-400'>{dataHora}</li>
+                                <li className='text-blue-400'>{getNowHour}</li>
                                 <a href='/' className='bg-cyan-500 text-center text-white p-1 font-bold rounded-lg w-22 font-sans'>Logout</a>
                             </ul>
                         </nav>
                     </div>
                 </header>
-
                 {/* Main Body */}
                 <section className="main-body">
                     {children}

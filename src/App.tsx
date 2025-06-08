@@ -1,11 +1,11 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 
 import LoginPage from './login'
-import SearchProdutos from './pages/manager/produtos';
-import SearchClientes from './pages/manager/clientes';
-import SearchFornecedores from './pages/manager/fornecedores';
+import SearchProdutos from './pages/manager/Products';
+import SearchClientes from './pages/manager/Clients';
+import SearchFornecedores from './pages/manager/Suppliers';
 import PaginaDeRegistroDeVendas from './pages/vendas';
-import PainelAdmin from './components/painelAdmin';
+import PainelAdmin from './components/AdminScreen';
 
 
 const App = () => {  

@@ -37,6 +37,7 @@ const SearchProdutos = () => {
       setOpenRegister(false)
     } catch (Exception) {
       console.error("Erro ao adicionar Item", Exception)
+      alert("Erro ao adicionar novo produto.")
       setError("Erro ao cadastrar produto!")
     }
   }
@@ -57,6 +58,7 @@ const SearchProdutos = () => {
     };
     fetchProducts();
   }, []);
+
   // PERMITE ATUALIZAR OS DADOS PARCIALMENTE
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

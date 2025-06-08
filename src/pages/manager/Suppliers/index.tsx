@@ -12,7 +12,7 @@ import pencil from "../../../assets/image/edit.png"
 import trash from "../../../assets/image/delete.png"
 
 
-const SearchFornecedores = () => {
+const SearchSuppliers = () => {
     const { register, handleSubmit, formState: { errors }, reset } = useForm<Fornecedor>()
 
     const [modalOpen, setModalOpen] = useState<boolean>(false)
@@ -419,4 +419,4 @@ const SearchFornecedores = () => {
     )
 }
 
-export default SearchFornecedores
+export default SearchSuppliers

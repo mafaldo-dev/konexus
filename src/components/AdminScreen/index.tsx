@@ -1,5 +1,3 @@
-"use client"
-
 import type React from "react"
 import { useState, useEffect } from "react"
 
@@ -9,24 +7,24 @@ import Dashboard from "../dashboard"
 
 
 const PainelAdmin = () => {
-  const [lembretes, setLembretes] = useState(localStorage.getItem("lembretes") || "")
-  const [lembretesTitulo, setLembretesTitulo] = useState(localStorage.getItem("lembretesTitulo") || "")
+  const [remember, setRemembers] = useState(localStorage.getItem("remember") || "")
+  const [rememberTitle, setRememberTitle] = useState(localStorage.getItem("RememberTitle") || "")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [products, setProducts] = useState<Produto[]>([])
   const [activeTab, setActiveTab] = useState("notifications")
 
-  const handleChangeRascunhos = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLembretesTitulo(e.target.value)
+  const handleChangeRemembers = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRememberTitle(e.target.value)
   }
 
   const handleChangeTextarea = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLembretes(e.target.value)
+    setRemembers(e.target.value)
   }
 
-  const handleSaveRascunho = () => {
-    localStorage.setItem("lembretes", lembretes)
-    localStorage.setItem("lembretesTitulo", lembretesTitulo)
+  const handleSaveRemember = () => {
+    localStorage.setItem("remember", remember)
+    localStorage.setItem("RememberTitle", rememberTitle)
   }
 
   const lowProducts = async () => {
@@ -38,6 +36,7 @@ const PainelAdmin = () => {
     } catch (exe) {
       console.error("Erro ao recuperar produtos", exe)
       setError("Erro ao recuperar dados dos produtos")
+      throw new Error
     } finally {
       setLoading(false)
     }
@@ -464,21 +463,21 @@ const PainelAdmin = () => {
                             type="text"
                             className="shadow-sm focus:ring-cyan-500 p-2 focus:border-cyan-500 block w-full sm:text-sm border-gray-300 rounded-md"
                             placeholder="Título"
-                            value={lembretesTitulo}
-                            onChange={handleChangeRascunhos}
+                            value={rememberTitle}
+                            onChange={handleChangeRemembers}
                           />
                           <textarea
                             rows={4}
                             style={{resize: "none"}}
                             className="shadow-sm focus:ring-cyan-500 p-2 focus:border-cyan-500 block w-full sm:text-sm border-gray-300 rounded-md"
                             placeholder="O que você está pensando?"
-                            value={lembretes}
+                            value={remember}
                             onChange={handleChangeTextarea}
                           />
                           <button
                             type="button"
                             className="inline-flex items-center justify-center w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-cyan-500 hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
-                            onClick={handleSaveRascunho}
+                            onClick={handleSaveRemember}
                           >
                             Salvar rascunho
                           </button>
