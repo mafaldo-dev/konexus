@@ -9,9 +9,8 @@ import type { Clients } from "../../../service/interfaces/clients"
 
 import Dashboard from "../../../components/dashboard"
 
-import pencil from "../../../assets/image/edit.png"
-import trash from "../../../assets/image/delete.png"
 import lupa from "../../../assets/image/search.png"
+
 
 
 const SearchClientes = () => {
@@ -31,16 +30,17 @@ const SearchClientes = () => {
   // INSERT CLIENTS DATA
   const onSubmit: SubmitHandler<Clients> = async (data) => {
     try {
-      await insertClient({ ...data, added: new Date() })
+      await insertClient({ ...data, addedAt: new Date() })
       reset()
       const reload = await getAllClients()
+      console.log(render)
       setAddedClient(reload)
       setOpenRegister(false)
     } catch (Exception) {
       console.error("Erro ao adicionar novo cliente", Exception)
       alert("Erro ao adicionar novo cliente.")
       setError("Erro ao cadastrar cliente")
-      throw new Error
+      throw new Error("Erro ao cadastrar o cliente!")
     } finally {
       setLoading(false)
     }
@@ -56,12 +56,13 @@ const SearchClientes = () => {
       } catch (Exception) {
         console.error("Erro ao recuperar dados dos clientes:", Exception)
         setError("Erro ao buscar dados")
+        throw new Error("Erro ao recuperar a lista de clientes!")
       } finally {
         setLoading(false)
       }
     }
     renderClients()
-  }, [getAllClients])
+  }, [])
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -81,11 +82,11 @@ const SearchClientes = () => {
         name: newInfos.name,
         phone: newInfos.phone,
         email: newInfos.email,
-        state: newInfos.state,
-        city: newInfos.city,
-        number: newInfos.number,
-        street: newInfos.street,
-        zip_code: newInfos.zip_code,
+        state: newInfos.address.state,
+        city: newInfos.address.city,
+        number: newInfos.address.number,
+        street: newInfos.address.street,
+        zip_code: newInfos.address.zip_code,
         code: newInfos.code
       })
       alert("Dados do cliente atualizados com sucesso!!")
@@ -95,17 +96,17 @@ const SearchClientes = () => {
     } catch (Exception) {
       console.error("Erro ao atualizar infomações do cliente:", Exception)
       alert("Erro ao atualizar informações do cliente.")
-      throw new Error
+      throw new Error("Erro ao atualizar as informações do cliente!")
     }
   }
-  const editClient = (client: Clients) => {
+  const handleEdit = (client: Clients) => {
     setNewInfos(client)
     setIsModalOpen(true)
   }
 
-  async function deleteCliente(id: any) {
+  async function handleDelete(id: any) {
     try {
-      await deleteDoc(doc(db, "Clientes", id))
+      await deleteDoc(doc(db, "Clients", id))
       setAddedClient(addedClient.filter(c => c.id !== id))
       alert("Cliente deletado com sucesso!")
       const reload = await getAllClients()
@@ -113,7 +114,7 @@ const SearchClientes = () => {
     } catch (Exception) {
       console.error("Erro ao deletar cliente: ", Exception)
       alert("Erro ao deletar cliente")
-      throw new Error
+      throw new Error("Erro ao deletar o cliente!")
     }
   }
 
@@ -139,7 +140,7 @@ const SearchClientes = () => {
     } catch (Exception) {
       console.error("Erro ao buscar Item:", Exception)
       alert("Erro ao recuperar informações do item!")
-      throw new Error
+      throw new Error("Erro ao filtrar pela busca indicada!")
     }
   }
   useEffect(() => {
@@ -186,43 +187,39 @@ const SearchClientes = () => {
                       <th className="h-10 px-4 text-left font-medium text-gray-700">E-mail</th>
                       <th className="h-10 px-4 text-left font-medium text-gray-700">Telefone</th>
                       <th className="h-10 px-4 text-left font-medium text-gray-700">Estado</th>
-                      <th className="h-10 px-4 text-left font-medium text-gray-700">Cidade</th>
-                      <th className="h-10 px-4 text-left font-medium text-gray-700">Numero</th>
+                      {/* <th className="h-10 px-4 text-left font-medium text-gray-700">Cidade</th> */}
+                      {/* <th className="h-10 px-4 text-left font-medium text-gray-700">Numero</th> */}
                       <th className="h-10 px-4 text-left font-medium text-gray-700">CEP</th>
-                      <th className="h-10 px-4 text-left font-medium text-gray-700"></th>
+                      <th className="h-10 px-4 text-left font-medium text-gray-700">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {/* Corpo da Tabela com Scroll */}
                     {filter.length > 0 ? (
                       filter.map((client) => (
-                        <tr className="border-b cursor-pointer border-gray-200 hover:bg-gray-50" key={client.id}>
-                          <td className="p-2 text-gray-900">{client.code}</td>
+                        <tr className="border-b cursor-pointer text-sm border-gray-200 hover:bg-gray-50" key={client.id}>
+                          <td className="p-2  text-gray-900 ">{client.code}</td>
                           <td className="p-2 text-gray-900 ">{client.name}</td>
                           <td className="p-2 text-gray-900">{client.email}</td>
                           <td className="p-2 text-gray-900">{client.phone}</td>
-                          <td className="p-2 text-gray-900">{client.state}</td>
-                          <td className="p-2 text-gray-900">{client.city}</td>
-                          <td className="p-2 text-gray-900" >{client.number}</td>
-                          <td className="p-2 text-gray-900">{client.zip_code}</td>
+                          <td className="p-2 text-gray-900">{client.address.state}</td>
+                          {/* <td className="p-2 text-gray-900">{client.address.city}</td> */}
+                          {/* <td className="p-2 text-gray-900" >{client.address.number}</td> */}
+                          <td className="p-2 text-gray-900">{client.address.zip_code}</td>
                           {/*<td className="p-2 text-gray-900">{client.added}</td>*/}
                           <td className="p-1">
-                            <div className="flex gap-1 ml-12">
-                              <button>
-                                <img
-                                  src={pencil || "/placeholder.svg"}
-                                  alt="Ícone de pincel"
-                                  className="h-6 bg-green-400 rounded-sm cursor-pointer"
-                                  onClick={() => editClient(client)}
-                                />
+                            <div className="flex gap-1 -ml-2">
+                              <button
+                                onClick={() => handleEdit(client.id)}
+                                className="text-blue-600 hover:text-blue-900 mr-3"
+                              >
+                                Editar
                               </button>
-                              <button>
-                                <img
-                                  src={trash || "/placeholder.svg"}
-                                  alt="Ícone de lata de lixo"
-                                  className="h-6 bg-red-400 rounded-sm cursor-pointer"
-                                  onClick={() => deleteCliente(client.id)}
-                                />
+                              <button
+                                onClick={() => handleDelete(client.id!)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                Excluir
                               </button>
                             </div>
                           </td>
@@ -368,7 +365,7 @@ const SearchClientes = () => {
                             id="state"
                             type="text"
                             name="state"
-                            value={newInfos.state}
+                            value={newInfos.address.state}
                             onChange={handleChange}
                             placeholder="Estado"
                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
@@ -383,7 +380,7 @@ const SearchClientes = () => {
                             id="city"
                             type="text"
                             name="city"
-                            value={newInfos.city}
+                            value={newInfos.address.city}
                             onChange={handleChange}
                             placeholder="Cidade"
                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
@@ -400,7 +397,7 @@ const SearchClientes = () => {
                             id="street"
                             type="text"
                             name="street"
-                            value={newInfos.street}
+                            value={newInfos.address.street}
                             onChange={handleChange}
                             placeholder="Rua, Avenida, etc."
                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
@@ -415,7 +412,7 @@ const SearchClientes = () => {
                             id="number"
                             type="text"
                             name="number"
-                            value={newInfos.number}
+                            value={newInfos.address.number}
                             onChange={handleChange}
                             placeholder="Nº"
                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
@@ -431,7 +428,7 @@ const SearchClientes = () => {
                           id="zip_code"
                           type="text"
                           name="zip_code"
-                          value={newInfos.zip_code}
+                          value={newInfos.address.zip_code}
                           onChange={handleChange}
                           placeholder="00000-000"
                           className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
@@ -542,11 +539,11 @@ const SearchClientes = () => {
                       <input
                         id="state"
                         type="text"
-                        {...register("state", { required: true })}
+                        {...register("address.state", { required: true })}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         placeholder="Digite o estado"
                       />
-                      {errors.state && <span className="text-red-500 text-xs font-medium">Estado é obrigatório</span>}
+                      {errors.address?.state && <span className="text-red-500 text-xs font-medium">Estado é obrigatório</span>}
                     </div>
 
                     <div className="space-y-1">
@@ -556,11 +553,11 @@ const SearchClientes = () => {
                       <input
                         id="city"
                         type="text"
-                        {...register("city", { required: true })}
+                        {...register("address.city", { required: true })}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         placeholder="Digite a cidade"
                       />
-                      {errors.city && <span className="text-red-500 text-xs font-medium">Cidade é obrigatória</span>}
+                      {errors.address?.city && <span className="text-red-500 text-xs font-medium">Cidade é obrigatória</span>}
                     </div>
                   </div>
 
@@ -572,11 +569,11 @@ const SearchClientes = () => {
                       <input
                         id="street"
                         type="text"
-                        {...register("street", { required: true })}
+                        {...register("address.street", { required: true })}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         placeholder="Rua, Avenida, etc."
                       />
-                      {errors.street && <span className="text-red-500 text-xs font-medium">Logradouro é obrigatório</span>}
+                      {errors.address?.street && <span className="text-red-500 text-xs font-medium">Logradouro é obrigatório</span>}
                     </div>
 
                     <div className="space-y-1">
@@ -586,11 +583,11 @@ const SearchClientes = () => {
                       <input
                         id="number"
                         type="number"
-                        {...register("number", { required: true })}
+                        {...register("address.number", { required: true })}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         placeholder="Nº"
                       />
-                      {errors.number && <span className="text-red-500 text-xs font-medium">Número é obrigatório</span>}
+                      {errors.address?.number && <span className="text-red-500 text-xs font-medium">Número é obrigatório</span>}
                     </div>
                   </div>
 
@@ -601,11 +598,11 @@ const SearchClientes = () => {
                     <input
                       id="zip_code"
                       type="text"
-                      {...register("zip_code", { required: true })}
+                      {...register("address.zip_code", { required: true })}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       placeholder="00000-000"
                     />
-                    {errors.zip_code && <span className="text-red-500 text-xs font-medium">CEP é obrigatório</span>}
+                    {errors.address?.zip_code && <span className="text-red-500 text-xs font-medium">CEP é obrigatório</span>}
                   </div>
                 </div>
 

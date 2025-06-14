@@ -25,25 +25,6 @@ export const updateProduct = async (id: string, updatedData: any) => {
   }
 }
 
-export const handleKardex = async (code?: string) => {
-  try {
-    const productSelected = collection(db, "Estoque")
-    const q = query(productSelected, where("code", "==", code))
-    const snap = await getDocs(q)
-
-    if(!snap.empty) {
-      const doc = snap.docs[0]
-      return { id: doc.id, ...doc.data()}
-    } else {
-      console.log("Produto nao encontrado")
-      return null
-    }
-  }catch(Exception){
-    console.error("Erro ao buscar produto com ID:", Exception)
-    throw new Error
-  }
-}
-
 export const handleProductWithCode = async (code: string | number) => {
   try {
     const productRef = collection(db, "Estoque")

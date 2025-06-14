@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore"
+import { collection, addDoc, getDocs, updateDoc, doc, where, query } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
 import { Supplier } from "../../interfaces/suppliers"
 
@@ -41,4 +41,25 @@ export async function getAllSuppliers (serchTerm?: string): Promise<Supplier[]> 
         alert("Erro ao recuperar a lista de fornecedores")
         throw new Error
     }
+}
+
+export const handleSupplierWithCode = async (code: string) => {
+  try {
+    const productRef = collection(db, "Suppliers")
+    const get = query(productRef, where("code", "==", String (code)))
+    const snapshot = await getDocs(get)
+
+
+    if(!snapshot.empty) {
+      const doc = snapshot.docs[0]
+      console.log(doc)
+      return { id: doc.id, ...doc.data() }
+    }else {
+      console.log("Fornecedor não existe ou não encontrado!")
+      return null
+    }
+  }catch(Exception) {
+    console.error("Erro ao recuperar Informações do fornecedor: ", Exception)
+    throw new Error ("Erro ao buscar fornecedor pelo codigo")
+  }
 }

@@ -12,10 +12,11 @@ import Dashboard from "../../../components/dashboard"
 import lupa from "../../../assets/image/search.png"
 import pencil from "../../../assets/image/edit.png"
 import trash from "../../../assets/image/delete.png"
-import { Moviment } from "../../../service/interfaces/movements"
+import { Movement } from "../../../service/interfaces/movements"
+import { getKardexMovements } from "../../../service/api/kardex"
 
 
-const SearchProdutos = () => {
+const SearchProducts = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<Products>()
 
   const [modalOpen, setIsModalOpen] = useState<boolean>(false)
@@ -28,59 +29,37 @@ const SearchProdutos = () => {
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [filter, setFilter] = useState<Products[]>([])
   const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
-  const [movimentacoes, setMovimentacoes] = useState<Moviment[]>([])
+  const [movements, setMovements] = useState<Movement[]>([])
   const [kardex, setKardex] = useState<boolean>(false)
 
   // Atualize handleKardex:
-  const handleKardex = async (product: Products) => {
-    setKardex(true);
-    setSelectedProduct(product);
-
+  const handleOpenKardex = async (product: Products) => {
     try {
-      const movRef = collection(db, "Estoque", product.id, "movimentacoes");
-      const q = query(movRef, orderBy("data", "asc"));
-      const snapshot = await getDocs(q);
-
-      const movs: any[] = [];
-      let saldo = 0;
-
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const qtde = data.quantidade;
-        const tipo = data.tipo;
-
-        saldo += tipo === "entrada" ? qtde : -qtde;
-
-        movs.push({
-          id: doc.id,
-          ...data,
-          saldoAtual: saldo
-        });
-      });
-
-      setMovimentacoes(movs);
+      const movements = await getKardexMovements(product.id);
+      setSelectedProduct(product);
+      setMovements(movements);
+      setKardex(true);
     } catch (error) {
-      console.error("Erro ao buscar movimentações:", error);
-      alert("Erro ao carregar movimentações do produto.");
+      console.error("Erro ao abrir o Kardex:", error);
+      alert("Erro ao abrir o Kardex");
     }
   };
-
-
 
 
   // REGISTER ITENS IN DATABASE
   const onSubmit: SubmitHandler<Products> = async (data) => {
     try {
-      await insertProduct({ ...data, added: new Date() })
+      await insertProduct({ ...data, addedAt: new Date() })
       reset()
       const reload = await getAllProducts()
+      console.log(render)
       alert("Produto adicionado com sucesso!")
       setRender(reload)
       setOpenRegister(false)
     } catch (Exception) {
       console.error("Erro ao adicionar Item", Exception)
       alert("Erro ao adicionar novo produto.")
-      setError("Erro ao cadastrar produto!")
+      throw new Error("Erro ao cadastrar o produto!")
     }
   }
   // RENDER ITENS REGISTERED IN DATABASE
@@ -88,18 +67,18 @@ const SearchProdutos = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const produtos = await getAllProducts();
-        setRender(produtos); // Aqui 'render' deve ser o estado com os produtos
+        const produtos = await getAllProducts()
+        setRender(produtos)
       } catch (Exception) {
         console.error("Erro ao recuperar a lista de produtos.", Exception)
-        setError("Erro ao buscar produtos");
-        throw new Error
+        setError("Erro ao buscar produtos")
+        throw new Error("Erro ao recuperar a lista de produtos!")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     };
-    fetchProducts();
-  }, []);
+    fetchProducts()
+  }, [])
 
   // PERMITE ATUALIZAR OS DADOS PARCIALMENTE
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,16 +110,16 @@ const SearchProdutos = () => {
     } catch (Exception) {
       console.error("Erro ao atualizar os dados do Produto", Exception)
       alert("Erro ao atualizar os dados do Produto!")
-      throw new Error
+      throw new Error("Erro ao atualizar os dados produto!")
     }
   }
   // ABRE O MODAL PARA EDIÇÃO DE PRODUTOS
-  const editProduct = (product: Products) => {
+  const handleEdit = (product: Products) => {
     setNewInfos(product)
     setIsModalOpen(true)
   }
   // DELETE ITEM
-  async function deleteProduct(id: any) {
+  async function handleDelete(id: any) {
     try {
       await deleteDoc(doc(db, "Estoque", id))
       setItem(items.filter(product => product.id !== id));
@@ -150,7 +129,7 @@ const SearchProdutos = () => {
     } catch (Exception) {
       console.error("Erro ao deletar produto: ", Exception);
       alert("Erro ao deletar produto, tente novamente.");
-      throw new Error
+      throw new Error("Erro ao deletar o produto")
     }
   }
   // FILTRO COMEÇA AQUI
@@ -175,7 +154,7 @@ const SearchProdutos = () => {
     } catch (Exception) {
       console.error("Erro ao buscar Item:", Exception)
       alert("Erro ao recuperar informações do item!")
-      throw new Error
+      throw new Error("Erro ao recuperar o Produto indicado!")
     }
   }
   useEffect(() => {
@@ -223,7 +202,7 @@ const SearchProdutos = () => {
                       <th className="h-10 px-4 text-left font-medium text-gray-700">Preço</th>
                       <th className="h-10 px-4 text-left font-medium text-gray-700">Quantidade</th>
                       <th className="h-10 px-4 text-left font-medium text-gray-700">Fornecedor</th>
-                      <th className="h-10 px-4 text-left font-medium text-gray-700"></th>
+                      <th className="h-10 px-4 text-left font-medium text-gray-700">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -237,29 +216,24 @@ const SearchProdutos = () => {
                           <td className="p-4 text-gray-900">{item.quantity}</td>
                           <td className="p-4 text-gray-900">{item.supplier}</td>
                           <td className="p-1">
-                            <div className="flex gap-1 ml-12">
-                              <button>
-                                <img
-                                  src={pencil || "/placeholder.svg"}
-                                  alt="Ícone de pincel"
-                                  className="h-6 bg-green-400 rounded-sm cursor-pointer"
-                                  onClick={() => editProduct(item)}
-                                />
-                              </button>
-                              <button>
-                                <img
-                                  src={trash || "/placeholder.svg"}
-                                  alt="Ícone de lata de lixo"
-                                  className="h-6 bg-red-400 rounded-sm cursor-pointer"
-                                  onClick={() => deleteProduct(item.id)}
-                                />
-                              </button>
-                              <button
+                            <div className="flex gap-1 -ml-6">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button
+                                  onClick={() => handleEdit(item.id)}
+                                  className="text-blue-600 hover:text-blue-900 mr-3"
+                                >Editar</button>
+                                
+                                <button
+                                  onClick={() => handleDelete(item.id!)}
+                                  className="text-red-600 hover:text-red-900"
+                                >Excluir</button>
+                              {/* <button
                                 className="px-2 py-3 font-bold bg-gray-200 h-2 flex items-center rounded-sm"
-                                onClick={() => handleKardex(item)}
+                                onClick={() => handleOpenKardex(item)}
                               >
                                 <span className="mb-2 py-4 text-lg">...</span>
-                              </button>
+                              </button> */}
+                              </td>
                             </div>
                           </td>
                         </tr>
@@ -272,50 +246,6 @@ const SearchProdutos = () => {
                         </td>
                       </tr>
                     )}
-                    {kardex && selectedProduct && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                        <div className="bg-white rounded-2xl p-6 w-full max-w-3xl shadow-lg relative">
-                          <button
-                            className="absolute top-3 right-4 text-gray-500 hover:text-red-500"
-                            onClick={() => {
-                              setKardex(false);
-                              setSelectedProduct(null);
-                              setMovimentacoes([]);
-                            }}
-                          >
-                            ✖
-                          </button>
-                          <h2 className="text-xl font-bold mb-4">Kardex - {selectedProduct.name}</h2>
-                          <table className="w-full border border-gray-300 rounded">
-                            <thead>
-                              <tr className="bg-gray-100 border-b border-gray-200">
-                                <th className="p-2 text-left">Data</th>
-                                <th className="p-2 text-left">Tipo</th>
-                                <th className="p-2 text-left">Quantidade</th>
-                                <th className="p-2 text-left">Saldo Atual</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {movimentacoes.length > 0 ? (
-                                movimentacoes.map((mov: any) => (
-                                  <tr key={mov.id} className="border-b">
-                                    <td className="p-2">{new Date(mov.data.seconds * 1000).toLocaleDateString()}</td>
-                                    <td className="p-2">{mov.tipo}</td>
-                                    <td className="p-2">{mov.quantidade}</td>
-                                    <td className="p-2">{mov.saldoAtual}</td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr>
-                                  <td colSpan={4} className="p-2 text-center">Nenhuma movimentação encontrada</td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
                   </tbody>
                 </table>
               </div>
@@ -484,9 +414,72 @@ const SearchProdutos = () => {
       ) : (
         ""
       )}
+      {kardex && selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-5xl shadow-lg relative max-h-[90vh] overflow-y-auto">
+
+            <button
+              className="absolute top-3 right-4 text-gray-500 hover:text-red-500"
+              onClick={() => {
+                setKardex(false);
+                setSelectedProduct(null);
+                setMovements([]);
+              }}
+            >
+              ✖
+            </button>
+
+            <h2 className="text-2xl font-bold mb-4">
+              Kardex - {selectedProduct.name}
+            </h2>
+
+            <div className="mb-4 text-sm">
+              <p><strong>Código:</strong> {selectedProduct.code}</p>
+              <p><strong>Saldo Atual:</strong> {selectedProduct.quantity}</p>
+            </div>
+
+            <table className="w-full border border-gray-300 rounded text-sm">
+              <thead>
+                <tr className="bg-gray-100 border-b border-gray-200">
+                  <th className="p-2 text-left">Data</th>
+                  <th className="p-2 text-left">Tipo</th>
+                  <th className="p-2 text-left">Produto</th>
+                  <th className="p-2 text-left">Código</th>
+                  <th className="p-2 text-left">Quantidade</th>
+                  <th className="p-2 text-left">NF</th>
+                  <th className="p-2 text-left">Usuário</th>
+                </tr>
+              </thead>
+              <tbody>
+                {movements.length > 0 ? (
+                  movements.map((mov: Movement) => (
+                    <tr key={mov.id} className="border-b hover:bg-gray-50">
+                      <td className="p-2">
+                        {new Date(mov.date?.seconds * 1000).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="p-2 capitalize">{mov.type}</td>
+                      <td className="p-2">{selectedProduct.name}</td>
+                      <td className="p-2">{selectedProduct.code}</td>
+                      <td className="p-2">{mov.quantity}</td>
+                      <td className="p-2">{mov.nfNumber}</td>
+                      <td className="p-2">{mov.user || 'Sistema'}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="p-4 text-center text-gray-500">
+                      Nenhuma movimentação encontrada
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </Dashboard>
   )
 }
 
-export default SearchProdutos
+export default SearchProducts
 

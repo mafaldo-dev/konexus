@@ -1,9 +1,11 @@
 import React from 'react';
+import Dashboard from '../../components/dashboard';
 
 const NotaFiscal = ({ nota }: any) => {
   const handlePrint = () => window.print();
 
   return (
+    <Dashboard>
     <div className="p-4 bg-white shadow rounded-xl text-sm">
       <h1 className="text-xl font-bold text-center mb-4">DANFE - Documento Auxiliar da Nota Fiscal Eletrônica</h1>
 
@@ -83,6 +85,7 @@ const NotaFiscal = ({ nota }: any) => {
         <button onClick={() => alert('Baixar PDF')} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Baixar</button>
       </div>
     </div>
+    </Dashboard>
   );
 };
 

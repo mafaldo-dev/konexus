@@ -15,12 +15,16 @@ const LoginPage: React.FC = () => {
     const navigate = useNavigate();
 
     async function loginAdmin(username: string, password: string) {
-        const adminsRef = collection(db, "Administracao"); // nome da coleção que você criou
-        const data = query(adminsRef, where("Admin", "==", username), where("Password", "==", password));
+        const adminsRef = collection(db, "Administracao"); 
+        const employeeRef = collection(db,"Employee")
+        const data = query(adminsRef && employeeRef, where("Admin", "==", username), where("Password", "==", password));
+        const userLogged = query(employeeRef, where("username", "==", username), where("password", "==", password))
 
         const querySnapshot = await getDocs(data);
+        const queryEmployee =  await getDocs(userLogged)
 
-        if (!querySnapshot.empty) {
+
+        if (!querySnapshot.empty || !queryEmployee.empty) {
             return true;
         } else {
             return false;

@@ -1,10 +1,9 @@
-export interface Moviment {
-  id: string
-  code: string
-  name: string
-  quantity: number
-  prohibitedDate: string
-  exitDate: string
-  currentDate: string
-  currentBalance: number
+export interface Movement {
+  id: string;
+  date: any;   
+  nfNumber: number;
+  productId: string;
+  quantity: number;
+  type: string;        
+  user: string;       
 }

@@ -1,13 +1,22 @@
 export interface Supplier {
-    id?:string,
-    name: string,
-    email: string,
-    phone: number,
-    state: string
-    city: string,
-    address: string,
-    number: number,
-    socialName: string,
-    code: string
-    added: string | any
+  id?: string
+  code: string
+  name: string
+  tradingName?: string
+  cnpj: string
+  email: string
+  phone: string
+  address: {
+    street: string 
+    number: string | any
+    complement?: string
+    neighborhood: string
+    city: string 
+    state: string 
+    zipCode: string 
+    uf: string
+  };
+  createdAt: Date | string 
+  updatedAt?: Date | string 
+  active: boolean 
 }
