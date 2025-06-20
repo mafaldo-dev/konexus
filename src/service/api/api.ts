@@ -48,7 +48,6 @@ import { collection, query, where, getDocs } from "firebase/firestore"
 
 // Request information about the logged user in the database
 
-
 export const handleLogin = async(username: string, password: string)=> {
     try {
         const adminsRef = collection(db, "adm");

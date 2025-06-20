@@ -1,11 +1,11 @@
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../../firebaseConfig"
-import { Clients } from "../../interfaces/clients"
+import { Customer } from "../../interfaces/customer"
 
 
-export async function insertClient(client: Clients) {
+export async function insertCustomer(customer: Customer) {
     try {
-        const docRef = await addDoc(collection(db, "Clients"), client)
+        const docRef = await addDoc(collection(db, "Clients"), customer)
         console.log("Cliente cadastrado com sucesso, ID: ", docRef.id)
         return docRef.id
     } catch (Exception) {
@@ -15,10 +15,10 @@ export async function insertClient(client: Clients) {
     }
 }
 
-export async function updateClient(id: string, updatedData: any) {
+export async function updateCustomer(id: string, updatedData: any) {
     try {
-        const clientRef = doc(db, "Clients", id)
-        await updateDoc(clientRef, updatedData)
+        const customerRef = doc(db, "Clients", id)
+        await updateDoc(customerRef, updatedData)
         console.log("Dados atualizados com sucesso!")
     } catch (Exception) {
         console.error("Erro ao atualizar os dados do cliente!", Exception)
@@ -27,15 +27,15 @@ export async function updateClient(id: string, updatedData: any) {
     }
 }
 
-export async function getAllClients(searchTerm?: string): Promise<Clients[]> {
+export async function handleAllCustomer(searchTerm?: string): Promise<Customer[]> {
     try {
         const clientRef = collection(db, "Clients")
         const snapshot = await getDocs(clientRef)
 
-        const clients: Clients[] = snapshot.docs.map((doc) => ({
+        const clients: Customer[] = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data()
-        })) as Clients[]
+        })) as Customer[]
         return clients
     } catch (Exception) {
         console.error("Erro ao recuperar a lista de Clientes!", Exception)

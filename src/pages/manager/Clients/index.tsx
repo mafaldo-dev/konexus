@@ -1,38 +1,35 @@
 import { useEffect, useState } from "react"
 import { useForm, SubmitHandler } from 'react-hook-form'
 
+import Dashboard from "../../../components/dashboard"
+
 import { deleteDoc, doc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
 
-import { getAllClients, insertClient, updateClient } from "../../../service/api/clients/clients"
-import type { Clients } from "../../../service/interfaces/clients"
-
-import Dashboard from "../../../components/dashboard"
+import { handleAllCustomer, insertCustomer, updateCustomer } from "../../../service/api/clients/clients"
+import type { Customer } from "../../../service/interfaces/customer"
 
 import lupa from "../../../assets/image/search.png"
 
-
-
 const SearchClientes = () => {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<Clients>()
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<Customer>()
 
   const [modalOpen, setIsModalOpen] = useState<boolean>(false)
   const [openRegister, setOpenRegister] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
-  const [render, setRender] = useState<Clients[]>([])
+  const [render, setRender] = useState<Customer[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [newInfos, setNewInfos] = useState<Clients>()
-  const [addedClient, setAddedClient] = useState<Clients[]>([])
+  const [newInfos, setNewInfos] = useState<Customer>()
+  const [addedClient, setAddedClient] = useState<Customer[]>([])
   const [searchTerm, setSearchTerm] = useState<string>("")
-  const [filter, setFilter] = useState<Clients[]>([])
-
+  const [filter, setFilter] = useState<Customer[]>([])
 
   // INSERT CLIENTS DATA
-  const onSubmit: SubmitHandler<Clients> = async (data) => {
+  const onSubmit: SubmitHandler<Customer> = async (data) => {
     try {
-      await insertClient({ ...data, addedAt: new Date() })
+      await insertCustomer({ ...data, addedAt: new Date() })
       reset()
-      const reload = await getAllClients()
+      const reload = await handleAllCustomer()
       console.log(render)
       setAddedClient(reload)
       setOpenRegister(false)
@@ -51,7 +48,7 @@ const SearchClientes = () => {
     const renderClients = async () => {
       try {
         setLoading(true)
-        const clients = await getAllClients()
+        const clients = await handleAllCustomer()
         setRender(clients)
       } catch (Exception) {
         console.error("Erro ao recuperar dados dos clientes:", Exception)
@@ -78,7 +75,7 @@ const SearchClientes = () => {
       return
     }
     try {
-      await updateClient(newInfos.id, {
+      await updateCustomer(newInfos.id, {
         name: newInfos.name,
         phone: newInfos.phone,
         email: newInfos.email,
@@ -91,7 +88,7 @@ const SearchClientes = () => {
       })
       alert("Dados do cliente atualizados com sucesso!!")
       setIsModalOpen(false)
-      const reload = await getAllClients()
+      const reload = await handleAllCustomer()
       setFilter(reload)
     } catch (Exception) {
       console.error("Erro ao atualizar infomações do cliente:", Exception)
@@ -99,17 +96,17 @@ const SearchClientes = () => {
       throw new Error("Erro ao atualizar as informações do cliente!")
     }
   }
-  const handleEdit = (client: Clients) => {
+  const handleEdit = (client: Customer) => {
     setNewInfos(client)
     setIsModalOpen(true)
   }
 
-  async function handleDelete(id: any) {
+  async function handleDelete(id: string) {
     try {
       await deleteDoc(doc(db, "Clients", id))
       setAddedClient(addedClient.filter(c => c.id !== id))
       alert("Cliente deletado com sucesso!")
-      const reload = await getAllClients()
+      const reload = await  handleAllCustomer()
       setRender(reload)
     } catch (Exception) {
       console.error("Erro ao deletar cliente: ", Exception)
@@ -133,7 +130,7 @@ const SearchClientes = () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await getAllClients(searchTerm)
+      const res = await handleAllCustomer(searchTerm)
       setAddedClient(res)
       setFilter(res)
 

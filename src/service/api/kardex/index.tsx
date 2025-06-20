@@ -1,6 +1,6 @@
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../../../firebaseConfig";
-import { Movement } from "../../interfaces/movements"; // ajuste o caminho conforme seu projeto
+import { collection, query, where, getDocs } from "firebase/firestore"
+import { db } from "../../../firebaseConfig"
+import { Movement } from "../../interfaces/movements"
 
 export const getKardexMovements = async (productId: string): Promise<Movement[]> => {
   try {

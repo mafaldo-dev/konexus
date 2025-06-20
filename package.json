@@ -14,6 +14,7 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "firebase": "^11.8.1",
+    "lucide-react": "^0.518.0",
     "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -70,6 +71,7 @@
     "@types/react-input-mask": "^3.0.6",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
+    "dotenv": "^16.5.0",
     "electron": "^34.2.0",
     "electron-builder": "^25.1.8",
     "wait-on": "^8.0.2"

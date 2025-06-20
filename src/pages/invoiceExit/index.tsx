@@ -1,92 +1,97 @@
-import React from 'react';
+import { useState } from 'react';
+import DANFE from './danfe';
+
+import { Printer, Download, Eye } from 'lucide-react';
 import Dashboard from '../../components/dashboard';
 
-const NotaFiscal = ({ nota }: any) => {
-  const handlePrint = () => window.print();
+
+export default function DocumentoDANFE() {
+  const [showPreview, setShowPreview] = useState(true);
+
+ 
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownload = () => {
+    // Simulação de download - em um sistema real seria gerado PDF
+    alert('Funcionalidade de download seria implementada aqui');
+  };
 
   return (
     <Dashboard>
-    <div className="p-4 bg-white shadow rounded-xl text-sm">
-      <h1 className="text-xl font-bold text-center mb-4">DANFE - Documento Auxiliar da Nota Fiscal Eletrônica</h1>
+      <div className="min-h-screen bg-gray-50">
+        {/* Barra de ferramentas */}
+        <div className="bg-white shadow-sm border-b p-4 print:hidden">
+          <div className="max-w-5xl mx-auto flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">DANFE - Documento Auxiliar da NF-e</h1>
+              <p className="text-gray-600">Visualização e impressão do documento fiscal</p>
+            </div>
 
-      {/* Cabeçalho */}
-      <div className="grid grid-cols-3 gap-2 border p-2 mb-2">
-        <div>
-          <p><strong>Empresa:</strong> {nota?.empresa || 'Empresa Exemplo LTDA'}</p>
-          <p><strong>CNPJ:</strong> {nota?.cnpj || '00.000.000/0000-00'}</p>
-          <p><strong>Endereço:</strong> {nota?.endereco || 'Rua Exemplo, 123'}</p>
-        </div>
-        <div className="text-center">
-          <p><strong>NFe Nº:</strong> {nota?.numero || '000175'}</p>
-          <p><strong>Série:</strong> {nota?.serie || '1'}</p>
-          <p><strong>Data de Emissão:</strong> {nota?.data || '08/06/2025'}</p>
-        </div>
-        <div className="text-right">
-          <p><strong>Chave de Acesso:</strong></p>
-          <p className="break-words">{nota?.chave || '43.0000.000.000.000000000000000000000000000000000000000'}</p>
-        </div>
-      </div>
+            <div className="flex gap-3">
+              <button
 
-      {/* Remetente/Destinatário */}
-      <div className="border p-2 mb-2">
-        <p className="font-bold mb-1">Destinatário/Remetente</p>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <p><strong>Nome:</strong> {nota?.remetente?.nome || 'Fulano de Tal'}</p>
-            <p><strong>Endereço:</strong> {nota?.remetente?.endereco || 'Rua dos Vinhedos, 386'}</p>
-            <p><strong>Bairro:</strong> {nota?.remetente?.bairro || 'Vinhedos'}</p>
-            <p><strong>Município:</strong> {nota?.remetente?.cidade || 'Bento Gonçalves'}</p>
+                onClick={() => setShowPreview(!showPreview)}
+                className="flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                {showPreview ? 'Ocultar' : 'Visualizar'}
+              </button>
+
+              <button
+
+                onClick={handleDownload}
+                className="flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download PDF
+              </button>
+
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              >
+                <Printer className="w-4 h-4" />
+                Imprimir
+              </button>
+            </div>
           </div>
-          <div>
-            <p><strong>UF:</strong> {nota?.remetente?.uf || 'RS'}</p>
-            <p><strong>CEP:</strong> {nota?.remetente?.cep || '95700-000'}</p>
-            <p><strong>CNPJ:</strong> {nota?.remetente?.cnpj || '11.111.111/0001-11'}</p>
-            <p><strong>IE:</strong> {nota?.remetente?.ie || '000000000'}</p>
+        </div>
+
+        {/* Área de visualização */}
+        {showPreview && (
+          <div className="p-6">
+            <DANFE />
+          </div>
+        )}
+
+        {/* Informações adicionais */}
+        <div className="bg-white border-t p-6 print:hidden">
+          <div className="max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">Sobre o DANFE</h3>
+                <div className="text-sm text-gray-600 space-y-2">
+                  <p>O DANFE (Documento Auxiliar da Nota Fiscal Eletrônica) é um documento que acompanha a mercadoria durante o transporte.</p>
+                  <p>Este documento contém informações resumidas da NF-e e não substitui a nota fiscal eletrônica.</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">Funcionalidades</h3>
+                <div className="text-sm text-gray-600 space-y-2">
+                  <p>• Visualização completa do documento</p>
+                  <p>• Impressão direta do navegador</p>
+                  <p>• Download em formato PDF</p>
+                  <p>• Layout responsivo para diferentes dispositivos</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Produtos */}
-      <div className="border p-2 mb-2">
-        <p className="font-bold mb-2">Itens da Nota Fiscal</p>
-        <table className="w-full table-auto border">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-2">Código</th>
-              <th className="border px-2">Descrição</th>
-              <th className="border px-2">Qtd</th>
-              <th className="border px-2">UN</th>
-              <th className="border px-2">Valor Unit.</th>
-              <th className="border px-2">Valor Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(nota?.produtos || [
-              { codigo: 'P001', nome: 'Produto Exemplo 1', quantidade: 2, unidade: 'cx', valor: 45.00 },
-              { codigo: 'P002', nome: 'Produto Exemplo 2', quantidade: 1, unidade: 'un', valor: 100.00 }
-            ]).map((produto: any, i: number) => (
-              <tr key={i}>
-                <td className="border px-2">{produto.codigo}</td>
-                <td className="border px-2">{produto.nome}</td>
-                <td className="border px-2 text-center">{produto.quantidade}</td>
-                <td className="border px-2 text-center">{produto.unidade}</td>
-                <td className="border px-2 text-right">R$ {produto.valor.toFixed(2)}</td>
-                <td className="border px-2 text-right">R$ {(produto.quantidade * produto.valor).toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Botões */}
-      <div className="flex gap-2 mt-4 justify-end print:hidden">
-        <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Imprimir</button>
-        <button onClick={() => alert('Gerar PDF')} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Gerar PDF</button>
-        <button onClick={() => alert('Baixar PDF')} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Baixar</button>
-      </div>
-    </div>
     </Dashboard>
   );
-};
-
-export default NotaFiscal;
+}

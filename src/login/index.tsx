@@ -1,28 +1,28 @@
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 
-import logo from '../assets/image/iconeGlobo.png'
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
+import logo from '../assets/image/iconeGlobo.png'
+
 const LoginPage: React.FC = () => {
-    const [loading, setLoading] = useState(false)
+    const [loading, setLoading] = useState<boolean>(false)
     const [admin, setAdmin] = useState<string>("")
     const [pass, setPassword] = useState<string>("")
-    const [error, setError] = useState("")
+    const [error, setError] = useState<string | null>(null)
     const [logged, setLogged] = useState<boolean>(false)
 
     const navigate = useNavigate();
 
     async function loginAdmin(username: string, password: string) {
-        const adminsRef = collection(db, "Administracao"); 
-        const employeeRef = collection(db,"Employee")
+        const adminsRef = collection(db, "Administracao");
+        const employeeRef = collection(db, "Employee")
         const data = query(adminsRef && employeeRef, where("Admin", "==", username), where("Password", "==", password));
         const userLogged = query(employeeRef, where("username", "==", username), where("password", "==", password))
 
         const querySnapshot = await getDocs(data);
-        const queryEmployee =  await getDocs(userLogged)
-
+        const queryEmployee = await getDocs(userLogged)
 
         if (!querySnapshot.empty || !queryEmployee.empty) {
             return true;
@@ -31,14 +31,15 @@ const LoginPage: React.FC = () => {
         }
     }
 
-    async function handleSubmit(e: any) {
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
+        setLoading(true)
         const success = await loginAdmin(admin, pass)
         if (success) {
             setLogged(true)
             localStorage.setItem("userlogged", admin)
             navigate("/dashboard")
-            setError("")
+            alert(`Bem vindo de volta ${localStorage.getItem("userlogged")}`)
         } else {
             console.error("Verifique suas credenciais de acesso")
             setError("Verifique suas credenciais de acesso!")
@@ -97,5 +98,4 @@ const LoginPage: React.FC = () => {
         </section>
     );
 };
-
 export default LoginPage;

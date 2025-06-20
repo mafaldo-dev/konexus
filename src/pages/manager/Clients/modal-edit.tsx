@@ -1,11 +1,10 @@
 import { useForm, SubmitHandler } from 'react-hook-form'
-import { Clients } from '../../../service/interfaces/clients'
-
+import { Customer } from '../../../service/interfaces/customer'
 
 const EditClient = () => {
-    const { register, handleSubmit, formState: { errors } } = useForm<Clients>()
+    const { register, handleSubmit, formState: { errors } } = useForm<Customer>()
 
-    const onSubmit: SubmitHandler<Clients> = async (data) => {
+    const onSubmit: SubmitHandler<Customer> = async (data) => {
         console.log(data)
     }
     return (

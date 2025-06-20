@@ -1,20 +1,18 @@
 import { useState, useEffect } from "react"
 import { useForm, SubmitHandler } from 'react-hook-form'
-import { doc, deleteDoc, collection, getDocs, orderBy, query } from "firebase/firestore"
+import { doc, deleteDoc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
+
+import Dashboard from "../../../components/dashboard"
 
 import { insertProduct, updateProduct } from "../../../service/api/products"
 import { getAllProducts } from "../../../service/api/products/index"
-
-import type { Products } from "../../../service/interfaces/products"
-import Dashboard from "../../../components/dashboard"
-
-import lupa from "../../../assets/image/search.png"
-import pencil from "../../../assets/image/edit.png"
-import trash from "../../../assets/image/delete.png"
-import { Movement } from "../../../service/interfaces/movements"
 import { getKardexMovements } from "../../../service/api/kardex"
 
+import type { Products } from "../../../service/interfaces/products"
+import { Movement } from "../../../service/interfaces/movements"
+
+import lupa from "../../../assets/image/search.png"
 
 const SearchProducts = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<Products>()

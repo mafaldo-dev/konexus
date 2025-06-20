@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { useForm, SubmitHandler } from 'react-hook-form'
 import { doc, deleteDoc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
+
+import Dashboard from '../../../components/dashboard'
+
 import { Supplier } from '../../../service/interfaces/suppliers'
 import { getAllSuppliers, insertSupplier, updateSupplier } from '../../../service/api/suppliers/supplier'
-import Dashboard from '../../../components/dashboard'
 
 import Swal from 'sweetalert2';
 
