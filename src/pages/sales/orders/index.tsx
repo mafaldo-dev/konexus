@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import DANFE from './danfe';
 
 import { Printer, Download, Eye } from 'lucide-react';
-import Dashboard from '../../components/dashboard';
 
+import Dashboard from '../../../components/dashboard';
+import  DANFE  from '../orders/danfe';
 
-export default function DocumentoDANFE() {
+export default function InvoiceDANFE() {
   const [showPreview, setShowPreview] = useState(true);
-
- 
 
   const handlePrint = () => {
     window.print();

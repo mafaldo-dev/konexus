@@ -7,4 +7,5 @@ export interface Products {
     code: number | string
     addedAt: string | any
     supplier: string
+    address?: string
 }

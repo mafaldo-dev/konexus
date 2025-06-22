@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { InvoiceData } from '../../service/interfaces/invoiceExit';
+import { InvoiceData } from '../../../service/interfaces/invoiceExit';
+
 
 export default function DANFE({ dados = {} }) {
 
@@ -12,7 +13,6 @@ export default function DANFE({ dados = {} }) {
         }))
     }
     const actualDate = new Date().getUTCDate()
-
 
     return (
         <div className="max-w-5xl mx-auto bg-white p-4 font-mono">

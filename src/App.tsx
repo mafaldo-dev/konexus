@@ -5,8 +5,8 @@ import SearchProdutos from './pages/manager/Products';
 import SearchClientes from './pages/manager/Clients';
 import SearchFornecedores from './pages/manager/Suppliers';
 import PainelAdmin from './components/AdminScreen';
-import InvoiceEntries from './pages/InvoiceEntrie';
-import InvoiceExit from './pages/invoiceExit';
+import InvoiceEntries from './pages/_shopping/entry-notes';
+import InvoiceDANFE from './pages/sales/orders';
 const App = () => {  
     return (         
             <Router>
@@ -20,8 +20,8 @@ const App = () => {
                     <Route path='/products' element={<SearchProdutos />} />
                     <Route path='/customer' element={<SearchClientes />} />
                     <Route path='/suppliers' element={<SearchFornecedores/>} />
-                    <Route path='/sales' element={<InvoiceEntries />} />
-                    <Route path='/report' element={<InvoiceExit />} /> 
+                    <Route path='/invoice' element={<InvoiceEntries />} />
+                    <Route path='/report' element={<InvoiceDANFE />} /> 
                 </Routes>
             </Router>      
     );

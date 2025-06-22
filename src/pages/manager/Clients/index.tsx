@@ -144,10 +144,25 @@ const SearchClientes = () => {
     handleClients()
   }, [])
 
+    // MASKS ON INPUTS PHONE AND ZIP_CODE
+   const maskPhone = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{2})(\d)/, '($1) $2')
+            .replace(/(\d{5})(\d)/, '$1-$2')
+            .replace(/(-\d{4})\d+?$/, '$1')
+    }
+      const maskZipCode = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{5})(\d)/, '$1-$2')
+            .replace(/(-\d{3})\d+?$/, '$1')
+    }
+
   return (
     <Dashboard>
       <div className="w-full flex flex-col items-center m-auto p-4">
-        <h1 className="text-3xl text-center mb-4">Consultar Clientes</h1>
+        <h1 className="text-2xl text-center font-bold mb-12">Gerenciar Clientes</h1>
         <div className="flex justify-between items-center mr-2 mb-1 w-full">
           <div className="flex flex-col mb-3 cursor-pointer hover:zoonIn">
             <span className="ml-1">Novo cliente</span>
@@ -208,13 +223,13 @@ const SearchClientes = () => {
                             <div className="flex gap-1 -ml-2">
                               <button
                                 onClick={() => handleEdit(client.id)}
-                                className="text-blue-600 hover:text-blue-900 mr-3"
+                                className="text-blue-600 font-semibold hover:text-blue-900 mr-3"
                               >
                                 Editar
                               </button>
                               <button
                                 onClick={() => handleDelete(client.id!)}
-                                className="text-red-600 hover:text-red-900"
+                                className="text-red-600 font-semibold hover:text-red-900"
                               >
                                 Excluir
                               </button>
@@ -516,7 +531,12 @@ const SearchClientes = () => {
                     <input
                       id="phone"
                       type="tel"
-                      {...register("phone", { required: true })}
+                      {...register("phone", { 
+                        required: true,
+                        onChange: (e) => {
+                            e.target.value = maskPhone(e.target.value)
+                          }
+                        })}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       placeholder="(00) 00000-0000"
                     />
@@ -595,7 +615,12 @@ const SearchClientes = () => {
                     <input
                       id="zip_code"
                       type="text"
-                      {...register("address.zip_code", { required: true })}
+                      {...register("address.zip_code", { 
+                          required: true,
+                          onChange: (e) => {
+                            e.target.value = maskZipCode(e.target.value)
+                        } 
+                      })}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       placeholder="00000-000"
                     />

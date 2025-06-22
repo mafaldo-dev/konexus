@@ -63,7 +63,7 @@ const SearchSuppliers = () => {
         loadSuppliers()
     }, [])
 
-    // // Filtrar fornecedores
+    // Filtrar fornecedores
     // useEffect(() => {
     //     if (searchTerm) {
     //         const filtered = suppliers.filter(supplier =>
@@ -154,21 +154,20 @@ const SearchSuppliers = () => {
     return (
         <Dashboard>
             <div className="container mx-auto p-4">
-                <h1 className="text-2xl font-bold mb-6">Gerenciar Fornecedores</h1>
-
-                {/* Barra de pesquisa e botão novo */}
-                <div className="flex justify-between mb-4">
-                    <button
-                        onClick={() => setOpenRegister(true)}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                        + Novo Fornecedor
-                    </button>
-
+                <h1 className="text-2xl text-center font-bold mb-12">Gerenciar Fornecedores</h1>
+                <div className="flex justify-between items-center mr-2 mb-1 w-full">
+                    <div className="flex flex-col mb-3 cursor-pointer hover:zoonIn">
+                        <span className="ml-1 text-sm">Novo Fornecedor</span>
+                        <button
+                            onClick={() => setOpenRegister(true)}
+                            className="font-semibold pb-1 ml-1 text-2xl border-gray-400 border text-gray-400 rounded-sm w-26 cursor-pointer"
+                        > + </button>
+                    </div>
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder="Pesquisar fornecedor..."
+                            // placeholder="Pesquisar fornecedor..."
+                            placeholder='Desativado'
                             className="pl-10 pr-4 py-2 border rounded-lg w-64"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -647,7 +646,7 @@ const SearchSuppliers = () => {
                     </div>
                 )}
             </div>
-        </Dashboard>
+        </Dashboard >
     )
 }
 

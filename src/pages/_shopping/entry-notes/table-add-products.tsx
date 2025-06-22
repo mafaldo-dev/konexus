@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { handleProductWithCode } from '../../service/api/products';
-import { Products } from '../../service/interfaces/products';
-import { ProductsProps } from '../../service/interfaces/productsProps';
+import { handleProductWithCode } from '../../../service/api/products';
+import { Products } from '../../../service/interfaces/products';
+import { ProductsProps } from '../../../service/interfaces/productsProps';
+
 
 interface Props {
     product: ProductsProps[];

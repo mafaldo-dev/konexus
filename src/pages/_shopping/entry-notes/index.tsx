@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { SubmitHandler, useForm } from 'react-hook-form';
 
-import { Invoice } from '../../service/interfaces/invoiceEntries';
-import { Supplier } from '../../service/interfaces/suppliers';
-import { ProductsProps } from '../../service/interfaces/productsProps';
+import { Invoice } from '../../../service/interfaces/invoiceEntries';
+import { Supplier } from '../../../service/interfaces/suppliers';
+import { handleSupplierWithCode } from '../../../service/api/suppliers/supplier';
+import { ProductsProps } from '../../../service/interfaces/productsProps';
 
-import { handleSupplierWithCode } from '../../service/api/suppliers/supplier';
-import invoiceEntries from '../../service/api/invoices';
+import invoiceEntries from '../../../service/api/invoices';
 
-import Dashboard from '../../components/dashboard';
+import Dashboard from '../../../components/dashboard';
 import TableAddeProductInvoice from './table-add-products';
+
 
 const InvoiceEntries = () => {
     const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<Invoice>()

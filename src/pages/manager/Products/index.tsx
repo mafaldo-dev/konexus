@@ -163,7 +163,7 @@ const SearchProducts = () => {
   return (
     <Dashboard>
       <div className="w-full flex flex-col items-center m-auto p-4">
-        <h1 className="text-3xl text-center mb-4">Consultar Produtos</h1>
+        <h1 className="text-2xl text-center font-bold mb-12">Gerenciar Produtos</h1>
         <div className="flex justify-between items-center mr-2 mb-1 w-full">
           <div className="flex flex-col mb-3 cursor-pointer hover:zoonIn">
             <span className="ml-1">Novo produto</span>
