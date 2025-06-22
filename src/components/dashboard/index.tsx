@@ -94,8 +94,8 @@ export default function Dashboard({ children }: any) {
                         {toggleRH ? (
                             <>
                                 <p className='cursor-pointer hover:bg-gray-700 p-2 rounded -mt-6'>RH</p>
-                                <a href="/rh/funcionarios" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Funcionários</a>
-                                <a href="/rh/cargos" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Cargos e salários</a>
+                                <a href="/rh/employee" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Funcionários</a>
+                                <a href="/rh/infos" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Cargos e salários</a>
                                 <a href="/rh/folha" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Folha de pagamento</a>
                                 <a href="/rh/ponto" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Ponto eletrônico</a>
                             </>

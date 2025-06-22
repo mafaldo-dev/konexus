@@ -7,6 +7,8 @@ import SearchFornecedores from './pages/manager/Suppliers';
 import PainelAdmin from './components/AdminScreen';
 import InvoiceEntries from './pages/_shopping/entry-notes';
 import InvoiceDANFE from './pages/sales/orders';
+import EmployeeAdministration from './pages/RH/employees';
+import PositionsAndSalaries from './pages/RH/positions&salaries';
 const App = () => {  
     return (         
             <Router>
@@ -22,6 +24,8 @@ const App = () => {
                     <Route path='/suppliers' element={<SearchFornecedores/>} />
                     <Route path='/invoice' element={<InvoiceEntries />} />
                     <Route path='/report' element={<InvoiceDANFE />} /> 
+                    <Route path='/rh/employee' element={<EmployeeAdministration />} />
+                    <Route path='/rh/infos' element={<PositionsAndSalaries />} />
                 </Routes>
             </Router>      
     );
