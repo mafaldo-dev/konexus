@@ -69,8 +69,8 @@ export default function Dashboard({ children }: any) {
                         {toggleVendas ? (
                             <>
                                 <p className='cursor-pointer hover:bg-gray-700 p-2 rounded -mt-6'>Vendas</p>
-                                <a href="/vendas/pedidos" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Pedidos</a>
-                                <a href="/vendas/orcamentos" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Orçamentos</a>
+                                <a href="/sales/orders" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Pedidos</a>
+                                <a href="/sales/order-list" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Orçamentos</a>
                                 <a href="/vendas/comissoes" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Comissões</a>
                                 <a href="/report" className="p-2 hover:bg-gray-700 rounded ml-4">{">"} Relatórios</a>
                             </>
