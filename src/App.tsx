@@ -10,6 +10,7 @@ import EmployeeAdministration from "./pages/RH/employees"
 import PositionsAndSalaries from "./pages/RH/positions&salaries"
 import PurchaseOrder from "./pages/_shopping/purchase-order"
 import OrdersList from "./pages/_shopping/_quotes/orders-list"
+import NewOrderPage from "./pages/_shopping/purchase-order/create-order"
 
 const App = () => {
   return (
@@ -32,6 +33,7 @@ const App = () => {
         {/* ROTA ÚNICA PARA PEDIDOS - gerencia internamente list/create */}
         <Route path="/sales/orders" element={<PurchaseOrder />} />
         <Route path="/sales/order-list" element={<OrdersList />} />
+        <Route path="/sales/newOrder" element={<NewOrderPage />} />
       </Routes>
     </Router>
   )
