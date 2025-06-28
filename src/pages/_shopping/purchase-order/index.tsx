@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+
 import { Search, Plus, Eye, Package, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
-import OrderPDF from "../../components/orders/OrderPDF";
+import OrderPDF from "../../sales/orders/conferency/OrderPDF";
 import { Order } from "../../../service/interfaces/orders";
 import Dashboard from "../../../components/dashboard";
 import { handleAllOrders } from "../../../service/api/orders";
-
-// Importe sua interface Order de onde estiver
-// import { Order } from "@/interfaces/Order";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -25,8 +22,7 @@ export default function OrdersPage() {
       setIsLoading(true);
       const fetchedOrders = await handleAllOrders()
       setOrders(fetchedOrders);
-      console.log(fetchedOrders)
-       setFilteredOrders(fetchedOrders);
+      setFilteredOrders(fetchedOrders);
     }catch(Exception) {
       console.error("Erro ao recuperar orders", Exception)
       alert("Erro ao recuperar os pedidos de venda!")
@@ -66,7 +62,7 @@ export default function OrdersPage() {
     0
   );
   const pendingOrders = orders.filter(
-    (order) => order.status === "pendente"
+    (order) => order.status === "Pendente"
   ).length;
 
   if (selectedOrder) {

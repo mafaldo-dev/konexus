@@ -21,6 +21,7 @@ const AdministrationScreen = () => {
   const [products, setProducts] = useState<Products[]>([])
   const [customer, setCustomer] = useState<Customer[]>([])
   const [employee, setEmployee] = useState<Employee[]>([])
+  const [role, setRole] = useState<Employee[]>([])
 
   const handleChangeRemembers = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRememberTitle(e.target.value)
@@ -56,12 +57,18 @@ const AdministrationScreen = () => {
     const resEmployee = await handleAllEmployee()
     setEmployee(resEmployee)
   }
+  const handleDesignations = async () => {
+    const designations = await handleAllEmployee()
+    setRole(designations)
+    designations.filter((_designation) => _designation.designation.length)
+  }
 
   useEffect(() => {
     productsResponse()
     employeeResponse()
     customerResponse()
     lowProducts()
+    handleDesignations()
   }, [])
 
   return (
@@ -161,21 +168,16 @@ const AdministrationScreen = () => {
                       <p className="mt-1 max-w-2xl text-sm text-gray-500">Visualização rapida da empresa, departamentos e funcionarios</p>
                     </div>
                     <div className="border-t border-gray-200">
-                      <div className="grid grid-cols-3 gap-4 p-4">
+                      <div className="grid grid-cols-2 gap-4 p-4">
                         <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center justify-center">
                           <span className="text-green-500 text-4xl font-bold">{employee.length}</span>
                           <p className="text-gray-500 text-lg mt-2">Funcionarios</p>
                           <button className="mt-4 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-2 rounded w-full">Funcionarios</button>
                         </div>
                         <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center justify-center">
-                          <span className="text-blue-500 text-4xl font-bold">4</span>
+                          <span className="text-purple-500 text-4xl font-bold">{role.length}</span>
                           <p className="text-gray-500 text-lg mt-2">Departamentos</p>
                           <button className="mt-4 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-2 rounded w-full">Departamentos</button>
-                        </div>
-                        <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center justify-center">
-                          <span className="text-purple-500 text-4xl font-bold">4</span>
-                          <p className="text-gray-500 text-lg mt-2">Designações</p>
-                          <button className="mt-4 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-2 px-2 rounded w-full">Designações</button>
                         </div>
                       </div>
                     </div>

@@ -15,9 +15,9 @@ export interface Order {
   customer_phone?: string;
   customer_address: string
   salesperson: string;
-  order_date: string;
+  order_date: string | Date | any;
   total_amount: number | any;
-  status: "pendente" | "separando" | "separado" | "enviado";
+  status: "Pendente" | "Separando" | "Finalizado" | "Enviado";
   items: OrderItem[];
   notes: string
   delivery_date: string

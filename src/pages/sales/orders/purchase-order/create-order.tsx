@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 
-import OrderForm from "../../sales/orders/components/OrderForm";
-import Dashboard from "../../../components/dashboard";
-
-import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+
+import Dashboard from "../../../../components/dashboard";
+import OrderForm from "../components/OrderForm";
+import { ArrowLeft } from "lucide-react";
 
 export default function NewOrderPage() {
     const navigate = useNavigate();
@@ -29,14 +29,11 @@ export default function NewOrderPage() {
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Voltar para Pedidos
                     </button>
-
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-900">
-                            Novo Pedido de Venda
-                        </h1>
-                        <p className="text-slate-600 mt-1">
-                            Preencha os dados para criar um novo pedido
-                        </p>
+                    <div className="text-center">
+                        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+                            <h1 className="text-3xl font-bold text-gray-900 mb-2">Novo Pedido de Venda</h1>
+                            <p className="text-gray-600 font-medium">Preencha as informações para criar um novo pedido</p>
+                        </motion.div>
                     </div>
                 </motion.div>
                 <OrderForm />
