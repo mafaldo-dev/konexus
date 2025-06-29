@@ -12,11 +12,11 @@ import { getFirestore } from "firebase/firestore";
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_SECRET_API_GOOGLE,
   authDomain: process.env.REACT_APP_SECRET_AUTH_DOMAINS,
-  projectId: "keppler-63a74",
-  storageBucket: "keppler-63a74.firebasestorage.app",
-  messagingSenderId: "783076782517",
-  appId: "1:783076782517:web:fa7e7c286efcfdcc3969fc",
-  measurementId: "G-N1XMFCEH3D"
+  projectId: process.env.REACT_APP_SECRET_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_SECRET_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_SECRET_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_SECRET_APP_ID,
+  measurementId: process.env.REACT_APP_SECRET_MEASUREMENT_ID
 };
 
 // Initialize Firebase
