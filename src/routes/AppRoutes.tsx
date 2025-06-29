@@ -25,6 +25,7 @@ import Opportunities from '../pages/CRM/Pages/Opportunities';
 import Campains from '../pages/CRM/Pages/Campanhas';
 import NotFound from '../pages/NOT-FOUND';
 import LeadsPage from '../pages/CRM/leads/LeadsPage';
+import Goals from '../pages/sales/goals';
 
 
 const AppRoutes = () => {
@@ -50,6 +51,15 @@ const AppRoutes = () => {
             <AdministrationScreen />
           </DesignationCheck>
       } />
+
+      <Route 
+        path='/sales/goals' 
+        element={
+          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Vendedor']}>
+            <Goals />
+          </DesignationCheck>
+        }
+      />
       <Route
         path='/sales/comissions'
         element={

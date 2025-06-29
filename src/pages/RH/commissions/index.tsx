@@ -1,57 +1,109 @@
-import React, { useEffect, useState } from 'react';
-import Dashboard from '../../../../src/components/dashboard';
+import { useEffect, useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
+
+import { Award } from 'lucide-react';
+
+import CommissionStats from '../commissions/components/CommisionStats';
+import CommissionFilters from '../commissions/components/CommissionsFilter';
+import CommissionTable from '../commissions/components/CommissionsTable';
 import { handleAllEmployee } from '../../../service/api/employee';
 import { handleAllOrders } from '../../../service/api/orders';
 import { Employee } from '../../../service/interfaces/employees';
+import Dashboard from '../../../components/dashboard';
 
-interface EmployeeCommission extends Employee {
-  totalCommission: number;
-  bonus: number;
+// --- Constantes de Configuração ---
+const COMMISSION_RATE = 0.015; // 1.5%
+const SALES_GOAL = 15000; // R$15.000
+const BONUS_AMOUNT = 800; // R$800
+
+// Gera a lista de meses para o filtro
+const getAvailableMonths = () => {
+  const months = [];
+  const date = new Date();
+  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+  for (let i = 0; i < 12; i++) {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    months.push({
+      label: `${monthNames[month]} de ${year}`,
+      value: `${year}-${String(month + 1).padStart(2, '0')}`
+    });
+    date.setMonth(date.getMonth() - 1);
+  }
+  return months;
+};
+const availableMonths = getAvailableMonths();
+
+interface EmployeeWithMonthlyData extends Employee {
+  monthlyData: {
+    [monthKey: string]: {
+      totalSales: number;
+      totalCommission: number;
+      bonus: number;
+    };
+  };
 }
+type TopPerformer = {
+  name: string;
+  value: number;
+};
 
-const Commissions: React.FC = () => {
-  const [employeesData, setEmployeesData] = useState<EmployeeCommission[]>([]);
+
+export default function Commissions() {
+  const [employeesData, setEmployeesData] = useState<EmployeeWithMonthlyData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>("");
+  const [selectedMonth, setSelectedMonth] = useState(availableMonths[0].value);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const employees = await handleAllEmployee();
-        const orders = await handleAllOrders();
+        const [employees, orders] = await Promise.all([
+          handleAllEmployee(),
+          handleAllOrders()
+        ]);
 
         const completedSales = orders.filter(order => order.status === "Enviado");
 
-        const employeesWithCommissions: EmployeeCommission[] = employees.map(employee => {
-          let totalCommission = 0;
-          let bonus = 0; // Placeholder for bonus
+        const employeesWithCommissions = employees.map(employee => {
+          const salesByEmployee = completedSales.filter(
+            order => order.salesperson === employee.username
+          );
 
-          if (employee.designation === "Vendedor") {
-            const salesByThisSalesperson = completedSales.filter(
-              order => order.salesperson === employee.username // Assuming salesperson name matches username
-            );
-            totalCommission = salesByThisSalesperson.reduce(
-              (sum, order) => sum + (order.total_amount * 0.015),
-              0
-            );
+          // CORREÇÃO: Tipagem explícita com índice string
+          const monthlyData: {
+            [monthKey: string]: {
+              totalSales: number;
+              totalCommission: number;
+              bonus: number;
+            };
+          } = {};
 
-            // TODO: Implement bonus logic based on monthly target
-            // For now, bonus is 0 unless a condition is met.
-            // Example: if (monthlySalesMetTarget(employee.username)) { bonus = 800; }
-          } else {
-            // Non-salesperson only gets bonus if target is met
-            // TODO: Implement bonus logic for non-salesperson based on overall company target or other criteria
-            // Example: if (companyMonthlyTargetMet()) { bonus = 800; }
-          }
+          availableMonths.forEach(month => {
+            const [year, monthNum] = month.value.split('-').map(Number);
 
-          return { ...employee, totalCommission, bonus };
+            const salesInMonth = salesByEmployee.filter(order => {
+              const orderDate = new Date(order.order_date);
+              return orderDate.getFullYear() === year && (orderDate.getMonth() + 1) === monthNum;
+            });
+
+            const totalSales = salesInMonth.reduce((sum, order) => sum + order.total_amount, 0);
+            const totalCommission = totalSales * COMMISSION_RATE;
+            const bonus = totalSales >= SALES_GOAL ? BONUS_AMOUNT : 0;
+
+            monthlyData[month.value] = { totalSales, totalCommission, bonus };
+          });
+
+          return { ...employee, monthlyData };
         });
 
         setEmployeesData(employeesWithCommissions);
+        setError(null);
       } catch (err) {
-        console.error("Error fetching data for commissions:", err);
-        setError("Failed to load commission data.");
+        console.error("Erro ao buscar dados:", err);
+        setError("Falha ao carregar os dados de comissões.");
       } finally {
         setLoading(false);
       }
@@ -60,47 +112,71 @@ const Commissions: React.FC = () => {
     fetchData();
   }, []);
 
+  const processedDataForMonth = useMemo(() => {
+    return employeesData
+      .map(emp => {
+        const dataForMonth = emp.monthlyData ? (emp.monthlyData[selectedMonth] || { totalSales: 0, totalCommission: 0, bonus: 0 }) : { totalSales: 0, totalCommission: 0, bonus: 0 };
+        return {
+          ...emp,
+          totalSales: dataForMonth.totalSales,
+          totalCommission: dataForMonth.totalCommission,
+          bonus: dataForMonth.bonus,
+        };
+      })
+      .filter(emp => emp.designation === "Vendedor"); // Apenas vendedores
+  }, [employeesData, selectedMonth]);
+
+
+  const commissionStats = useMemo(() => {
+    const totalCommission = processedDataForMonth.reduce((sum, emp) => sum + emp.totalCommission, 0);
+    const totalBonus = processedDataForMonth.reduce((sum, emp) => sum + emp.bonus, 0);
+    const salesWithValue = processedDataForMonth.reduce((sum, emp) => sum + emp.totalSales, 0);
+
+    const topPerformer = processedDataForMonth.reduce<TopPerformer>(
+      (top, emp) => {
+        if (emp.totalCommission > top.value) {
+          return { name: emp.username, value: emp.totalCommission };
+        }
+        return top;
+      },
+      { name: '', value: 0 }
+    );
+
+    return { totalCommission, totalBonus, topPerformer, salesWithValue };
+  }, [processedDataForMonth]);
+
   return (
     <Dashboard>
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">Comissões e Bônus</h1>
+      <div className="min-h-screen bg-slate-50">
+        <main className="max-w-7xl mx-auto p-6 sm:p-10">
+          <motion.header
+            className="mb-8"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                <Award className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-extrabold text-slate-900">Painel de Comissões</h1>
+                <p className="mt-1 text-slate-600">Acompanhe comissões e bônus dos vendedores.</p>
+              </div>
+            </div>
+          </motion.header>
 
-        {loading && <p>Carregando dados de comissões...</p>}
-        {error && <p className="text-red-500">{error}</p>}
+          {error && <p className="text-red-600 text-center py-20 font-semibold">{error}</p>}
 
-        {!loading && !error && employeesData.length === 0 && (
-          <p>Nenhum dado de funcionário encontrado.</p>
-        )}
-
-        {!loading && !error && employeesData.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-200">
-              <thead>
-                <tr>
-                  <th className="py-2 px-4 border-b">Nome do Funcionário</th>
-                  <th className="py-2 px-4 border-b">Cargo</th>
-                  <th className="py-2 px-4 border-b">Comissão Total (1.5%)</th>
-                  <th className="py-2 px-4 border-b">Bônus (R$800)</th>
-                  <th className="py-2 px-4 border-b">Total a Receber</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employeesData.map((employee) => (
-                  <tr key={employee.id} className="hover:bg-gray-50">
-                    <td className="py-2 px-4 border-b text-center">{employee.username}</td>
-                    <td className="py-2 px-4 border-b text-center">{employee.designation}</td>
-                    <td className="py-2 px-4 border-b text-center">R$ {employee.totalCommission.toFixed(2)}</td>
-                    <td className="py-2 px-4 border-b text-center">R$ {employee.bonus.toFixed(2)}</td>
-                    <td className="py-2 px-4 border-b text-center">R$ {(employee.totalCommission + employee.bonus).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          {!error && (
+            <>
+              <CommissionStats stats={commissionStats} />
+              <CommissionFilters selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth} availableMonths={availableMonths} />
+              <CommissionTable employees={processedDataForMonth} loading={loading} />
+            </>
+          )}
+        </main>
       </div>
     </Dashboard>
   );
-};
-
-export default Commissions;
+}
