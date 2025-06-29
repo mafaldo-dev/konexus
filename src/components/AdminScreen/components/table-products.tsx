@@ -23,7 +23,7 @@ export default function TableProducts() {
             {loading ? (
                 <div className="px-4 py-5 sm:p-6 text-center">
                     <svg
-                        className="animate-spin h-8 w-8 mx-auto text-cyan-500"
+                        className="animate-spin h-8 w-8 mx-auto text-blue-600"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"

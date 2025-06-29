@@ -1,4 +1,4 @@
-import { collection, getDocs, addDoc } from "firebase/firestore"
+import { collection, getDocs, addDoc, query, where } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
 import { Employee } from "../../interfaces/employees"
 
@@ -28,4 +28,28 @@ export async function handleAllEmployee(searchTerm?: string): Promise<Employee[]
         alert("Erro interno do servidor!!!")
         throw new Error
     }
+}
+
+export async function handleDesignations(designation?: string): Promise<Employee[]> {
+  try {
+    const employeeRef = collection(db, "Employee")
+    
+    // Se tiver filtro, monta query com where
+    const q = designation
+      ? query(employeeRef, where("designation", "==", designation))
+      : employeeRef
+
+    const snapshot = await getDocs(q)
+
+    const employees: Employee[] = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Employee[]
+
+    return employees
+  } catch (error) {
+    console.error("Erro ao recuperar a lista de Funcionarios!", error)
+    alert("Erro interno do servidor!!!")
+    throw new Error()
+  }
 }

@@ -1,46 +1,125 @@
-# Getting Started with Create React App
+# Keppler - Sistema de Gestão Empresarial
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Keppler é um sistema de gestão empresarial (ERP) desktop, desenvolvido com React e Electron, projetado para otimizar e centralizar diversas operações de negócios. Ele oferece módulos para gerenciamento de vendas, estoque, RH, finanças e muito mais, com controle de acesso baseado em funções.
 
-## Available Scripts
+## Funcionalidades Principais
 
-In the project directory, you can run:
+- **Autenticação de Usuários:** Sistema de login seguro com controle de acesso.
+- **Painel Administrativo:** Visão geral e acesso rápido às principais funcionalidades do sistema.
+- **Gestão de Vendas e Pedidos:**
+  - Criação e acompanhamento de pedidos de venda.
+  - Listagem detalhada de pedidos.
+  - Geração de novas ordens de compra.
+- **Gestão de Cadastros:**
+  - Produtos
+  - Clientes
+  - Fornecedores
+  - Categorias
+  - Marcas
+  - Unidades de Medida
+- **Gestão de Estoque:**
+  - Lançamento de notas de entrada (faturas).
+  - Controle de movimentações de estoque.
+- **Recursos Humanos (RH):**
+  - Administração de funcionários.
+  - Gestão de cargos e salários.
+- **Relatórios:** Geração de relatórios e documentos (ex: DANFE).
+- **Controle de Acesso:** Permissões baseadas em funções (Vendedor, Administrador, Conferente, Comprador, Financeiro).
 
-### `npm start`
+## Tecnologias Utilizadas
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- **Frontend:** React.js
+- **Desktop Framework:** Electron
+- **Linguagem:** TypeScript
+- **Estilização:** Tailwind CSS
+- **Autenticação e Banco de Dados (provável):** Firebase
+- **Geração de PDFs:** jspdf, jspdf-autotable
+- **Roteamento:** React Router DOM
+- **Gerenciamento de Formulários:** React Hook Form
+- **Outros:** date-fns, lucide-react, sweetalert2
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Como Rodar o Projeto
 
-### `npm test`
+Para configurar e executar o Keppler em seu ambiente de desenvolvimento, siga os passos abaixo:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Pré-requisitos
 
-### `npm run build`
+Certifique-se de ter as seguintes ferramentas instaladas:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- Node.js (versão 16 ou superior recomendada)
+- npm ou Yarn
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Instalação
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Clone o repositório:
 
-### `npm run eject`
+   ```bash
+   git clone <URL_DO_REPOSITORIO>
+   cd keppler
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+2. Instale as dependências:
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+   ```bash
+   npm install
+   # ou yarn install
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+### Executando em Modo de Desenvolvimento
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+Para iniciar a aplicação React e o processo Electron em modo de desenvolvimento:
 
-## Learn More
+```bash
+npm run electron:serve
+# ou yarn electron:serve
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Isso iniciará o servidor de desenvolvimento do React e, em seguida, o aplicativo Electron.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Construindo para Produção
+
+Para gerar uma versão de produção do aplicativo Electron:
+
+```bash
+npm run electron:build
+# ou yarn electron:build
+```
+
+Os artefatos de build serão gerados na pasta `dist` (ou similar, configurada no `electron-builder`).
+
+## Estrutura do Projeto
+
+```
+keppler/
+├── public/                 # Arquivos públicos e script principal do Electron
+├── src/
+│   ├── assets/             # Imagens e outros recursos estáticos
+│   ├── components/         # Componentes reutilizáveis da UI
+│   ├── login/              # Módulo de autenticação
+│   ├── pages/              # Páginas principais da aplicação, organizadas por módulo
+│   │   ├── _shopping/      # Módulo de compras
+│   │   ├── configurations/ # Configurações do sistema
+│   │   ├── financial/      # Módulo financeiro
+│   │   ├── manager/        # Gestão de cadastros (produtos, clientes, etc.)
+│   │   ├── RH/             # Recursos Humanos
+│   │   ├── sales/          # Módulo de vendas
+│   │   └── stock/          # Módulo de estoque
+│   ├── routes/             # Definição das rotas da aplicação
+│   ├── service/            # Camada de serviço (APIs, interfaces)
+│   ├── types/              # Definições de tipos TypeScript
+│   └── utils/              # Funções utilitárias
+├── .gitignore
+├── package.json
+├── postcss.config.mjs
+├── README.md
+├── tsconfig.json
+└── ... (outros arquivos de configuração e módulos)
+```
+
+## Contribuição
+
+Instruções sobre como contribuir para o projeto (se aplicável).
+
+## Licença
+
+Informações sobre a licença do projeto.

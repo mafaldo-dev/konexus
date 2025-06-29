@@ -121,8 +121,8 @@ const SearchSuppliers = () => {
             setSuppliers(updatedSuppliers)
             setModalOpen(false)
             alert("Fornecedor atualizado com sucesso!")
-        } catch (error) {
-            console.error("Erro ao atualizar fornecedor:", error)
+        } catch (Exception) {
+            console.error("Erro ao atualizar fornecedor:", Exception)
             alert("Erro ao atualizar fornecedor")
         }
     }

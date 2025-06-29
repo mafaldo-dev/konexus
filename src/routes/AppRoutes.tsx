@@ -16,8 +16,16 @@ import MovementsOnStock from '../pages/stock/movements';
 import Categories from '../pages/manager/categories';
 import Brands from '../pages/manager/brands';
 import Units from '../pages/manager/units';
+import CompletedSales from '../pages/sales/completed';
+import Commissions from '../pages/RH/commissions';
+import Layout from '../pages/CRM/Layout';
+import Dashboard from '../pages/CRM/Pages/Dashboard';
 
-// seus imports...
+import Opportunities from '../pages/CRM/Pages/Opportunities';
+import Campains from '../pages/CRM/Pages/Campanhas';
+import NotFound from '../pages/NOT-FOUND';
+import LeadsPage from '../pages/CRM/leads/LeadsPage';
+
 
 const AppRoutes = () => {
   return (
@@ -25,102 +33,152 @@ const AppRoutes = () => {
       {/* AREA DE LOGIN */}
       <Route path="/" element={<LoginPage />} />
       {/* PAINEL ADMIN */}
-      <Route path="/dashboard" element={<AdministrationScreen />} />
+      
 
       {/* ROTA ÚNICA PARA PEDIDOS - gerencia internamente list/create */}
       <Route path="/sales/orders" element={<PurchaseOrder />} />
       <Route path="/sales/order-list" element={<OrdersList />} />
       <Route path="/sales/newOrder" element={<NewOrderPage />} />
+      <Route path="/sales/completed" element={<CompletedSales />} />
 
       {/* Private Routes */}
+
       <Route 
-        path="/manager/products" 
+        path="/dashboard" 
+        element={
+          <DesignationCheck allowed={['Administrador', 'Financeiro']}>
+            <AdministrationScreen />
+          </DesignationCheck>
+      } />
+      <Route
+        path='/sales/comissions'
+        element={
+          <DesignationCheck allowed={["Administrador", "Financeiro"]}>
+            <Commissions />
+          </DesignationCheck>
+        }
+
+      />
+      <Route
+        path="/manager/products"
         element={
           <DesignationCheck allowed={["Vendedor", "Administrador", "Conferente"]}>
             <SearchProducts />
           </DesignationCheck>
         }
       />
-      <Route 
-        path="/manager/customers" 
+      <Route
+        path="/manager/customers"
         element={
           <DesignationCheck allowed={["Administrador", "Vendedor"]}>
             <SearchClientes />
           </DesignationCheck>
         }
       />
-      <Route 
-        path="/manager/suppliers" 
+      <Route
+        path="/manager/suppliers"
         element={
           <DesignationCheck allowed={["Administrador", "Comprador"]}>
             <SearchSuppliers />
           </DesignationCheck>
         }
       />
-      <Route 
-        path="/invoice" 
+      <Route
+        path="/invoice"
         element={
           <DesignationCheck allowed={["Administrador", "Conferente", "Vendedor"]}>
             <InvoiceEntries />
-          </DesignationCheck>                   
+          </DesignationCheck>
         }
       />
-      <Route 
-        path="/report" 
+      <Route
+        path="/sales/report"
         element={
-          <DesignationCheck allowed={["Administrador", "Financeiro"]}>          
+          <DesignationCheck allowed={["Administrador", "Financeiro"]}>
             <InvoiceDANFE />
-          </DesignationCheck>   
+          </DesignationCheck>
         }
       />
-      <Route 
-        path="/rh/employee" 
+      <Route
+        path="/rh/employee"
         element={
           <DesignationCheck allowed={["Administrador", "Financeiro"]}>
             <EmployeeAdministration />
-          </DesignationCheck>       
+          </DesignationCheck>
         }
       />
-      <Route 
-        path="/rh/infos" 
+      <Route
+        path="/rh/infos"
         element={
           <DesignationCheck allowed={["Administrador", "Financeiro"]}>
-             <PositionsAndSalaries />
-          </DesignationCheck>       
+            <PositionsAndSalaries />
+          </DesignationCheck>
         }
       />
-      <Route 
-        path="/stock/movements" 
+      <Route
+        path="/stock/movements"
         element={
-          <DesignationCheck allowed={["Administrador", "Conferente"]}>          
+          <DesignationCheck allowed={["Administrador", "Conferente"]}>
             <MovementsOnStock />
-          </DesignationCheck>   
+          </DesignationCheck>
         }
       />
-      <Route 
-        path="/manager/categories" 
+      <Route
+        path="/manager/categories"
         element={
-          <DesignationCheck allowed={["Administrador"]}>          
+          <DesignationCheck allowed={["Administrador"]}>
             <Categories />
-          </DesignationCheck>   
+          </DesignationCheck>
         }
       />
-      <Route 
-        path="/manager/brands" 
+      <Route
+        path="/manager/brands"
         element={
-          <DesignationCheck allowed={["Administrador"]}>          
+          <DesignationCheck allowed={["Administrador"]}>
             <Brands />
-          </DesignationCheck>   
+          </DesignationCheck>
         }
       />
-      <Route 
-        path="/manager/units" 
+      <Route
+        path="/manager/units"
         element={
-          <DesignationCheck allowed={["Administrador"]}>          
+          <DesignationCheck allowed={["Administrador"]}>
             <Units />
-          </DesignationCheck>   
+          </DesignationCheck>
         }
       />
+      <Route path='not-found' element={ <NotFound />} />
+                {/*AREA OF CRM*/}
+      <Route path="/crm" element={<Layout />}>
+        <Route 
+          path="/crm/dashboard" 
+          element={
+            <DesignationCheck allowed={["Administrador"]}>
+              <Dashboard />
+            </DesignationCheck>
+          } />
+        <Route
+           path="/crm/campains" 
+           element={
+            <DesignationCheck allowed={["Administrador"]}>
+              <Campains />
+            </DesignationCheck>
+          } />
+        <Route 
+          path='/crm/leads' 
+          element={
+            <DesignationCheck allowed={["Administrador"]}>
+                <LeadsPage /> 
+            </DesignationCheck>
+          } />
+        <Route 
+          path="/crm/opportunities" 
+          element={
+            <DesignationCheck allowed={["Administrador"]}>
+              <Opportunities />
+            </DesignationCheck>
+          } />
+      </Route>
     </Routes>
   );
 };

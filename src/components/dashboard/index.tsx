@@ -58,9 +58,9 @@ export default function Dashboard({ children }: any) {
         { title: 'Pedidos', href: '/sales/orders', icon: ShoppingBag, access: ['Administrador', 'Vendedor'] },
         { title: 'Orçamentos', href: '/sales/order-list', icon: FileText, access: ['Administrador', 'Vendedor', 'Conferente'] },
         { title: 'Vendas Realizadas', href: '/sales/completed', icon: TrendingUp, access: ['Administrador', 'Vendedor'] },
-        { title: 'Comissões', href: '/vendas/comissoes', icon: DollarSign, access: ['Administrador', 'Financeiro'] },
-        { title: 'Metas', href: '/sales/goals', icon: Target },
-        { title: 'Relatórios', href: '/report', icon: BarChart3, access: ['Administrador', 'Financeiro'] }
+        { title: 'Comissões', href: '/sales/comissions', icon: DollarSign, access: ['Administrador', 'Financeiro'] },
+        { title: 'Metas', href: '/sales/goals', icon: Target, access: ['Administrador', 'Financeiro', 'Vendedor'] },
+        { title: 'Relatórios', href: '/sales/report', icon: BarChart3, access: ['Administrador', 'Financeiro'] }
       ]
     },
     {
@@ -119,6 +119,7 @@ export default function Dashboard({ children }: any) {
         { title: 'Benefícios', href: '/rh/beneficios', icon: Award },
         { title: 'Treinamentos', href: '/rh/treinamentos', icon: Target }
       ]
+
     },
     {
       key: 'crm',
@@ -126,26 +127,7 @@ export default function Dashboard({ children }: any) {
       icon: Users,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Leads', href: '/crm/leads', icon: Target },
-        { title: 'Oportunidades', href: '/crm/oportunidades', icon: TrendingUp },
-        { title: 'Campanhas', href: '/crm/campanhas', icon: Mail },
-        { title: 'Atendimentos', href: '/crm/atendimentos', icon: Phone },
-        { title: 'Follow-up', href: '/crm/followup', icon: Calendar }
-      ]
-    },
-    {
-      key: 'relatorios',
-      title: 'Relatórios',
-      icon: BarChart3,
-      access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
-      submenu: [
-        { title: 'Dashboard Executivo', href: '/relatorios/executivo', icon: BarChart3 },
-        { title: 'Vendas', href: '/relatorios/vendas', icon: ShoppingCart },
-        { title: 'Financeiro', href: '/relatorios/financeiro', icon: DollarSign },
-        { title: 'Estoque', href: '/relatorios/estoque', icon: Warehouse },
-        { title: 'Clientes', href: '/relatorios/clientes', icon: Users },
-        { title: 'Produtos', href: '/relatorios/produtos', icon: Package }
-      ]
+        { title: 'Dashboard', href: '/crm/dashboard', icon: BarChart3, access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'] },]
     },
     {
       key: 'configuracoes',
@@ -173,7 +155,7 @@ export default function Dashboard({ children }: any) {
             <img src={logo || "/placeholder.svg"} alt="Logo keppler" className="w-8 h-8" />
             {!sidebarCollapsed && (
               <div>
-                <h1 className="text-lg font-bold text-white">Keppler ERP</h1>
+                <h1 className="text-lg font-bold text-white">GUIMAN</h1>
                 <p className="text-xs text-slate-400">Sistema Integrado</p>
               </div>
             )}
@@ -184,7 +166,7 @@ export default function Dashboard({ children }: any) {
           <div className="px-3 space-y-1">
             {menuItems.map((item) => {
               if (!canAccess(item.access)) return null
-              
+
               const Icon = item.icon
               const isExpanded = expandedMenus[item.key]
               const hasSubmenu = item.submenu && item.submenu.length > 0
@@ -222,8 +204,8 @@ export default function Dashboard({ children }: any) {
                   {hasSubmenu && isExpanded && !sidebarCollapsed && (
                     <div className="ml-6 mt-1 space-y-1">
                       {item.submenu?.map((subItem) => {
-                        if (subItem.access && !canAccess(subItem.access)) return null
-                        
+                        if (!item.access || !canAccess(item.access)) return null
+
                         const SubIcon = subItem.icon
                         return (
                           <a

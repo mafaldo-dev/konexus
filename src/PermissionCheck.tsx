@@ -1,4 +1,6 @@
 import { useAuth } from "./AuthContext";
+import Dashboard from "./components/dashboard";
+import NotFound from "./pages/NOT-FOUND";
 
 const DesignationCheck = ({
   allowed,
@@ -12,7 +14,10 @@ const DesignationCheck = ({
 
   if (loading) return <p style={{ padding: 20 }}>Carregando...</p>;
   if (!user || !allowed.includes(user.designation)) {
-    return <p style={{ padding: 20 }}>Acesso negado</p>;
+    return (
+        <NotFound />
+    )
+
   }
 
   return <>{children}</>;
