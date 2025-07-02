@@ -26,6 +26,8 @@ import Campains from '../pages/CRM/Pages/Campanhas';
 import NotFound from '../pages/NOT-FOUND';
 import LeadsPage from '../pages/CRM/leads/LeadsPage';
 import Goals from '../pages/sales/goals';
+import PurchaseRequisition from '../pages/_shopping/purchase-requisition';
+import PurchaseManagementScreen from '../pages/_shopping/purchase-requisition';
 
 
 const AppRoutes = () => {
@@ -43,6 +45,15 @@ const AppRoutes = () => {
       <Route path="/sales/completed" element={<CompletedSales />} />
 
       {/* Private Routes */}
+
+      <Route 
+        path='/financer/shopping'
+        element={
+          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Buyer']}>
+            <PurchaseManagementScreen />
+          </DesignationCheck>
+        }
+        />
 
       <Route 
         path="/dashboard" 
@@ -90,6 +101,14 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={["Administrador", "Comprador"]}>
             <SearchSuppliers />
+          </DesignationCheck>
+        }
+      />
+       <Route
+        path="/shopping/purchase-requisition"
+        element={
+          <DesignationCheck allowed={["Administrador", "Comprador"]}>
+            <PurchaseRequisition />
           </DesignationCheck>
         }
       />

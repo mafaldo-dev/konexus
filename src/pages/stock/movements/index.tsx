@@ -319,7 +319,7 @@ export default function ProfessionalProductList() {
             if (reportConfig.includeBrand) row.Marca = product.brand
             if (reportConfig.includeSupplier) row.Fornecedor = product.supplier
             if (reportConfig.includeCategory) row.Categoria = product.category
-            if (reportConfig.includePrice) row.Preço = `R$ ${product.price.toFixed(2)}`
+            if (reportConfig.includePrice) row.Preço = `R$ ${product.price}`
             if (reportConfig.includeStock) row.Estoque = product.stock
             if (reportConfig.includeLocation) row.Localização = product.location
             return row
@@ -710,7 +710,7 @@ export default function ProfessionalProductList() {
                                                         {product.category}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-2 font-bold text-sm text-slate-800">R$ {product.price.toFixed(2)}</td>
+                                                <td className="px-4 py-2 font-bold text-sm text-slate-800">R$ {product.price}</td>
                                                 <td className="px-4 py-2 font-semibold text-sm text-gray-900">{product.stock}</td>
                                                 <td className="px-4 py-2">
                                                     <div className="flex items-center gap-1 text-gray-600">

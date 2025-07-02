@@ -158,7 +158,7 @@ const TableAddeProductInvoice: React.FC<Props> = ({ product, setProduct }) => {
                                 <tr key={index} className="border-t">
                                     <td className="px-4 py-2">{p.name}</td>
                                     <td className="px-4 py-2">{p.quantity}</td>
-                                    <td className="px-4 py-2">R$ {p.price.toFixed(2)}</td>
+                                    <td className="px-4 py-2">R$ {p.price}</td>
                                     <td className="px-4 py-2">{p.tipe}</td>
                                 </tr>
                             ))

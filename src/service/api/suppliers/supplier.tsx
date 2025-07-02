@@ -63,3 +63,46 @@ export const handleSupplierWithCode = async (code: string) => {
     throw new Error ("Erro ao buscar fornecedor pelo codigo")
   }
 }
+
+export async function searchSuppliers(searchTerm: string): Promise<Supplier[]> {
+  try {
+    const suppliersRef = collection(db, "Suppliers");
+    const suppliers: Supplier[] = [];
+
+    // Consulta por nome (case-insensitive)
+    const nameQuery = query(
+      suppliersRef,
+      where("name", ">=", searchTerm),
+      where("name", "<=", searchTerm + "\uf8ff")
+    );
+
+    // Consulta por código
+    const codeQuery = query(suppliersRef, where("code", "==", searchTerm));
+
+    const [nameSnapshot, codeSnapshot] = await Promise.all([
+      getDocs(nameQuery),
+      getDocs(codeQuery),
+    ]);
+
+    const supplierIds = new Set<string>();
+
+    nameSnapshot.forEach((doc) => {
+      if (!supplierIds.has(doc.id)) {
+        suppliers.push({ id: doc.id, ...doc.data() } as Supplier);
+        supplierIds.add(doc.id);
+      }
+    });
+
+    codeSnapshot.forEach((doc) => {
+      if (!supplierIds.has(doc.id)) {
+        suppliers.push({ id: doc.id, ...doc.data() } as Supplier);
+        supplierIds.add(doc.id);
+      }
+    });
+
+    return suppliers;
+  } catch (error) {
+    console.error("Erro ao buscar fornecedores:", error);
+    throw new Error("Erro ao buscar fornecedores");
+  }
+}

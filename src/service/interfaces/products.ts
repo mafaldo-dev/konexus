@@ -4,8 +4,9 @@ export interface Products {
     description: string;
     price: number
     quantity: number 
-    code: number | string
+    code: string
     addedAt: string | any
     supplier: string
     address?: string
+    minimum_stock: number
 }

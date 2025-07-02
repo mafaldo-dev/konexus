@@ -19,4 +19,5 @@ export interface Supplier {
   createdAt: Date | string 
   updatedAt?: Date | string 
   active: boolean 
+  deliveryTime:  number
 }

@@ -4,6 +4,7 @@ import { LayoutDashboard, Package, Users, Truck, DollarSign, Warehouse, Shopping
 import { useAuth } from '../../AuthContext'
 import logo from '../../assets/image/guiman.png'
 import { useDataHora } from "../../utils/data-hora"
+import { access } from 'fs'
 
 
 export default function Dashboard({ children }: any) {
@@ -67,9 +68,9 @@ export default function Dashboard({ children }: any) {
       key: 'compras',
       title: 'Compras',
       icon: ShoppingBag,
-      access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
+      access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro', 'Buyer'],
       submenu: [
-        { title: 'Pedidos de Compra', href: '/compras/pedidos', icon: Clipboard },
+        { title: 'Pedidos de Compra', href: '/financer/shopping', icon: Clipboard, access: ['Administrador', 'Financeiro', 'Buyer'] },
         { title: 'Cotações', href: '/compras/cotacoes', icon: FileText },
         { title: 'Recebimentos', href: '/compras/recebimentos', icon: Package },
         { title: 'Devoluções', href: '/compras/devolucoes', icon: AlertTriangle }
