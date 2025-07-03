@@ -1,7 +1,10 @@
+import Dashboard from "../../../components/dashboard/Dashboard"
 
 const RegisterReportSales = () => {
     return( 
-        <div>Hello world!</div>
+        <Dashboard>
+            <div>Hello world!</div>
+        </Dashboard>
     )
 }
 

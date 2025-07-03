@@ -42,10 +42,9 @@ export const menuItems = [
       icon: ShoppingBag,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro', 'Buyer'],
       submenu: [
-        { title: 'Pedidos de Compra', href: '/financer/shopping', icon: Clipboard, access: ['Administrador', 'Financeiro', 'Buyer'] },
-        { title: 'Cotações', href: '/compras/cotacoes', icon: FileText },
-        { title: 'Recebimentos', href: '/compras/recebimentos', icon: Package },
-        { title: 'Devoluções', href: '/compras/devolucoes', icon: AlertTriangle }
+        { title: 'Pedidos de Compra', href: '/shopping/purchase-order', icon: Clipboard, access: ['Administrador', 'Financeiro', 'Buyer'] },
+        { title: 'Recebimentos', href: '/shopping/invoice-entry', icon: Package, access: ['Administrador', 'Financeiro', 'Buyer', 'Conferente'] },
+        { title: 'Devoluções', href: '/shopping/invoice-back', icon: AlertTriangle, acess: ['Administrador', 'Financeiro', 'Buyer', 'Conferente'] }
       ]
     },
     {

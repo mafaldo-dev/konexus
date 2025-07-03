@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import { Plus, Trash2, Package, User, Calendar } from "lucide-react"
 import { motion } from "framer-motion"
+import { format, addDays } from 'date-fns';
 
 import { useNavigate } from "react-router-dom"
 import { insertOrder } from "../../../../service/api/orders"
@@ -31,8 +32,8 @@ export default function OrderForm() {
       customer_phone: "",
       customer_address: "",
       salesperson: "",
-      order_date: "",
-      delivery_date: "",
+      order_date: format(new Date(), 'yyyy-MM-dd'),
+      delivery_date: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
       items: [{ product_code: "", product_name: "", quantity: 1, unit_price: 0, total: 0, location: "" }],
       total_amount: 0,
       status: "Pendente",
@@ -56,13 +57,17 @@ export default function OrderForm() {
       const total = quantity * unit_price
       totalAmount += total
 
+      // Only update if the total has actually changed to prevent unnecessary re-renders
       if (total !== item.total) {
-        setValue(`items.${index}.total`, total)
+        setValue(`items.${index}.total`, total, { shouldDirty: true });
       }
     })
 
-    setValue("total_amount", totalAmount)
-  }, [items, setValue])
+    // Only update if the total amount has actually changed
+    if (totalAmount !== watch("total_amount")) {
+      setValue("total_amount", totalAmount, { shouldDirty: true });
+    }
+  }, [items, setValue, watch])
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true)
@@ -71,16 +76,16 @@ export default function OrderForm() {
       const id = await insertOrder({
         ...data,
         delivery_date: data.delivery_date || "",
-        order_date: new Date().getFullYear(),
+        order_date: data.order_date,
         status: "Pendente",
       })
 
-      console.log(data)
-      alert(`Pedido criado com sucesso! ID: ${id}`)
+      console.log(`Pedido criado com sucesso! ID: ${id}`)
+      // TODO: Replace with a user-friendly toast/snackbar notification
       navigate("/sales/orders")
     } catch (error) {
-      alert("Erro ao criar pedido. Tente novamente.")
-      console.error(error)
+      console.error("Erro ao criar pedido:", error)
+      // TODO: Replace with a user-friendly toast/snackbar notification
     } finally {
       setIsSubmitting(false)
     }

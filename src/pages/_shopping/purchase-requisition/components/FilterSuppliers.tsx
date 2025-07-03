@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Supplier } from "../../../../service/interfaces";
+import { useDebounce } from '../../../../hooks/useDebounce';
 
 interface SupplierFilterProps {
   suppliers: Supplier[];
@@ -17,6 +19,12 @@ export default function SupplierFilter({
   onChangeSearch,
   onClearFilters,
 }: SupplierFilterProps) {
+  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce
+
+  useEffect(() => {
+    onChangeSearch(debouncedSearchTerm);
+  }, [debouncedSearchTerm, onChangeSearch]);
+
   return (
     <div className="flex gap-4 items-center bg-slate-50 p-4 rounded-md shadow-sm mb-6">
       <input

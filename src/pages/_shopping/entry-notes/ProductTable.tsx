@@ -1,65 +1,28 @@
-import { useState } from 'react';
-import { handleProductWithCode } from '../../../service/api/products';
-import { ProductsProps, Products } from '../../../service/interfaces';
-
-
+import { useProductManagement } from '../../../hooks/useProductManagement';
+import { ProductsProps } from '../../../service/interfaces';
 
 interface Props {
     product: ProductsProps[];
     setProduct: React.Dispatch<React.SetStateAction<ProductsProps[]>>;
 }
 
-const TableAddeProductInvoice: React.FC<Props> = ({ product, setProduct }) => {
-    const [productCode, setProductCode] = useState<string>("");
-    const [addedProduct, setAddedProduct] = useState<Products | null>(null);
-    const [count, setCount] = useState(0);
-    const [price, setPrice] = useState(0);
-
-    const handleProduct = async () => {
-        if (!productCode) return;
-
-        try {
-            const productData = await handleProductWithCode(Number(productCode));
-            if (productData) {
-                setAddedProduct(productData as Products);
-            } else {
-                setAddedProduct(null);
-                alert("Nenhum produto encontrado com o código fornecido!");
-            }
-        } catch (Exception) {
-            console.error("Erro ao encontrar produto: ", Exception);
-            alert("Erro ao buscar produto!");
-        }
-    };
-
-    const handleAddProduct = () => {
-        if (!addedProduct || count <= 0 || price <= 0) {
-            alert("Preencha os dados corretamente para adicionar o produto.");
-            return;
-        }
-
-        setProduct(prev => [
-            ...prev,
-            {
-                id: addedProduct.id,
-                name: addedProduct.name,
-                quantity: count,
-                tipe: addedProduct.description,
-                price: price
-            }
-        ]);
-
-        setAddedProduct(null);
-        setProductCode('');
-        setCount(0);
-        setPrice(0);
-    };
+const ProductTable: React.FC<Props> = ({ product, setProduct }) => {
+    const {
+        productCode,
+        setProductCode,
+        addedProduct,
+        count,
+        setCount,
+        price,
+        setPrice,
+        handleProduct,
+        handleAddProduct,
+    } = useProductManagement();
 
     return (
         <section className="w-full">
             <h2 className="text-xl text-center font-semibold text-gray-700 border-b pb-2 mb-4">Produtos da Nota</h2>
 
-            {/* TABELA SEMPRE VISÍVEL */}
             <div className="overflow-x-auto rounded-md border border-gray-300 mb-6">
                 <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
                     <h3 className="text-sm font-semibold mb-3 text-gray-700">Adicionar novo produto</h3>
@@ -180,4 +143,4 @@ const TableAddeProductInvoice: React.FC<Props> = ({ product, setProduct }) => {
     );
 };
 
-export default TableAddeProductInvoice;
+export default ProductTable;

@@ -1,8 +1,8 @@
-"use client"
-
-import { useState } from "react"
 import { Search, Plus, Edit, Trash2, X, Save, Filter, Award, Package, AlertTriangle, Globe, Mail, Phone } from 'lucide-react'
 import Dashboard from "../../../components/dashboard/Dashboard"
+import { useSearchFilter } from '../../../hooks/useSearchFilter'
+import { useDebounce } from '../../../hooks/useDebounce'
+import { useState, useMemo } from 'react'
 
 interface Brand {
   id: string
@@ -62,6 +62,7 @@ export default function Brands() {
   ])
 
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
   const [showModal, setShowModal] = useState(false)
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null)
@@ -77,15 +78,14 @@ export default function Brands() {
   })
 
   // Filtrar marcas
-  const filteredBrands = brands.filter((brand) => {
-    const matchesSearch =
-      brand.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      brand.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const searchedBrands = useSearchFilter(brands, debouncedSearchTerm, ['name', 'description']);
 
-    const matchesStatus = statusFilter === "all" || brand.status === statusFilter
-
-    return matchesSearch && matchesStatus
-  })
+  const filteredBrands = useMemo(() => {
+    return searchedBrands.filter((brand) => {
+      const matchesStatus = statusFilter === "all" || brand.status === statusFilter;
+      return matchesStatus;
+    });
+  }, [searchedBrands, statusFilter]);
 
   const handleAddBrand = () => {
     setEditingBrand(null)

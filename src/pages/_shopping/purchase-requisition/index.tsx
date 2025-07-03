@@ -1,94 +1,63 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Plus } from 'lucide-react';
-import { Products, Supplier } from '../../../service/interfaces';
-
-import { getAllProducts } from '../../../service/api/products';
-import { getAllSuppliers } from '../../../service/api/suppliers/supplier';
+import { Products, PurchaseRequest } from '../../../service/interfaces';
 
 import ProductsTable from './components/TableProducts';
 import SupplierFilter from './components/FilterSuppliers';
 import PurchaseRequestForm from './components/SolicitationForm';
 
 import Dashboard from "../../../components/dashboard/Dashboard";
-import QuotationsList, { PurchaseRequest } from '../_quotes';
+import QuotationsList from '../_quotes';
+import { usePurchaseData } from '../../../hooks/usePurchaseData';
+import { getAllPurchaseRequests } from '../../../service/api/purchaseRequests';
+import { useSearchFilter } from '../../../hooks/useSearchFilter';
+
 
 export default function PurchaseManagementScreen() {
   const [activeTab, setActiveTab] = useState<'stock' | 'request' | 'quote'>('stock');
-  const [products, setProducts] = useState<Products[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { products, suppliers, isLoading } = usePurchaseData();
   const [selectedProducts, setSelectedProducts] = useState<Products[]>([]);
   const [showSnackbar, setShowSnackbar] = useState<boolean>(false);
 
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedSupplier, setSelectedSupplier] = useState<string>('');
 
-    const [quotations] = useState<PurchaseRequest[]>([
-    {
-      requestNumber: 'REQ-1001',
-      supplierName: 'Fornecedor ABC',
-      deliveryDate: '2025-07-10',
-      requestDate: '2025-07-01',
-      totalAmount: 1234.56,
-      status: 'pending',
-      products: [
-        { productName: 'Produto A', quantity: 2, price: 100.0, totalPrice: 200.0 },
-        { productName: 'Produto B', quantity: 1, price: 1034.56, totalPrice: 1034.56 },
-      ],
-      notes: 'Urgente, entregar até o dia 10.',
-    },
-    {
-      requestNumber: 'REQ-1002',
-      supplierName: 'Fornecedor XYZ',
-      deliveryDate: '2025-07-15',
-      requestDate: '2025-07-05',
-      totalAmount: 500.0,
-      status: 'approved',
-      products: [
-        { productName: 'Produto C', quantity: 5, price: 100, totalPrice: 500 },
-      ],
-      notes: '',
-    },
-  ]);
-
-  const handlePreview = (quotation: PurchaseRequest) => {
-    alert(`Visualizando cotação: ${quotation.requestNumber}\nFornecedor: ${quotation.supplierName}`);
-  };
-
+  const [quotations, setQuotations] = useState<PurchaseRequest[]>([]);
 
   useEffect(() => {
-    loadData();
+    const fetchQuotations = async () => {
+      try {
+        const data = await getAllPurchaseRequests();
+        setQuotations(data);
+      } catch (error) {
+        console.error('Error fetching quotations:', error);
+      }
+    };
+    fetchQuotations();
   }, []);
 
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      const productsData = await getAllProducts();
-      const suppliersData = await getAllSuppliers();
-      setProducts(productsData);
-      setSuppliers(suppliersData);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handlePreview = (quotation: PurchaseRequest) => {
+    // TODO: Implement a proper modal or page for quotation preview
+    console.log(`Visualizando cotação: ${quotation.requestNumber}\nFornecedor: ${quotation.supplierName}`);
   };
+
 
   // Filtra os produtos com estoque baixo (quantidade <= 10 por exemplo)
   const lowStockThreshold = 10;
-  const lowStockProducts = products.filter((product) => {
-    const isLowStock = product.quantity <= lowStockThreshold;
 
-    const matchesSearch =
-      !searchTerm ||
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.code.toLowerCase().includes(searchTerm.toLowerCase());
+  // Primeiro, filtra os produtos com baixo estoque
+  const lowStock = useMemo(() => {
+    return products.filter((product) => product.quantity <= lowStockThreshold);
+  }, [products]);
 
-    const matchesSupplier =
-      !selectedSupplier || product.supplier === selectedSupplier;
+  // Depois, aplica o hook de filtro de busca corretamente no topo
+  const filteredLowStock = useSearchFilter(lowStock, searchTerm, ['name', 'code']);
 
-    return isLowStock && matchesSearch && matchesSupplier;
-  });
+  // Agora, aplica o filtro por fornecedor com useMemo
+  const lowStockProducts = useMemo(() => {
+    return filteredLowStock.filter(product => !selectedSupplier || product.supplier === selectedSupplier);
+  }, [filteredLowStock, selectedSupplier]);
+
 
   const toggleProductSelection = (product: Products, selected: boolean) => {
     setSelectedProducts((prev) =>
@@ -102,8 +71,10 @@ export default function PurchaseManagementScreen() {
   };
 
   const handleCreateRequest = async (requestData: any) => {
-    setIsLoading(true);
+    // Assuming setIsLoading is still managed locally for this action
     try {
+      // TODO: Implement actual API call to create purchase request
+      console.log('Creating request with data:', requestData);
       setSelectedProducts([]);
       setActiveTab('stock');
       setShowSnackbar(true);
@@ -111,7 +82,7 @@ export default function PurchaseManagementScreen() {
     } catch (error) {
       console.error('Error creating request:', error);
     } finally {
-      setIsLoading(false);
+      // setIsLoading(false); // Only set to false if this component manages its own loading state
     }
   };
 
@@ -121,12 +92,15 @@ export default function PurchaseManagementScreen() {
 
   // Funções para os botões da tabela de cotações
   const handlePreviewQuotation = (id: string) => {
-    alert(`Visualizar cotação ${id} (implemente modal ou página)`);
+    // TODO: Implement a proper modal or page for quotation preview
+    console.log(`Visualizar cotação ${id} (implemente modal ou página)`);
   };
 
   const handleDownloadQuotation = (id: string) => {
-    alert(`Baixar cotação ${id} (implemente exportação PDF)`);
+    // TODO: Implement PDF export
+    console.log(`Baixar cotação ${id} (implemente exportação PDF)`);
   };
+
 
 
 
@@ -147,8 +121,8 @@ export default function PurchaseManagementScreen() {
           <button
             onClick={() => setActiveTab('stock')}
             className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'stock'
-                ? 'border-slate-600 text-slate-700'
-                : 'border-transparent text-slate-400'
+              ? 'border-slate-600 text-slate-700'
+              : 'border-transparent text-slate-400'
               }`}
           >
             Baixo estoque
@@ -162,8 +136,8 @@ export default function PurchaseManagementScreen() {
           <button
             onClick={() => setActiveTab('request')}
             className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'request'
-                ? 'border-slate-600 text-slate-700'
-                : 'border-transparent text-slate-400'
+              ? 'border-slate-600 text-slate-700'
+              : 'border-transparent text-slate-400'
               }`}
           >
             Nova requisição
@@ -177,8 +151,8 @@ export default function PurchaseManagementScreen() {
           <button
             onClick={() => setActiveTab('quote')}
             className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'quote'
-                ? 'border-slate-600 text-slate-700'
-                : 'border-transparent text-slate-400'
+              ? 'border-slate-600 text-slate-700'
+              : 'border-transparent text-slate-400'
               }`}
           >
             Cotações

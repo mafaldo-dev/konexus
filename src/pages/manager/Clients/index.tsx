@@ -10,6 +10,8 @@ import Dashboard from "../../../components/dashboard/Dashboard"
 import { handleAllCustomer, insertCustomer, updateCustomer } from "../../../service/api/clients/clients"
 
 import lupa from "../../../assets/image/search.png"
+import { useSearchFilter } from '../../../hooks/useSearchFilter'
+import { useDebounce } from '../../../hooks/useDebounce'
 
 const SearchClientes = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<Customer>()
@@ -20,9 +22,11 @@ const SearchClientes = () => {
   const [render, setRender] = useState<Customer[]>([])
   const [error, setError] = useState<string | null>(null)
   const [newInfos, setNewInfos] = useState<Customer>()
-  const [addedClient, setAddedClient] = useState<Customer[]>([])
+  const [allClients, setAllClients] = useState<Customer[]>([]) // Renamed addedClient to allClients for clarity
   const [searchTerm, setSearchTerm] = useState<string>("")
-  const [filter, setFilter] = useState<Customer[]>([])
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  const filteredClients = useSearchFilter(allClients, debouncedSearchTerm, ['name', 'code', 'email', 'phone']);
 
   const onSubmit: SubmitHandler<Customer> = async (data) => {
     try {
@@ -30,7 +34,7 @@ const SearchClientes = () => {
       reset()
       const reload = await handleAllCustomer()
       console.log(render)
-      setAddedClient(reload)
+      setAllClients(reload)
       setOpenRegister(false)
     } catch (Exception) {
       console.error("Erro ao adicionar novo cliente", Exception)
@@ -48,6 +52,7 @@ const SearchClientes = () => {
         setLoading(true)
         const clients = await handleAllCustomer()
         setRender(clients)
+        setAllClients(clients) // Set allClients here as well
       } catch (Exception) {
         console.error("Erro ao recuperar dados dos clientes:", Exception)
         setError("Erro ao buscar dados")
@@ -87,7 +92,7 @@ const SearchClientes = () => {
       alert("Dados do cliente atualizados com sucesso!!")
       setIsModalOpen(false)
       const reload = await handleAllCustomer()
-      setFilter(reload)
+      setAllClients(reload)
     } catch (Exception) {
       console.error("Erro ao atualizar infomações do cliente:", Exception)
       alert("Erro ao atualizar informações do cliente.")
@@ -102,7 +107,7 @@ const SearchClientes = () => {
   async function handleDelete(id: string) {
     try {
       await deleteDoc(doc(db, "Clients", id))
-      setAddedClient(addedClient.filter(c => c.id !== id))
+      setAllClients(allClients.filter(c => c.id !== id)) // Update allClients after delete
       alert("Cliente deletado com sucesso!")
       const reload = await  handleAllCustomer()
       setRender(reload)
@@ -113,24 +118,14 @@ const SearchClientes = () => {
     }
   }
 
-  // FILTER OF CLIENTS BY NAME
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = addedClient.filter((client) =>
-        client.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      setFilter(filtered)
-    } else {
-      setFilter(addedClient)
-    }
-  }, [searchTerm, addedClient])
+  
 
   const handleClients = async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await handleAllCustomer(searchTerm)
-      setAddedClient(res)
-      setFilter(res)
+      const res = await handleAllCustomer()
+      setAllClients(res)
 
     } catch (Exception) {
       console.error("Erro ao buscar Item:", Exception)
@@ -205,8 +200,8 @@ const SearchClientes = () => {
                   </thead>
                   <tbody>
                     {/* Corpo da Tabela com Scroll */}
-                    {filter.length > 0 ? (
-                      filter.map((client) => (
+                    {filteredClients.length > 0 ? (
+                      filteredClients.map((client) => (
                         <tr className="border-b cursor-pointer text-sm border-gray-200 hover:bg-gray-50" key={client.id}>
                           <td className="p-2  text-gray-900 ">{client.code}</td>
                           <td className="p-2 text-gray-900 ">{client.name}</td>

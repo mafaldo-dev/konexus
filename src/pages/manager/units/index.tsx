@@ -1,6 +1,7 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Search, Plus, Edit, Trash2, X, Save, Filter, Calculator, Package, AlertTriangle, Scale } from 'lucide-react'
 import Dashboard from "../../../components/dashboard/Dashboard"
+import { useSearchFilter } from "../../../hooks/useSearchFilter"
 
 interface Unit {
     id: string
@@ -109,17 +110,17 @@ export default function Units() {
     ]
 
     // Filtrar unidades
-    const filteredUnits = units.filter((unit) => {
-        const matchesSearch =
-            unit.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            unit.abbreviation.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            unit.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const searchedUnits = useSearchFilter(units, searchTerm, ['name', 'abbreviation', 'description']);
 
-        const matchesType = typeFilter === "all" || unit.type === typeFilter
-        const matchesStatus = statusFilter === "all" || unit.status === statusFilter
 
-        return matchesSearch && matchesType && matchesStatus
-    })
+    const filteredUnits = useMemo(() => {
+        return searchedUnits.filter((unit) => {
+            const matchesType = typeFilter === "all" || unit.type === typeFilter
+            const matchesStatus = statusFilter === "all" || unit.status === statusFilter
+
+            return matchesType && matchesStatus
+        })
+    }, [searchedUnits, typeFilter, statusFilter]);
 
     const handleAddUnit = () => {
         setEditingUnit(null)

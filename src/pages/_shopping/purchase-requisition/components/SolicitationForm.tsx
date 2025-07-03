@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useReducer, useEffect, useState } from 'react';
 import { Plus, Minus, Save, Calendar } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { Products, Supplier } from '../../../../service/interfaces';
-
 
 interface ProductItem {
   productId: string;
@@ -12,13 +11,34 @@ interface ProductItem {
   totalPrice: number;
 }
 
-interface PurchaseOrder {
+interface PurchaseOrderState {
   supplierId: string;
   supplierName: string;
-  deliveryDate: string | Date;
+  deliveryDate: string;
   notes: string;
   products: ProductItem[];
 }
+
+type FormAction =
+  | { type: 'SET_FIELD'; field: keyof PurchaseOrderState; value: any }
+  | { type: 'ADD_PRODUCT'; product: ProductItem }
+  | { type: 'REMOVE_PRODUCT'; index: number }
+  | { type: 'SET_PRODUCTS'; products: ProductItem[] };
+
+const formReducer = (state: PurchaseOrderState, action: FormAction): PurchaseOrderState => {
+  switch (action.type) {
+    case 'SET_FIELD':
+      return { ...state, [action.field]: action.value };
+    case 'ADD_PRODUCT':
+      return { ...state, products: [...state.products, action.product] };
+    case 'REMOVE_PRODUCT':
+      return { ...state, products: state.products.filter((_, i) => i !== action.index) };
+    case 'SET_PRODUCTS':
+      return { ...state, products: action.products };
+    default:
+      return state;
+  }
+};
 
 interface PredefinedProduct extends Products {
   id: string;
@@ -41,7 +61,7 @@ export default function PurchaseRequestForm({
   onSubmit,
   isLoading,
 }: PurchaseRequestFormProps) {
-  const [formData, setFormData] = useState<PurchaseOrder>({
+  const initialFormState: PurchaseOrderState = {
     supplierId: '',
     supplierName: '',
     deliveryDate: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
@@ -53,47 +73,51 @@ export default function PurchaseRequestForm({
       price: p.price || 0,
       totalPrice: Math.max(p.minimum_stock - p.quantity, 1) * (p.price || 0),
     })),
-  });
+  };
 
-  const [newProduct, setNewProduct] = useState<ProductItem>({
+  const [formData, dispatch] = useReducer(formReducer, initialFormState);
+
+  const [newProduct, setNewProduct] = useState<Omit<ProductItem, 'totalPrice'>>({
     productId: '',
     productName: '',
     quantity: 1,
     price: 0,
-    totalPrice: 0,
   });
+
+  useEffect(() => {
+    dispatch({ type: 'SET_PRODUCTS', products: initialFormState.products });
+  }, [predefinedProducts]);
 
   const handleSupplierChange = (supplierId: string) => {
     const supplier = suppliers.find((s) => s.id === supplierId);
-    setFormData((prev) => ({
-      ...prev,
-      supplierId,
-      supplierName: supplier?.name || '',
-      deliveryDate: supplier?.deliveryTime
-        ? format(addDays(new Date(), supplier.deliveryTime), 'yyyy-MM-dd')
-        : prev.deliveryDate,
-    }));
+    dispatch({ type: 'SET_FIELD', field: 'supplierId', value: supplierId });
+    dispatch({ type: 'SET_FIELD', field: 'supplierName', value: supplier?.name || '' });
+    if (supplier?.deliveryTime) {
+      dispatch({
+        type: 'SET_FIELD',
+        field: 'deliveryDate',
+        value: format(addDays(new Date(), supplier.deliveryTime), 'yyyy-MM-dd'),
+      });
+    }
   };
 
   const addProduct = () => {
-    const updatedProduct = {
+    if (!newProduct.productName || newProduct.quantity <= 0 || newProduct.price < 0) {
+      alert('Por favor, preencha todos os campos do produto corretamente.');
+      return;
+    }
+
+    const productToAdd: ProductItem = {
       ...newProduct,
       totalPrice: newProduct.quantity * newProduct.price,
     };
 
-    setFormData((prev) => ({
-      ...prev,
-      products: [...prev.products, updatedProduct],
-    }));
-
-    setNewProduct({ productId: '', productName: '', quantity: 1, price: 0, totalPrice: 0 });
+    dispatch({ type: 'ADD_PRODUCT', product: productToAdd });
+    setNewProduct({ productId: '', productName: '', quantity: 1, price: 0 });
   };
 
   const removeProduct = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      products: prev.products.filter((_, i) => i !== index),
-    }));
+    dispatch({ type: 'REMOVE_PRODUCT', index });
   };
 
   const calculateTotal = () =>
@@ -101,6 +125,11 @@ export default function PurchaseRequestForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.supplierId || formData.products.length === 0) {
+      alert('Por favor, selecione um fornecedor e adicione pelo menos um produto.');
+      return;
+    }
+
     const request = {
       ...formData,
       requestNumber: `REQ-${Date.now()}`,
@@ -142,7 +171,7 @@ export default function PurchaseRequestForm({
                 type="date"
                 value={formData.deliveryDate.toString()}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, deliveryDate: e.target.value }))
+                  dispatch({ type: 'SET_FIELD', field: 'deliveryDate', value: e.target.value })
                 }
                 className="w-full border border-slate-300 rounded pl-10 pr-3 py-2 text-slate-700"
               />
@@ -255,7 +284,7 @@ export default function PurchaseRequestForm({
           rows={4}
           value={formData.notes}
           onChange={(e) =>
-            setFormData((prev) => ({ ...prev, notes: e.target.value }))
+            dispatch({ type: 'SET_FIELD', field: 'notes', value: e.target.value })
           }
           placeholder="Adicionar informações à solicitação..."
           className="w-full border border-slate-300 rounded px-3 py-2 resize-y"

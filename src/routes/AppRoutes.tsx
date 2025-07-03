@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import AdministrationScreen from '../components/AdminScreen';
 import LoginPage from '../login';
 import OrdersList from '../pages/sales/orders/components/orders-list';
-import InvoiceEntries from '../pages/_shopping/entry-notes';
+
 import PurchaseOrder from '../pages/sales/orders/purchase-order';
 import NewOrderPage from '../pages/sales/orders/purchase-order/create-order';
 import SearchClientes from '../pages/manager/Clients';
@@ -28,6 +28,8 @@ import LeadsPage from '../pages/CRM/leads/LeadsPage';
 import Goals from '../pages/sales/goals';
 import PurchaseRequisition from '../pages/_shopping/purchase-requisition';
 import PurchaseManagementScreen from '../pages/_shopping/purchase-requisition';
+import InvoiceEntries from '../pages/_shopping/entry-notes/InvoiceEntries';
+import RegisterReportSales from '../pages/RH/report';
 
 
 const AppRoutes = () => {
@@ -47,7 +49,7 @@ const AppRoutes = () => {
       {/* Private Routes */}
 
       <Route 
-        path='/financer/shopping'
+        path='/shopping/purchase-order'
         element={
           <DesignationCheck allowed={['Administrador', 'Financeiro', 'Buyer']}>
             <PurchaseManagementScreen />
@@ -113,9 +115,9 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/invoice"
+        path="/shopping/invoice-entry"
         element={
-          <DesignationCheck allowed={["Administrador", "Conferente", "Vendedor"]}>
+          <DesignationCheck allowed={["Administrador", "Conferente", "Vendedor", "Buyer"]}>
             <InvoiceEntries />
           </DesignationCheck>
         }
@@ -124,7 +126,7 @@ const AppRoutes = () => {
         path="/sales/report"
         element={
           <DesignationCheck allowed={["Administrador", "Financeiro"]}>
-            <InvoiceDANFE />
+            <RegisterReportSales/>
           </DesignationCheck>
         }
       />

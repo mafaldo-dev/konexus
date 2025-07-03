@@ -1,6 +1,8 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Search, Plus, Edit, Trash2, X, Save, Filter, MoreHorizontal, Tag, Package, AlertTriangle } from 'lucide-react'
 import Dashboard from "../../../components/dashboard/Dashboard"
+import { useSearchFilter } from '../../../hooks/useSearchFilter'
+import { useDebounce } from '../../../hooks/useDebounce'
 
 interface Category {
   id: string
@@ -62,6 +64,7 @@ export default function Categories() {
   ])
 
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
   const [showModal, setShowModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
@@ -75,16 +78,14 @@ export default function Categories() {
   })
 
   // Filtrar categorias
-  const filteredCategories = categories.filter((category) => {
-    const matchesSearch =
-      category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      category.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      category.parentName?.toLowerCase().includes(searchTerm.toLowerCase())
+  const searchedCategories = useSearchFilter(categories, debouncedSearchTerm, ['name', 'description', 'parentName']);
 
-    const matchesStatus = statusFilter === "all" || category.status === statusFilter
-
-    return matchesSearch && matchesStatus
-  })
+  const filteredCategories = useMemo(() => {
+    return searchedCategories.filter((category) => {
+      const matchesStatus = statusFilter === "all" || category.status === statusFilter;
+      return matchesStatus;
+    });
+  }, [searchedCategories, statusFilter]);
 
   const handleAddCategory = () => {
     setEditingCategory(null)
@@ -442,3 +443,4 @@ export default function Categories() {
     </Dashboard>
   )
 }
+

@@ -1,5 +1,6 @@
 import { Package, CheckCircle } from 'lucide-react';
 import { Products } from '../../../../service/interfaces';
+import { useState, useEffect } from 'react';
 
 interface ProductsTableProps {
   products: Products[];
@@ -14,6 +15,24 @@ export default function ProductsTable({
   onToggleProduct,
   isLoading,
 }: ProductsTableProps) {
+  const [allSelected, setAllSelected] = useState(false);
+  const [indeterminate, setIndeterminate] = useState(false);
+
+  useEffect(() => {
+    if (products.length === 0) {
+      setAllSelected(false);
+      setIndeterminate(false);
+      return;
+    }
+
+    const numSelected = selectedProducts.length;
+    const newAllSelected = numSelected === products.length;
+    const newIndeterminate = numSelected > 0 && numSelected < products.length;
+
+    setAllSelected(newAllSelected);
+    setIndeterminate(newIndeterminate);
+  }, [products, selectedProducts]);
+
   if (isLoading) {
     return (
       <div className="bg-white shadow rounded-md p-10 flex flex-col items-center">
@@ -43,6 +62,11 @@ export default function ProductsTable({
     return 'bg-slate-200 text-slate-800';
   };
 
+  const handleSelectAllClick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    products.forEach((product) => onToggleProduct(product, checked));
+  };
+
   return (
     <div className="bg-white shadow rounded-md overflow-x-auto">
       <div className="p-4 border-b border-slate-200">
@@ -56,10 +80,13 @@ export default function ProductsTable({
             <th className="w-12 p-3">
               <input
                 type="checkbox"
-                className="accent-slate-700 cursor-pointer"
-                onChange={(e) =>
-                  products.forEach((product) => onToggleProduct(product, e.target.checked))
-                }
+                checked={allSelected}
+                ref={(input) => {
+                  if (input) {
+                    input.indeterminate = indeterminate;
+                  }
+                }}
+                onChange={handleSelectAllClick}
                 aria-label="Select all products"
               />
             </th>

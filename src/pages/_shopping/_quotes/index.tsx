@@ -1,25 +1,7 @@
 import { Eye, Download } from 'lucide-react';
 import { format } from 'date-fns';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-
-interface ProductItem {
-  productName: string;
-  quantity: number;
-  price: number;
-  totalPrice: number;
-}
-
-export interface PurchaseRequest {
-  requestNumber: string;
-  supplierName: string;
-  deliveryDate: string;
-  requestDate: string;
-  totalAmount: number;
-  status: 'pending' | 'approved' | 'completed';
-  products: ProductItem[];
-  notes: string;
-}
+import { PurchaseRequest } from '../../../service/interfaces/sales/purchaseRequest';
+import { generateQuotationPdf } from '../../../utils/pdfGenerator';
 
 interface QuotationsListProps {
   quotations: PurchaseRequest[];
@@ -27,44 +9,6 @@ interface QuotationsListProps {
 }
 
 export default function QuotationsList({ quotations, onPreview }: QuotationsListProps) {
-  const handleDownload = (quotation: PurchaseRequest) => {
-    const doc = new jsPDF();
-
-    doc.setFontSize(18);
-    doc.text('Cotação de Compra', 14, 20);
-
-    doc.setFontSize(12);
-    doc.text(`Fornecedor: ${quotation.supplierName}`, 14, 30);
-    doc.text(`Nº Requisição: ${quotation.requestNumber}`, 14, 36);
-    doc.text(`Data: ${quotation.requestDate}`, 14, 42);
-    doc.text(`Entrega Prevista: ${quotation.deliveryDate}`, 14, 48);
-
-    autoTable(doc, {
-      startY: 55,
-      head: [['Produto', 'Qtd', 'Preço Unitário', 'Total']],
-      body: quotation.products.map((p) => [
-        p.productName,
-        p.quantity,
-        `R$ ${p.price.toFixed(2)}`,
-        `R$ ${p.totalPrice.toFixed(2)}`
-      ])
-    });
-
-    doc.text(
-      `Observações: ${quotation.notes || 'N/A'}`,
-      14,
-      doc.lastAutoTable.finalY + 10
-    );
-
-    doc.text(
-      `Total Geral: R$ ${quotation.totalAmount.toFixed(2)}`,
-      14,
-      doc.lastAutoTable.finalY + 20
-    );
-
-    doc.save(`cotacao-${quotation.requestNumber}.pdf`);
-  };
-
   return (
     <div className="bg-white p-6 rounded shadow space-y-4">
       <h2 className="text-xl font-semibold text-slate-800 mb-4">Cotações Realizadas</h2>
@@ -111,7 +55,7 @@ export default function QuotationsList({ quotations, onPreview }: QuotationsList
                       <Eye size={18} />
                     </button>
                     <button
-                      onClick={() => handleDownload(q)}
+                      onClick={() => generateQuotationPdf(q)}
                       className="text-green-600 hover:text-green-800"
                       title="Baixar PDF"
                     >

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { Order } from "../../../service/interfaces";
@@ -7,48 +7,25 @@ import { Search, Plus, Eye, Package, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import OrderPDF from "../../sales/orders/conferency/OrderPDF";
 
-import { handleAllOrders } from "../../../service/api/orders";
+import { useOrders } from "../../../hooks/useOrders";
+import { useDebounce } from "../../../hooks/useDebounce";
 import Dashboard from "../../../components/dashboard/Dashboard";
+import { useSearchFilter } from "../../../hooks/useSearchFilter";
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const { orders, isLoading, error } = useOrders();
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Aqui você vai criar sua função para carregar as orders (fetch, db, etc)
-  const loadOrders = async () => {
-    try{
-      setIsLoading(true);
-      const fetchedOrders = await handleAllOrders()
-      setOrders(fetchedOrders);
-      setFilteredOrders(fetchedOrders);
-    }catch(Exception) {
-      console.error("Erro ao recuperar orders", Exception)
-      alert("Erro ao recuperar os pedidos de venda!")
-    } finally{
-    setIsLoading(false);
-    }
-  };
+  const filteredOrders = useSearchFilter(orders, debouncedSearchTerm, ['customer_name', 'order_number', 'salesperson']);
 
   useEffect(() => {
-    loadOrders();
-  }, []);
-
-  useEffect(() => {
-    if (searchTerm.trim() !== "") {
-      const filtered = orders.filter(
-        (order) =>
-          order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.salesperson.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredOrders(filtered);
-    } else {
-      setFilteredOrders(orders);
+    if (error) {
+      console.error("Erro ao recuperar os pedidos de venda:", error);
+      // TODO: Implement a user-friendly notification (e.g., toast, snackbar)
     }
-  }, [searchTerm, orders]);
+  }, [error]);
 
   const statusColors: Record<string, string> = {
     pendente: "bg-yellow-100 text-yellow-800 border-yellow-300",
@@ -238,7 +215,7 @@ export default function OrdersPage() {
                           </td>
                           <td className="px-6 py-4">
                             <span
-                              className={`text-xs px-2 py-1 rounded-full border ${statusColors[order.status]}`}
+                              className={`text-xs px-2 py-1 rounded-full border ${statusColors[order.status.toLowerCase()]}`}
                             >
                               {order.status}
                             </span>
