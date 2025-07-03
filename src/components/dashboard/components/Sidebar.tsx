@@ -1,0 +1,54 @@
+import { useState } from 'react';
+import { User } from 'lucide-react';
+import { useAuth } from '../../../AuthContext';
+import { menuItems } from '../menu';
+import MenuItem from './MenuItem';
+import logo from '../../../assets/image/guiman.png';
+
+export default function Sidebar({ sidebarCollapsed }: any) {
+    const { user } = useAuth();
+    const designation = user?.designation || "";
+    const username = user?.username;
+
+    function canAccess(allowed: string[]) {
+        return allowed.includes(designation);
+    }
+
+    return (
+        <aside className={`${sidebarCollapsed ? 'w-16' : 'w-72'} bg-slate-900 text-slate-100 transition-all duration-300 fixed h-full z-50 shadow-xl`}>
+            <div className="p-4 border-b border-slate-700">
+                <div className="flex items-center gap-3">
+                    <img src={logo || "/placeholder.svg"} alt="Logo Keppler" className="w-8 h-8" />
+                    {!sidebarCollapsed && (
+                        <div>
+                            <h1 className="text-lg font-bold text-white">GUIMAN</h1>
+                            <p className="text-xs text-slate-400">Sistema Integrado</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto py-4">
+                <div className="px-3 space-y-1">
+                    {menuItems.map((item) => (
+                        <MenuItem key={item.key} item={item} sidebarCollapsed={sidebarCollapsed} canAccess={canAccess} />
+                    ))}
+                </div>
+            </nav>
+
+            {!sidebarCollapsed && (
+                <div className="p-4 border-t border-slate-700">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
+                            <User className="w-4 h-4 text-slate-300" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{username}</p>
+                            <p className="text-xs text-slate-400 truncate">{designation}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </aside>
+    );
+}

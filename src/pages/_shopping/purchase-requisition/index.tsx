@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import { ShoppingCart, Plus } from 'lucide-react';
+import { Products, Supplier } from '../../../service/interfaces';
+
+import { getAllProducts } from '../../../service/api/products';
+import { getAllSuppliers } from '../../../service/api/suppliers/supplier';
 
 import ProductsTable from './components/TableProducts';
 import SupplierFilter from './components/FilterSuppliers';
 import PurchaseRequestForm from './components/SolicitationForm';
 
-import { getAllProducts } from '../../../service/api/products';
-import { getAllSuppliers } from '../../../service/api/suppliers/supplier';
-
-import { Products } from '../../../service/interfaces/products';
-import { Supplier } from '../../../service/interfaces/suppliers';
-import Dashboard from '../../../components/dashboard';
+import Dashboard from "../../../components/dashboard/Dashboard";
 import QuotationsList, { PurchaseRequest } from '../_quotes';
 
 export default function PurchaseManagementScreen() {

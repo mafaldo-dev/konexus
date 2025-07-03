@@ -1,5 +1,5 @@
 import { Package, CheckCircle } from 'lucide-react';
-import { Products } from '../../../../service/interfaces/products';
+import { Products } from '../../../../service/interfaces';
 
 interface ProductsTableProps {
   products: Products[];

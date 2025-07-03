@@ -1,4 +1,4 @@
-import { Supplier } from '../../../../service/interfaces/suppliers';
+import { Supplier } from "../../../../service/interfaces";
 
 interface SupplierFilterProps {
   suppliers: Supplier[];

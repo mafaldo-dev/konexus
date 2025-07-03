@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Plus, Minus, Save, Calendar } from 'lucide-react';
 import { format, addDays } from 'date-fns';
-import { Supplier } from '../../../../service/interfaces/suppliers';
-import { Products } from '../../../../service/interfaces/products';
+import { Products, Supplier } from '../../../../service/interfaces';
+
 
 interface ProductItem {
   productId: string;

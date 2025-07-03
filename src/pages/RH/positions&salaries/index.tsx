@@ -1,22 +1,7 @@
 import { useEffect, useState } from "react";
-import Dashboard from "../../../components/dashboard";
+import Dashboard from "../../../components/dashboard/Dashboard";
 import { handleAllEmployee } from "../../../service/api/employee";
-import { Employee } from "../../../service/interfaces/employees";
-
-// interface Employee {
-//   id: number;
-//   name: string;
-//   role: string;
-//   salary: number;
-// }
-
-// const employees: Employee[] = [
-//   { id: 1, name: "Carlos Silva", role: "Vendedor", salary: 2500 },
-//   { id: 2, name: "Ana Souza", role: "Estoquista", salary: 2000 },
-//   { id: 3, name: "Bruno Lima", role: "Vendedor", salary: 2700 },
-//   { id: 4, name: "Fernanda Rocha", role: "Gerente", salary: 4000 },
-//   { id: 5, name: "Luana Martins", role: "Estoquista", salary: 2100 },
-// ];
+import { Employee } from "../../../service/interfaces";
 
 export default function PositionsAndSalaries() {
     const [employe, setEmploye] =  useState<Employee[]>([])

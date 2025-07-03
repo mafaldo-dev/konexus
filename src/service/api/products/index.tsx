@@ -1,6 +1,6 @@
 import { collection, addDoc, getDocs, updateDoc, doc, query, where } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
-import { Products } from "../../interfaces/products"
+import { Products } from "../../interfaces"
 
 export async function insertProduct(produto: Products) {
   try {

@@ -1,6 +1,7 @@
 import { collection, getDocs, addDoc, query, where } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
-import { Employee } from "../../interfaces/employees"
+import { Employee } from "../../interfaces"
+
 
 export async function insertEmployee(employee: Employee) {
   try {

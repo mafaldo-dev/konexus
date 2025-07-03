@@ -1,6 +1,6 @@
 import { addDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
-import { Opportunity, OpportunityData } from "../../interfaces/opportunities";
+import { OpportunityData, Opportunity } from "../../interfaces";
 
 export async function createOpportunity(opportunityData: OpportunityData): Promise<string> {
   try {

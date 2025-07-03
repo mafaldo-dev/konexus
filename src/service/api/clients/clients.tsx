@@ -1,7 +1,6 @@
 import { collection, addDoc, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../../firebaseConfig"
-import { Customer } from "../../interfaces/customer"
-
+import { Customer } from "../../interfaces/sales/customer";
 
 export async function insertCustomer(customer: Customer) {
     try {

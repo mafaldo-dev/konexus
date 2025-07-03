@@ -1,8 +1,6 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
-import { GoalsData } from "../../interfaces/goals"
-
-
+import { GoalsData } from "../../interfaces"
 
 export async function insertGoal(goal: GoalsData) {
   try {

@@ -1,6 +1,6 @@
 import { addDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
-import { FollowUp } from "../../interfaces/followups";
+import { FollowUp } from "../../interfaces";
 
 export async function addFollowUp(followUp: FollowUp): Promise<string> {
   try {

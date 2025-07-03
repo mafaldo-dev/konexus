@@ -1,6 +1,7 @@
 import { addDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
-import { Atendimento } from "../../interfaces/atendimentos";
+import { Atendimento } from "../../interfaces";
+
 
 export async function addAtendimento(atendimento: Atendimento): Promise<string> {
   try {

@@ -1,6 +1,6 @@
 import { addDoc, collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc, where } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
-import { Lead } from "../../interfaces/leads";
+import { Lead } from "../../interfaces";
 
 export async function createLead(lead: Lead): Promise<string> {
   try {

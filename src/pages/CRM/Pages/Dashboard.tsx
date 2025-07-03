@@ -1,16 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Users, Target, TrendingUp, DollarSign, Megaphone } from "lucide-react";
 import { motion } from "framer-motion";
 
-// Importações das APIs e Interfaces
 import { getLeads } from "../../../service/api/leads";
 import { getAllOpportunities } from "../../../service/api/opportunities";
-import { getCampaigns } from "../../../service/api/campaigns"; // Assumindo que esta função existe
-import { Lead } from "../../../service/interfaces/leads";
-import { Opportunity } from "../../../service/interfaces/opportunities";
-import { Campaign } from "../../../service/interfaces/campaigns"; // Assumindo que esta interface existe
+import { getCampaigns } from "../../../service/api/campaigns"; 
+import { Lead, Opportunity, Campaign } from "../../../service/interfaces";
 
-// Componentes de exibição (mantidos simples para foco na integração de dados)
 const MetricCard = ({ title, value, icon: Icon, trend, color, isLoading }: any) => (
   <div className="bg-white shadow rounded-lg p-4 flex items-center justify-between">
     <div>

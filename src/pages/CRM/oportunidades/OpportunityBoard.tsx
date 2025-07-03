@@ -1,7 +1,6 @@
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OpportunityColumn from "./OpportunityColumn";
-import { Opportunity, StageOpportunity } from "../../../service/interfaces/opportunities";
+import { Opportunity, StageOpportunity } from "../../../service/interfaces";
 
 interface OpportunityBoardProps {
   opportunities: Opportunity[];

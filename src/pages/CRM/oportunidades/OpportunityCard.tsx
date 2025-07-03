@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import  { useState, useRef, useEffect } from "react";
 import { Building, Mail, Calendar, Edit, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
 
 const stages = [
@@ -17,7 +16,6 @@ export default function OpportunityCard({ opportunity, onEdit, onStageChange }: 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fecha dropdown ao clicar fora
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {

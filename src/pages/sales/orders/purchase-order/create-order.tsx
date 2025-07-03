@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 
 import { motion } from "framer-motion";
 
-import Dashboard from "../../../../components/dashboard";
+import Dashboard from "../../../../components/dashboard/Dashboard";
 import OrderForm from "../components/OrderForm";
 import { ArrowLeft } from "lucide-react";
 

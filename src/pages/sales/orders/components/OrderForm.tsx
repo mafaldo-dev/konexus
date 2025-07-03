@@ -1,12 +1,11 @@
-"use client"
-
 import React, { useState } from "react"
 import { useForm, useFieldArray, useWatch } from "react-hook-form"
 import { Plus, Trash2, Package, User, Calendar } from "lucide-react"
 import { motion } from "framer-motion"
-import type { Order } from "../../../../service/interfaces/orders"
+
 import { useNavigate } from "react-router-dom"
 import { insertOrder } from "../../../../service/api/orders"
+import { Order } from "../../../../service/interfaces/sales/orders"
 
 type FormValues = Omit<Order, "order_number" | "total_amount" | "status"> & {
   order_number: string

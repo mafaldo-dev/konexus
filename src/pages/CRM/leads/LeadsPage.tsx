@@ -3,10 +3,10 @@ import LeadFilters from './LeadFilters';
 import LeadForm from './LeadForm';
 import LeadGrid from './LeadGrid';
 import ConvertModal from './ConvertModal';
-import { Lead } from '../../../service/interfaces/leads'; // Assumindo que a interface Lead está aqui
-import { OpportunityData } from '../../../service/interfaces/opportunities'; 
-import { createLead, updateLead, deleteLead, getLeads } from '../../../service/api/leads'; // Funções de API
-import { createOpportunity } from '../../../service/api/opportunities'; // Função de API para oportunidades
+
+import { createLead, updateLead, deleteLead, getLeads } from '../../../service/api/leads'; 
+import { createOpportunity } from '../../../service/api/opportunities'; 
+import { Lead, OpportunityData } from '../../../service/interfaces';
 
 const LeadsPage: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);

@@ -1,6 +1,6 @@
 import { addDoc, collection, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
-import { Invoice } from "../../interfaces/invoiceEntries";
+import { Invoice } from "../../interfaces/financial/invoiceEntries";
 
 export default async function invoiceEntries(invoice: Invoice) {
     try {

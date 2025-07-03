@@ -2,12 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Plus, X, Save, Edit, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
-import { Campaign } from "../../../service/interfaces/campaigns";
 import { addCampaign, getCampaigns } from "../../../service/api/campaigns";
+import { Campaign } from "../../../service/interfaces";
 
-// CampaignForm Component
 const CampaignForm: React.FC<{ campaign: Campaign | null; onSubmit: (data: Campaign) => void; onCancel: () => void }> = ({
   campaign: initialCampaign,
   onSubmit,

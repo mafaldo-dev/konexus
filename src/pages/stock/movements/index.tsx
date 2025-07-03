@@ -1,5 +1,3 @@
-"use client"
-
 import type React from "react"
 import { useState, useEffect, useRef, useMemo } from "react"
 import {
@@ -16,7 +14,7 @@ import {
     Download,
     Settings,
 } from "lucide-react"
-import Dashboard from "../../../components/dashboard"
+import Dashboard from "../../../components/dashboard/Dashboard"
 
 // Interfaces
 interface Product {

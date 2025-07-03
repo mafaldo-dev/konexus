@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 
 import { format } from "date-fns";
 
-// Tipagem
 interface Opportunity {
   id?: string;
   name: string;
@@ -16,11 +15,9 @@ interface Opportunity {
   createdAt: Date;
 }
 
-// Mock API (substituir por real futuramente)
 const getAllOpportunities = async (): Promise<Opportunity[]> => Promise.resolve([]);
 const addOpportunity = async (opportunity: Opportunity): Promise<void> => Promise.resolve();
 
-// Estágios + Cores
 const stageColors: { [key: string]: string } = {
   "Qualificação": "bg-blue-100 text-blue-800",
   "Proposta": "bg-purple-100 text-purple-800",

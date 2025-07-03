@@ -1,22 +1,23 @@
 import { useEffect, useState, useMemo } from 'react';
+import { Employee } from '../../../service/interfaces/humanResources/employees';
 import { motion } from 'framer-motion';
+
+import { handleAllEmployee } from '../../../service/api/employee';
+import { handleAllOrders } from '../../../service/api/orders';
 
 import { Award } from 'lucide-react';
 
 import CommissionStats from '../commissions/components/CommisionStats';
 import CommissionFilters from '../commissions/components/CommissionsFilter';
 import CommissionTable from '../commissions/components/CommissionsTable';
-import { handleAllEmployee } from '../../../service/api/employee';
-import { handleAllOrders } from '../../../service/api/orders';
-import { Employee } from '../../../service/interfaces/employees';
-import Dashboard from '../../../components/dashboard';
+
+import Dashboard from '../../../components/dashboard/Dashboard';
 
 // --- Constantes de Configuração ---
 const COMMISSION_RATE = 0.015; // 1.5%
 const SALES_GOAL = 15000; // R$15.000
 const BONUS_AMOUNT = 800; // R$800
 
-// Gera a lista de meses para o filtro
 const getAvailableMonths = () => {
   const months = [];
   const date = new Date();
@@ -48,7 +49,6 @@ type TopPerformer = {
   name: string;
   value: number;
 };
-
 
 export default function Commissions() {
   const [employeesData, setEmployeesData] = useState<EmployeeWithMonthlyData[]>([]);

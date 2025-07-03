@@ -1,11 +1,12 @@
-"use client"
-
 import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
-import { User, Lock, MapPin } from "lucide-react"
-import type { Employee } from "../../../service/interfaces/employees"
-import Dashboard from "../../../components/dashboard"
+import { Employee } from "../../../service/interfaces"
+
 import { handleAllEmployee, insertEmployee } from "../../../service/api/employee"
+
+import { User, Lock, MapPin } from "lucide-react"
+
+import Dashboard from "../../../components/dashboard/Dashboard"
 
 export default function EmployeeAdministration() {
   const {

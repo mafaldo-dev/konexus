@@ -1,6 +1,6 @@
 import { addDoc, collection, doc, getDocs, updateDoc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
-import { Order } from "../../interfaces/orders"
+import { Order } from "../../interfaces"
 
 export async function insertOrder(order: Order) {
   try {

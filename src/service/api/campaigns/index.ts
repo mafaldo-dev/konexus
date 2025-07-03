@@ -1,6 +1,7 @@
 import { addDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../../../firebaseConfig";
-import { Campaign } from "../../interfaces/campaigns";
+import { Campaign } from "../../interfaces";
+
 
 export async function addCampaign(campaign: Campaign): Promise<string> {
   try {

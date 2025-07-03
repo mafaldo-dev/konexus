@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react"
 import { useForm, SubmitHandler } from 'react-hook-form'
-
-import Dashboard from "../../../components/dashboard"
+import { Customer } from "../../../service/interfaces"
 
 import { deleteDoc, doc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
 
+import Dashboard from "../../../components/dashboard/Dashboard"
+
 import { handleAllCustomer, insertCustomer, updateCustomer } from "../../../service/api/clients/clients"
-import type { Customer } from "../../../service/interfaces/customer"
 
 import lupa from "../../../assets/image/search.png"
 
@@ -24,7 +24,6 @@ const SearchClientes = () => {
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [filter, setFilter] = useState<Customer[]>([])
 
-  // INSERT CLIENTS DATA
   const onSubmit: SubmitHandler<Customer> = async (data) => {
     try {
       await insertCustomer({ ...data, addedAt: new Date() })
@@ -43,7 +42,6 @@ const SearchClientes = () => {
     }
   }
 
-  // RENDER CLIENTS
   useEffect(() => {
     const renderClients = async () => {
       try {

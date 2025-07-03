@@ -1,7 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, DollarSign, Package, Users } from "lucide-react";
-import { Order } from "../../../../service/interfaces/orders";
+import { Order } from "../../../../service/interfaces/sales/orders";
+
 
 
 interface Metric {

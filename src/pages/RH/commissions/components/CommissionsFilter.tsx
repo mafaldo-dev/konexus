@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function CommissionFilters({ selectedMonth, setSelectedMonth, availableMonths }:  any) {
   return (
     <div className="flex justify-end mb-6">

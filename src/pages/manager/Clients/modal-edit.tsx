@@ -1,5 +1,5 @@
 import { useForm, SubmitHandler } from 'react-hook-form'
-import { Customer } from '../../../service/interfaces/customer'
+import { Customer } from '../../../service/interfaces'
 
 const EditClient = () => {
     const { register, handleSubmit, formState: { errors } } = useForm<Customer>()

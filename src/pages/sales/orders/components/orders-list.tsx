@@ -1,13 +1,12 @@
-"use client"
-
 import type React from "react"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Truck, Package, CheckCircle, Clock, AlertCircle, Eye } from "lucide-react"
-import Dashboard from "../../../../components/dashboard"
+import Dashboard from "../../../../components/dashboard/Dashboard"
 import { handleAllOrders, updateOrderStatus } from "../../../../service/api/orders"
-import type { Order } from "../../../../service/interfaces/orders"
+
 import OrderPDF from "../conferency/OrderPDF"
+import { Order } from "../../../../service/interfaces"
 
 type OrderStatus = "Pendente" | "Separando" | "Finalizado" | "Enviado"
 

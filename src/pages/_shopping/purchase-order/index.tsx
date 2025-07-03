@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
+import { Order } from "../../../service/interfaces";
 
 import { Search, Plus, Eye, Package, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import OrderPDF from "../../sales/orders/conferency/OrderPDF";
-import { Order } from "../../../service/interfaces/orders";
-import Dashboard from "../../../components/dashboard";
+
 import { handleAllOrders } from "../../../service/api/orders";
+import Dashboard from "../../../components/dashboard/Dashboard";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);

@@ -1,14 +1,13 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { format } from "date-fns"
 import { Search, Plus, Eye, Package, TrendingUp, Clock } from "lucide-react"
 import { motion } from "framer-motion"
 import OrderPDF from "../conferency/OrderPDF"
-import type { Order } from "../../../../service/interfaces/orders"
-import Dashboard from "../../../../components/dashboard"
+
+import Dashboard from "../../../../components/dashboard/Dashboard"
 import { handleAllOrders } from "../../../../service/api/orders"
+import { Order } from "../../../../service/interfaces"
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])

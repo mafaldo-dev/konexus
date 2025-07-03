@@ -2,15 +2,13 @@ import { useState, useEffect } from "react"
 import { useForm, SubmitHandler } from 'react-hook-form'
 import { doc, deleteDoc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
+import { Products, Movement } from "../../../service/interfaces"
 
-import Dashboard from "../../../components/dashboard"
+import Dashboard from "../../../components/dashboard/Dashboard"
 
 import { insertProduct, updateProduct } from "../../../service/api/products"
 import { getAllProducts } from "../../../service/api/products/index"
 import { getKardexMovements } from "../../../service/api/kardex"
-
-import type { Products } from "../../../service/interfaces/products"
-import { Movement } from "../../../service/interfaces/movements"
 
 import lupa from "../../../assets/image/search.png"
 

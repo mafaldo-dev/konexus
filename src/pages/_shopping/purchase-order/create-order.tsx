@@ -1,10 +1,9 @@
 import { useNavigate } from "react-router-dom";
 
 import OrderForm from "../../sales/orders/components/OrderForm";
-import Dashboard from "../../../components/dashboard";
-
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import Dashboard from "../../../components/dashboard/Dashboard";
 
 export default function NewOrderPage() {
     const navigate = useNavigate();

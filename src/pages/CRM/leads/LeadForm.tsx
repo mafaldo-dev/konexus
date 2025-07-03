@@ -1,7 +1,7 @@
 import React, { useState, ChangeEvent, FormEvent } from "react";
 import { X, Save } from "lucide-react";
 import { motion } from "framer-motion";
-import { Lead } from "../../../service/interfaces/leads";
+import { Lead } from "../../../service/interfaces";
 
 type LeadSource =
   | "website"

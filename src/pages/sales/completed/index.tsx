@@ -5,9 +5,9 @@ import { Trophy, TrendingUp } from 'lucide-react';
 import SalesMetricsCards from './components/SalesMetricsCards';
 import SalesFilters from './components/SalesFilters';
 import SalesTable from './components/SalesTable';
-import Dashboard from '../../../components/dashboard';
+import Dashboard from '../../../components/dashboard/Dashboard';
 
-import { Order as OrderType } from '../../../service/interfaces/orders';
+import { Order as OrderType } from '../../../service/interfaces/sales/orders';
 import { handleAllOrders } from '../../../service/api/orders';
 
 export default function CompletedSales() {

@@ -1,4 +1,4 @@
-import { Opportunity } from "../../../service/interfaces/opportunities";
+import { Opportunity } from "../../../service/interfaces";
 import OpportunityCard from "./OpportunityCard";
 
 interface StageOpportunity {
@@ -6,7 +6,6 @@ interface StageOpportunity {
   label: string;
   color: "blue" | "purple" | "yellow" | "orange" | "green" | "red";
 }
-
 
 interface OpportunityColumnProps {
   stage: StageOpportunity;

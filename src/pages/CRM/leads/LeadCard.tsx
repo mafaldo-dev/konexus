@@ -1,9 +1,7 @@
-import React from "react";
 import { Building, Mail, Phone, Star, Edit, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { Lead } from "../../../service/interfaces/leads";
+import { Lead } from "../../../service/interfaces";
 
-// Apenas valores válidos para status do Lead
 type LeadStatus = "new" | "contacted" | "qualified" | "converted" | "lost";
 
 const statusColors: Record<LeadStatus, string> = {

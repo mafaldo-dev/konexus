@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Search, Plus, Edit, Trash2, X, Save, Filter, Award, Package, AlertTriangle, Globe, Mail, Phone } from 'lucide-react'
-import Dashboard from "../../../components/dashboard"
+import Dashboard from "../../../components/dashboard/Dashboard"
 
 interface Brand {
   id: string

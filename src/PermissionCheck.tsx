@@ -1,5 +1,4 @@
 import { useAuth } from "./AuthContext";
-import Dashboard from "./components/dashboard";
 import NotFound from "./pages/NOT-FOUND";
 
 const DesignationCheck = ({

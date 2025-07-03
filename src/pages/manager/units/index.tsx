@@ -1,8 +1,6 @@
-"use client"
-
 import { useState } from "react"
 import { Search, Plus, Edit, Trash2, X, Save, Filter, Calculator, Package, AlertTriangle, Scale } from 'lucide-react'
-import Dashboard from "../../../components/dashboard"
+import Dashboard from "../../../components/dashboard/Dashboard"
 
 interface Unit {
     id: string

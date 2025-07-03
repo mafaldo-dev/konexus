@@ -1,7 +1,6 @@
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import LeadCard from "./LeadCard";
-import { Lead } from "../../../service/interfaces/leads";
+import { Lead } from "../../../service/interfaces";
 
 interface LeadGridProps {
   leads: Lead[];

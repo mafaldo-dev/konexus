@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useMemo } from "react"
 
-import type { Products } from "../../service/interfaces/products"
-import { Customer } from "../../service/interfaces/customer"
-import { Employee } from "../../service/interfaces/employees"
+import { Products, Customer, Employee } from "../../service/interfaces"
+
 import { getAllProducts } from "../../service/api/products"
 import { handleAllCustomer } from "../../service/api/clients/clients"
 import { handleAllEmployee, handleDesignations } from "../../service/api/employee"
 
-import Dashboard from "../dashboard"
+import Dashboard from "../dashboard/Dashboard"
 
 import TableProducts from "./components/table-products"
-import TabsContent from "./components/tabs-component"
+import TabsComponent from "./components/Tabs-Component"
+
 
 const AdministrationScreen = () => {
   const [remember, setRemembers] = useState(localStorage.getItem("remember") || "")
@@ -190,7 +190,7 @@ const AdministrationScreen = () => {
                       </div>
                     </div>
                   </div>
-                  <TabsContent />
+                  <TabsComponent />
                 </div>
                 {/* Rascunho */}
                 <div className="bg-white shadow rounded-lg overflow-hidden">

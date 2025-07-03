@@ -1,4 +1,11 @@
 import { useEffect, useState } from 'react';
+
+import { deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../../../firebaseConfig';
+import { handleAllGoals, insertGoal } from '../../../service/api/goals';
+
+import { GoalsData } from '../../../service/interfaces';
+
 import { motion } from 'framer-motion';
 
 import { Plus, Target, BarChart3, Search } from 'lucide-react';
@@ -7,14 +14,8 @@ import GoalsOverview from '../goals/components/GoalsOverview';
 import GoalForm from '../goals/components/GoalForm';
 import GoalCard from '../goals/components/GoalCard';
 import GoalsChart from '../goals/components/GoalsChart';
-import { handleAllGoals, insertGoal } from '../../../service/api/goals';
-import { GoalsData } from '../../../service/interfaces/goals';
-import { deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../../../firebaseConfig';
-import { getAllProducts } from '../../../service/api/products';
-import Dashboard from '../../../components/dashboard';
 
-
+import Dashboard from '../../../components/dashboard/Dashboard';
 
 export default function Goals() {
     const [goals, setGoals] = useState<GoalsData[]>([]);

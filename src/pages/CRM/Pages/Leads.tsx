@@ -1,5 +1,5 @@
+import Dashboard from "../../../components/dashboard/Dashboard";
 import LeadsPage from "../leads/LeadsPage";
-import Dashboard from "../../../components/dashboard";
 
 export default function Leads() {
   return (

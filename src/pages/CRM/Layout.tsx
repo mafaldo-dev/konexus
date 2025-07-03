@@ -1,7 +1,8 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Users, Target, Home, Mail, Phone, Calendar } from "lucide-react";
-import Dashboard from "../../components/dashboard";
-import NotFound from "../NOT-FOUND"; // importe seu componente not found aqui
+
+import NotFound from "../NOT-FOUND"; 
+import Dashboard from "../../components/dashboard/Dashboard";
 
 const navigationItems = [
   { title: "Dashboard", path: "/crm/dashboard", icon: Home },
@@ -14,8 +15,6 @@ const navigationItems = [
 
 export default function Layout() {
   const location = useLocation();
-
-  // Verifica se a rota atual está no array de rotas válidas
   const isValidPath = navigationItems.some(item => item.path === location.pathname);
 
   return (

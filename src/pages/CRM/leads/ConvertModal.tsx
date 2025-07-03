@@ -1,6 +1,6 @@
 import { useState, FormEvent } from "react";
 import { ArrowRight } from "lucide-react";
-import { OpportunityData } from "../../../service/interfaces/opportunities";
+import { OpportunityData } from "../../../service/interfaces";
 
 type Stage = "prospecting" | "qualification" | "proposal" | "negotiation";
 

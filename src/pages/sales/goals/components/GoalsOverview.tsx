@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { Target, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
-import { GoalsOverviewProps, StatItem } from '../../../../service/interfaces/goals';
-
+import { GoalsOverviewProps, StatItem } from '../../../../service/interfaces';
 
 const formatValue = (value: any, unit: any) => {
   switch (unit) {

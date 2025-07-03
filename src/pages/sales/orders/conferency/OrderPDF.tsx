@@ -1,9 +1,10 @@
-import type { Order } from "../../../../service/interfaces/orders"
+
 
 import { format } from "date-fns"
 import { MapPin, User, Calendar, Phone, CheckSquare, Package } from "lucide-react"
 
 import logo  from "../../../../assets/image/guiman.png"
+import { Order } from "../../../../service/interfaces"
 
 type OrderPDFProps = {
   order: Order
