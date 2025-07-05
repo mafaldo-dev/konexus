@@ -15,3 +15,5 @@ export * from './financial/invoiceExit';
 export * from './financial/invoiceEntries';
 export * from './humanResources/employees';
 export * from './sales/purchaseRequest';
+export * from './financial/company';
+

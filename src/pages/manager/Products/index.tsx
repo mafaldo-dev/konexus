@@ -11,6 +11,7 @@ import { getAllProducts } from "../../../service/api/products/index"
 import { getKardexMovements } from "../../../service/api/kardex"
 
 import lupa from "../../../assets/image/search.png"
+import { useSystemStatus, StatusMessageType } from "../../../SystemStatusContext"
 
 const SearchProducts = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<Products>()
@@ -27,7 +28,8 @@ const SearchProducts = () => {
   const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
   const [movements, setMovements] = useState<Movement[]>([])
   const [kardex, setKardex] = useState<boolean>(false)
-
+  
+  const { addMessage } = useSystemStatus();
   // Atualize handleKardex:
   const handleOpenKardex = async (product: Products) => {
     try {
@@ -48,7 +50,7 @@ const SearchProducts = () => {
       await insertProduct({ ...data, addedAt: new Date() })
       reset()
       const reload = await getAllProducts()
-      console.log(render)
+
       alert("Produto adicionado com sucesso!")
       setRender(reload)
       setOpenRegister(false)
@@ -65,6 +67,7 @@ const SearchProducts = () => {
         setLoading(true);
         const produtos = await getAllProducts()
         setRender(produtos)
+        //addMessage(StatusMessageType.ERROR, "Este é um erro de teste", "Detalhes do erro aqui");
       } catch (Exception) {
         console.error("Erro ao recuperar a lista de produtos.", Exception)
         setError("Erro ao buscar produtos")
@@ -111,6 +114,7 @@ const SearchProducts = () => {
   }
   // ABRE O MODAL PARA EDIÇÃO DE PRODUTOS
   const handleEdit = (product: Products) => {
+    console.log(product)
     setNewInfos(product)
     setIsModalOpen(true)
   }
@@ -218,12 +222,12 @@ const SearchProducts = () => {
                                   onClick={() => handleEdit(item.id)}
                                   className="text-blue-600 hover:text-blue-900 mr-3"
                                 >Editar</button>
-                                
+
                                 <button
                                   onClick={() => handleDelete(item.id!)}
                                   className="text-red-600 hover:text-red-900"
                                 >Excluir</button>
-                              {/* <button
+                                {/* <button
                                 className="px-2 py-3 font-bold bg-gray-200 h-2 flex items-center rounded-sm"
                                 onClick={() => handleOpenKardex(item)}
                               >

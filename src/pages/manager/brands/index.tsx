@@ -2,7 +2,8 @@ import { Search, Plus, Edit, Trash2, X, Save, Filter, Award, Package, AlertTrian
 import Dashboard from "../../../components/dashboard/Dashboard"
 import { useSearchFilter } from '../../../hooks/useSearchFilter'
 import { useDebounce } from '../../../hooks/useDebounce'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSystemStatus, StatusMessageType } from '../../../SystemStatusContext'
 
 interface Brand {
   id: string
@@ -61,12 +62,16 @@ export default function Brands() {
     },
   ])
 
+
+  
+
   const [searchTerm, setSearchTerm] = useState("")
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
   const [showModal, setShowModal] = useState(false)
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
+  
 
   const [formData, setFormData] = useState({
     name: "",

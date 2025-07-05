@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { User } from 'lucide-react';
 import { useAuth } from '../../../AuthContext';
 import { menuItems } from '../menu';
@@ -18,7 +17,7 @@ export default function Sidebar({ sidebarCollapsed }: any) {
         <aside className={`${sidebarCollapsed ? 'w-16' : 'w-72'} bg-slate-900 text-slate-100 transition-all duration-300 fixed h-full z-50 shadow-xl`}>
             <div className="p-4 border-b border-slate-700">
                 <div className="flex items-center gap-3">
-                    <img src={logo || "/placeholder.svg"} alt="Logo Keppler" className="w-8 h-8" />
+                    <img src={logo || "/placeholder.svg"} alt="Logo Guiman" className="w-8 h-8" />
                     {!sidebarCollapsed && (
                         <div>
                             <h1 className="text-lg font-bold text-white">GUIMAN</h1>
@@ -38,16 +37,19 @@ export default function Sidebar({ sidebarCollapsed }: any) {
 
             {!sidebarCollapsed && (
                 <div className="p-4 border-t border-slate-700">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-                            <User className="w-4 h-4 text-slate-300" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{username}</p>
-                            <p className="text-xs text-slate-400 truncate">{designation}</p>
-                        </div>
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-slate-300" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{username}</p>
+                        <p className="text-xs text-slate-400 truncate">{designation}</p>
                     </div>
                 </div>
+                <div className="mt-4 text-center text-xs text-slate-500">
+                    Versão: {process.env.REACT_APP_VERSION}
+                </div>
+            </div>
             )}
         </aside>
     );

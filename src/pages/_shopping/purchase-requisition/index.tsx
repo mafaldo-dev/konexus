@@ -1,16 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Plus } from 'lucide-react';
-import { Products, PurchaseRequest } from '../../../service/interfaces';
+import { EnterpriseData, Products, PurchaseRequest } from '../../../service/interfaces';
 
 import ProductsTable from './components/TableProducts';
 import SupplierFilter from './components/FilterSuppliers';
 import PurchaseRequestForm from './components/SolicitationForm';
 
 import Dashboard from "../../../components/dashboard/Dashboard";
-import QuotationsList from '../_quotes';
+
 import { usePurchaseData } from '../../../hooks/usePurchaseData';
-import { getAllPurchaseRequests } from '../../../service/api/purchaseRequests';
+
 import { useSearchFilter } from '../../../hooks/useSearchFilter';
+
+import DanfeTemplate from '../../../utils/invoicePdf/pdfGenerator';
+import { mapPurchaseRequestToNota } from '../../../utils/invoicePdf/generateQuotationPdf';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { purchaseAllOrders } from '../../../service/api/purchaseRequests';
 
 
 export default function PurchaseManagementScreen() {
@@ -18,6 +23,8 @@ export default function PurchaseManagementScreen() {
   const { products, suppliers, isLoading } = usePurchaseData();
   const [selectedProducts, setSelectedProducts] = useState<Products[]>([]);
   const [showSnackbar, setShowSnackbar] = useState<boolean>(false);
+  const [selectedQuotation, setSelectedQuotation] = useState<PurchaseRequest | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedSupplier, setSelectedSupplier] = useState<string>('');
@@ -27,7 +34,7 @@ export default function PurchaseManagementScreen() {
   useEffect(() => {
     const fetchQuotations = async () => {
       try {
-        const data = await getAllPurchaseRequests();
+        const data = await purchaseAllOrders();
         setQuotations(data);
       } catch (error) {
         console.error('Error fetching quotations:', error);
@@ -37,8 +44,8 @@ export default function PurchaseManagementScreen() {
   }, []);
 
   const handlePreview = (quotation: PurchaseRequest) => {
-    // TODO: Implement a proper modal or page for quotation preview
-    console.log(`Visualizando cotação: ${quotation.requestNumber}\nFornecedor: ${quotation.supplierName}`);
+    setSelectedQuotation(quotation);
+    setShowPreviewModal(true);
   };
 
 
@@ -71,10 +78,7 @@ export default function PurchaseManagementScreen() {
   };
 
   const handleCreateRequest = async (requestData: any) => {
-    // Assuming setIsLoading is still managed locally for this action
     try {
-      // TODO: Implement actual API call to create purchase request
-      console.log('Creating request with data:', requestData);
       setSelectedProducts([]);
       setActiveTab('stock');
       setShowSnackbar(true);
@@ -101,7 +105,60 @@ export default function PurchaseManagementScreen() {
     console.log(`Baixar cotação ${id} (implemente exportação PDF)`);
   };
 
+  const renderPdfToNewWindow = (quotation: PurchaseRequest) => {
+    const nota = mapPurchaseRequestToNota(quotation);
+    const htmlContent = renderToStaticMarkup(<DanfeTemplate nota={nota} onDownloadComplete={() => {
+      console.log("Download concnluido!")
+    }} />);
 
+    const newWindow = window.open();
+    if (newWindow) {
+      // Copy stylesheets from the main window to the new window
+      const stylesheets = Array.from(document.styleSheets)
+        .map((styleSheet) => {
+          try {
+            // Ensure the href is accessible and construct the link tag
+            return styleSheet.href ? `<link rel="stylesheet" href="${styleSheet.href}">` : '';
+          } catch (e) {
+            // Catch potential security errors when accessing cross-origin stylesheets
+            console.warn('Could not read stylesheet href:', e);
+            return '';
+          }
+        })
+        .join('\n');
+
+      newWindow.document.write(`
+        <html>
+          <head>
+            <title>Visualização de Cotação</title>
+            ${stylesheets}
+            <style>
+              /* Additional styles for printing and layout */
+              body { margin: 0; background-color: #f0f2f5; }
+              .danfe-container {
+                width: 210mm;
+                min-height: 297mm;
+                margin: 20px auto; /* Center the content */
+                background-color: white;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+              }
+              @media print {
+                /* Styles for when the user prints the page */
+                body { background-color: white; }
+                .danfe-container { margin: 0; box-shadow: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="danfe-container">
+              ${htmlContent}
+            </div>
+          </body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
+  };
 
 
   return (
@@ -207,13 +264,64 @@ export default function PurchaseManagementScreen() {
           />
         ) : (
           // Aba Cotações
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-slate-700 mb-4">Lista de Cotações</h2>
-            <QuotationsList
-              quotations={quotations}
-              onPreview={(cotacao) => console.log('Abrir modal para:', cotacao)}
-            />
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-2xl font-semibold mb-4">Cotações Realizadas</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white text-sm border border-slate-200 rounded">
+                <thead className="bg-slate-100 text-slate-600">
+                  <tr>
+                    <th className="text-left py-3 px-4">Nº Requisição</th>
+                    <th className="text-left py-3 px-4">Solicitante</th>
+                    <th className="text-left py-3 px-4">Fornecedor</th>
+                    <th className="text-left py-3 px-4">Data</th>
+                    <th className="text-left py-3 px-4">Entrega Prevista</th>
+                    <th className="text-right py-3 px-4">Valor Total</th>
+                    <th className="text-center py-3 px-4">Status</th>
+                    <th className="text-center py-3 px-4">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {quotations.map((q) => (
+                    <tr key={q.requestNumber} className="border-b hover:bg-slate-50">
+                      <td className="py-3 px-4">{q.requestNumber}</td>
+                      <td className="py-3 px-4">{q.companyData.company_name || '---'}</td>
+                      <td className="py-3 px-4">{q.companyData?.company_name || '---'}</td>
+                      <td className="py-3 px-4">{new Date(q.requestDate).toLocaleDateString()}</td>
+                      <td className="py-3 px-4">{new Date(q.deliveryDate).toLocaleDateString()}</td>
+                      <td className="py-3 px-4 text-right">
+                        R${q.products.reduce((total, item) => total + item.total_price, 0).toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span
+                          className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${q.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : q.status === 'approved'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}
+                        >
+                          {q.status === 'pending'
+                            ? 'Pendente'
+                            : q.status === 'approved'
+                              ? 'Aprovada'
+                              : 'Concluída'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => renderPdfToNewWindow(q)}
+                          className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition"
+                        >
+                          Visualizar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+
         )}
       </div>
 

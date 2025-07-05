@@ -10,7 +10,6 @@ import SearchProducts from '../pages/manager/Products';
 import SearchSuppliers from '../pages/manager/Suppliers';
 import EmployeeAdministration from '../pages/RH/employees';
 import PositionsAndSalaries from '../pages/RH/positions&salaries';
-import InvoiceDANFE from '../pages/sales/orders/components/OrderForm';
 import DesignationCheck from '../PermissionCheck';
 import MovementsOnStock from '../pages/stock/movements';
 import Categories from '../pages/manager/categories';
@@ -30,6 +29,10 @@ import PurchaseRequisition from '../pages/_shopping/purchase-requisition';
 import PurchaseManagementScreen from '../pages/_shopping/purchase-requisition';
 import InvoiceEntries from '../pages/_shopping/entry-notes/InvoiceEntries';
 import RegisterReportSales from '../pages/RH/report';
+import SecuritySettingsPage from '../pages/configurations/security';
+import NotificationPreferences from '../pages/configurations/notifications';
+import UserManagementPage from '../pages/configurations/users&permissions';
+import SystemStatusPage from '../pages/configurations/parametersOfSystem';
 
 
 const AppRoutes = () => {
@@ -60,7 +63,7 @@ const AppRoutes = () => {
       <Route 
         path="/dashboard" 
         element={
-          <DesignationCheck allowed={['Administrador', 'Financeiro']}>
+          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Vendedor', 'Conferente']}>
             <AdministrationScreen />
           </DesignationCheck>
       } />
@@ -179,6 +182,41 @@ const AppRoutes = () => {
         }
       />
       <Route path='not-found' element={ <NotFound />} />
+      {/* AREA DE CONFIGURAÇÕES */}
+      <Route path="/config">
+      <Route
+        path="/config/users-permissions"
+        element={
+          <DesignationCheck allowed={["Administrador"]}>
+            <UserManagementPage />
+          </DesignationCheck>
+        }
+      />
+        <Route 
+          path="/config/security-area" 
+          element={
+          <DesignationCheck allowed={['Administrador']}>
+            <SecuritySettingsPage />
+          </DesignationCheck>
+          } 
+        />
+        <Route 
+          path="/config/notifications" 
+          element={
+            <DesignationCheck allowed={['Administrador']}>
+              <NotificationPreferences />
+            </DesignationCheck>
+          } 
+        />
+        <Route 
+          path="/config/system"
+          element={
+            <DesignationCheck allowed={['Administrador']}>
+              <SystemStatusPage />
+            </DesignationCheck>
+          }
+        />
+      </Route>
                 {/*AREA OF CRM*/}
       <Route path="/crm" element={<Layout />}>
         <Route 

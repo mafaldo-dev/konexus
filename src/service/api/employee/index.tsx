@@ -1,4 +1,4 @@
-import { collection, getDocs, addDoc, query, where } from "firebase/firestore"
+import { collection, getDocs, addDoc, query, where, doc, updateDoc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
 import { Employee } from "../../interfaces"
 
@@ -10,7 +10,7 @@ export async function insertEmployee(employee: Employee) {
   } catch (Exception) {
     console.error("Erro ao realizar cadastro do Colaborador", Exception)
     alert("Erro ao adicionar o COLABORADOR a base de dados!!!")
-    throw new Error
+    throw new Error("Erro interno do servidor!")
   }
 }
 
@@ -27,8 +27,19 @@ export async function handleAllEmployee(searchTerm?: string): Promise<Employee[]
     } catch (Exception) {
         console.error("Erro ao recuperar a lista de Funcionarios!", Exception)
         alert("Erro interno do servidor!!!")
-        throw new Error
+        throw new Error("Erro interno do servidor!")
     }
+}
+
+export const updatedEmployee = async (id: string, updatedData: any) => {
+  try {
+    const employeeRef = doc(db, "Employee", id)
+    await updateDoc(employeeRef, updatedData)
+  } catch (Exception) {
+    console.error("Erro ao atualizar os dados do colaborador:", Exception)
+    alert("Erro ao atualizar informações do colaborador!!! ")
+    throw new Error("Erro interno do servidor!")
+  }
 }
 
 export async function handleDesignations(designation?: string): Promise<Employee[]> {
@@ -51,6 +62,6 @@ export async function handleDesignations(designation?: string): Promise<Employee
   } catch (error) {
     console.error("Erro ao recuperar a lista de Funcionarios!", error)
     alert("Erro interno do servidor!!!")
-    throw new Error()
+    throw new Error("Erro interno do servidor!")
   }
 }

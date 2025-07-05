@@ -53,12 +53,12 @@ export const menuItems = [
       icon: Warehouse,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Inventário', href: '/estoque/inventario', icon: Package },
+        { title: 'Inventário', href: '/stock/inventory', icon: Package },
         { title: 'Movimentações', href: '/stock/movements', icon: TrendingUp },
-        { title: 'Ajustes', href: '/estoque/ajustes', icon: Settings },
-        { title: 'Alertas de Estoque', href: '/estoque/alertas', icon: AlertTriangle },
-        { title: 'Transferências', href: '/estoque/transferencias', icon: Truck },
-        { title: 'Contagem', href: '/estoque/contagem', icon: Clipboard }
+        { title: 'Ajustes', href: '/stock/changes', icon: Settings },
+        { title: 'Alertas de Estoque', href: '/stock/alerts', icon: AlertTriangle },
+        { title: 'Transferências', href: '/stock/transfers', icon: Truck },
+        { title: 'Contagem', href: '/stock/counts', icon: Clipboard }
       ]
     },
     {
@@ -102,18 +102,18 @@ export const menuItems = [
         { title: 'Dashboard', href: '/crm/dashboard', icon: BarChart3, access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'] },]
     },
     {
-      key: 'configuracoes',
+      key: 'config',
       title: 'Configurações',
       icon: Settings,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Usuários e Permissões', href: '/config/usuarios', icon: Users },
-        { title: 'Parâmetros do Sistema', href: '/config/sistema', icon: Database },
-        { title: 'Notificações', href: '/config/email', icon: Bell },
-        { title: 'Segurança', href: '/config/seguranca', icon: Shield },
+        { title: 'Usuários e Permissões', href: '/config/users-permissions', icon: Users },
+        { title: 'Parâmetros do Sistema', href: '/config/system', icon: Database, access: ['Administrador'] },
+        { title: 'Notificações', href: '/config/notifications', icon: Bell },
+        { title: 'Segurança', href: '/config/security-area', icon: Shield },
         { title: 'Backup', href: '/config/backup', icon: Database },
         { title: 'Impressoras', href: '/config/impressoras', icon: Printer },
-        { title: 'Integração', href: '/config/integracao', icon: Settings }
+        { title: 'Integração', href: '/config/integration', icon: Settings }
       ]
     }
   ]

@@ -18,7 +18,6 @@ export async function updateCustomer(id: string, updatedData: any) {
     try {
         const customerRef = doc(db, "Clients", id)
         await updateDoc(customerRef, updatedData)
-        console.log("Dados atualizados com sucesso!")
     } catch (Exception) {
         console.error("Erro ao atualizar os dados do cliente!", Exception)
         alert("Erro ao atualizar informações do cliente!")

@@ -1,17 +1,34 @@
-export interface ProductItem {
-  productName: string;
-  quantity: number;
-  price: number;
-  totalPrice: number;
-}
 
 export interface PurchaseRequest {
+  id: string
   requestNumber: string;
-  supplierName: string;
-  deliveryDate: string;
   requestDate: string;
-  totalAmount: number;
+  enterprise_name: string,
+  buyer: string
+  companyData: {
+    id: string
+    code: string
+    company_name: string,
+    email: string
+    cnpj: string
+    phone: number
+    address: {
+      state: string,
+      city: string,
+      street: string,
+      number: number
+    }
+  }
+  products: {
+    id: string,
+    code: string,
+    product_name: string,
+    quantity: number,
+    price: number,
+    total_price: number
+  }[]
+  createdAt: Date | any
+  deliveryDate: Date | any
   status: 'pending' | 'approved' | 'completed';
-  products: ProductItem[];
   notes: string;
 }

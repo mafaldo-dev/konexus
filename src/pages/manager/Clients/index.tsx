@@ -22,7 +22,7 @@ const SearchClientes = () => {
   const [render, setRender] = useState<Customer[]>([])
   const [error, setError] = useState<string | null>(null)
   const [newInfos, setNewInfos] = useState<Customer>()
-  const [allClients, setAllClients] = useState<Customer[]>([]) // Renamed addedClient to allClients for clarity
+  const [allClients, setAllClients] = useState<Customer[]>([]) 
   const [searchTerm, setSearchTerm] = useState<string>("")
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
@@ -52,7 +52,7 @@ const SearchClientes = () => {
         setLoading(true)
         const clients = await handleAllCustomer()
         setRender(clients)
-        setAllClients(clients) // Set allClients here as well
+        setAllClients(clients)
       } catch (Exception) {
         console.error("Erro ao recuperar dados dos clientes:", Exception)
         setError("Erro ao buscar dados")
@@ -107,7 +107,7 @@ const SearchClientes = () => {
   async function handleDelete(id: string) {
     try {
       await deleteDoc(doc(db, "Clients", id))
-      setAllClients(allClients.filter(c => c.id !== id)) // Update allClients after delete
+      setAllClients(allClients.filter(c => c.id !== id))
       alert("Cliente deletado com sucesso!")
       const reload = await  handleAllCustomer()
       setRender(reload)
@@ -192,8 +192,6 @@ const SearchClientes = () => {
                       <th className="h-10 px-4 text-left font-medium text-gray-700">E-mail</th>
                       <th className="h-10 px-4 text-left font-medium text-gray-700">Telefone</th>
                       <th className="h-10 px-4 text-left font-medium text-gray-700">Estado</th>
-                      {/* <th className="h-10 px-4 text-left font-medium text-gray-700">Cidade</th> */}
-                      {/* <th className="h-10 px-4 text-left font-medium text-gray-700">Numero</th> */}
                       <th className="h-10 px-4 text-left font-medium text-gray-700">CEP</th>
                       <th className="h-10 px-4 text-left font-medium text-gray-700">Ações</th>
                     </tr>
@@ -207,15 +205,12 @@ const SearchClientes = () => {
                           <td className="p-2 text-gray-900 ">{client.name}</td>
                           <td className="p-2 text-gray-900">{client.email}</td>
                           <td className="p-2 text-gray-900">{client.phone}</td>
-                          <td className="p-2 text-gray-900">{client.address.state}</td>
-                          {/* <td className="p-2 text-gray-900">{client.address.city}</td> */}
-                          {/* <td className="p-2 text-gray-900" >{client.address.number}</td> */}
+                          <td className="p-2 text-gray-900">{client.address.state}</td>               
                           <td className="p-2 text-gray-900">{client.address.zip_code}</td>
-                          {/*<td className="p-2 text-gray-900">{client.added}</td>*/}
                           <td className="p-1">
                             <div className="flex gap-1 -ml-2">
                               <button
-                                onClick={() => handleEdit(client.id)}
+                                onClick={() => handleEdit(client)}
                                 className="text-blue-600 font-semibold hover:text-blue-900 mr-3"
                               >
                                 Editar
@@ -359,7 +354,6 @@ const SearchClientes = () => {
                   {/* Endereço */}
                   <div className="mb-6">
                     <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Endereço</h3>
-
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -376,7 +370,6 @@ const SearchClientes = () => {
                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                           />
                         </div>
-
                         <div>
                           <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
                             Cidade
