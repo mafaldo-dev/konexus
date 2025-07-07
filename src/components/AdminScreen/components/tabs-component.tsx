@@ -10,9 +10,23 @@ const tabs = [
     { id: "linksrapidos", label: "Links Rápidos" },
 ];
 
+const countStoredMessages = (): number => {
+  const stored = localStorage.getItem('sector_messages');
+  const messages = stored ? JSON.parse(stored) : [];
+  return messages.length;
+};
+
+const totalMsg = countStoredMessages();
+
+
+
 const tabContent: { [key: string]: TabContentItem[]} = {
     notificacoes: [
-        { title: "Mensagens", content: `Você tem ${"0"} novas mensagens.`, badge: "New"},
+         {
+        title: "Mensagens",
+        content: `Você tem ${totalMsg} ${totalMsg === 1 ? "mensagem" : "mensagens"} no sistema.`,
+        badge: totalMsg > 0 ? 'New' : undefined,
+      },
         { title: "E-mails", content: "Check sua caixa de entrada para atualizações de E-mails" },
         { title: "Transportadoras", content: "Verifique as atualizações de envio" },
     ],

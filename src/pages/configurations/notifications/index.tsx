@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Mail, Bell, MessageSquare, Save } from 'lucide-react';
+// NotificationPreferences.tsx
+import { useState, useEffect } from 'react';
+import { Inbox, Mail, Bell, MessageSquare } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Dashboard from '../../../components/dashboard/Dashboard';
 
-// Mock data for notification events
 const initialNotificationSettings = [
   {
     id: 'new_lead',
@@ -38,127 +39,178 @@ const initialNotificationSettings = [
   },
 ];
 
-type NotificationSetting = typeof initialNotificationSettings[0];
+interface NotificationSetting {
+  id: string;
+  category: string;
+  description: string;
+  email: boolean;
+  push: boolean;
+  sms: boolean;
+}
+
+interface Message {
+  id: string;
+  sector: string;
+  sender: string;
+  message: string;
+  timestamp: string;
+}
 
 export default function NotificationPreferences() {
-  const [settings, setSettings] = useState(initialNotificationSettings);
+  const [settings, setSettings] = useState<NotificationSetting[]>(initialNotificationSettings);
   const [isSaving, setIsSaving] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [selectedSector, setSelectedSector] = useState<string>('todos');
+
+  useEffect(() => {
+    const storedSettings = localStorage.getItem('notification_settings');
+    const storedMessages = localStorage.getItem('sector_messages');
+
+    if (storedSettings) {
+      setSettings(JSON.parse(storedSettings));
+    }
+
+    if (storedMessages) {
+      setMessages(JSON.parse(storedMessages));
+    }
+  }, []);
 
   const handleSettingChange = (id: string, channel: 'email' | 'push' | 'sms', value: boolean) => {
-    setSettings((prevSettings) =>
-      prevSettings.map((setting) =>
-        setting.id === id ? { ...setting, [channel]: value } : setting
-      )
+    setSettings((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, [channel]: value } : s))
     );
   };
 
   const handleSave = () => {
     setIsSaving(true);
-    console.log('Saving notification settings:', settings);
-    // Mock API call
+    localStorage.setItem('notification_settings', JSON.stringify(settings));
     setTimeout(() => {
       setIsSaving(false);
-      // Here you would show a success snackbar/toast
     }, 1500);
   };
 
-  const groupedSettings = settings.reduce((acc, setting) => {
-    const category = setting.category;
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(setting);
+  const groupedSettings = settings.reduce((acc, s) => {
+    if (!acc[s.category]) acc[s.category] = [];
+    acc[s.category].push(s);
     return acc;
   }, {} as Record<string, NotificationSetting[]>);
 
+  const filteredMessages = selectedSector === 'todos'
+    ? messages
+    : messages.filter((msg) => msg.sector === selectedSector);
+
+  const sectors = ['todos', ...Array.from(new Set(messages.map((m) => m.sector)))];
+
   return (
     <Dashboard>
-      <div className="space-y-8">
+      <div className="min-h-screen p-6 space-y-10">
+        {/* Cabeçalho */}
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Notificações</h1>
+          <h1 className="text-3xl font-bold">Central de Notificações</h1>
           <p className="text-slate-500 mt-1">
-            Gerencie como e quando você é notificado.
+            Gerencie preferências e visualize alertas enviados por setores da empresa.
           </p>
         </div>
 
-        {/* Tabela de Preferências */}
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-slate-800 mb-6">Preferências de Eventos</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="text-left text-slate-600">
-                <tr>
-                  <th className="p-3 font-medium">Evento</th>
-                  <th className="p-3 font-medium text-center w-24">
-                    <div className="flex items-center justify-center gap-2">
-                      <Mail size={16} /> Email
-                    </div>
-                  </th>
-                  <th className="p-3 font-medium text-center w-24">
-                    <div className="flex items-center justify-center gap-2">
-                      <Bell size={16} /> Push
-                    </div>
-                  </th>
-                  <th className="p-3 font-medium text-center w-24">
-                    <div className="flex items-center justify-center gap-2">
-                      <MessageSquare size={16} /> SMS
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(groupedSettings).map(([category, settingsInCategory]) => (
-                  <>
-                    <tr key={category}>
-                      <td colSpan={4} className="pt-6 pb-2">
-                        <h3 className="text-base font-semibold text-slate-700">{category}</h3>
-                      </td>
-                    </tr>
-                    {settingsInCategory.map((setting) => (
-                      <tr key={setting.id} className="border-b border-slate-100 last:border-none">
-                        <td className="p-3 text-slate-600">{setting.description}</td>
-                        <td className="p-3 text-center">
+        {/* Preferências modernizadas */}
+        <div className="grid gap-6">
+          {Object.entries(groupedSettings).map(([category, list]) => (
+            <div key={category} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-700 mb-4 border-b pb-2">
+                {category}
+              </h2>
+              <div className="grid gap-4">
+                {list.map((setting) => (
+                  <div
+                    key={setting.id}
+                    className="flex items-center justify-between rounded-lg bg-slate-50 p-4 hover:bg-slate-100 transition"
+                  >
+                    <span className="text-slate-700 font-medium w-2/3">{setting.description}</span>
+                    <div className="flex gap-4">
+                      {(['email', 'push', 'sms'] as const).map((channel) => (
+                        <label
+                          key={channel}
+                          className="flex items-center gap-1 text-sm text-slate-600"
+                        >
                           <input
                             type="checkbox"
-                            className="h-5 w-5 rounded border-slate-300 text-slate-600 focus:ring-slate-500 cursor-pointer"
-                            checked={setting.email}
-                            onChange={(e) => handleSettingChange(setting.id, 'email', e.target.checked)}
+                            checked={setting[channel]}
+                            onChange={(e) =>
+                              handleSettingChange(setting.id, channel, e.target.checked)
+                            }
+                            className="accent-slate-600 w-4 h-4"
                           />
-                        </td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="checkbox"
-                            className="h-5 w-5 rounded border-slate-300 text-slate-600 focus:ring-slate-500 cursor-pointer"
-                            checked={setting.push}
-                            onChange={(e) => handleSettingChange(setting.id, 'push', e.target.checked)}
-                          />
-                        </td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="checkbox"
-                            className="h-5 w-5 rounded border-slate-300 text-slate-600 focus:ring-slate-500 cursor-pointer"
-                            checked={setting.sms}
-                            onChange={(e) => handleSettingChange(setting.id, 'sms', e.target.checked)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </>
+                          {channel === 'email' ? <Mail size={16} /> : null}
+                          {channel === 'push' ? <Bell size={16} /> : null}
+                          {channel === 'sms' ? <MessageSquare size={16} /> : null}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Caixa de Mensagens */}
+        <div className="bg-white rounded shadow p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Inbox size={20} /> Caixa de Entrada
+            </h2>
+            <select
+              value={selectedSector}
+              onChange={(e) => setSelectedSector(e.target.value)}
+              className="border rounded px-3 py-1 text-sm"
+            >
+              {sectors.map((sector) => (
+                <option key={sector} value={sector}>
+                  {sector === 'todos' ? 'Todos os Setores' : sector}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid gap-3">
+            {filteredMessages.length > 0 ? (
+              filteredMessages.map((msg) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="border-l-4 pl-4 py-2 rounded bg-slate-50 shadow"
+                  style={{
+                    borderColor:
+                      msg.sector === 'Expedição'
+                        ? '#38bdf8'
+                        : msg.sector === 'Financeiro'
+                        ? '#a78bfa'
+                        : '#22c55e',
+                  }}
+                >
+                  <div className="text-sm">
+                    <strong>{msg.sender}</strong> ({msg.sector})
+                  </div>
+                  <div className="text-sm text-slate-600">{msg.message}</div>
+                  <div className="text-xs text-slate-400 mt-1">{msg.timestamp}</div>
+                </motion.div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">Nenhuma mensagem encontrada.</p>
+            )}
           </div>
         </div>
 
-        {/* Ação de Salvar */}
+        {/* Botão de salvar */}
         <div className="flex justify-end">
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-800 text-white font-semibold rounded-lg shadow-md hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded disabled:opacity-50"
           >
-            <Save size={18} />
-            {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+            {isSaving ? 'Salvando...' : '✔️ Salvar alterações'}
           </button>
         </div>
       </div>
