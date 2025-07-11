@@ -16,10 +16,11 @@ import DanfeTemplate from '../../../utils/invoicePdf/pdfGenerator';
 import { mapPurchaseRequestToNota } from '../../../utils/invoicePdf/generateQuotationPdf';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { purchaseAllOrders } from '../../../service/api/purchaseRequests';
+import ReturnsPage from '../returns';
 
 
 export default function PurchaseManagementScreen() {
-  const [activeTab, setActiveTab] = useState<'stock' | 'request' | 'quote'>('stock');
+  const [activeTab, setActiveTab] = useState<'stock' | 'request' | 'quote' | 'returns'>('stock');
   const { products, suppliers, isLoading } = usePurchaseData();
   const [selectedProducts, setSelectedProducts] = useState<Products[]>([]);
   const [showSnackbar, setShowSnackbar] = useState<boolean>(false);
@@ -219,6 +220,16 @@ export default function PurchaseManagementScreen() {
               </span>
             )}
           </button>
+
+          <button
+            onClick={() => setActiveTab('returns')}
+            className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'returns'
+              ? 'border-slate-600 text-slate-700'
+              : 'border-transparent text-slate-400'
+              }`}
+          >
+            Devoluções
+          </button>
         </div>
 
         {/* Tabs content */}
@@ -262,6 +273,8 @@ export default function PurchaseManagementScreen() {
             onSubmit={handleCreateRequest}
             isLoading={isLoading}
           />
+        ) : activeTab === 'returns' ? (
+          <ReturnsPage />
         ) : (
           // Aba Cotações
           <div className="bg-white p-6 rounded-lg shadow-md">

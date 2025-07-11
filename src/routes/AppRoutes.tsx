@@ -12,6 +12,7 @@ import EmployeeAdministration from '../pages/RH/employees';
 import PositionsAndSalaries from '../pages/RH/positions&salaries';
 import DesignationCheck from '../PermissionCheck';
 import MovementsOnStock from '../pages/stock/movements';
+import Inventory from '../pages/stock/inventory';
 import Categories from '../pages/manager/categories';
 import Brands from '../pages/manager/brands';
 import Units from '../pages/manager/units';
@@ -28,11 +29,11 @@ import Goals from '../pages/sales/goals';
 import PurchaseRequisition from '../pages/_shopping/purchase-requisition';
 import PurchaseManagementScreen from '../pages/_shopping/purchase-requisition';
 import InvoiceEntries from '../pages/_shopping/entry-notes/InvoiceEntries';
-import RegisterReportSales from '../pages/RH/report';
 import SecuritySettingsPage from '../pages/configurations/security';
 import NotificationPreferences from '../pages/configurations/notifications';
 import UserManagementPage from '../pages/configurations/users&permissions';
 import SystemStatusPage from '../pages/configurations/parametersOfSystem';
+import ReportsDashboard from '../pages/sales/reports';
 
 
 const AppRoutes = () => {
@@ -126,10 +127,10 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/sales/report"
+        path="/sales/reports"
         element={
-          <DesignationCheck allowed={["Administrador", "Financeiro"]}>
-            <RegisterReportSales/>
+          <DesignationCheck allowed={["Administrador", "Financeiro", "Gerente"]}>
+            <ReportsDashboard />
           </DesignationCheck>
         }
       />
@@ -154,6 +155,14 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={["Administrador", "Conferente"]}>
             <MovementsOnStock />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/stock/inventory"
+        element={
+          <DesignationCheck allowed={["Administrador", "Conferente"]}>
+            <Inventory />
           </DesignationCheck>
         }
       />

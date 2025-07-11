@@ -33,7 +33,7 @@ export const menuItems = [
         { title: 'Vendas Realizadas', href: '/sales/completed', icon: TrendingUp, access: ['Administrador', 'Vendedor'] },
         { title: 'Comissões', href: '/sales/comissions', icon: DollarSign, access: ['Administrador', 'Financeiro'] },
         { title: 'Metas', href: '/sales/goals', icon: Target, access: ['Administrador', 'Financeiro', 'Vendedor'] },
-        { title: 'Relatórios', href: '/sales/report', icon: BarChart3, access: ['Administrador', 'Financeiro'] }
+        { title: 'Relatórios', href: '/sales/reports', icon: BarChart3, access: ['Administrador', 'Financeiro'] }
       ]
     },
     {
@@ -43,8 +43,7 @@ export const menuItems = [
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro', 'Buyer'],
       submenu: [
         { title: 'Pedidos de Compra', href: '/shopping/purchase-order', icon: Clipboard, access: ['Administrador', 'Financeiro', 'Buyer'] },
-        { title: 'Recebimentos', href: '/shopping/invoice-entry', icon: Package, access: ['Administrador', 'Financeiro', 'Buyer', 'Conferente'] },
-        { title: 'Devoluções', href: '/shopping/invoice-back', icon: AlertTriangle, acess: ['Administrador', 'Financeiro', 'Buyer', 'Conferente'] }
+        { title: 'Recebimentos', href: '/shopping/invoice-entry', icon: Package, access: ['Administrador', 'Financeiro', 'Buyer', 'Conferente'] }
       ]
     },
     {
