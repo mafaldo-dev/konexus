@@ -1,12 +1,14 @@
 export interface Products {
     id?: number | any;
     name: string;
-    description: string;
-    price: number
-    quantity: number 
     code: string
+    price: number
     addedAt: string | any
-    supplier: string
-    address?: string
+    description: string;
+    location: string
     minimum_stock: number
+    brand: string
+    supplier: string
+    category: string
+    quantity: number
 }

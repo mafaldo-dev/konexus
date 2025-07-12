@@ -1,4 +1,4 @@
-import { useProductManagement } from '../../../hooks/useProductManagement';
+import { useProductManagement } from '../../../hooks/_manager/useProductManagement';
 import { ProductsProps } from '../../../service/interfaces';
 
 interface Props {
@@ -16,8 +16,8 @@ const ProductTable: React.FC<Props> = ({ product, setProduct }) => {
         price,
         setPrice,
         handleProduct,
-        handleAddProduct,
-    } = useProductManagement();
+        handleAddProduct
+    } = useProductManagement(setProduct);
 
     return (
         <section className="w-full">
@@ -32,8 +32,8 @@ const ProductTable: React.FC<Props> = ({ product, setProduct }) => {
                             <label className="block text-xs text-gray-600 mb-1">Código do Produto</label>
                             <div className="flex">
                                 <input
-                                    type="number"
-                                    value={productCode}
+                                    type="text"
+                                    defaultValue={productCode}
                                     onChange={(e) => setProductCode(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleProduct()}
                                     className="w-full p-1 border rounded-l-md border-gray-300 text-sm"
@@ -63,6 +63,10 @@ const ProductTable: React.FC<Props> = ({ product, setProduct }) => {
                             <div>
                                 <label className="block text-xs text-gray-600 mb-1">Estoque</label>
                                 <p className="text-sm">{addedProduct.quantity}</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs text-gray-600 mb-1">Valor</label>
+                                <p className="text-sm">{addedProduct.price}</p>
                             </div>
                         </div>
                     )}

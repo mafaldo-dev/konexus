@@ -2,8 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { Employee } from '../../../service/interfaces/humanResources/employees';
 import { motion } from 'framer-motion';
 
-import { handleAllEmployee } from '../../../service/api/employee';
-import { handleAllOrders } from '../../../service/api/orders';
+import { handleAllEmployee } from '../../../service/api/Administrador/employee';
+import { handleAllOrders } from '../../../service/api/Administrador/orders';
 
 import { Award } from 'lucide-react';
 

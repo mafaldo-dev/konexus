@@ -5,7 +5,7 @@ import OrdersList from '../pages/sales/orders/components/orders-list';
 
 import PurchaseOrder from '../pages/sales/orders/purchase-order';
 import NewOrderPage from '../pages/sales/orders/purchase-order/create-order';
-import SearchClientes from '../pages/manager/Clients';
+import SearchClientes from '../pages/manager/Customers';
 import SearchProducts from '../pages/manager/Products';
 import SearchSuppliers from '../pages/manager/Suppliers';
 import EmployeeAdministration from '../pages/RH/employees';

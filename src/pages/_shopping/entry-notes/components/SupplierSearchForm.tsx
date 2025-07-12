@@ -1,4 +1,4 @@
-import { useSupplierSearch } from '../../../../hooks/useSupplierSearch';
+import { useSupplierSearch } from '../../../../hooks/_manager/useSupplierSearch';
 import { UseFormSetValue } from 'react-hook-form';
 
 interface SupplierSearchFormProps {

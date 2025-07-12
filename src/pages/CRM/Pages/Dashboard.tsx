@@ -1,107 +1,18 @@
-import { useState, useEffect } from "react";
 import { Users, Target, TrendingUp, DollarSign, Megaphone } from "lucide-react";
 import { motion } from "framer-motion";
+import { useCrmData } from "../../../hooks/_crm/useCrmData";
+import MetricCard from "../dashboard/MetricCard";
+import LeadChart from "../dashboard/LeadChart";
+import OpportunityPipeline from "../dashboard/Opportunity";
+import RecentActivity from "../dashboard/RecentActivity";
+import CampaignForm from "../components/CampaignForm";
+import CampaignCard from "../components/CampaignCard";
 
-import { getLeads } from "../../../service/api/leads";
-import { getAllOpportunities } from "../../../service/api/opportunities";
-import { getCampaigns } from "../../../service/api/campaigns"; 
-import { Lead, Opportunity, Campaign } from "../../../service/interfaces";
-
-const MetricCard = ({ title, value, icon: Icon, trend, color, isLoading }: any) => (
-  <div className="bg-white shadow rounded-lg p-4 flex items-center justify-between">
-    <div>
-      <p className="text-sm text-gray-500">{title}</p>
-      <h3 className="text-xl font-bold text-gray-800">
-        {isLoading ? "..." : value}
-      </h3>
-      <p className="text-xs text-green-600">{trend}</p>
-    </div>
-    <div className={`p-2 rounded-full bg-${color}-100 text-${color}-600`}>
-      <Icon className="w-6 h-6" />
-    </div>
-  </div>
-);
-
-const LeadChart = ({ leads, isLoading }: { leads: Lead[], isLoading: boolean }) => (
-  <div className="bg-white p-4 rounded shadow">
-    <h4 className="text-lg font-semibold mb-2">Gráfico de Leads</h4>
-    {isLoading ? <p>Carregando...</p> : <p>{leads.length} leads exibidos no gráfico</p>}
-    {/* Aqui você integraria uma biblioteca de gráficos real, como Recharts ou Chart.js */}
-  </div>
-);
-
-const OpportunityPipeline = ({ opportunities, isLoading }: { opportunities: Opportunity[], isLoading: boolean }) => (
-  <div className="bg-white p-4 rounded shadow">
-    <h4 className="text-lg font-semibold mb-2">Pipeline de Oportunidades</h4>
-    {isLoading ? <p>Carregando...</p> : (
-      <ul className="list-disc pl-5">
-        {opportunities.map((op) => (
-          <li key={op.id}>Oportunidade #{op.id} - estágio: {op.stage}</li>
-        ))}
-      </ul>
-    )}
-  </div>
-);
-
-const CampaignChart = ({ campaigns, isLoading }: { campaigns: Campaign[], isLoading: boolean }) => (
-  <div className="bg-white p-4 rounded shadow">
-    <h4 className="text-lg font-semibold mb-2">Gráfico de Campanhas</h4>
-    {isLoading ? <p>Carregando...</p> : <p>{campaigns.length} campanhas exibidas no gráfico</p>}
-    {/* Aqui você integraria uma biblioteca de gráficos real para campanhas */}
-  </div>
-);
-
-const RecentActivity = ({ leads, opportunities, campaigns, isLoading }: { leads: Lead[], opportunities: Opportunity[], campaigns: Campaign[], isLoading: boolean }) => (
-  <div className="bg-white p-4 rounded shadow">
-    <h4 className="text-lg font-semibold mb-2">Atividades Recentes</h4>
-    {isLoading ? <p>Carregando...</p> : (
-      <div className="space-y-2">
-        <p>{leads.length} leads recentes</p>
-        <p>{opportunities.length} oportunidades recentes</p>
-        <p>{campaigns.length} campanhas recentes</p>
-      </div>
-    )}
-  </div>
-);
-
-// Componente principal
 export default function Dashboard() {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { leads, opportunities, campaigns, isLoading } = useCrmData();
 
-  useEffect(() => {
-    loadData();
-  }, []);
 
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      const [leadsData, opportunitiesData, campaignsData] = await Promise.all([
-        getLeads(),
-        getAllOpportunities(),
-        getCampaigns(),
-      ]);
-      setLeads(leadsData);
-      setOpportunities(opportunitiesData);
-      setCampaigns(campaignsData);
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-    }
-    setIsLoading(false);
-  };
-
-  const totalRevenue = opportunities
-    .filter((opp) => opp.stage === "closed_won")
-    .reduce((sum, opp) => sum + (opp.value || 0), 0);
-
-  const convertedLeads = leads.filter((lead) => lead.status === "converted" || lead.status === "Convertido").length;
-  const totalLeads = leads.length;
-  const conversionRate =
-    totalLeads > 0
-      ? ((convertedLeads / totalLeads) * 100).toFixed(1)
-      : "0";
+  
 
   return (
     <div className="p-6 space-y-8 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
@@ -134,7 +45,7 @@ export default function Dashboard() {
           />
           <MetricCard
             title="Taxa de Conversão"
-            value={`${conversionRate}%`}
+            value={`%`}
             icon={TrendingUp}
             trend="+2.5% este mês"
             color="purple"
@@ -142,7 +53,7 @@ export default function Dashboard() {
           />
           <MetricCard
             title="Receita Fechada"
-            value={`R$ ${totalRevenue.toLocaleString("pt-BR")}`}
+            value={`R$`}
             icon={DollarSign}
             trend="+15% este mês"
             color="emerald"
@@ -162,10 +73,10 @@ export default function Dashboard() {
           <div className="lg:col-span-2 space-y-6">
             <LeadChart leads={leads} isLoading={isLoading} />
             <OpportunityPipeline opportunities={opportunities} isLoading={isLoading} />
-            <CampaignChart campaigns={campaigns} isLoading={isLoading} />
+            {/* <CampaignCard campaign={() => console.log("nothing here")}/> */}
           </div>
           <div>
-            <RecentActivity leads={leads} opportunities={opportunities} campaigns={campaigns} isLoading={isLoading} />
+            {/* <RecentActivity leads={leads} opportunities={opportunities} campaigns={campaigns} isLoading={isLoading} /> */}
           </div>
         </div>
       </motion.div>

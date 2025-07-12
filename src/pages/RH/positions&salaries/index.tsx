@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Dashboard from "../../../components/dashboard/Dashboard";
-import { handleAllEmployee } from "../../../service/api/employee";
+import { handleAllEmployee } from "../../../service/api/Administrador/employee";
 import { Employee } from "../../../service/interfaces";
 
 export default function PositionsAndSalaries() {

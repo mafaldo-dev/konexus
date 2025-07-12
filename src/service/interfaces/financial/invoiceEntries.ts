@@ -13,7 +13,7 @@ export interface Invoice {
             number: string;
         };
         entrieDate: string;
-        invoiceNum: number;
+        invoiceNum: number | any;
         receiver: string;
     };
     products: ProductsProps[];

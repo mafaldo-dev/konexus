@@ -3,20 +3,16 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Users, Target } from "lucide-react";
 
-// Tipagem para um lead
 interface Lead {
   id: string | number;
   name: string;
   created_date: string | Date;
-  // outras propriedades que o lead pode ter
 }
 
-// Tipagem para uma oportunidade
 interface Opportunity {
   id: string | number;
   title: string;
   created_date: string | Date;
-  // outras propriedades que a oportunidade pode ter
 }
 
 interface Activity {
@@ -38,51 +34,17 @@ export default function RecentActivity({
 }: RecentActivityProps) {
   if (isLoading) {
     return (
-      <div
-        style={{
-          backgroundColor: "white",
-          padding: 20,
-          borderRadius: 8,
-          border: "1px solid #ccc",
-          maxWidth: 600,
-          margin: "auto",
-        }}
-      >
-        <h2 style={{ fontWeight: "bold", marginBottom: 16 }}>Atividade Recente</h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="bg-white p-5 rounded-lg border border-gray-200 max-w-2xl mx-auto">
+        <h2 className="font-bold mb-4 text-gray-800">Atividade Recente</h2>
+        <div className="flex flex-col gap-4">
           {Array(5)
             .fill(0)
             .map((_, i) => (
-              <div
-                key={i}
-                style={{ display: "flex", alignItems: "center", gap: 12 }}
-              >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    backgroundColor: "#eee",
-                  }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      width: 128,
-                      height: 16,
-                      backgroundColor: "#ddd",
-                      marginBottom: 4,
-                      borderRadius: 4,
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: 96,
-                      height: 12,
-                      backgroundColor: "#ddd",
-                      borderRadius: 4,
-                    }}
-                  />
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+                <div className="flex-1">
+                  <div className="w-32 h-4 bg-gray-300 mb-1 rounded"></div>
+                  <div className="w-24 h-3 bg-gray-300 rounded"></div>
                 </div>
               </div>
             ))}
@@ -91,87 +53,49 @@ export default function RecentActivity({
     );
   }
 
- const allActivities: Activity[] = [
-  ...leads.slice(0, 3).map((lead) => ({
-    type: "lead" as const,  
-    item: lead,
-    date: lead.created_date,
-  })),
-  ...opportunities.slice(0, 3).map((opp) => ({
-    type: "opportunity" as const, 
-    item: opp,
-    date: opp.created_date,
-  })),
-]
-  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  .slice(0, 5);
+  const allActivities: Activity[] = [
+    ...leads.slice(0, 3).map((lead) => ({
+      type: "lead" as const,
+      item: lead,
+      date: lead.created_date,
+    })),
+    ...opportunities.slice(0, 3).map((opp) => ({
+      type: "opportunity" as const,
+      item: opp,
+      date: opp.created_date,
+    })),
+  ]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
 
   return (
-    <div
-      style={{
-        backgroundColor: "white",
-        padding: 20,
-        borderRadius: 8,
-        border: "1px solid #ccc",
-        maxWidth: 600,
-        margin: "auto",
-      }}
-    >
-      <h2 style={{ fontWeight: "bold", marginBottom: 16, color: "#1e293b" }}>
-        Atividade Recente
-      </h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="bg-white p-5 rounded-lg border border-gray-200 max-w-2xl mx-auto">
+      <h2 className="font-bold mb-4 text-gray-800">Atividade Recente</h2>
+      <div className="flex flex-col gap-4">
         {allActivities.map((activity, index) => (
           <div
             key={index}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: 12,
-              borderRadius: 8,
-              backgroundColor: "rgba(248, 250, 252, 0.5)", // similar to bg-slate-50/50
-            }}
+            className="flex items-center gap-3 p-3 rounded-lg bg-slate-50/50"
           >
             <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor:
-                  activity.type === "lead" ? "#bfdbfe" /*blue-100*/ : "#bbf7d0" /*green-100*/,
-              }}
-            >
+              className={`w-8 h-8 rounded-full flex justify-center items-center ${activity.type === "lead" ? "bg-blue-100" : "bg-green-100"}`}>
               {activity.type === "lead" ? (
-                <Users style={{ width: 16, height: 16, color: "#2563eb" }} />
+                <Users className="w-4 h-4 text-blue-600" />
               ) : (
-                <Target style={{ width: 16, height: 16, color: "#16a34a" }} />
+                <Target className="w-4 h-4 text-green-600" />
               )}
             </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontWeight: "600", color: "#1e293b", margin: 0 }}>
+            <div className="flex-1">
+              <p className="font-semibold text-gray-800">
                 {activity.type === "lead"
                   ? (activity.item as Lead).name
                   : (activity.item as Opportunity).title}
               </p>
-              <p style={{ fontSize: 14, color: "#64748b", margin: 0 }}>
+              <p className="text-sm text-gray-500">
                 {format(new Date(activity.date), "dd 'de' MMM")}
               </p>
             </div>
-            <div
-              style={{
-                border: "1px solid #94a3b8",
-                padding: "2px 8px",
-                borderRadius: 12,
-                fontSize: 12,
-                color: "#64748b",
-                fontWeight: "600",
-                whiteSpace: "nowrap",
-              }}
-            >
+            <div className="border border-gray-400 px-2 py-0.5 rounded-full text-xs text-gray-500 font-semibold whitespace-nowrap">
               {activity.type === "lead" ? "Lead" : "Oportunidade"}
             </div>
           </div>

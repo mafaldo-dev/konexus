@@ -6,11 +6,11 @@ import { Supplier } from '../../../service/interfaces'
 
 import Dashboard from '../../../components/dashboard/Dashboard'
 
-import { getAllSuppliers, insertSupplier, updateSupplier } from '../../../service/api/suppliers/supplier'
+import { getAllSuppliers, insertSupplier, updateSupplier } from '../../../service/api/Administrador/suppliers/supplier'
 
 import Swal from 'sweetalert2';
-import { useSearchFilter } from '../../../hooks/useSearchFilter';
-import { useDebounce } from '../../../hooks/useDebounce';
+import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter';
+import { useDebounce } from '../../../hooks/utils/useDebounce';
 
 const SearchSuppliers = () => {
     const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<Supplier>()

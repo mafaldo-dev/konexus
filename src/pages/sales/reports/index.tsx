@@ -8,7 +8,7 @@ import {
   getTopProducts,
   getTopCustomers,
   getCustomerRank
-} from '../../../service/api/reports';
+} from '../../../service/api/Administrador/reports';
 import {
   SalesReport,
   PurchaseReport,

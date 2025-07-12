@@ -1,5 +1,5 @@
-import type React from "react"
-import { useState, useEffect, useRef, useMemo } from "react"
+import type React from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
     Eye,
     MapPin,
@@ -13,172 +13,18 @@ import {
     Filter,
     Download,
     Settings,
-} from "lucide-react"
-import Dashboard from "../../../components/dashboard/Dashboard"
-
-// Interfaces
-interface Product {
-    id: number
-    code: string
-    name: string
-    description: string
-    brand: string
-    supplier: string
-    category: string
-    price: number
-    stock: number
-    location: string
-    image?: string
-}
-
-interface KardexEntry {
-    date: string
-    type: "entrada" | "saida" | "previsao"
-    quantity: number
-    description: string
-    balance: number
-}
-
-interface ContextMenuPosition {
-    x: number
-    y: number
-}
-
-interface FilterState {
-    name: string
-    code: string
-    brand: string
-    description: string
-    supplier: string
-    category: string
-}
-
-interface ReportConfig {
-    includeCode: boolean
-    includeName: boolean
-    includeDescription: boolean
-    includeBrand: boolean
-    includeSupplier: boolean
-    includeCategory: boolean
-    includePrice: boolean
-    includeStock: boolean
-    includeLocation: boolean
-}
-
-// Mock data
-const mockProducts: Product[] = [
-    {
-        id: 1,
-        code: "PROD001",
-        name: "Smartphone Galaxy S24",
-        description: "Smartphone Samsung Galaxy S24 128GB 5G com câmera tripla",
-        brand: "Samsung",
-        supplier: "Samsung Brasil",
-        category: "Eletrônicos",
-        price: 2499.99,
-        stock: 45,
-        location: "A1-B2-C3",
-    },
-    {
-        id: 2,
-        code: "PROD002",
-        name: "Notebook Dell Inspiron",
-        description: "Notebook Dell Inspiron 15 Intel i5 8GB 256GB SSD",
-        brand: "Dell",
-        supplier: "Dell Technologies",
-        category: "Informática",
-        price: 3299.99,
-        stock: 23,
-        location: "B2-C1-D4",
-    },
-    {
-        id: 3,
-        code: "PROD003",
-        name: 'Smart TV LG 55"',
-        description: 'Smart TV LG 55" 4K UHD WebOS com HDR',
-        brand: "LG",
-        supplier: "LG Electronics",
-        category: "Eletrônicos",
-        price: 2199.99,
-        stock: 12,
-        location: "C3-D2-E1",
-    },
-    {
-        id: 4,
-        code: "PROD004",
-        name: "Fone Bluetooth Sony",
-        description: "Fone de Ouvido Bluetooth Sony WH-1000XM4 com cancelamento de ruído",
-        brand: "Sony",
-        supplier: "Sony Brasil",
-        category: "Áudio",
-        price: 899.99,
-        stock: 67,
-        location: "D1-E3-F2",
-    },
-    {
-        id: 5,
-        code: "PROD005",
-        name: "Mouse Gamer Logitech",
-        description: "Mouse Gamer Logitech G502 RGB com sensor HERO",
-        brand: "Logitech",
-        supplier: "Logitech Brasil",
-        category: "Periféricos",
-        price: 299.99,
-        stock: 89,
-        location: "E2-F1-G3",
-    },
-    {
-        id: 6,
-        code: "PROD006",
-        name: "Moto G42",
-        description: "Smartphone Motorola Moto G42 128GB 4G com tela OLED",
-        brand: "Motorola",
-        supplier: "Motorola Mobility",
-        category: "Eletrônicos",
-        price: 899.99,
-        stock: 34,
-        location: "A2-B1-C4",
-    },
-]
-
-const mockKardexData: Record<number, KardexEntry[]> = {
-    1: [
-        { date: "2024-01-15", type: "entrada", quantity: 50, description: "Compra inicial", balance: 50 },
-        { date: "2024-01-20", type: "saida", quantity: 5, description: "Venda loja", balance: 45 },
-        { date: "2024-02-01", type: "previsao", quantity: 30, description: "Pedido fornecedor", balance: 75 },
-    ],
-    2: [
-        { date: "2024-01-10", type: "entrada", quantity: 30, description: "Compra inicial", balance: 30 },
-        { date: "2024-01-25", type: "saida", quantity: 7, description: "Venda online", balance: 23 },
-        { date: "2024-02-05", type: "previsao", quantity: 20, description: "Reposição estoque", balance: 43 },
-    ],
-    3: [
-        { date: "2024-01-12", type: "entrada", quantity: 20, description: "Compra inicial", balance: 20 },
-        { date: "2024-01-28", type: "saida", quantity: 8, description: "Venda atacado", balance: 12 },
-        { date: "2024-02-10", type: "previsao", quantity: 15, description: "Pedido programado", balance: 27 },
-    ],
-    4: [
-        { date: "2024-01-08", type: "entrada", quantity: 80, description: "Compra inicial", balance: 80 },
-        { date: "2024-01-22", type: "saida", quantity: 13, description: "Vendas diversas", balance: 67 },
-        { date: "2024-02-03", type: "previsao", quantity: 40, description: "Reposição mensal", balance: 107 },
-    ],
-    5: [
-        { date: "2024-01-05", type: "entrada", quantity: 100, description: "Compra inicial", balance: 100 },
-        { date: "2024-01-18", type: "saida", quantity: 11, description: "Vendas loja", balance: 89 },
-        { date: "2024-02-08", type: "previsao", quantity: 50, description: "Pedido trimestral", balance: 139 },
-    ],
-    6: [
-        { date: "2024-01-03", type: "entrada", quantity: 40, description: "Compra inicial", balance: 40 },
-        { date: "2024-01-15", type: "saida", quantity: 6, description: "Vendas diversas", balance: 34 },
-        { date: "2024-02-12", type: "previsao", quantity: 25, description: "Reposição mensal", balance: 59 },
-    ],
-}
+} from "lucide-react";
+import Dashboard from "../../../components/dashboard/Dashboard";
+import { ContextMenuPosition, FilterState, KardexEntry, Product, ReportConfig } from "./movementsType";
+import { Movement, Products } from "../../../service/interfaces";
+import { getAllProducts } from "../../../service/api/Administrador/products";
+import { getKardexMovements } from "../../../service/api/Administrador/kardex";
 
 export default function ProfessionalProductList() {
-    const [products] = useState<Product[]>(mockProducts)
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-    const [showFilters, setShowFilters] = useState(false)
-    const [showReportModal, setShowReportModal] = useState(false)
+    const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
+    const [products, setProducts] = useState<Products[]>([]);
+    const [showFilters, setShowFilters] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
     const [filters, setFilters] = useState<FilterState>({
         name: "",
         code: "",
@@ -186,7 +32,7 @@ export default function ProfessionalProductList() {
         description: "",
         supplier: "",
         category: "",
-    })
+    });
     const [reportConfig, setReportConfig] = useState<ReportConfig>({
         includeCode: true,
         includeName: true,
@@ -197,42 +43,77 @@ export default function ProfessionalProductList() {
         includePrice: true,
         includeStock: true,
         includeLocation: true,
-    })
+    });
     const [contextMenu, setContextMenu] = useState<{
-        show: boolean
-        position: ContextMenuPosition
-        product: Product | null
+        show: boolean;
+        position: ContextMenuPosition;
+        product: Products | null;
     }>({
         show: false,
         position: { x: 0, y: 0 },
         product: null,
-    })
-    const [showKardexModal, setShowKardexModal] = useState(false)
-    const [kardexProduct, setKardexProduct] = useState<Product | null>(null)
-    const contextMenuRef = useRef<HTMLDivElement>(null)
-    const [showReportPreview, setShowReportPreview] = useState(false)
-    const [reportData, setReportData] = useState<any[]>([])
+    });
+    const [kardexProduct, setKardexProduct] = useState<Products | null>(null);
+    const [kardexMovements, setKardexMovements] = useState<Movement[]>([]);
+    const [showKardexModal, setShowKardexModal] = useState(false);
+    const [loadingKardex, setLoadingKardex] = useState(false);
+    const contextMenuRef = useRef<HTMLDivElement>(null);
+    const [showReportPreview, setShowReportPreview] = useState(false);
+    const [reportData, setReportData] = useState<any[]>([]);
 
-    // Filtered products
+    const getProducts = async () => {
+        try {
+            const response = await getAllProducts();
+            console.log("Produtos recebidos:", response);
+            setProducts(response);
+        } catch (error) {
+            console.error("Erro ao recuperar a lista de produtos!", error);
+            throw new Error("Erro interno do servidor");
+        }
+    };
+
+    const openKardexModal = async (product: Products) => {
+        setLoadingKardex(true);
+        try {
+            const movements = await getKardexMovements(product.id);
+            console.log(movements)
+            setKardexProduct(product);
+            setKardexMovements(movements);
+            setShowKardexModal(true);
+        } catch (error) {
+            console.error("Erro ao buscar Kardex", error);
+        } finally {
+            setLoadingKardex(false);
+        }
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "F4" && selectedProduct) {
+                openKardexModal(selectedProduct);
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [selectedProduct]);
+
     const filteredProducts = useMemo(() => {
         return products.filter((product) => {
             return (
                 product.name.toLowerCase().includes(filters.name.toLowerCase()) &&
                 product.code.toLowerCase().includes(filters.code.toLowerCase()) &&
-                product.brand.toLowerCase().includes(filters.brand.toLowerCase()) &&
+                (product.brand?.toLowerCase() || '').includes(filters.brand.toLowerCase()) &&
                 product.description.toLowerCase().includes(filters.description.toLowerCase()) &&
                 product.supplier.toLowerCase().includes(filters.supplier.toLowerCase()) &&
-                product.category.toLowerCase().includes(filters.category.toLowerCase())
-            )
-        })
-    }, [products, filters])
+                (product.category?.toLowerCase() || '').includes(filters.category.toLowerCase())
+            );
+        });
+    }, [products, filters]);
 
-    // Handle filter change
     const handleFilterChange = (field: keyof FilterState, value: string) => {
-        setFilters((prev) => ({ ...prev, [field]: value }))
-    }
+        setFilters((prev) => ({ ...prev, [field]: value }));
+    };
 
-    // Clear all filters
     const clearFilters = () => {
         setFilters({
             name: "",
@@ -241,182 +122,159 @@ export default function ProfessionalProductList() {
             description: "",
             supplier: "",
             category: "",
-        })
-    }
+        });
+    };
 
-    // Handle right click context menu
-    const handleContextMenu = (e: React.MouseEvent, product: Product) => {
-        e.preventDefault()
+    const handleContextMenu = (e: React.MouseEvent, product: Products) => {
+        e.preventDefault();
         setContextMenu({
             show: true,
             position: { x: e.clientX, y: e.clientY },
             product,
-        })
-    }
+        });
+    };
 
-    // Handle left click selection
-    const handleProductClick = (product: Product) => {
-        setSelectedProduct(product)
-        setContextMenu({ show: false, position: { x: 0, y: 0 }, product: null })
-    }
+    const handleProductClick = (product: Products) => {
+        setSelectedProduct(product);
+        setContextMenu({ show: false, position: { x: 0, y: 0 }, product: null });
+    };
 
-    // Handle F4 key for kardex
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "F4" && selectedProduct) {
-                setKardexProduct(selectedProduct)
-                setShowKardexModal(true)
-            }
-        }
-
-        window.addEventListener("keydown", handleKeyDown)
-        return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [selectedProduct])
-
-    // Close context menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
-                setContextMenu({ show: false, position: { x: 0, y: 0 }, product: null })
+                setContextMenu({ show: false, position: { x: 0, y: 0 }, product: null });
             }
-        }
-
-        document.addEventListener("mousedown", handleClickOutside)
-        return () => document.removeEventListener("mousedown", handleClickOutside)
-    }, [])
+        };
+        getProducts();
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const handleContextMenuAction = (action: string) => {
-        const product = contextMenu.product
-        if (!product) return
+        const product = contextMenu.product;
+        if (!product) return;
 
         switch (action) {
             case "photo":
-                alert(`Visualizar foto de: ${product.name}`)
-                break
+                alert(`Visualizar foto de: ${product.name}`);
+                break;
             case "kardex":
-                setKardexProduct(product)
-                setShowKardexModal(true)
-                break
+                openKardexModal(product);
+                break;
             case "address":
-                alert(`Endereço atual: ${product.location}\nFuncionalidade de alteração em desenvolvimento`)
-                break
+                alert(`Endereço atual: ${product.location}\nFuncionalidade de alteração em desenvolvimento`);
+                break;
             case "report":
-                alert(`Gerando relatório para: ${product.name}`)
-                break
+                alert(`Gerando relatório para: ${product.name}`);
+                break;
         }
-        setContextMenu({ show: false, position: { x: 0, y: 0 }, product: null })
-    }
+        setContextMenu({ show: false, position: { x: 0, y: 0 }, product: null });
+    };
 
-    // Generate Report Preview
     const generateReportPreview = () => {
         const data = filteredProducts.map((product) => {
-            const row: any = {}
-            if (reportConfig.includeCode) row.Código = product.code
-            if (reportConfig.includeName) row.Nome = product.name
-            if (reportConfig.includeDescription) row.Descrição = product.description
-            if (reportConfig.includeBrand) row.Marca = product.brand
-            if (reportConfig.includeSupplier) row.Fornecedor = product.supplier
-            if (reportConfig.includeCategory) row.Categoria = product.category
-            if (reportConfig.includePrice) row.Preço = `R$ ${product.price}`
-            if (reportConfig.includeStock) row.Estoque = product.stock
-            if (reportConfig.includeLocation) row.Localização = product.location
-            return row
-        })
+            const row: any = {};
+            if (reportConfig.includeCode) row.Código = product.code;
+            if (reportConfig.includeName) row.Nome = product.name;
+            if (reportConfig.includeDescription) row.Descrição = product.description;
+            if (reportConfig.includeBrand) row.Marca = product.brand;
+            if (reportConfig.includeSupplier) row.Fornecedor = product.supplier;
+            if (reportConfig.includeCategory) row.Categoria = product.category;
+            if (reportConfig.includePrice) row.Preço = `R$ ${product.price}`;
+            if (reportConfig.includeStock) row.Estoque = product.minimum_stock;
+            if (reportConfig.includeLocation) row.Localização = product.location;
+            return row;
+        });
 
-        setReportData(data)
-        setShowReportModal(false)
-        setShowReportPreview(true)
-    }
+        setReportData(data);
+        setShowReportModal(false);
+        setShowReportPreview(true);
+    };
 
-    // Download PDF Report
     const downloadReport = () => {
-        const headers = Object.keys(reportData[0] || {})
+        const headers = Object.keys(reportData[0] || {});
         const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Relatório de Produtos</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          h1 { color: #1e293b; text-align: center; margin-bottom: 30px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
-          th { background-color: #1e293b; color: white; font-weight: bold; }
-          tr:nth-child(even) { background-color: #f8fafc; }
-          .info { text-align: center; margin-bottom: 20px; color: #64748b; }
-        </style>
-      </head>
-      <body>
-        <h1>Relatório de Produtos</h1>
-        <div class="info">
-          <p>Gerado em: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}</p>
-          <p>Total de produtos: ${reportData.length}</p>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              ${headers.map((header) => `<th>${header}</th>`).join("")}
-            </tr>
-          </thead>
-          <tbody>
-            ${reportData
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Relatório de Produtos</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #1e293b; text-align: center; margin-bottom: 30px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+            th { background-color: #1e293b; color: white; font-weight: bold; }
+            tr:nth-child(even) { background-color: #f8fafc; }
+            .info { text-align: center; margin-bottom: 20px; color: #64748b; }
+          </style>
+        </head>
+        <body>
+          <h1>Relatório de Produtos</h1>
+          <div class="info">
+            <p>Gerado em: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}</p>
+            <p>Total de produtos: ${reportData.length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                ${headers.map((header) => `<th>${header}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${reportData
                 .map(
                     (row) => `
-              <tr>
-                ${headers.map((header) => `<td>${row[header] || ""}</td>`).join("")}
-              </tr>
-            `,
+                <tr>
+                  ${headers.map((header) => `<td>${row[header] || ""}</td>`).join("")}
+                </tr>
+              `
                 )
                 .join("")}
-          </tbody>
-        </table>
-      </body>
-    </html>
-  `
-
-        const printWindow = window.open("", "_blank")
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+        const printWindow = window.open("", "_blank");
         if (printWindow) {
-            printWindow.document.write(htmlContent)
-            printWindow.document.close()
-            printWindow.focus()
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            printWindow.focus();
             setTimeout(() => {
-                printWindow.print()
-                printWindow.close()
-            }, 250)
+                printWindow.print();
+                printWindow.close();
+            }, 250);
         }
-    }
+    };
 
-    const getKardexIcon = (type: KardexEntry["type"]) => {
+    const getKardexIcon = (type: Movement["type"]) => {
         switch (type) {
             case "entrada":
-                return <TrendingUp className="w-4 h-4 text-emerald-600" />
+                return <TrendingUp className="w-4 h-4 text-emerald-600" />;
             case "saida":
-                return <TrendingDown className="w-4 h-4 text-red-600" />
+                return <TrendingDown className="w-4 h-4 text-red-600" />;
             case "previsao":
-                return <Clock className="w-4 h-4 text-amber-600" />
+                return <Clock className="w-4 h-4 text-amber-600" />;
         }
-    }
+    };
 
-    const getKardexTypeColor = (type: KardexEntry["type"]) => {
+    const getKardexTypeColor = (type: Movement["type"]) => {
         switch (type) {
             case "entrada":
-                return "bg-emerald-50 text-emerald-800 border-emerald-200"
+                return "bg-emerald-50 text-emerald-800 border-emerald-200";
             case "saida":
-                return "bg-red-50 text-red-800 border-red-200"
+                return "bg-red-50 text-red-800 border-red-200";
             case "previsao":
-                return "bg-amber-50 text-amber-800 border-amber-200"
+                return "bg-amber-50 text-amber-800 border-amber-200";
         }
-    }
+    };
 
-    // Report Preview
     if (showReportPreview) {
-        const headers = Object.keys(reportData[0] || {})
-
+        const headers = Object.keys(reportData[0] || {});
         return (
             <div className="min-h-screen bg-gray-50 p-6">
                 <div className="max-w-7xl mx-auto">
-                    {/* Header */}
                     <div className="mb-6 flex items-center justify-between">
                         <div>
                             <button
@@ -436,14 +294,12 @@ export default function ProfessionalProductList() {
                             Baixar Relatório
                         </button>
                     </div>
-
-                    {/* Report Info */}
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="text-center">
                                 <p className="text-sm text-gray-600 font-medium uppercase tracking-wide mb-1">Data de Geração</p>
                                 <p className="text-lg font-bold text-slate-800">
-                                    {new Date().toLocaleDateString("pt-BR")} às {new Date().toLocaleTimeString("pt-BR")}
+                                    {new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}
                                 </p>
                             </div>
                             <div className="text-center">
@@ -456,8 +312,6 @@ export default function ProfessionalProductList() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Report Table */}
                     <div
                         className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
                         style={{ height: "calc(100vh - 350px)", minHeight: "400px" }}
@@ -493,8 +347,6 @@ export default function ProfessionalProductList() {
                             </table>
                         </div>
                     </div>
-
-                    {/* Footer Actions */}
                     <div className="mt-6 flex justify-between items-center">
                         <button
                             onClick={() => setShowReportPreview(false)}
@@ -512,22 +364,19 @@ export default function ProfessionalProductList() {
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 
     return (
         <Dashboard>
             <div className="min-h-screen bg-gray-50 p-6">
                 <div className="max-w-7xl mx-auto">
-                    {/* Header */}
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestão de Produtos</h1>
                         <p className="text-gray-600 font-medium">
                             Clique para selecionar • Botão direito para opções • F4 para kardex
                         </p>
                     </div>
-
-                    {/* Toolbar */}
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                         <div className="flex flex-wrap items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
@@ -559,8 +408,6 @@ export default function ProfessionalProductList() {
                                 </button>
                             </div>
                         </div>
-
-                        {/* Filters */}
                         {showFilters && (
                             <div className="mt-6 pt-6 border-t border-gray-200">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -640,8 +487,6 @@ export default function ProfessionalProductList() {
                             </div>
                         )}
                     </div>
-
-                    {/* Selected Product Info */}
                     {selectedProduct && (
                         <div className="mb-6 p-4 bg-slate-100 rounded-lg border border-slate-300">
                             <p className="text-sm font-medium text-slate-700">
@@ -652,8 +497,6 @@ export default function ProfessionalProductList() {
                             </p>
                         </div>
                     )}
-
-                    {/* Products Table */}
                     <div
                         className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
                         style={{ height: "calc(100vh - 400px)", minHeight: "500px" }}
@@ -709,7 +552,7 @@ export default function ProfessionalProductList() {
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-2 font-bold text-sm text-slate-800">R$ {product.price}</td>
-                                                <td className="px-4 py-2 font-semibold text-sm text-gray-900">{product.stock}</td>
+                                                <td className="px-4 py-2 font-semibold text-sm text-gray-900">{product.quantity}</td>
                                                 <td className="px-4 py-2">
                                                     <div className="flex items-center gap-1 text-gray-600">
                                                         <MapPin className="w-3 h-3" />
@@ -723,8 +566,6 @@ export default function ProfessionalProductList() {
                             </table>
                         </div>
                     </div>
-
-                    {/* Context Menu */}
                     {contextMenu.show && (
                         <div
                             ref={contextMenuRef}
@@ -773,8 +614,6 @@ export default function ProfessionalProductList() {
                             </button>
                         </div>
                     )}
-
-                    {/* Report Configuration Modal */}
                     {showReportModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
@@ -790,7 +629,6 @@ export default function ProfessionalProductList() {
                                         <X className="w-6 h-6" />
                                     </button>
                                 </div>
-
                                 <div className="p-6">
                                     <div className="mb-6">
                                         <h3 className="text-lg font-semibold text-gray-900 mb-2">Configurar Relatório</h3>
@@ -799,7 +637,6 @@ export default function ProfessionalProductList() {
                                             PDF.
                                         </p>
                                     </div>
-
                                     <div className="grid grid-cols-2 gap-4 mb-6">
                                         {Object.entries(reportConfig).map(([key, value]) => {
                                             const labels: Record<string, string> = {
@@ -812,7 +649,7 @@ export default function ProfessionalProductList() {
                                                 includePrice: "Preço",
                                                 includeStock: "Estoque",
                                                 includeLocation: "Localização",
-                                            }
+                                            };
 
                                             return (
                                                 <label key={key} className="flex items-center gap-3 cursor-pointer">
@@ -824,10 +661,9 @@ export default function ProfessionalProductList() {
                                                     />
                                                     <span className="text-gray-700 font-medium">{labels[key]}</span>
                                                 </label>
-                                            )
+                                            );
                                         })}
                                     </div>
-
                                     <div className="bg-gray-50 p-4 rounded-lg mb-6">
                                         <p className="text-sm text-gray-600">
                                             <strong>Produtos selecionados:</strong> {filteredProducts.length} de {products.length}
@@ -859,12 +695,9 @@ export default function ProfessionalProductList() {
                             </div>
                         </div>
                     )}
-
-                    {/* Kardex Modal */}
                     {showKardexModal && kardexProduct && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-                                {/* Modal Header */}
                                 <div className="bg-slate-800 text-white p-6 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <Warehouse className="w-6 h-6" />
@@ -881,126 +714,106 @@ export default function ProfessionalProductList() {
                                     </button>
                                 </div>
 
-                                {/* Modal Content */}
                                 <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-                                    {/* Product Info */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                         <div className="space-y-4">
                                             <div>
-                                                <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                                                    Nome
-                                                </label>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Nome</label>
                                                 <p className="text-gray-900 font-medium">{kardexProduct.name}</p>
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                                                    Descrição
-                                                </label>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Descrição</label>
                                                 <p className="text-gray-700">{kardexProduct.description}</p>
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                                                    Marca
-                                                </label>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Marca</label>
                                                 <p className="text-gray-900 font-medium">{kardexProduct.brand}</p>
                                             </div>
                                         </div>
+
                                         <div className="space-y-4">
                                             <div>
-                                                <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                                                    Saldo Atual
-                                                </label>
-                                                <p className="text-2xl font-bold text-slate-800">{kardexProduct.stock} unidades</p>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Saldo Atual</label>
+                                                <p className="text-2xl font-bold text-slate-800">{kardexProduct.quantity} unidades</p>
                                             </div>
+
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                                                        Entradas
-                                                    </label>
+                                                    <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Entradas</label>
                                                     <p className="text-lg font-semibold text-emerald-600">
-                                                        {mockKardexData[kardexProduct.id]
-                                                            ?.filter((entry) => entry.type === "entrada")
-                                                            .reduce((sum, entry) => sum + entry.quantity, 0) || 0}
+                                                        {kardexMovements
+                                                            .filter((entry) => entry.type === "entrada")
+                                                            .reduce((sum, entry) => sum + entry.quantity, 0)}
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                                                        Saídas
-                                                    </label>
+                                                    <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Saídas</label>
                                                     <p className="text-lg font-semibold text-red-600">
-                                                        {mockKardexData[kardexProduct.id]
-                                                            ?.filter((entry) => entry.type === "saida")
-                                                            .reduce((sum, entry) => sum + entry.quantity, 0) || 0}
+                                                        {kardexMovements
+                                                            .filter((entry) => entry.type === "saida")
+                                                            .reduce((sum, entry) => sum + entry.quantity, 0)}
                                                     </p>
                                                 </div>
                                             </div>
+
                                             <div>
-                                                <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">
-                                                    Previsões
-                                                </label>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Previsões</label>
                                                 <p className="text-lg font-semibold text-amber-600">
-                                                    {mockKardexData[kardexProduct.id]
-                                                        ?.filter((entry) => entry.type === "previsao")
-                                                        .reduce((sum, entry) => sum + entry.quantity, 0) || 0}
+                                                    {kardexMovements
+                                                        .filter((entry) => entry.type === "previsao")
+                                                        .reduce((sum, entry) => sum + entry.quantity, 0)}
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Kardex History */}
                                     <div>
                                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Histórico de Movimentações</h3>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
-                                                <thead className="bg-gray-50">
-                                                    <tr>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                                                            Data
-                                                        </th>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                                                            Tipo
-                                                        </th>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                                                            Quantidade
-                                                        </th>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                                                            Descrição
-                                                        </th>
-                                                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                                                            Saldo
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {mockKardexData[kardexProduct.id]?.map((entry, index) => (
-                                                        <tr key={index} className="border-t border-gray-100 hover:bg-gray-50">
-                                                            <td className="px-4 py-3 text-sm text-gray-700 font-medium">
-                                                                {new Date(entry.date).toLocaleDateString("pt-BR")}
-                                                            </td>
-                                                            <td className="px-4 py-3">
-                                                                <div className="flex items-center gap-2">
-                                                                    {getKardexIcon(entry.type)}
-                                                                    <span
-                                                                        className={`text-xs px-2 py-1 rounded-full border font-semibold uppercase ${getKardexTypeColor(
-                                                                            entry.type,
-                                                                        )}`}
-                                                                    >
-                                                                        {entry.type}
-                                                                    </span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm font-semibold text-gray-900">{entry.quantity}</td>
-                                                            <td className="px-4 py-3 text-sm text-gray-700">{entry.description}</td>
-                                                            <td className="px-4 py-3 text-sm font-bold text-slate-800">{entry.balance}</td>
+                                        {loadingKardex ? (
+                                            <div className="flex justify-center items-center h-32">
+                                                <p>Carregando movimentações...</p>
+                                            </div>
+                                        ) : kardexMovements.length > 0 ? (
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
+                                                    <thead className="bg-gray-50">
+                                                        <tr>
+                                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Data</th>
+                                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Tipo</th>
+                                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Quantidade</th>
+                                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">NF</th>
+                                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Saldo</th>
+                                                            <th></th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                    </thead>
+                                                    <tbody>
+                                                        {kardexMovements.map((entry, index) => (
+                                                            <tr key={index} className="border-t border-gray-100 hover:bg-gray-50">
+                                                                <td className="px-4 py-3 text-sm text-gray-700 font-medium">
+                                                                    {new Date(entry.date).toLocaleDateString("pt-BR")}
+                                                                </td>
+                                                                <td className="px-4 py-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        {getKardexIcon(entry.type)}
+                                                                        <span className={`text-xs px-2 py-1 rounded-full border font-semibold uppercase ${getKardexTypeColor(entry.type)}`}>
+                                                                            {entry.type}
+                                                                        </span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-sm font-semibold text-gray-900">{entry.quantity}</td>
+                                                                <td className="px-4 py-3 text-sm text-gray-700">{entry.nfNumber}</td>
+                                                                <td className="px-4 py-3 text-sm font-bold text-slate-800">{entry.quantity}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <p className="text-gray-600">Nenhuma movimentação encontrada.</p>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* Modal Footer */}
                                 <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                                     <div className="flex justify-end">
                                         <button
@@ -1017,5 +830,5 @@ export default function ProfessionalProductList() {
                 </div>
             </div>
         </Dashboard>
-    )
+    );
 }

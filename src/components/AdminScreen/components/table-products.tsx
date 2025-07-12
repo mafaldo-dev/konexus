@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { getAllProducts } from '../../../service/api/products';
+import { getAllProducts } from '../../../service/api/Administrador/products';
 import { Products } from '../../../service/interfaces';
 
 const LoadingSpinner = () => (

@@ -1,10 +1,10 @@
 import { SubmitHandler, useForm, FormProvider } from 'react-hook-form';
 import { Invoice } from '../../../service/interfaces/financial/invoiceEntries';
-import { ProductsProps } from '../../../service/interfaces/products/productsProps';
-import invoiceEntries from '../../../service/api/invoices';
+import { ProductsProps } from '../../../service/interfaces/stock/productsProps';
+import invoiceEntries from '../../../service/api/Administrador/invoices';
 import ProductTable from './ProductTable';
 import Dashboard from '../../../components/dashboard/Dashboard';
-import { useCnpjMask } from '../../../hooks/useCnpjMask';
+import { useCnpjMask } from '../../../hooks/utils/useCnpjMask';
 import SupplierSearchForm from './components/SupplierSearchForm';
 import { useState } from 'react';
 
@@ -17,9 +17,7 @@ const InvoiceEntries = () => {
     const onSubmit: SubmitHandler<Invoice> = async (data) => {
         try {
             if (!products || products.length === 0) {
-                console.log(data);
                 alert("Adicione pelo menos um produto antes de salvar a nota.");
-                console.log(products);
                 return;
             }
             await invoiceEntries({

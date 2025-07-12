@@ -2,7 +2,7 @@ import { Eye, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { PurchaseRequest } from '../../../service/interfaces/sales/purchaseRequest';
 import { generateQuotationPdf } from '../../../utils/invoicePdf/generateQuotationPdf';
-import { purchaseAllOrders } from '../../../service/api/purchaseRequests';
+import { purchaseAllOrders } from '../../../service/api/Administrador/purchaseRequests';
 import { useEffect, useState } from 'react';
 
 interface QuotationsListProps {

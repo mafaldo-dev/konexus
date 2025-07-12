@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllProducts } from '../../../service/api/products';
+import { getAllProducts } from '../../../service/api/Administrador/products';
 import { Products } from '../../../service/interfaces';
 import Dashboard from '../../../components/dashboard/Dashboard';
 import logo from '../../../assets/image/guiman.png'

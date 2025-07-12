@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { format, addDays } from 'date-fns';
 
 import { useNavigate } from "react-router-dom"
-import { insertOrder } from "../../../../service/api/orders"
+import { insertOrder } from "../../../../service/api/Administrador/orders"
 import { Order } from "../../../../service/interfaces/sales/orders"
 
 type FormValues = Omit<Order, "order_number" | "total_amount" | "status"> & {

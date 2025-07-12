@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Truck, Package, CheckCircle, Clock, AlertCircle, Eye } from "lucide-react"
 import Dashboard from "../../../../components/dashboard/Dashboard"
-import { handleAllOrders, updateOrderStatus } from "../../../../service/api/orders"
+import { handleAllOrders, updateOrderStatus } from "../../../../service/api/Administrador/orders"
 
 import OrderPDF from "../conferency/OrderPDF"
 import { Order } from "../../../../service/interfaces"

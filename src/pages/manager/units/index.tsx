@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { Search, Plus, Edit, Trash2, X, Save, Filter, Calculator, Package, AlertTriangle, Scale } from 'lucide-react'
 import Dashboard from "../../../components/dashboard/Dashboard"
-import { useSearchFilter } from "../../../hooks/useSearchFilter"
+import { useSearchFilter } from "../../../hooks/_manager/useSearchFilter"
 
 interface Unit {
     id: string

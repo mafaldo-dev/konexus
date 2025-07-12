@@ -2,7 +2,7 @@ import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { Employee } from "../../../service/interfaces"
 
-import { handleAllEmployee, insertEmployee } from "../../../service/api/employee"
+import { handleAllEmployee, insertEmployee } from "../../../service/api/Administrador/employee"
 
 import { User, Lock, MapPin } from "lucide-react"
 

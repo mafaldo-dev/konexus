@@ -1,9 +1,8 @@
 import { Search, Plus, Edit, Trash2, X, Save, Filter, Award, Package, AlertTriangle, Globe, Mail, Phone } from 'lucide-react'
 import Dashboard from "../../../components/dashboard/Dashboard"
-import { useSearchFilter } from '../../../hooks/useSearchFilter'
-import { useDebounce } from '../../../hooks/useDebounce'
+import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter'
+import { useDebounce } from '../../../hooks/utils/useDebounce'
 import { useState, useMemo, useEffect } from 'react'
-import { useSystemStatus, StatusMessageType } from '../../../SystemStatusContext'
 
 interface Brand {
   id: string

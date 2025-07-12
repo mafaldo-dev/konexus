@@ -6,16 +6,13 @@ import { Products, Movement } from "../../../service/interfaces"
 
 import Dashboard from "../../../components/dashboard/Dashboard"
 
-import { insertProduct, updateProduct } from "../../../service/api/products"
-import { getAllProducts } from "../../../service/api/products/index"
-import { getKardexMovements } from "../../../service/api/kardex"
-
 import lupa from "../../../assets/image/search.png"
-import { useSystemStatus, StatusMessageType } from "../../../SystemStatusContext"
+import { getKardexMovements } from "../../../service/api/Administrador/kardex"
+import { getAllProducts, updateProduct } from "../../../service/api/Administrador/products"
+import FormAdd from "./Form-add"
 
 const SearchProducts = () => {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<Products>()
-
+ 
   const [modalOpen, setIsModalOpen] = useState<boolean>(false)
   const [openRegister, setOpenRegister] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
@@ -28,38 +25,8 @@ const SearchProducts = () => {
   const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
   const [movements, setMovements] = useState<Movement[]>([])
   const [kardex, setKardex] = useState<boolean>(false)
-  
-  const { addMessage } = useSystemStatus();
-  // Atualize handleKardex:
-  const handleOpenKardex = async (product: Products) => {
-    try {
-      const movements = await getKardexMovements(product.id);
-      setSelectedProduct(product);
-      setMovements(movements);
-      setKardex(true);
-    } catch (error) {
-      console.error("Erro ao abrir o Kardex:", error);
-      alert("Erro ao abrir o Kardex");
-    }
-  };
 
 
-  // REGISTER ITENS IN DATABASE
-  const onSubmit: SubmitHandler<Products> = async (data) => {
-    try {
-      await insertProduct({ ...data, addedAt: new Date() })
-      reset()
-      const reload = await getAllProducts()
-
-      alert("Produto adicionado com sucesso!")
-      setRender(reload)
-      setOpenRegister(false)
-    } catch (Exception) {
-      console.error("Erro ao adicionar Item", Exception)
-      alert("Erro ao adicionar novo produto.")
-      throw new Error("Erro ao cadastrar o produto!")
-    }
-  }
   // RENDER ITENS REGISTERED IN DATABASE
   useEffect(() => {
     const fetchProducts = async () => {
@@ -259,69 +226,86 @@ const SearchProducts = () => {
       </div>
       {modalOpen && newInfos && (
         <>
-          <div className="modal">
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h2 className="text-xl font-bold mb-4">Editar Produto</h2>
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white p-8 rounded-xl shadow-2xl w-[700px] max-w-[95vw]">
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Editar Produto</h2>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-500 hover:text-red-600 text-2xl leading-none"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <input
                   type="text"
                   name="name"
                   value={newInfos.name}
                   onChange={handleChange}
                   placeholder="Nome do produto"
-                  className="w-full border p-2 mb-2 rounded"
+                  className="w-full border border-gray-300 px-4 py-2 rounded-md"
                 />
                 <input
                   type="text"
                   name="description"
                   value={newInfos.description}
                   onChange={handleChange}
-                  placeholder="description"
-                  className="w-full border p-2 mb-2 rounded"
+                  placeholder="Descrição"
+                  className="w-full border border-gray-300 px-4 py-2 rounded-md"
                 />
                 <input
-                  type="text"
+                  type="number"
                   name="quantity"
                   value={newInfos.quantity}
                   onChange={handleChange}
                   placeholder="Quantidade"
-                  className="w-full border p-2 mb-2 rounded"
+                  className="w-full border border-gray-300 px-4 py-2 rounded-md"
                 />
                 <input
+                  type="number"
                   name="price"
                   value={newInfos.price}
                   onChange={handleChange}
-                  placeholder="Descrição da vaga"
-                  className="w-full border p-2 mb-2 rounded h-20"
+                  placeholder="Preço"
+                  className="w-full border border-gray-300 px-4 py-2 rounded-md"
                 />
                 <input
+                  type="text"
                   name="code"
                   value={newInfos.code}
                   onChange={handleChange}
-                  placeholder="Codigo"
-                  className="w-full border p-2 mb-2 rounded h-20"
+                  placeholder="Código"
+                  className="w-full border border-gray-300 px-4 py-2 rounded-md"
                 />
                 <input
-                  name="fornecedor"
+                  type="text"
+                  name="supplier"
                   value={newInfos.supplier}
                   onChange={handleChange}
                   placeholder="Fornecedor"
-                  className="w-full border p-2 mb-2 rounded h-20"
+                  className="w-full border border-gray-300 px-4 py-2 rounded-md"
                 />
-                <div className="flex justify-between">
-                  <button
-                    className="bg-gray-400 text-white px-4 py-2 rounded cursor-pointer"
-                    onClick={() => setIsModalOpen(false)}>
-                    Cancelar</button>
-                  <button
-                    onClick={saveUpdate}
-                    className="bg-blue-500 text-white px-4 py-2 rounded cursor-pointer">
-                    Salvar</button>
-                </div>
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <button
+                  className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveUpdate}
+                  className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+                >
+                  Salvar
+                </button>
               </div>
             </div>
-            <button onClick={() => setIsModalOpen(false)}>Fechar</button>
           </div>
+
         </>
       )}
       {openRegister ? (
@@ -337,77 +321,7 @@ const SearchProducts = () => {
                   className="cursor-pointer absolute top-0 right-0 text-gray-500 hover:text-gray-700 text-2xl"
                 >&times; </button>
               </div>
-              <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="space-y-4 mb-6">
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="name" className="font-medium">Nome</label>
-                    <input
-                      type="text"
-                      {...register("name", { required: true })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                    />
-                    {errors.name && <span className="text-red">O campo nome e obrigatorio</span>}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="description" className="font-medium">Descrição</label>
-                    <textarea
-                      {...register("description", { required: true })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary min-h-[80px] resize-y"
-                      rows={3}
-                    />
-                    {errors.description && <span className="text-red">Adicione uma descrição ao produto requerido</span>}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="quantity" className="font-medium">Quantidade</label>
-                    <input
-                      type="number"
-                      {...register("quantity", { required: true })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                    />
-                    {errors.quantity && <span className="color-red-500">O campo quantidade e requerido</span>}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="price" className="font-medium">Preço</label>
-                    <input
-                      type="number"
-                      {...register("price", { required: true })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                    />
-                    {errors.price && <span className="color-red-500">O campo preço e obrigatorio</span>}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="code" className="font-medium">Código</label>
-                    <input
-                      type="number"
-                      {...register("code", { required: true })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                      required
-                    />
-                    {errors.code && <span className="color-red-500">Insira um codigo ao produto requerido</span>}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="code" className="font-medium">Fornecedor</label>
-                    <input
-                      type="text"
-                      {...register("supplier", { required: true })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                      required
-                    />
-                    {errors.supplier && <span className="color-red-500">Vincule o produto a um fornecedor!!! requerido</span>}
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => setOpenRegister(false)}
-                    type="button"
-                    className="px-4 py-2 border border-gray-300 rounded-md font-medium hover:bg-gray-50 transition-colors"
-                  > Cancelar</button>
-                  <button
-                    type="submit"
-                    className="bg-gray-600 text-white px-4 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors"
-                  > Salvar</button>
-                </div>
-              </form>
+              <FormAdd />
             </div>
           </div>
         </>
@@ -455,7 +369,7 @@ const SearchProducts = () => {
                   movements.map((mov: Movement) => (
                     <tr key={mov.id} className="border-b hover:bg-gray-50">
                       <td className="p-2">
-                        {new Date(mov.date?.seconds * 1000).toLocaleDateString('pt-BR')}
+                        {new Date().toDateString()}
                       </td>
                       <td className="p-2 capitalize">{mov.type}</td>
                       <td className="p-2">{selectedProduct.name}</td>

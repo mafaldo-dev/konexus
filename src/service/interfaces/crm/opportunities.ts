@@ -18,6 +18,7 @@ export interface Opportunity {
   id: string | number;
   title: string;
   contact_name: string;
+  contact_email: string
   company?: string;
   expected_close_date?: string;
   value?: number;

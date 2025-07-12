@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSupplierSearch } from '../../../hooks/useSupplierSearch';
+import { useSupplierSearch } from '../../../hooks/_manager/useSupplierSearch';
 import { Supplier } from '../../../service/interfaces';
 
 export default function SupplierSearchForm() {

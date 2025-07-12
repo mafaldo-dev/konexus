@@ -7,11 +7,11 @@ import { db } from "../../../firebaseConfig"
 
 import Dashboard from "../../../components/dashboard/Dashboard"
 
-import { handleAllCustomer, insertCustomer, updateCustomer } from "../../../service/api/clients/clients"
+import { handleAllCustomer, insertCustomer, updateCustomer } from "../../../service/api/Administrador/customer/clients"
 
 import lupa from "../../../assets/image/search.png"
-import { useSearchFilter } from '../../../hooks/useSearchFilter'
-import { useDebounce } from '../../../hooks/useDebounce'
+import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter'
+import { useDebounce } from '../../../hooks/utils/useDebounce'
 
 const SearchClientes = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<Customer>()

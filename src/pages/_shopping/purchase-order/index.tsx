@@ -7,10 +7,10 @@ import { Search, Plus, Eye, Package, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import OrderPDF from "../../sales/orders/conferency/OrderPDF";
 
-import { useOrders } from "../../../hooks/useOrders";
-import { useDebounce } from "../../../hooks/useDebounce";
+import { useOrders } from "../../../hooks/_manager/useOrders";
+import { useDebounce } from "../../../hooks/utils/useDebounce";
 import Dashboard from "../../../components/dashboard/Dashboard";
-import { useSearchFilter } from "../../../hooks/useSearchFilter";
+import { useSearchFilter } from "../../../hooks/_manager/useSearchFilter";
 
 export default function OrdersPage() {
   const { orders, isLoading, error } = useOrders();

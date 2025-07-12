@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import OrderPDF from "../conferency/OrderPDF"
 
 import Dashboard from "../../../../components/dashboard/Dashboard"
-import { handleAllOrders } from "../../../../service/api/orders"
+import { handleAllOrders } from "../../../../service/api/Administrador/orders"
 import { Order } from "../../../../service/interfaces"
 
 export default function OrdersPage() {

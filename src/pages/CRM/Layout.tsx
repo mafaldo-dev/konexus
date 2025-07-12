@@ -1,7 +1,6 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Users, Target, Home, Mail, Phone, Calendar } from "lucide-react";
-
-import NotFound from "../NOT-FOUND"; 
+import NotFound from "../NOT-FOUND";
 import Dashboard from "../../components/dashboard/Dashboard";
 
 const navigationItems = [
@@ -15,26 +14,14 @@ const navigationItems = [
 
 export default function Layout() {
   const location = useLocation();
-  const isValidPath = navigationItems.some(item => item.path === location.pathname);
+  const isValidPath = navigationItems.some((item) => location.pathname.startsWith(item.path));
 
   return (
     <Dashboard>
-      <style>{`
-        :root {
-          --primary: 224 71% 4%;
-          --primary-foreground: 210 20% 98%;
-          --secondary: 220 14% 96%;
-          --secondary-foreground: 220 9% 46%;
-          --accent: 220 14% 96%;
-          --accent-foreground: 220 9% 46%;
-        }
-      `}</style>
-
       <div className="min-h-screen flex flex-col w-full bg-gradient-to-br from-slate-50 to-blue-50">
-        {/* Tabs navigation */}
         <nav className="bg-white border-b border-slate-200/60 flex overflow-x-auto">
           {navigationItems.map(({ title, path, icon: Icon }) => {
-            const isActive = location.pathname === path;
+            const isActive = location.pathname.startsWith(path);
 
             return (
               <Link
@@ -55,7 +42,6 @@ export default function Layout() {
           })}
         </nav>
 
-        {/* Se a rota não existir, mostra NotFound, senão o conteúdo */}
         <main className="flex-1 overflow-auto p-6">
           {isValidPath ? <Outlet /> : <NotFound />}
         </main>

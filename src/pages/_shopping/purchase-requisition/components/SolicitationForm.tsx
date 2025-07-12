@@ -11,7 +11,7 @@ import {
 import {
   purchaseAllOrders,
   purchaseRequisition
-} from '../../../../service/api/purchaseRequests';
+} from '../../../../service/api/Administrador/purchaseRequests';
 
 interface ProductItem {
   id: string;

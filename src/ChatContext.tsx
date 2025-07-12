@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useReducer } from 'react';
 import { useAuth } from './AuthContext';
-import { handleAllEmployee } from './service/api/employee';
+import { handleAllEmployee } from './service/api/Administrador/employee'
 import { db } from "./firebaseConfig";
 import { addDoc, collection, query, orderBy, where, onSnapshot, doc, getDocs, writeBatch } from "firebase/firestore";
 

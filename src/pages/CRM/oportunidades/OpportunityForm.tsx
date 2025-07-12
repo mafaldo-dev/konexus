@@ -26,7 +26,7 @@ interface Opportunity {
 
 interface OpportunityFormProps {
   opportunity?: Opportunity;
-  onSubmit: (data: Opportunity) => void;
+  onSubmit: (data: Partial<Opportunity>) => void;
   onCancel: () => void;
 }
 

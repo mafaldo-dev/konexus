@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../../../firebaseConfig';
-import { handleAllGoals, insertGoal } from '../../../service/api/goals';
+import { handleAllGoals, insertGoal } from '../../../service/api/Administrador/goals';
 
 import { GoalsData } from '../../../service/interfaces';
 

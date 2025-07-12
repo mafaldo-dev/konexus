@@ -1,4 +1,4 @@
-export * from './crm/atendimentos';
+export * from './crm/_services';
 export * from './crm/campaigns';
 export * from './crm/leads';
 export * from './crm/opportunities';
@@ -8,7 +8,7 @@ export * from './sales/goals';
 export * from './sales/customer';
 export * from './stock/movements';
 export * from './stock/products';
-export * from './products/productsProps';
+export * from './stock/productsProps';
 export * from './stock/suppliers';
 export * from './financial/invoiceEntries';
 export * from './financial/invoiceExit';

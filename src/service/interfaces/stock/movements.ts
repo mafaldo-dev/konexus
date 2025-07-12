@@ -1,9 +1,11 @@
 export interface Movement {
-  id: string;
-  date: any;   
-  nfNumber: number;
+  id?: string;
   productId: string;
+  type: "entrada" | "saida" | "ajuste" | "previsao";
   quantity: number;
-  type: string;        
-  user: string;       
+  date: Date | string;
+  description: string;
+  nfNumber?: string;
+  user?: string;
+  balance: number;
 }

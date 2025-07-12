@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Supplier } from "../../../../service/interfaces";
-import { useDebounce } from '../../../../hooks/useDebounce';
+import { useDebounce } from '../../../../hooks/utils/useDebounce';
 
 interface SupplierFilterProps {
   suppliers: Supplier[];

@@ -3,7 +3,7 @@ import { User as UserIcon } from 'lucide-react';
 
 import UserFormModal from './components/UserFormModal';
 import Dashboard from '../../../components/dashboard/Dashboard';
-import { handleAllEmployee, updatedEmployee } from '../../../service/api/employee';
+import { handleAllEmployee, updatedEmployee } from '../../../service/api/Administrador/employee';
 import { Employee } from '../../../service/interfaces';
 
 export default function UserManagementPage() {

@@ -1,40 +1,22 @@
 import React from "react";
-import { TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
-
-type ColorType = "blue" | "green" | "purple" | "emerald";
 
 interface MetricCardProps {
   title: string;
   value: string | number;
   icon: React.ComponentType<{ className?: string }>;
-  trend?: string;
-  color: ColorType;
+  color: string;
   isLoading?: boolean;
+  trend: string
 }
 
 export default function MetricCard({
   title,
   value,
   icon: Icon,
-  trend,
   color,
   isLoading = false,
 }: MetricCardProps) {
-  const colorClasses: Record<ColorType, string> = {
-    blue: "from-blue-500 to-blue-600",
-    green: "from-green-500 to-green-600",
-    purple: "from-purple-500 to-purple-600",
-    emerald: "from-emerald-500 to-emerald-600",
-  };
-
-  const textColorClasses: Record<ColorType, string> = {
-    blue: "text-blue-600",
-    green: "text-green-600",
-    purple: "text-purple-600",
-    emerald: "text-emerald-600",
-  };
-
   if (isLoading) {
     return (
       <div className="relative overflow-hidden bg-white/60 backdrop-blur-sm border border-slate-200/60 rounded-lg shadow-sm p-6 animate-pulse max-w-sm">
@@ -58,28 +40,18 @@ export default function MetricCard({
       transition={{ duration: 0.2 }}
       className="max-w-sm"
     >
-      <div className="relative overflow-hidden bg-white/60 backdrop-blur-sm border border-slate-200/60 shadow-xl rounded-lg p-6">
-        <div
-          className={`absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8 bg-gradient-to-r ${colorClasses[color]} rounded-full opacity-10`}
-          aria-hidden="true"
-        />
+      <div className={`relative overflow-hidden bg-white/60 backdrop-blur-sm border border-slate-200/60 shadow-xl rounded-lg p-6`}>
         <div className="flex justify-between items-start relative">
           <div>
             <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
             <p className="text-3xl font-bold text-slate-900">{value}</p>
           </div>
           <div
-            className={`p-3 rounded-xl bg-gradient-to-r ${colorClasses[color]} bg-opacity-20 shadow-lg flex items-center justify-center`}
+            className={`p-3 rounded-xl bg-gradient-to-r from-${color}-500 to-${color}-600 bg-opacity-20 shadow-lg flex items-center justify-center`}
           >
-            <Icon className={`${textColorClasses[color]} w-6 h-6`} />
+            <Icon className={`text-${color}-600 w-6 h-6`} />
           </div>
         </div>
-        {trend && (
-          <div className="flex items-center mt-4 text-sm text-green-500">
-            <TrendingUp className="w-4 h-4 mr-1" />
-            <span className="font-medium">{trend}</span>
-          </div>
-        )}
       </div>
     </motion.div>
   );

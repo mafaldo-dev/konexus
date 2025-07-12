@@ -8,14 +8,14 @@ import PurchaseRequestForm from './components/SolicitationForm';
 
 import Dashboard from "../../../components/dashboard/Dashboard";
 
-import { usePurchaseData } from '../../../hooks/usePurchaseData';
+import { usePurchaseData } from '../../../hooks/_manager/usePurchaseData';
 
-import { useSearchFilter } from '../../../hooks/useSearchFilter';
+import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter';
 
 import DanfeTemplate from '../../../utils/invoicePdf/pdfGenerator';
 import { mapPurchaseRequestToNota } from '../../../utils/invoicePdf/generateQuotationPdf';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { purchaseAllOrders } from '../../../service/api/purchaseRequests';
+import { purchaseAllOrders } from '../../../service/api/Administrador/purchaseRequests';
 import ReturnsPage from '../returns';
 
 

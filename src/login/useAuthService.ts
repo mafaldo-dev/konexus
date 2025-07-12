@@ -1,9 +1,9 @@
-import { use, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, query, where, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
 import { db } from "../firebaseConfig";
-import { useChat, UserStatus } from "../ChatContext";
+import { useChat } from "../ChatContext";
 
 // Interface para tipar corretamente os dados retornados do Firestore
 interface EmployeeData {

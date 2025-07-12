@@ -1,16 +1,14 @@
 import React, { useEffect, useState, useMemo } from "react"
 
 import { Products, Customer, Employee } from "../../service/interfaces"
-
-import { getAllProducts } from "../../service/api/products"
-import { handleAllCustomer } from "../../service/api/clients/clients"
-import { handleAllEmployee, handleDesignations } from "../../service/api/employee"
+import { getAllProducts } from "../../service/api/Administrador/products"
+import { handleAllCustomer } from "../../service/api/Administrador/customer/clients"
+import { handleAllEmployee, handleDesignations } from "../../service/api/Administrador/employee"
 
 import Dashboard from "../dashboard/Dashboard"
 
 import TableProducts from "./components/table-products"
 import TabsComponent from "./components/Tabs-Component"
-
 
 const AdministrationScreen = () => {
   const [remember, setRemembers] = useState(localStorage.getItem("remember") || "")
