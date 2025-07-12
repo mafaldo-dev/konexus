@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   AlertTriangle,
-  CheckCircle,
+  
   Info,
   Loader2,
   ShieldCheck,
@@ -10,17 +10,9 @@ import {
 import Dashboard from '../../../components/dashboard/Dashboard';
 import { useSystemStatus, StatusMessageType } from '../../../SystemStatusContext';
 
-const statusColors = {
-  ok: 'text-green-600',
-  warning: 'text-yellow-600',
-  error: 'text-red-600',
-};
 
-const statusIcons = {
-  ok: <CheckCircle size={20} className={statusColors.ok} />,
-  warning: <AlertTriangle size={20} className={statusColors.warning} />,
-  error: <AlertTriangle size={20} className={statusColors.error} />,
-};
+
+
 
 export default function SystemStatusDashboard() {
   const [isLoading, setIsLoading] = useState(true);

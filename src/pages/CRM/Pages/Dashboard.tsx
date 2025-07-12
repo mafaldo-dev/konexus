@@ -4,9 +4,9 @@ import { useCrmData } from "../../../hooks/_crm/useCrmData";
 import MetricCard from "../dashboard/MetricCard";
 import LeadChart from "../dashboard/LeadChart";
 import OpportunityPipeline from "../dashboard/Opportunity";
-import RecentActivity from "../dashboard/RecentActivity";
-import CampaignForm from "../components/CampaignForm";
-import CampaignCard from "../components/CampaignCard";
+
+
+
 
 export default function Dashboard() {
   const { leads, opportunities, campaigns, isLoading } = useCrmData();
@@ -73,10 +73,10 @@ export default function Dashboard() {
           <div className="lg:col-span-2 space-y-6">
             <LeadChart leads={leads} isLoading={isLoading} />
             <OpportunityPipeline opportunities={opportunities} isLoading={isLoading} />
-            {/* <CampaignCard campaign={() => console.log("nothing here")}/> */}
+            
           </div>
           <div>
-            {/* <RecentActivity leads={leads} opportunities={opportunities} campaigns={campaigns} isLoading={isLoading} /> */}
+            
           </div>
         </div>
       </motion.div>

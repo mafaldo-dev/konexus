@@ -9,7 +9,7 @@ export async function insertOrder(order: Order) {
   } catch (Exception) {
     console.error("Erro ao criar Order de pedido", Exception)
     alert("Erro ao adicionar ordem ao sistema!!!")
-    throw new Error
+    throw new Error()
   }
 }
 
@@ -26,7 +26,7 @@ export async function handleAllOrders(searchTerm?: string): Promise<Order[]> {
     } catch (Exception) {
         console.error("Erro ao recuperar a lista de Funcionarios!", Exception)
         alert("Erro interno do servidor!!!")
-        throw new Error
+        throw new Error()
     }
 }
 

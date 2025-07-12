@@ -1,25 +1,17 @@
 import React from 'react';
 import LeadFilters from './LeadFilters';
-import LeadForm from './LeadForm';
+
 import LeadGrid from './LeadGrid';
-import ConvertModal from './ConvertModal';
+
 import { useLeads } from '../../../hooks/_crm/useLeads';
 
 const LeadsPage: React.FC = () => {
   const {
     leads,
     isLoading,
-    showForm,
-    editingLead,
-    showConvertModal,
-    leadToConvert,
     handleAddLead,
     handleEditLead,
-    //handleSaveLead,
     handleConvertLead,
-    handleConfirmConvert,
-    handleCancelForm,
-    handleCancelConvert,
     handleFilterChange,
   } = useLeads();
 
@@ -52,13 +44,7 @@ const LeadsPage: React.FC = () => {
         isLoading={isLoading}
       />
 
-      {/* {showConvertModal && (
-        <ConvertModal
-          lead={leadToConvert}
-          onConvert={handleConfirmConvert}
-          onCancel={handleCancelConvert}
-        />
-      )} */}
+      
     </div>
   );
 };

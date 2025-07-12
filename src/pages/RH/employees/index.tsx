@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { Employee } from "../../../service/interfaces"
 
@@ -7,16 +6,18 @@ import { handleAllEmployee, insertEmployee } from "../../../service/api/Administ
 import { User, Lock, MapPin } from "lucide-react"
 
 import Dashboard from "../../../components/dashboard/Dashboard"
+import { useState } from "react"
 
 export default function EmployeeAdministration() {
+  const [success, setSuccess] = useState<boolean>(false)
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
   } = useForm<Employee>()
-  const [success, setSuccess] = useState(false)
-  const [employee, setEmployee] = useState<Employee[]>([])
+  
+  
 
   const onSubmit: SubmitHandler<Employee> = async (data) => {
     const formattedData: Employee = {
@@ -32,9 +33,8 @@ export default function EmployeeAdministration() {
 
     await insertEmployee(formattedData)
     reset()
-    const res = await handleAllEmployee()
+    await handleAllEmployee()
     setSuccess(true)
-    setEmployee(res)
   }
 
   const maskPhone = (value: string) => {

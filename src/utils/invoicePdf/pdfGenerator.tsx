@@ -44,55 +44,6 @@ const formatDateSimple = (dateString?: string) =>
 const formatDateTimeSimple = (dateTimeString?: string) =>
   dateTimeString ? format(new Date(dateTimeString), 'dd/MM/yyyy HH:mm:ss') : '';
 
-interface Empresa {
-  razaoSocial: string;
-  endereco: string;
-  cidade: string;
-  uf: string;
-  cep: string;
-  telefone: string;
-  cnpj: string;
-  inscricaoEstadual: string;
-}
-
-interface Destinatario {
-  nome: string;
-  cnpjCpf: string;
-  endereco: string;
-  cidade: string;
-  uf: string;
-  cep: string;
-  telefone: string;
-  inscricaoEstadual: string;
-}
-
-interface Totais {
-  baseCalculoIcms: number;
-  valorIcms: number;
-  baseCalculoIcmsSt: number;
-  valorIcmsSt: number;
-  valorProdutos: number;
-  valorFrete: number;
-  valorSeguro: number;
-  valorDesconto: number;
-  valorDespesasAcessorias: number;
-  valorTotalNota: number;
-}
-
-interface Item {
-  codigo: string;
-  descricao: string;
-  ncm: string;
-  cfop: string;
-  unidade: string;
-  quantidade: number;
-  valorUnitario: number;
-  valorTotal: number;
-  baseCalculoIcms: number;
-  valorIcms: number;
-}
-
-
 
 interface DanfeTemplateProps {
   nota: Nota;

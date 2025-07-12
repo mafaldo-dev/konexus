@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { Search, Plus, Edit, Trash2, X, Save, Filter, MoreHorizontal, Tag, Package, AlertTriangle } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, X, Save, Filter, Tag, Package, AlertTriangle } from 'lucide-react'
 import Dashboard from "../../../components/dashboard/Dashboard"
 import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter'
 import { useDebounce } from '../../../hooks/utils/useDebounce'

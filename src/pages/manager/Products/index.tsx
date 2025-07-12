@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react"
-import { useForm, SubmitHandler } from 'react-hook-form'
 import { doc, deleteDoc } from "firebase/firestore"
 import { db } from "../../../firebaseConfig"
 import { Products, Movement } from "../../../service/interfaces"
@@ -7,7 +6,7 @@ import { Products, Movement } from "../../../service/interfaces"
 import Dashboard from "../../../components/dashboard/Dashboard"
 
 import lupa from "../../../assets/image/search.png"
-import { getKardexMovements } from "../../../service/api/Administrador/kardex"
+
 import { getAllProducts, updateProduct } from "../../../service/api/Administrador/products"
 import FormAdd from "./Form-add"
 
@@ -16,7 +15,6 @@ const SearchProducts = () => {
   const [modalOpen, setIsModalOpen] = useState<boolean>(false)
   const [openRegister, setOpenRegister] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
-  const [render, setRender] = useState<Products[]>([])
   const [error, setError] = useState<string | null>(null)
   const [newInfos, setNewInfos] = useState<Products>()
   const [items, setItem] = useState<Products[]>([])
@@ -27,13 +25,14 @@ const SearchProducts = () => {
   const [kardex, setKardex] = useState<boolean>(false)
 
 
+
   // RENDER ITENS REGISTERED IN DATABASE
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
         const produtos = await getAllProducts()
-        setRender(produtos)
+        setFilter(produtos)
         //addMessage(StatusMessageType.ERROR, "Este é um erro de teste", "Detalhes do erro aqui");
       } catch (Exception) {
         console.error("Erro ao recuperar a lista de produtos.", Exception)
@@ -92,7 +91,7 @@ const SearchProducts = () => {
       setItem(items.filter(product => product.id !== id));
       alert("Produto deletado com sucesso!");
       const reload = await getAllProducts()
-      setRender(reload)
+      setFilter(reload)
     } catch (Exception) {
       console.error("Erro ao deletar produto: ", Exception);
       alert("Erro ao deletar produto, tente novamente.");
@@ -110,23 +109,7 @@ const SearchProducts = () => {
     }
   }, [searchTerm, items])
 
-  const handleProducts = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await getAllProducts(searchTerm)
-      setItem(res)
-      setFilter(res)
-
-    } catch (Exception) {
-      console.error("Erro ao buscar Item:", Exception)
-      alert("Erro ao recuperar informações do item!")
-      throw new Error("Erro ao recuperar o Produto indicado!")
-    }
-  }
-  useEffect(() => {
-    handleProducts()
-  }, [])
+  
   // TERMINA AQUI
 
   return (
@@ -194,12 +177,6 @@ const SearchProducts = () => {
                                   onClick={() => handleDelete(item.id!)}
                                   className="text-red-600 hover:text-red-900"
                                 >Excluir</button>
-                                {/* <button
-                                className="px-2 py-3 font-bold bg-gray-200 h-2 flex items-center rounded-sm"
-                                onClick={() => handleOpenKardex(item)}
-                              >
-                                <span className="mb-2 py-4 text-lg">...</span>
-                              </button> */}
                               </td>
                             </div>
                           </td>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Plus } from 'lucide-react';
-import { EnterpriseData, Products, PurchaseRequest } from '../../../service/interfaces';
+import { Products, PurchaseRequest } from '../../../service/interfaces';
 
 import ProductsTable from './components/TableProducts';
 import SupplierFilter from './components/FilterSuppliers';
@@ -24,8 +24,6 @@ export default function PurchaseManagementScreen() {
   const { products, suppliers, isLoading } = usePurchaseData();
   const [selectedProducts, setSelectedProducts] = useState<Products[]>([]);
   const [showSnackbar, setShowSnackbar] = useState<boolean>(false);
-  const [selectedQuotation, setSelectedQuotation] = useState<PurchaseRequest | null>(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedSupplier, setSelectedSupplier] = useState<string>('');
@@ -44,10 +42,10 @@ export default function PurchaseManagementScreen() {
     fetchQuotations();
   }, []);
 
-  const handlePreview = (quotation: PurchaseRequest) => {
-    setSelectedQuotation(quotation);
-    setShowPreviewModal(true);
-  };
+  // const handlePreview = (quotation: PurchaseRequest) => {
+  //   setSelectedQuotation(quotation);
+  //   setShowPreviewModal(true);
+  // };
 
 
   // Filtra os produtos com estoque baixo (quantidade <= 10 por exemplo)
@@ -91,20 +89,7 @@ export default function PurchaseManagementScreen() {
     }
   };
 
-  // Funções para mudar as abas
-  const goToRequestTab = () => setActiveTab('request');
-  const goToQuoteTab = () => setActiveTab('quote');
-
-  // Funções para os botões da tabela de cotações
-  const handlePreviewQuotation = (id: string) => {
-    // TODO: Implement a proper modal or page for quotation preview
-    console.log(`Visualizar cotação ${id} (implemente modal ou página)`);
-  };
-
-  const handleDownloadQuotation = (id: string) => {
-    // TODO: Implement PDF export
-    console.log(`Baixar cotação ${id} (implemente exportação PDF)`);
-  };
+   const goToRequestTab = () => setActiveTab('request');
 
   const renderPdfToNewWindow = (quotation: PurchaseRequest) => {
     const nota = mapPurchaseRequestToNota(quotation);

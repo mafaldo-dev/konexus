@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore"
+import { addDoc, collection, doc, getDocs, updateDoc } from "firebase/firestore"
 import { db } from "../../../../firebaseConfig"
 import { GoalsData } from "../../../interfaces"
 
@@ -9,7 +9,7 @@ export async function insertGoal(goal: GoalsData) {
   } catch (Exception) {
     console.error("Erro ao criar nova Meta: ", Exception)
     alert("Erro ao adicionar nova meta a base de dados!!!")
-    throw new Error
+    throw new Error()
   }
 }
 
@@ -26,7 +26,7 @@ export async function handleAllGoals(searchTerm?: string): Promise<GoalsData[]> 
     } catch (Exception) {
         console.error("Erro ao recuperar a lista de Metas: ", Exception)
         alert("Erro interno do servidor!!!")
-        throw new Error
+        throw new Error()
     }
 }
 

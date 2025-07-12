@@ -19,7 +19,7 @@ root.render(
 );
 
 if (window.require) {
-  const { ipcRenderer } = window.require('electron');
+  window.require('electron');
   console.log('Running in Electron');
   // You can use ipcRenderer here if needed
   // For example:

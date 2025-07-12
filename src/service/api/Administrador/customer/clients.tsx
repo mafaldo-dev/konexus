@@ -11,7 +11,7 @@ export async function insertCustomer(customer: Customer) {
     } catch (Exception) {
         console.error("Erro ao inserir o Cliente ao sistema.", Exception)
         alert("Erro ao cadastrar cliente!!!")
-        throw new Error
+        throw new Error()
     }
 }
 
@@ -22,7 +22,7 @@ export async function updateCustomer(id: string, updatedData: any) {
     } catch (Exception) {
         console.error("Erro ao atualizar os dados do cliente!", Exception)
         alert("Erro ao atualizar informações do cliente!")
-        throw new Error
+        throw new Error()
     }
 }
 
@@ -39,6 +39,6 @@ export async function handleAllCustomer(searchTerm?: string): Promise<Customer[]
     } catch (Exception) {
         console.error("Erro ao recuperar a lista de Clientes!", Exception)
         alert("Erro interno do servidor!!!")
-        throw new Error
+        throw new Error()
     }
 }

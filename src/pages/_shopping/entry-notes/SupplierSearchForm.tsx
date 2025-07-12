@@ -3,7 +3,7 @@ import { useSupplierSearch } from '../../../hooks/_manager/useSupplierSearch';
 import { Supplier } from '../../../service/interfaces';
 
 export default function SupplierSearchForm() {
-    const [supplier, setSuplier] = useState<Supplier>()
+    const [supplier] = useState<Supplier>()
     const { supplierCode, setSupplierCode, handleSupplier } = useSupplierSearch(supplier);
 
     return (

@@ -1,5 +1,5 @@
-import { db } from "../../firebaseConfig";
-import { collection, query, where, getDocs } from "firebase/firestore"
+// import { db } from "../../firebaseConfig";
+// import { collection } from "firebase/firestore"
 // import { Login } from "../../utils/login";
 
 // export const apiRequest = async (
@@ -48,16 +48,18 @@ import { collection, query, where, getDocs } from "firebase/firestore"
 
 // Request information about the logged user in the database
 
-export const handleLogin = async(username: string, password: string)=> {
-    try {
-        const adminsRef = collection(db, "adm");
-        const login = query(adminsRef, where("username", "==", username), where("password", "==", password))
-        console.log("Logado com sucesso", username)
+// export const handleLogin = async(username: string, password: string)=> {
+//     try {
+//         const adminsRef = collection(db, "adm");
+        
+//         console.log("Logado com sucesso", username)
 
-        const querySnapshot = await getDocs(login)
+        
     
-    }catch(exe){
-        //console.error("Erro ao recuperar dados do servidor.")
-        return null
-    }
-}
+//     }catch(exe){
+//         //console.error("Erro ao recuperar dados do servidor.")
+//         return null
+//     }
+// }
+
+export {}

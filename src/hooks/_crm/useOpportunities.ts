@@ -22,7 +22,7 @@ export const useOpportunities = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [filters]);
+  }, []);
 
   useEffect(() => {
     fetchOpportunities();

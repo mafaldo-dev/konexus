@@ -1,6 +1,5 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
 import { PurchaseRequest } from '../../service/interfaces'; // Certifique-se de que os tipos aqui estejam corretos com sua base
 
 // Interfaces para DANFE

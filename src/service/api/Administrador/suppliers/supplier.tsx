@@ -10,7 +10,7 @@ export async function insertSupplier (supplier: Supplier) {
     }catch(Exception) {
         console.error("Erro ao adicionar novo fornecedor: ", Exception)
         alert("Erro ao adicionar novo FORNECEDOR... Tente novamente.")
-        throw new Error
+        throw new Error()
     }
 }
 
@@ -22,7 +22,7 @@ export async function updateSupplier (id: string, updateData: any)  {
     }catch(Exception) {
         console.error("Erro ao atualizar informações do Fornecedor: ", Exception)
         alert("Erro ao atualizar as informaçoes do Fornecedor.")
-        throw new Error
+        throw new Error()
     }
 }
 
@@ -39,7 +39,7 @@ export async function getAllSuppliers (serchTerm?: string): Promise<Supplier[]> 
     }catch(Exception) {
         console.error("Erro ao recuperar Fornecedores: ", Exception)
         alert("Erro ao recuperar a lista de fornecedores")
-        throw new Error
+        throw new Error()
     }
 }
 

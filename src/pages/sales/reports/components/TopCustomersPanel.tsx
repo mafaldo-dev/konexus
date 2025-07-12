@@ -1,6 +1,6 @@
 import React from 'react';
 import { TopCustomer, CustomerRank } from '../../../../service/interfaces/reports';
-import { Users, Trophy, Gift } from 'lucide-react';
+import { Trophy, Gift } from 'lucide-react';
 
 interface TopCustomersPanelProps {
   customers: TopCustomer[]; // Keep this for now, though we might primarily use customerRank

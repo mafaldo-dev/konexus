@@ -60,7 +60,7 @@ const TabContent = ({ activeTab }: any) => (
         <ul className="divide-y divide-gray-200">
             {tabContent[activeTab as keyof typeof tabContent].map((item, index) => (
                 <li key={index}>
-                    <a href="#" className="block hover:bg-gray-50">
+                    <div className="block hover:bg-gray-50">
                         <div className="px-4 py-4 sm:px-6">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm font-medium text-slate-700 truncate">{item.title}</p>
@@ -80,7 +80,7 @@ const TabContent = ({ activeTab }: any) => (
                                 </div>
                             </div>
                         </div>
-                    </a>
+                    </div>
                 </li>
             ))}
         </ul>
@@ -89,7 +89,7 @@ const TabContent = ({ activeTab }: any) => (
 
 export default function TabsComponent() {
     const [activeTab, setActiveTab] = useState("notificacoes");
-    const [message, setMesssage] = useState<number>(0)
+    
 
     return (
         <div className="mt-6">

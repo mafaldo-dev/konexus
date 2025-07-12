@@ -1,7 +1,7 @@
 import { addDoc, collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../../../firebaseConfig";
 import { Products } from "../../../interfaces";
-import { getKardexMovements, createKardexEntry } from "../kardex";
+import { createKardexEntry } from "../kardex";
 
 
 export async function insertProductComKardex(produto: Products) {
@@ -43,7 +43,7 @@ export const updateProduct = async (id: string, updatedData: any) => {
   } catch (Exception) {
     console.error("Erro ao atualizar o produto:", Exception)
     alert("Erro ao atualizar informações do item!!! ")
-    throw new Error
+    throw new Error()
   }
 }
 
@@ -84,7 +84,7 @@ export const getAllProducts = async (searchTerm?: string): Promise<Products[] | 
   } catch (Exception) {
     console.error("Erro ao recuperar a lista de itens: ", Exception)
     alert("Erro interno do servidor!!!")
-    throw new Error
+    throw new Error()
   }
 }
 

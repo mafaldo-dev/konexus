@@ -15,7 +15,7 @@ import {
     Settings,
 } from "lucide-react";
 import Dashboard from "../../../components/dashboard/Dashboard";
-import { ContextMenuPosition, FilterState, KardexEntry, Product, ReportConfig } from "./movementsType";
+import { ContextMenuPosition, FilterState, ReportConfig } from "./movementsType";
 import { Movement, Products } from "../../../service/interfaces";
 import { getAllProducts } from "../../../service/api/Administrador/products";
 import { getKardexMovements } from "../../../service/api/Administrador/kardex";

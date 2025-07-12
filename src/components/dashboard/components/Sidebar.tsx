@@ -29,7 +29,7 @@ export default function Sidebar({ sidebarCollapsed }: any) {
         collection: user.collection
       });
     }
-  }, [user, currentUser, username, designation]);
+  }, [user, currentUser, username, designation, login]);
 
   function canAccess(allowed: string[]) {
     return allowed.includes(designation);

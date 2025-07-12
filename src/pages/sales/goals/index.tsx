@@ -65,7 +65,7 @@ export default function Goals() {
             await deleteDoc(doc(db, "Goal", id))
             setGoals(goals.filter(goal => goal.id !== id));
             alert("Produto deletado com sucesso!");
-            const reload = await handleAllGoals()
+            
         } catch (Exception) {
             console.error("Erro ao deletar produto: ", Exception);
             alert("Erro ao deletar produto, tente novamente.");

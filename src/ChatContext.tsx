@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect, useReducer } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useReducer, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { handleAllEmployee } from './service/api/Administrador/employee'
 import { db } from "./firebaseConfig";
@@ -92,7 +92,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     setUserStatus(currentUser.id, 'Inativo');
   };
 
-  const setUserActive = () => {
+  const setUserActive = useCallback(() => {
     if (!authUser?.id) return;
 
     setUsers((prevUsers) =>
@@ -104,7 +104,17 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     setCurrentUser((prev) =>
       prev ? { ...prev, status: 'Ativo' } : null
     );
-  };
+  }, [authUser?.id]);
+
+  const setUserStatus = useCallback((userId: string, status: UserStatus) => {
+    setUsers(oldUsers =>
+      oldUsers.map(u => (u.id === userId ? { ...u, status } : u))
+    );
+
+    if (currentUser?.id === userId) {
+      setCurrentUser(curr => (curr ? { ...curr, status } : null));
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     if (!authUser || !authUser.id) {
@@ -129,17 +139,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     setCurrentUser(newUser);
     fetchUsers();
     setUserActive();
-  }, [authUser?.id]);
-
-  const setUserStatus = (userId: string, status: UserStatus) => {
-    setUsers(oldUsers =>
-      oldUsers.map(u => (u.id === userId ? { ...u, status } : u))
-    );
-
-    if (currentUser?.id === userId) {
-      setCurrentUser(curr => (curr ? { ...curr, status } : null));
-    }
-  };
+  }, [authUser?.id, setUserActive, setUserStatus, authUser, currentUser]);
 
   const sendMessage = async (msg: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
     try {
@@ -182,7 +182,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       }
     }, 5 * 60 * 1000);
     return () => clearTimeout(timer);
-  }, [currentUser]);
+  }, [currentUser, setUserStatus]);
 
   // Ouve mensagens enviadas e recebidas no Firestore
   useEffect(() => {

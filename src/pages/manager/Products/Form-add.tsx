@@ -5,7 +5,7 @@ import { useState } from "react"
 
 export default function FormAdd() {
     const { register, handleSubmit, formState: { errors }, reset } = useForm<Products>()
-    const [openRegister, setOpenRegister] = useState<boolean>(false)
+    const [, setOpenRegister] = useState<boolean>(false)
 
     const onSubmit: SubmitHandler<Products> = async (data) => {
         try {

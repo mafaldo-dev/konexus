@@ -2,7 +2,7 @@ import { Search, Plus, Edit, Trash2, X, Save, Filter, Award, Package, AlertTrian
 import Dashboard from "../../../components/dashboard/Dashboard"
 import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter'
 import { useDebounce } from '../../../hooks/utils/useDebounce'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 
 interface Brand {
   id: string

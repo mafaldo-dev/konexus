@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, Timestamp, addDoc, limit, orderBy, serverTimestamp, DocumentSnapshot, startAfter } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, limit, orderBy, serverTimestamp, DocumentSnapshot, startAfter } from "firebase/firestore";
 import { db } from "../../../../firebaseConfig";
 import { Movement } from "../../../interfaces";
 
