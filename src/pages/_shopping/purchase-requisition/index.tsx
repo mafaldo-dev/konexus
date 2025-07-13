@@ -84,8 +84,6 @@ export default function PurchaseManagementScreen() {
       setTimeout(() => setShowSnackbar(false), 3000);
     } catch (error) {
       console.error('Error creating request:', error);
-    } finally {
-      // setIsLoading(false); // Only set to false if this component manages its own loading state
     }
   };
 
@@ -292,10 +290,10 @@ export default function PurchaseManagementScreen() {
                       <td className="py-3 px-4 text-center">
                         <span
                           className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${q.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
+                              ? 'bg-yellow-50 text-yellow-700'
                               : q.status === 'approved'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-green-100 text-green-800'
+                                ? 'bg-blue-50 text-blue-700'
+                                : 'bg-green-50 text-green-700'
                             }`}
                         >
                           {q.status === 'pending'
@@ -308,7 +306,7 @@ export default function PurchaseManagementScreen() {
                       <td className="py-3 px-4 text-center">
                         <button
                           onClick={() => renderPdfToNewWindow(q)}
-                          className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition"
+                          className="bg-slate-800 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition"
                         >
                           Visualizar
                         </button>

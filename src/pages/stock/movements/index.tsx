@@ -64,7 +64,6 @@ export default function ProfessionalProductList() {
     const getProducts = async () => {
         try {
             const response = await getAllProducts();
-            console.log("Produtos recebidos:", response);
             setProducts(response);
         } catch (error) {
             console.error("Erro ao recuperar a lista de produtos!", error);
@@ -76,7 +75,6 @@ export default function ProfessionalProductList() {
         setLoadingKardex(true);
         try {
             const movements = await getKardexMovements(product.id);
-            console.log(movements)
             setKardexProduct(product);
             setKardexMovements(movements);
             setShowKardexModal(true);
@@ -775,7 +773,7 @@ export default function ProfessionalProductList() {
                                             </div>
                                         ) : kardexMovements.length > 0 ? (
                                             <div className="overflow-x-auto">
-                                                <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
+                                                <table className="w-full borde-r border-gray-200 border-collapse rounded-lg overflow-hidden">
                                                     <thead className="bg-gray-50">
                                                         <tr>
                                                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Data</th>
@@ -788,11 +786,11 @@ export default function ProfessionalProductList() {
                                                     </thead>
                                                     <tbody>
                                                         {kardexMovements.map((entry, index) => (
-                                                            <tr key={index} className="border-t border-gray-100 hover:bg-gray-50">
-                                                                <td className="px-4 py-3 text-sm text-gray-700 font-medium">
+                                                            <tr key={index} className="border border-gray-300 border-collapse hover:bg-gray-50">
+                                                                <td className="px-3 py-3 text-sm  text-gray-700 font-medium">
                                                                     {new Date(entry.date).toLocaleDateString("pt-BR")}
                                                                 </td>
-                                                                <td className="px-4 py-3">
+                                                                <td className="px-1 py-1 border border-gray-300">
                                                                     <div className="flex items-center gap-2">
                                                                         {getKardexIcon(entry.type)}
                                                                         <span className={`text-xs px-2 py-1 rounded-full border font-semibold uppercase ${getKardexTypeColor(entry.type)}`}>
@@ -800,9 +798,9 @@ export default function ProfessionalProductList() {
                                                                         </span>
                                                                     </div>
                                                                 </td>
-                                                                <td className="px-4 py-3 text-sm font-semibold text-gray-900">{entry.quantity}</td>
-                                                                <td className="px-4 py-3 text-sm text-gray-700">{entry.nfNumber}</td>
-                                                                <td className="px-4 py-3 text-sm font-bold text-slate-800">{entry.quantity}</td>
+                                                                <td className="px-4 py-3 text-sm font-semibold border border-gray-300 text-gray-900">{entry.quantity}</td>
+                                                                <td className="px-4 py-3 text-sm border border-gray-300 text-gray-700">{entry.order_number}</td>
+                                                                <td className="px-4 py-3 text-sm font-bold border border-gray-300 text-slate-800">{entry.quantity}</td>
                                                             </tr>
                                                         ))}
                                                     </tbody>

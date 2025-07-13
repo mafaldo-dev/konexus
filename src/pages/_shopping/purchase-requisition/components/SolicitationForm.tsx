@@ -1,38 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { format, addDays } from 'date-fns';
-import { Plus, Minus, Save } from 'lucide-react';
+import { Plus, Save } from 'lucide-react';
 import {
   EnterpriseData,
   Products,
+  ProductsProps,
   PurchaseRequest,
-  Supplier
+  Supplier,
 } from '../../../../service/interfaces';
 import {
   purchaseAllOrders,
-  purchaseRequisition
+  purchaseRequisition,
 } from '../../../../service/api/Administrador/purchaseRequests';
-
-interface ProductItem {
-  id: string;
-  code: string;
-  product_name: string;
-  quantity: number;
-  price: number;
-  total_price: number;
-}
-
-interface PredefinedProduct extends Products {
-  id: string;
-  name: string;
-  price: number;
-  minimum_stock: number;
-  quantity: number;
-}
+import { useProductManagement } from '../../../../hooks/_manager/useProductManagement';
 
 interface PurchaseRequestFormProps {
   suppliers: Supplier[];
-  predefinedProducts?: PredefinedProduct[];
+  predefinedProducts?: Products[];
   onSubmit: (data: PurchaseRequest) => void;
   isLoading: boolean;
 }
@@ -61,6 +46,20 @@ export default function PurchaseRequestForm({
   onSubmit,
   isLoading,
 }: PurchaseRequestFormProps) {
+  const [products, setProducts] = useState<ProductsProps[]>([]);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+
+  const {
+    productCode,
+    setProductCode,
+    addedProduct,
+    count,
+    setCount,
+    price,
+    setPrice,
+    handleProduct,
+  } = useProductManagement(setProducts);
+
   const {
     register,
     handleSubmit,
@@ -91,37 +90,39 @@ export default function PurchaseRequestForm({
     },
   });
 
-  const [products, setProducts] = useState<ProductItem[]>([]);
-  const [newProduct, setNewProduct] = useState<Omit<ProductItem, 'total_price'>>({
-    id: '',
-    code: '',
-    product_name: '',
-    quantity: 1,
-    price: 0,
-  });
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
-  const [searchCode, setSearchCode] = useState('');
-
   useEffect(() => {
     const mapped = predefinedProducts.map(p => ({
       id: p.id,
-      code: '',
+      code: p.code || '',
       product_name: p.name,
       quantity: Math.max(p.minimum_stock - p.quantity, 1),
       price: p.price || 0,
       total_price: Math.max(p.minimum_stock - p.quantity, 1) * (p.price || 0),
-    }));
+    })) satisfies ProductsProps[];
+
     setProducts(mapped);
     setValue('products', mapped);
   }, [predefinedProducts, setValue]);
 
   useEffect(() => {
-    setValue('products', products);
+    setValue('products', products.map(p => ({
+      ...p,
+      total_price: p.total_price ?? 0,
+    })));
   }, [products, setValue]);
+
+  // Atualiza o preço e quantidade padrão quando o produto é selecionado
+  useEffect(() => {
+    if (addedProduct?.price) {
+      setPrice(addedProduct.price);
+      setCount(1);
+    }
+  }, [addedProduct, setPrice, setCount]);
 
   const handleSupplierChange = (supplierId: string) => {
     const supplier = suppliers.find(s => s.id === supplierId);
     if (!supplier) return;
+
     setSelectedSupplier(supplier);
     setValue('enterprise_name', supplier.name);
     setValue('companyData', {
@@ -138,19 +139,31 @@ export default function PurchaseRequestForm({
         number: 0,
       },
     });
+
     if (supplier.deliveryTime) {
       setValue('deliveryDate', format(addDays(new Date(), supplier.deliveryTime), 'yyyy-MM-dd'));
     }
   };
 
   const addProduct = () => {
-    if (!newProduct.product_name || newProduct.quantity <= 0 || newProduct.price < 0) {
+    if (!addedProduct || count <= 0 || price <= 0) {
       alert('Preencha corretamente os dados do produto.');
       return;
     }
-    const total_price = newProduct.quantity * newProduct.price;
-    setProducts(prev => [...prev, { ...newProduct, total_price }]);
-    setNewProduct({ id: '', code: '', product_name: '', quantity: 1, price: 0 });
+
+    const newItem: ProductsProps = {
+      id: addedProduct.id,
+      code: addedProduct.code || '',
+      product_name: addedProduct.name,
+      quantity: count,
+      price,
+      total_price: count * price,
+    };
+
+    setProducts(prev => [...prev, newItem]);
+    setProductCode('');
+    setCount(1);
+    setPrice(0);
   };
 
   const removeProduct = (index: number) => {
@@ -180,66 +193,44 @@ export default function PurchaseRequestForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6 text-slate-800">
-      <div className="grid md:grid-cols-2 gap-6 h-fit">
-        <section className="bg-white p-4 rounded border border-gray-200 h-fit">
+      {/* Empresa e Fornecedor */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <section className="bg-white p-4 rounded border border-gray-200">
           <h2 className="text-lg font-semibold mb-4">Empresa Solicitante</h2>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <label className="block text-xs mb-1">Nome</label>
-              <input value={enterpriseDataDefault.company_name} disabled className="w-full border border-gray-200 rounded px-2 py-1" />
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Telefone</label>
-              <input value={enterpriseDataDefault.phone} disabled className="w-full border border-gray-200 rounded px-2 py-1" />
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Email</label>
-              <input value={enterpriseDataDefault.email} disabled className="w-full border border-gray-200 rounded px-2 py-1" />
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Estado</label>
-              <input value={enterpriseDataDefault.address.state} disabled className="w-full border border-gray-200 rounded px-2 py-1" />
-            </div>
-            <div>
-              <label className="block text-xs mb-1">Cidade</label>
-              <input value={enterpriseDataDefault.address.city} disabled className="w-full border border-gray-200 rounded px-2 py-1" />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div><strong>Nome:</strong> {enterpriseDataDefault.company_name}</div>
+            <div><strong>Email:</strong> {enterpriseDataDefault.email}</div>
+            <div><strong>CNPJ:</strong> {enterpriseDataDefault.informations.cnpj}</div>
+            <div><strong>Telefone:</strong> {enterpriseDataDefault.phone}</div>
+            <div><strong>Cidade:</strong> {enterpriseDataDefault.address.city}</div>
+            <div><strong>Estado:</strong> {enterpriseDataDefault.address.state}</div>
           </div>
         </section>
 
-        <section className="bg-white p-4 rounded border border-gray-200 h-fit">
+        <section className="bg-white p-4 rounded border border-gray-200">
           <h2 className="text-lg font-semibold mb-4">Fornecedor</h2>
-          <div className="mb-2">
-            <label className="block text-sm mb-1">Selecionar Fornecedor</label>
-            <select
-              onChange={e => handleSupplierChange(e.target.value)}
-              className="w-full border border-slate-300 rounded px-2 py-1 text-sm"
-            >
-              <option value="">Selecione um fornecedor</option>
-              {suppliers.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
+          <label className="block text-sm font-medium mb-1">Selecione o Fornecedor</label>
+          <select
+            onChange={(e) => handleSupplierChange(e.target.value)}
+            className="w-full p-2 border rounded"
+            required
+          >
+            <option value="">Selecione...</option>
+            {suppliers.map((supplier) => (
+              <option key={supplier.id} value={supplier.id}>
+                {supplier.name}
+              </option>
+            ))}
+          </select>
 
           {selectedSupplier && (
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <label className="block text-xs mb-1">Nome</label>
-                <input {...register('companyData.company_name')} className="w-full border border-gray-200 rounded px-2 py-1" />
-              </div>
-              <div>
-                <label className="block text-xs mb-1">Telefone</label>
-                <input {...register('companyData.phone')} className="w-full border border-gray-200 rounded px-2 py-1" />
-              </div>
-              <div>
-                <label className="block text-xs mb-1">Email</label>
-                <input {...register('companyData.email')} className="w-full border border-gray-200 rounded px-2 py-1" />
-              </div>
-              <div>
-                <label className="block text-xs mb-1">Código</label>
-                <input {...register('companyData.code')} className="w-full border border-gray-200 rounded px-2 py-1" />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
+              <div><strong>Nome:</strong> {selectedSupplier.name}</div>
+              <div><strong>Email:</strong> {selectedSupplier.email}</div>
+              <div><strong>CNPJ:</strong> {selectedSupplier.cnpj}</div>
+              <div><strong>Telefone:</strong> {selectedSupplier.phone}</div>
+              <div><strong>Cidade:</strong> {selectedSupplier.address?.city}</div>
+              <div><strong>Estado:</strong> {selectedSupplier.address?.state}</div>
             </div>
           )}
         </section>
@@ -249,96 +240,98 @@ export default function PurchaseRequestForm({
       <section className="bg-white p-6 rounded shadow border border-gray-200">
         <h2 className="text-lg font-semibold mb-4">Produtos</h2>
 
-        {/* Busca por código */}
-        <div className="mb-4">
-          <label className="block text-sm mb-1">Buscar por código</label>
-          <input
-            type="text"
-            value={searchCode}
-            onChange={e => setSearchCode(e.target.value)}
-            placeholder="Digite o código do produto"
-            className="w-60 border border-slate-300 rounded px-3 py-1 text-sm"
-          />
-        </div>
+        {addedProduct && (
+          <div className="bg-slate-100 p-4 rounded mb-4 text-sm space-y-1">
+            <p><strong>Produto:</strong> {addedProduct.name}</p>
+            <p><strong>Código:</strong> {addedProduct.code}</p>
+            <p><strong>Marca:</strong> {addedProduct.brand}</p>
+            <p><strong>Estoque Atual:</strong> {addedProduct.quantity}</p>
+            <p><strong>Preço Unitário:</strong> R$ {addedProduct.price}</p>
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 items-center">
           <input
-            value={newProduct.product_name}
-            onChange={e => setNewProduct(p => ({ ...p, product_name: e.target.value }))}
-            placeholder="Produto"
-            className="input"
-          />
-          <input
-            type="number"
-            value={newProduct.quantity}
-            onChange={e => setNewProduct(p => ({ ...p, quantity: +e.target.value }))}
-            placeholder="Qtd"
-            className="input"
-          />
-          <input
-            type="number"
-            step="0.01"
-            value={newProduct.price}
-            onChange={e => setNewProduct(p => ({ ...p, price: +e.target.value }))}
-            placeholder="Preço"
+            value={productCode}
+            onChange={(e) => setProductCode(e.target.value)}
+            placeholder="Código do Produto"
             className="input"
           />
           <button
             type="button"
+            onClick={() => handleProduct()}
+            className="bg-slate-800 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Buscar
+          </button>
+          <input
+            type="number"
+            min={1}
+            value={count}
+            onChange={(e) => setCount(Number(e.target.value))}
+            className="input"
+            placeholder="Qtd"
+          />
+          {/* Só exibe o preço, não é input */}
+          <div className="px-3 py-2 bg-gray-100 rounded text-center">
+            R$ {addedProduct ? addedProduct.price : '0.00'}
+          </div>
+          <button
+            type="button"
             onClick={addProduct}
-            className="bg-slate-700 text-white px-4 py-2 rounded hover:bg-slate-800 flex items-center gap-2"
+            className="bg-slate-700 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center justify-center gap-2"
           >
             <Plus size={16} /> Adicionar
           </button>
         </div>
 
         {products.length > 0 && (
-          <table className="w-full text-sm border">
-            <thead className="bg-slate-100">
-              <tr>
-                <th className="p-2">Produto</th>
-                <th className="p-2">Qtd</th>
-                <th className="p-2">Preço</th>
-                <th className="p-2">Total</th>
-                <th className="p-2">Ação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((prod, idx) => (
-                <tr key={idx} className="text-center">
-                  <td className="p-2">{prod.product_name}</td>
-                  <td className="p-2">{prod.quantity}</td>
-                  <td className="p-2">R$ {prod.price.toFixed(2)}</td>
-                  <td className="p-2">R$ {prod.total_price.toFixed(2)}</td>
-                  <td className="p-2">
-                    <button type="button" onClick={() => removeProduct(idx)} className="text-red-600 hover:text-red-800">
-                      <Minus size={16} />
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantidade</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Preço Unit.</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {products.map((product, index) => (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap">{product.code}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{product.product_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{product.quantity}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">R$ {product.price}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">R$ {(product.total_price || 0)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => removeProduct(index)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Remover
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
-      {/* Notas e Entrega */}
-      <section className="bg-white p-6 rounded shadow">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block mb-1">Previsão de entrega</label>
-            <input type="date" {...register('deliveryDate')} className="input" />
-          </div>
-          <div>
-            <label className="block mb-1">Notas</label>
-            <textarea
-              {...register('notes')}
-              rows={4}
-              className="w-full border border-slate-300 rounded px-3 py-2 resize-y"
-              placeholder="Informações adicionais"
-            />
-          </div>
-        </div>
+      {/* Observações */}
+      <section className="bg-white p-4 rounded border border-gray-200">
+        <h2 className="text-lg font-semibold mb-4">Observações</h2>
+        <textarea
+          {...register('notes')}
+          className="w-full p-2 border rounded"
+          rows={3}
+          placeholder="Adicione observações relevantes..."
+        />
       </section>
 
       {/* Botão Enviar */}
@@ -346,7 +339,7 @@ export default function PurchaseRequestForm({
         <button
           type="submit"
           disabled={isLoading || products.length === 0}
-          className="bg-green-600 text-white px-6 py-3 rounded flex items-center gap-2 hover:bg-green-700 transition"
+          className="bg-slate-800 text-white px-6 py-3 rounded flex items-center gap-2 hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           <Save size={18} />
           {isLoading ? 'Salvando...' : 'Enviar Solicitação'}

@@ -1,9 +1,11 @@
 import React from 'react';
-import { TopProduct } from '../../../../service/interfaces/reports';
+
 import { PackageCheck } from 'lucide-react';
+import { TopProduct } from '..';
+
 
 interface TopProductsListProps {
-  products: TopProduct[];
+  products: TopProduct[]
 }
 
 const TopProductsList: React.FC<TopProductsListProps> = ({ products }) => {
@@ -21,7 +23,7 @@ const TopProductsList: React.FC<TopProductsListProps> = ({ products }) => {
             className="flex justify-between items-center py-3 text-sm"
           >
             <span className="text-gray-700 truncate">{product.name}</span>
-            <span className="font-semibold text-indigo-600">{product.quantitySold}</span>
+            <span className="font-semibold text-indigo-600">{product.quantity}</span>
           </li>
         ))}
       </ul>

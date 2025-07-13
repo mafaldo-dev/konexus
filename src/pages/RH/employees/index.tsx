@@ -1,15 +1,13 @@
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { Employee } from "../../../service/interfaces"
-
 import { handleAllEmployee, insertEmployee } from "../../../service/api/Administrador/employee"
-
-import { User, Lock, MapPin } from "lucide-react"
-
+import { User, Lock, MapPin, Loader2, CheckCircle } from "lucide-react"
 import Dashboard from "../../../components/dashboard/Dashboard"
 import { useState } from "react"
 
 export default function EmployeeAdministration() {
   const [success, setSuccess] = useState<boolean>(false)
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const {
     register,
     handleSubmit,
@@ -17,24 +15,27 @@ export default function EmployeeAdministration() {
     reset,
   } = useForm<Employee>()
   
-  
-
   const onSubmit: SubmitHandler<Employee> = async (data) => {
-    const formattedData: Employee = {
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      active: true,
-      address: {
-        ...data.address,
-        num: Number(data.address.num),
-      },
-    }
+    setIsSubmitting(true)
+    try {
+      const formattedData: Employee = {
+        ...data,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        active: true,
+        address: {
+          ...data.address,
+          num: Number(data.address.num),
+        },
+      }
 
-    await insertEmployee(formattedData)
-    reset()
-    await handleAllEmployee()
-    setSuccess(true)
+      await insertEmployee(formattedData)
+      reset()
+      await handleAllEmployee()
+      setSuccess(true)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const maskPhone = (value: string) => {
@@ -73,62 +74,64 @@ export default function EmployeeAdministration() {
 
   return (
     <Dashboard>
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Cadastro de Funcionário</h1>
             <p className="text-gray-600 font-medium">Preencha as informações para cadastrar um novo funcionário</p>
-            <div className="w-20 h-1 bg-slate-600 mx-auto mt-4"></div>
+            <div className="w-20 h-1 bg-blue-500 mx-auto mt-4 rounded-full"></div>
           </div>
 
           {success && (
-            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg">
+            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg flex items-center justify-center gap-2">
+              <CheckCircle className="w-5 h-5" />
               <p className="font-medium text-center">Funcionário cadastrado com sucesso!</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
-              <div className="flex items-center mb-6">
-                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center mr-3">
-                  <Lock className="w-4 h-4 text-slate-600" />
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Seção Dados de Acesso */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 flex items-center">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <Lock className="w-5 h-5 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900">Dados de Acesso</h3>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Usuário
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Usuário <span className="text-red-500">*</span>
                   </label>
                   <input
                     {...register("username", { required: true })}
                     placeholder="Digite o nome de usuário"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.username && <p className="mt-1 text-sm text-red-600">Usuário é obrigatório</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Senha
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Senha <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="password"
                     {...register("password", { required: true })}
                     placeholder="Digite a senha"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.password && <p className="mt-1 text-sm text-red-600">Senha é obrigatória</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Tipo de Acesso
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de Acesso <span className="text-red-500">*</span>
                   </label>
                   <select
                     {...register("access", { required: true })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiAjdjY3Y2UxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtY2hldnJvbi1kb3duIj48cGF0aCBkPSJtNiA5IDYgNiA2LTYiLz48L3N2Zz4=')] bg-no-repeat bg-[center_right_1rem]"
                   >
                     <option value="">Selecione o tipo de acesso</option>
                     <option value="ADMIN">Admin</option>
@@ -138,12 +141,12 @@ export default function EmployeeAdministration() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Função
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Função <span className="text-red-500">*</span>
                   </label>
                   <select
                     {...register("designation", { required: true })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiAjdjY3Y2UxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9Imx1Y2lkZSBsdWNpZGUtY2hldnJvbi1kb3duIj48cGF0aCBkPSJtNiA5IDYgNiA2LTYiLz48L3N2Zz4=')] bg-no-repeat bg-[center_right_1rem]"
                   >
                     <option value="">Selecione a função</option>
                     <option value="Vendedor">Vendedor</option>
@@ -154,44 +157,48 @@ export default function EmployeeAdministration() {
                   </select>
                   {errors.designation && <p className="mt-1 text-sm text-red-600">Função é obrigatória</p>}
                 </div>
-              </div>
 
-              <div className="mt-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                  Salário
-                </label>
-                <input
-                  className="w-48 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
-                  placeholder="R$: x.xxx,xx"
-                  type="text"
-                  {...register("salary", {
-                    required: true,
-                    onChange: (e) => {
-                      e.target.value = maskSalaryBRL(e.target.value)
-                    },
-                  })}
-                />
-                {errors.salary && <p className="mt-1 text-sm text-red-600">Salário é obrigatório</p>}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Salário <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative w-64">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">R$</span>
+                    <input
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      placeholder="0,00"
+                      type="text"
+                      {...register("salary", {
+                        required: true,
+                        onChange: (e) => {
+                          e.target.value = maskSalaryBRL(e.target.value)
+                        },
+                      })}
+                    />
+                  </div>
+                  {errors.salary && <p className="mt-1 text-sm text-red-600">Salário é obrigatório</p>}
+                </div>
               </div>
             </div>
 
-            <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
-              <div className="flex items-center mb-6">
-                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center mr-3">
-                  <User className="w-4 h-4 text-slate-600" />
+            {/* Seção Dados Pessoais */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 flex items-center">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <User className="w-5 h-5 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900">Dados Pessoais</h3>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Nome Completo
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome Completo <span className="text-red-500">*</span>
                   </label>
                   <input
                     {...register("dataEmployee.fullname", { required: true })}
                     placeholder="Digite o nome completo"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.dataEmployee?.fullname && (
                     <p className="mt-1 text-sm text-red-600">Nome completo é obrigatório</p>
@@ -199,8 +206,8 @@ export default function EmployeeAdministration() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Telefone
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Telefone <span className="text-red-500">*</span>
                   </label>
                   <input
                     {...register("dataEmployee.phone", {
@@ -209,33 +216,33 @@ export default function EmployeeAdministration() {
                         e.target.value = maskPhone(e.target.value)
                       },
                     })}
-                    placeholder="Digite o telefone"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    placeholder="(00) 00000-0000"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.dataEmployee?.phone && <p className="mt-1 text-sm text-red-600">Telefone é obrigatório</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Email
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
                     {...register("dataEmployee.email", { required: true })}
-                    placeholder="Digite o email"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    placeholder="seu@email.com"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.dataEmployee?.email && <p className="mt-1 text-sm text-red-600">Email é obrigatório</p>}
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Data de Nascimento
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Data de Nascimento <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
                     {...register("dataEmployee.birth_date", { required: true })}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.dataEmployee?.birth_date && (
                     <p className="mt-1 text-sm text-red-600">Data de nascimento é obrigatória</p>
@@ -243,7 +250,9 @@ export default function EmployeeAdministration() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">RG</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    RG <span className="text-red-500">*</span>
+                  </label>
                   <input
                     {...register("dataEmployee.RG", {
                       required: true,
@@ -251,14 +260,16 @@ export default function EmployeeAdministration() {
                         e.target.value = maskRg(e.target.value)
                       },
                     })}
-                    placeholder="Digite o RG"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    placeholder="00.000.000-0"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.dataEmployee?.RG && <p className="mt-1 text-sm text-red-600">RG é obrigatório</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">CPF</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    CPF <span className="text-red-500">*</span>
+                  </label>
                   <input
                     {...register("dataEmployee.CPF", {
                       required: true,
@@ -266,78 +277,92 @@ export default function EmployeeAdministration() {
                         e.target.value = maskCpf(e.target.value)
                       },
                     })}
-                    placeholder="Digite o CPF"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    placeholder="000.000.000-00"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.dataEmployee?.CPF && <p className="mt-1 text-sm text-red-600">CPF é obrigatório</p>}
                 </div>
               </div>
             </div>
 
-            <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
-              <div className="flex items-center mb-6">
-                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center mr-3">
-                  <MapPin className="w-4 h-4 text-slate-600" />
+            {/* Seção Endereço */}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 flex items-center">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <MapPin className="w-5 h-5 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900">Endereço</h3>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Cidade
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cidade <span className="text-red-500">*</span>
                   </label>
                   <input
                     {...register("address.city", { required: true })}
                     placeholder="Digite a cidade"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.address?.city && <p className="mt-1 text-sm text-red-600">Cidade é obrigatória</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Estado
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estado <span className="text-red-500">*</span>
                   </label>
                   <input
                     {...register("address.state", { required: true })}
                     placeholder="Digite o estado"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.address?.state && <p className="mt-1 text-sm text-red-600">Estado é obrigatório</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Rua</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Rua <span className="text-red-500">*</span>
+                  </label>
                   <input
                     {...register("address.street", { required: true })}
                     placeholder="Digite a rua"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.address?.street && <p className="mt-1 text-sm text-red-600">Rua é obrigatória</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
-                    Número
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Número <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
                     {...register("address.num", { required: true })}
                     placeholder="Digite o número"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   {errors.address?.num && <p className="mt-1 text-sm text-red-600">Número é obrigatório</p>}
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end pb-8">
+            <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className="px-8 py-4 bg-slate-800 text-white rounded-lg font-semibold hover:bg-slate-900 transition-colors shadow-sm hover:shadow-md"
+                disabled={isSubmitting}
+                className="px-8 py-3 bg-slate-800 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Cadastrar Funcionário
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Cadastrando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    Cadastrar Funcionário
+                  </>
+                )}
               </button>
             </div>
           </form>
@@ -346,4 +371,3 @@ export default function EmployeeAdministration() {
     </Dashboard>
   )
 }
-

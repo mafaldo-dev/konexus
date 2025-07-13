@@ -1,9 +1,10 @@
 import { handleAllOrders } from '../orders/index';
 import { getAllProducts } from '../products/index';
 
-import { SalesReport, PurchaseReport, TopProduct, TopCustomer, CustomerRank } from '../../../interfaces/reports';
-import { Order, ProductsProps, Customer } from '../../../interfaces';
+import { SalesReport, PurchaseReport, TopCustomer, CustomerRank } from '../../../interfaces/reports';
+import { Order,  Customer } from '../../../interfaces';
 import { handleAllCustomer } from '../customer/clients';
+import { TopProduct } from '../../../../pages/sales/reports';
 
 
 export const getSalesReports = async (): Promise<SalesReport> => {
@@ -31,16 +32,27 @@ export const getPurchaseReports = async (): Promise<PurchaseReport> => {
 };
 
 export const getTopProducts = async (): Promise<TopProduct[]> => {
-  const products: ProductsProps[] = await getAllProducts();
+  // Buscar produtos (ou pedidos) completos
+  const products = await getAllProducts(); // Suponho que retorne um array com objetos do tipo correto
   if (!products) return [];
 
-  // Assuming quantity_sold is a field in your product data
-  const sortedProducts = products
-    .sort((a, b) => ((b as any).quantity_sold || 0) - ((a as any).quantity_sold || 0))
+  // Transformar para TopProduct[] (ou filtrar os campos desejados)
+  const allItems: TopProduct[] = products.map((item: any) => ({
+    id: item.id || '',              // ID do produto
+    productId: item.productId || '', // Caso produto tenha productId separado
+    name: item.name || '',          // Nome do produto
+    quantity: item.quantity || 0,   // Quantidade vendida
+  }));
+
+  // Ordena pela quantidade vendida, maior primeiro
+  const sortedItems = allItems
+    .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 5);
 
-  return sortedProducts.map(p => ({ id: p.id || '', name: p.name, quantitySold: (p as any).quantity_sold || 0 }));
+  // Retorna resultado
+  return sortedItems;
 };
+
 
 export const getTopCustomers = async (): Promise<TopCustomer[]> => {
   const orders: Order[] = await handleAllOrders();

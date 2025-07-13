@@ -42,7 +42,7 @@ const ProductTable: React.FC<Props> = ({ product, setProduct }) => {
                                 <button
                                     type="button"
                                     onClick={handleProduct}
-                                    className="bg-blue-500 text-white px-3 cursor-pointer text-sm rounded-r-md hover:bg-blue-600"
+                                    className="bg-slate-800 text-white px-3 cursor-pointer text-sm rounded-r-md hover:bg-blue-600"
                                 >
                                     Buscar
                                 </button>
@@ -98,7 +98,7 @@ const ProductTable: React.FC<Props> = ({ product, setProduct }) => {
                                 <button
                                     type="button"
                                     onClick={handleAddProduct}
-                                    className="mt-2 w-full bg-cyan-600 text-white py-1 rounded-md text-sm hover:bg-cyan-700"
+                                    className="mt-2 w-full bg-slate-700 text-white py-1 rounded-md text-sm hover:bg-cyan-700"
                                 >
                                     Incluir produto
                                 </button>
@@ -109,10 +109,11 @@ const ProductTable: React.FC<Props> = ({ product, setProduct }) => {
                 <table className="min-w-full text-sm text-left">
                     <thead className="bg-gray-100">
                         <tr>
+                            <th className="px-4 py-2">Codigo</th>
                             <th className="px-4 py-2">Produto</th>
-                            <th className="px-4 py-2">Quantidade</th>
+                            <th className="px-4 py-2">Endereço</th>
                             <th className="px-4 py-2">Preço Unitário</th>
-                            <th className="px-4 py-2">Tipo</th>
+                            <th className="px-4 py-2">Quantidade</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -123,10 +124,11 @@ const ProductTable: React.FC<Props> = ({ product, setProduct }) => {
                         ) : (
                             product.map((p, index) => (
                                 <tr key={index} className="border-t">
-                                    <td className="px-4 py-2">{p.name}</td>
-                                    <td className="px-4 py-2">{p.quantity}</td>
+                                    <td className="px-4 py-2">{p.code}</td>
+                                    <td className="px-4 py-2">{p.product_name}</td>
+                                    <td className="px-4 py-2">{p.location}</td>
                                     <td className="px-4 py-2">R$ {p.price}</td>
-                                    <td className="px-4 py-2">{p.tipe}</td>
+                                    <td className="px-4 py-2">{p.quantity}</td>
                                 </tr>
                             ))
                         )}
@@ -137,7 +139,7 @@ const ProductTable: React.FC<Props> = ({ product, setProduct }) => {
             <div className="mt-6 flex justify-center">
                 <button
                     type="submit"
-                    className="bg-blue-600 hover:bg-blue-400 cursor-pointer text-white font-medium py-2 px-6 rounded-md transition-colors"
+                    className="bg-slate-800 hover:bg-slate-400 cursor-pointer text-white font-medium py-2 px-6 rounded-md transition-colors"
                     disabled={product.length === 0}
                 >
                     Finalizar Nota Fiscal

@@ -9,22 +9,17 @@ export const createKardexEntry = async (
   quantity: number,
   description: string,
   nfNumber?: string,
-  userId?: string
+  userId?: string,
+  order_number?: string
 ): Promise<string> => {
   try {
-    // Validações básicas
     if (!productId) throw new Error("ID do produto é obrigatório");
     if (quantity <= 0) throw new Error("Quantidade deve ser maior que zero");
-    
-    const currentBalance = await calculateCurrentBalance(productId);
-    
-    // Verificação para estoque negativo em saídas
-    if (type === "saida" && currentBalance < quantity) {
-      throw new Error("Saldo insuficiente para esta saída");
-    }
 
-    const newBalance = type === "entrada" 
-      ? currentBalance + quantity 
+    const currentBalance = await calculateCurrentBalance(productId);
+
+    const newBalance = type === "entrada"
+      ? currentBalance + quantity
       : currentBalance - quantity;
 
     const movementData = {
@@ -33,6 +28,7 @@ export const createKardexEntry = async (
       quantity,
       description,
       nfNumber: nfNumber || "N/A",
+      order_number,
       user: userId || "system",
       date: serverTimestamp(),
       balance: newBalance,
@@ -40,14 +36,13 @@ export const createKardexEntry = async (
     };
 
     const docRef = await addDoc(collection(db, "Kardex"), movementData);
-    
-    console.log(`Movimentação criada com sucesso: ${docRef.id}`);
     return docRef.id;
   } catch (error) {
     console.error("Erro detalhado ao criar movimentação:", error);
     throw new Error(error instanceof Error ? error.message : "Falha ao registrar movimentação");
   }
 };
+
 // Função para calcular saldo atual
 const calculateCurrentBalance = async (productId: string): Promise<number> => {
   const lastMovement = await getLastMovement(productId);
@@ -67,7 +62,6 @@ const getLastMovement = async (productId: string): Promise<Movement | null> => {
     const snapshot = await getDocs(q);
     
     if (snapshot.empty) {
-      console.log(`Nenhuma movimentação anterior encontrada para o produto ${productId}`);
       return null;
     }
 
@@ -97,7 +91,6 @@ export const getKardexMovements = async (productId: string): Promise<Movement[]>
     );
 
     const snap = await getDocs(q);
-    console.log(snap)
 
     const movements = snap.docs.map(doc => {
       const data = doc.data();
@@ -109,6 +102,7 @@ export const getKardexMovements = async (productId: string): Promise<Movement[]>
         date: data.date?.toDate?.()?.toISOString() || data.date,
         description: data.description || `Movimentação de ${data.type}`,
         nfNumber: data.nfNumber || null,
+        order_number: data.order_number,
         user: data.user || "Sistema",
         balance: Number(data.balance)
       };

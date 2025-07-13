@@ -1,103 +1,99 @@
-import React, { useState } from "react"
-import { useForm, useFieldArray, useWatch } from "react-hook-form"
-import { Plus, Trash2, Package, User, Calendar } from "lucide-react"
-import { motion } from "framer-motion"
-import { format, addDays } from 'date-fns';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Trash2, Package, User, Calendar } from "lucide-react";
+import { motion } from "framer-motion";
+import { format, addDays } from "date-fns";
 
-import { useNavigate } from "react-router-dom"
-import { insertOrder } from "../../../../service/api/Administrador/orders"
-import { Order } from "../../../../service/interfaces/sales/orders"
+import { useNavigate } from "react-router-dom";
+import { insertOrder } from "../../../../service/api/Administrador/orders";
+import { Order } from "../../../../service/interfaces/sales/orders";
 
-type FormValues = Omit<Order, "order_number" | "total_amount" | "status"> & {
-  order_number: string
-  total_amount: number
-  status: "Pendente" | "Separando" | "Finalizado" | "Enviado"
-}
+import { ProductsProps } from "../../../../service/interfaces";
+import { useProductManagement } from "../../../../hooks/_manager/useProductManagement";
+
+type FormValues = Omit<Order, "items" | "userId" | "total_amount" | "order_number"> & {
+  total_amount?: number;
+};
 
 export default function OrderForm() {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const navigate = useNavigate()
+  const [products, setProducts] = useState<ProductsProps[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+
+  // Gera o número do pedido uma única vez ao montar o componente
+  const [orderNumber] = useState(() => `PED-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
+
+  const {
+    productCode,
+    setProductCode,
+    addedProduct,
+    count,
+    setCount,
+    price,
+    setPrice,
+    handleProduct,
+    handleAddProduct,
+  } = useProductManagement(setProducts);
 
   const {
     register,
-    control,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
-      order_number: `PED-${Date.now().toString().slice(-6)}`,
       customer_name: "",
       customer_phone: "",
       customer_address: "",
       salesperson: "",
-      order_date: format(new Date(), 'yyyy-MM-dd'),
-      delivery_date: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
-      items: [{ product_code: "", product_name: "", quantity: 1, unit_price: 0, total: 0, location: "" }],
-      total_amount: 0,
+      order_date: format(new Date(), "yyyy-MM-dd"),
+      delivery_date: format(addDays(new Date(), 7), "yyyy-MM-dd"),
       status: "Pendente",
       notes: "",
     },
-  })
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "items",
-  })
-
-  // Atualiza total e total_amount sempre que itens mudam
-  const items = useWatch({ control, name: "items" })
-
-  React.useEffect(() => {
-    let totalAmount = 0
-    items.forEach((item, index) => {
-      const quantity = item.quantity || 0
-      const unit_price = item.unit_price || 0
-      const total = quantity * unit_price
-      totalAmount += total
-
-      // Only update if the total has actually changed to prevent unnecessary re-renders
-      if (total !== item.total) {
-        setValue(`items.${index}.total`, total, { shouldDirty: true });
-      }
-    })
-
-    // Only update if the total amount has actually changed
-    if (totalAmount !== watch("total_amount")) {
-      setValue("total_amount", totalAmount, { shouldDirty: true });
-    }
-  }, [items, setValue, watch])
+  });
 
   const onSubmit = async (data: FormValues) => {
-    setIsSubmitting(true)
-    try {
-      // Chama a função para inserir no banco
-      const id = await insertOrder({
-        ...data,
-        delivery_date: data.delivery_date || "",
-        order_date: data.order_date,
-        status: "Pendente",
-      })
-
-      console.log(`Pedido criado com sucesso! ID: ${id}`)
-      // TODO: Replace with a user-friendly toast/snackbar notification
-      navigate("/sales/orders")
-    } catch (error) {
-      console.error("Erro ao criar pedido:", error)
-      // TODO: Replace with a user-friendly toast/snackbar notification
-    } finally {
-      setIsSubmitting(false)
+    if (products.length === 0) {
+      alert("Adicione pelo menos um produto ao pedido!");
+      return;
     }
-  }
+
+    setIsSubmitting(true);
+    try {
+      const total_amount = products.reduce((acc, p) => acc + p.quantity * p.price, 0);
+
+      const orderData: Order = {
+        ...data,
+        order_number: orderNumber,
+        userId: "admin",
+        total_amount,
+        items: products.map((p) => ({
+          product_code: p.code || "",
+          product_name: p.product_name,
+          quantity: p.quantity,
+          unit_price: p.price,
+          total: p.quantity * p.price,
+          location: p.location || "",
+          productId: p.id,
+        })),
+      };
+
+      const id = await insertOrder(orderData);
+      navigate("/sales/orders");
+    } catch (err) {
+      console.error("Erro ao criar pedido:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const maskPhone = (value: string) => {
     return value
       .replace(/\D/g, "")
       .replace(/(\d{2})(\d)/, "($1) $2")
       .replace(/(\d{5})(\d)/, "$1-$2")
-      .replace(/(-\d{4})\d+?$/, "$1")
-  }
+      .replace(/(-\d{4})\d+?$/, "$1");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -118,7 +114,7 @@ export default function OrderForm() {
                     Número do Pedido
                   </label>
                   <input
-                    {...register("order_number")}
+                    value={orderNumber}
                     readOnly
                     className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 font-mono text-gray-600"
                   />
@@ -132,7 +128,6 @@ export default function OrderForm() {
                     {...register("order_date", { required: "Data do pedido é obrigatória" })}
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
                   />
-                  {/* {errors.order_date && <p className="text-red-600 text-sm mt-1">{errors.order_date.message}</p>} */}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
@@ -175,7 +170,7 @@ export default function OrderForm() {
                     {...register("customer_phone", {
                       required: "Telefone é obrigatório",
                       onChange: (e) => {
-                        e.target.value = maskPhone(e.target.value)
+                        e.target.value = maskPhone(e.target.value);
                       },
                     })}
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
@@ -207,21 +202,66 @@ export default function OrderForm() {
               </div>
             </div>
 
-            {/* Itens */}
+            {/* Pesquisa e Adição de Produtos */}
+            <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-3 text-gray-900">
+                <Calendar className="w-5 h-5" /> Adicionar Produto pelo Código
+              </h2>
+              <div className="flex gap-3 flex-wrap items-center">
+                <input
+                  type="text"
+                  placeholder="Código do produto"
+                  value={productCode}
+                  onChange={(e) => setProductCode(e.target.value)}
+                  className="border border-gray-300 p-2 rounded-lg w-48"
+                />
+                <button
+                  type="button"
+                  onClick={handleProduct}
+                  className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-900 transition-colors"
+                >
+                  Buscar Produto
+                </button>
+                {addedProduct && (
+                  <>
+                    <div className="flex gap-2 items-center ml-4">
+                      <span className="font-semibold">{addedProduct.name}</span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={count}
+                        onChange={(e) => setCount(Number(e.target.value))}
+                        className="border border-gray-300 p-1 rounded-lg w-20"
+                        placeholder="Qtd"
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={price}
+                        onChange={(e) => setPrice(Number(e.target.value))}
+                        className="border border-gray-300 p-1 rounded-lg w-28"
+                        placeholder="Preço"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddProduct}
+                        className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Itens do Pedido */}
             <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
               <div className="flex justify-between items-center bg-slate-800 text-white p-6">
                 <h2 className="text-xl font-semibold flex items-center gap-3">
                   <Calendar className="w-5 h-5" /> Itens do Pedido
                 </h2>
-                <button
-                  type="button"
-                  onClick={() =>
-                    append({ product_code: "", product_name: "", quantity: 1, unit_price: 0, total: 0, location: "" })
-                  }
-                  className="flex items-center gap-2 text-sm bg-white text-slate-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                >
-                  <Plus className="w-4 h-4" /> Adicionar Item
-                </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -237,56 +277,19 @@ export default function OrderForm() {
                     </tr>
                   </thead>
                   <tbody>
-                    {fields.map((item, index) => (
-                      <tr key={item.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="p-4">
-                          <input
-                            {...register(`items.${index}.product_code` as const)}
-                            className="border border-gray-300 p-2 rounded-lg w-full focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
-                          />
-                        </td>
-                        <td className="p-4">
-                          <input
-                            {...register(`items.${index}.product_name` as const)}
-                            className="border border-gray-300 p-2 rounded-lg w-full focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
-                          />
-                        </td>
-                        <td className="p-4">
-                          <input
-                            type="number"
-                            min={1}
-                            {...register(`items.${index}.quantity` as const, {
-                              valueAsNumber: true,
-                              min: 1,
-                            })}
-                            className="border border-gray-300 p-2 rounded-lg w-20 focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
-                          />
-                        </td>
-                        <td className="p-4">
-                          <input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            {...register(`items.${index}.unit_price`, {
-                              valueAsNumber: true,
-                              min: 0,
-                            })}
-                            className="border border-gray-300 p-2 rounded-lg w-28 focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
-                          />
-                        </td>
-                        <td className="p-4 text-slate-700 font-bold">R$ {items[index]?.total?.toFixed(2) || "0.00"}</td>
-                        <td className="p-4">
-                          <input
-                            {...register(`items.${index}.location` as const)}
-                            className="border border-gray-300 p-2 rounded-lg w-full focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
-                          />
-                        </td>
+                    {products.map((item, index) => (
+                      <tr key={`${item.id}-${index}`} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="p-4">{item.code || ""}</td>
+                        <td className="p-4">{item.product_name}</td>
+                        <td className="p-4">{item.quantity}</td>
+                        <td className="p-4">R$ {item.price.toFixed(2)}</td>
+                        <td className="p-4">R$ {(item.quantity * item.price).toFixed(2)}</td>
+                        <td className="p-4">{item.location || ""}</td>
                         <td className="p-4">
                           <button
                             type="button"
-                            onClick={() => remove(index)}
-                            disabled={fields.length === 1}
-                            className="text-red-600 hover:text-red-800 disabled:text-gray-400 transition-colors"
+                            onClick={() => setProducts(products.filter((_, i) => i !== index))}
+                            className="text-red-600 hover:text-red-800 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -299,7 +302,7 @@ export default function OrderForm() {
               <div className="p-6 bg-gray-50 border-t border-gray-200">
                 <div className="text-right">
                   <p className="text-sm text-gray-600 font-medium uppercase tracking-wide mb-1">Total do Pedido</p>
-                  <p className="text-2xl font-bold text-slate-800">R$ {watch("total_amount").toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-slate-800">R$ {products.reduce((acc, p) => acc + p.quantity * p.price, 0).toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -338,5 +341,5 @@ export default function OrderForm() {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }

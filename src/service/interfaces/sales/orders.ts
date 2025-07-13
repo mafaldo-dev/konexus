@@ -1,5 +1,5 @@
 export interface OrderItem {
-  id?: string;
+  productId: string;
   product_name: string;
   quantity: number;
   product_code: string,
@@ -10,6 +10,7 @@ export interface OrderItem {
 
 export interface Order {
   id?: string | any;
+  userId: string
   order_number: string;
   customer_name: string;
   customer_phone?: string;

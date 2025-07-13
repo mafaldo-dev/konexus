@@ -12,11 +12,19 @@ import {
 import {
   SalesReport,
   PurchaseReport,
-  TopProduct,
   TopCustomer,
   CustomerRank
 } from '../../../service/interfaces/reports';
 import Dashboard from '../../../components/dashboard/Dashboard';
+
+export type TopProduct = {
+  id: string;
+  productId: string;
+  name: string;
+  quantity: number;
+};
+
+
 
 const ReportsDashboard: React.FC = () => {
   const [salesReport, setSalesReport] = useState<SalesReport | null>(null);
@@ -40,7 +48,7 @@ const ReportsDashboard: React.FC = () => {
       <div className="bg-gradient-to-br from-gray-50 to-gray-100">
         {/* Conteúdo principal */}
         <div className="flex-1 p-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-8">Dashboard de Relatórios</h1>
+          <h1 className="text-3xl text-center font-bold text-gray-800 mb-22">Dashboard de Relatórios</h1>
 
           <div className="flex flex-col gap-6">
             {salesReport && (

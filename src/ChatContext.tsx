@@ -1,9 +1,28 @@
-import { createContext, useContext, useState, ReactNode, useEffect, useReducer, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useReducer,
+  useCallback
+} from 'react';
 import { useAuth } from './AuthContext';
-import { handleAllEmployee } from './service/api/Administrador/employee'
+import { handleAllEmployee } from './service/api/Administrador/employee';
 import { db } from "./firebaseConfig";
-import { addDoc, collection, query, orderBy, where, onSnapshot, doc, getDocs, writeBatch } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  query,
+  orderBy,
+  where,
+  onSnapshot,
+  doc,
+  getDocs,
+  writeBatch
+} from "firebase/firestore";
 
+// Tipos
 export type UserStatus = 'Ativo' | 'Ausente' | 'Inativo';
 
 export interface User {
@@ -69,7 +88,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [unreadCounts, dispatchUnreadCounts] = useReducer(unreadCountsReducer, {});
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const employees = await handleAllEmployee();
 
@@ -85,12 +104,18 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
     }
-  };
+  }, []);
 
-  const setUserInactive = () => {
-    if (!currentUser) return;
-    setUserStatus(currentUser.id, 'Inativo');
-  };
+  const setUserStatus = useCallback((userId: string, status: UserStatus) => {
+    setUsers(oldUsers =>
+      oldUsers.map(u => (u.id === userId ? { ...u, status } : u))
+    );
+
+    setCurrentUser(curr => {
+      if (!curr || curr.id !== userId) return curr;
+      return { ...curr, status };
+    });
+  }, []);
 
   const setUserActive = useCallback(() => {
     if (!authUser?.id) return;
@@ -106,18 +131,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     );
   }, [authUser?.id]);
 
-  const setUserStatus = useCallback((userId: string, status: UserStatus) => {
-    setUsers(oldUsers =>
-      oldUsers.map(u => (u.id === userId ? { ...u, status } : u))
-    );
-
-    if (currentUser?.id === userId) {
-      setCurrentUser(curr => (curr ? { ...curr, status } : null));
-    }
-  }, [currentUser]);
+  const setUserInactive = () => {
+    if (!currentUser) return;
+    setUserStatus(currentUser.id, 'Inativo');
+  };
 
   useEffect(() => {
-    if (!authUser || !authUser.id) {
+    if (!authUser?.id) {
       setUsers((oldUsers) => oldUsers.map((u) => ({ ...u, status: 'Inativo' })));
       setCurrentUser(null);
       setMessages([]);
@@ -139,52 +159,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     setCurrentUser(newUser);
     fetchUsers();
     setUserActive();
-  }, [authUser?.id, setUserActive, setUserStatus, authUser, currentUser]);
+  }, [authUser?.id, currentUser?.id, fetchUsers, setUserActive, setUserStatus]);
 
-  const sendMessage = async (msg: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    try {
-      const newMessage = {
-        ...msg,
-        timestamp: new Date().toISOString(),
-        read: false,
-      };
-      await addDoc(collection(db, "messages"), newMessage);
-    } catch (error) {
-      console.error("Erro ao enviar mensagem para o Firestore:", error);
-    }
-  };
-
-  const markMessagesRead = async (senderId: string, recipientId: string) => {
-    // Busca as mensagens que batem com os ids e que não foram lidas, e atualiza no Firestore
-    const messagesRef = collection(db, "messages");
-    const q = query(
-      messagesRef,
-      where("senderId", "==", senderId),
-      where("recipientId", "==", recipientId),
-      where("read", "==", false)
-    );
-    const querySnapshot = await getDocs(q);
-    const batch = writeBatch(db);
-
-    querySnapshot.forEach((docSnap) => {
-      batch.update(doc(db, "messages", docSnap.id), { read: true });
-    });
-
-    await batch.commit();
-  };
-
-  // Marca usuário como Ausente após 5 min inativo
   useEffect(() => {
     if (!currentUser) return;
     const timer = setTimeout(() => {
-      if (currentUser.id) {
-        setUserStatus(currentUser.id, 'Ausente');
-      }
+      setUserStatus(currentUser.id, 'Ausente');
     }, 5 * 60 * 1000);
     return () => clearTimeout(timer);
-  }, [currentUser, setUserStatus]);
+  }, [currentUser?.id, setUserStatus]);
 
-  // Ouve mensagens enviadas e recebidas no Firestore
   useEffect(() => {
     if (!authUser?.id) return;
 
@@ -225,20 +209,56 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [authUser?.id]);
 
-  // Atualiza contagem de mensagens não lidas (unreadCounts)
   useEffect(() => {
     if (!authUser) return;
 
-    const unreadMap: Record<string, number> = {};
+    const newUnreadMap: Record<string, number> = {};
 
     messages.forEach((msg) => {
       if (msg.recipientId === authUser.id && !msg.read) {
-        unreadMap[msg.senderId] = (unreadMap[msg.senderId] || 0) + 1;
+        newUnreadMap[msg.senderId] = (newUnreadMap[msg.senderId] || 0) + 1;
       }
     });
 
-    dispatchUnreadCounts({ type: 'SET_UNREAD', unreadMap });
-  }, [messages, authUser]);
+    const hasChanged = Object.keys(newUnreadMap).some(
+      key => newUnreadMap[key] !== unreadCounts[key]
+    );
+
+    if (hasChanged) {
+      dispatchUnreadCounts({ type: 'SET_UNREAD', unreadMap: newUnreadMap });
+    }
+  }, [messages, authUser, unreadCounts]);
+
+  const sendMessage = async (msg: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
+    try {
+      const newMessage = {
+        ...msg,
+        timestamp: new Date().toISOString(),
+        read: false,
+      };
+      await addDoc(collection(db, "messages"), newMessage);
+    } catch (error) {
+      console.error("Erro ao enviar mensagem para o Firestore:", error);
+    }
+  };
+
+  const markMessagesRead = async (senderId: string, recipientId: string) => {
+    const messagesRef = collection(db, "messages");
+    const q = query(
+      messagesRef,
+      where("senderId", "==", senderId),
+      where("recipientId", "==", recipientId),
+      where("read", "==", false)
+    );
+    const querySnapshot = await getDocs(q);
+    const batch = writeBatch(db);
+
+    querySnapshot.forEach((docSnap) => {
+      batch.update(doc(db, "messages", docSnap.id), { read: true });
+    });
+
+    await batch.commit();
+  };
 
   return (
     <ChatContext.Provider

@@ -284,7 +284,7 @@ export default function OrderPDF({ order, onDownloadComplete }: OrderPDFProps) {
         {/* Rodapé */}
         <div className="bg-gray-50 p-4 text-center text-xs text-gray-600 border-t border-gray-200">
           <p className="font-medium">
-            Este documento foi gerado automaticamente pelo sistema VendaFlow em{" "}
+            Este documento foi gerado automaticamente pelo sistema GUIMAN em{" "}
             {format(new Date(order.order_date), "dd/MM/yyyy")}
           </p>
         </div>

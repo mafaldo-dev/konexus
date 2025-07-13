@@ -13,7 +13,7 @@ export const useProductManagement = (
 
     const handleProduct = async () => {
         if (!productCode) return;
-
+        
         try {
             const productData = await handleProductWithCode(productCode);
             if (productData) {
@@ -30,6 +30,7 @@ export const useProductManagement = (
 
     const handleAddProduct = () => {
         if (!addedProduct || count <= 0 || price <= 0) {
+            console.log(addedProduct)
             alert("Preencha os dados corretamente para adicionar o produto.");
             return;
         }
@@ -38,10 +39,12 @@ export const useProductManagement = (
             ...prev,
             {
                 id: addedProduct.id,
-                name: addedProduct.name,
+                product_name: addedProduct.name,
                 quantity: count,
                 tipe: addedProduct.description,
-                price: price
+                price: price,
+                code: addedProduct.code,
+                location: addedProduct.location
             }
         ]);
 

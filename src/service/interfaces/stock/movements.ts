@@ -6,6 +6,7 @@ export interface Movement {
   date: Date | string;
   description: string;
   nfNumber?: string;
+  order_number: string
   user?: string;
   balance: number;
 }

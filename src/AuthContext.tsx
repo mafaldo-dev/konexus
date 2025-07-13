@@ -55,7 +55,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userDocRef = doc(db, updateUserStatus, user.id);
       await updateDoc(userDocRef, { status: true });
-      console.log(user.status)
     } catch (error) {
       console.error(`Erro ao atualizar status do usuário ${user.id} na coleção ${updateUserStatus}:`, error);
       throw new Error("Erro interno do servidor!");

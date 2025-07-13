@@ -81,7 +81,7 @@ export default function useAuthService() {
                     status: 'Ativo',
                     collection: 'Employee'
                 });
-
+                
                 if (employeeData.designation === "Vendedor") {
                     navigate("/sales/orders");
                 } else if (employeeData.designation === "Conferente") {
@@ -91,7 +91,7 @@ export default function useAuthService() {
                 }
                 return;
             }
-
+    
             const adminData = await queryUser("Administracao", "Admin", "Password", user, pass);
 
             if (adminData) {

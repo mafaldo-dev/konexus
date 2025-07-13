@@ -132,18 +132,18 @@ const Inventory: React.FC = () => {
 
                 <div className="overflow-auto rounded-lg shadow border border-gray-300">
                     <table className="min-w-full divide-y divide-gray-300 text-sm">
-                        <thead className="bg-gray-200">
+                        <thead className='bg-slate-300'>
                             <tr>
                                 {selectedFilters.length === 0 ? (
-                                    <th colSpan={ALL_FILTERS.length + 1} className="px-6 py-3 text-center text-gray-700 font-semibold">
+                                    <th colSpan={ALL_FILTERS.length + 1} className="px-6 py-3 text-center text-gray-800 font-semibold">
                                         Selecione ao menos um filtro para mostrar colunas
                                     </th>
                                 ) : (
                                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                        <SortableContext items={selectedFilters} strategy={horizontalListSortingStrategy}>
+                                        <SortableContext  items={selectedFilters} strategy={horizontalListSortingStrategy}>
                                             {selectedFilters.map((key) => {
                                                 const label = ALL_FILTERS.find((f) => f.key === key)?.label ?? key;
-                                                return <SortableHeader key={key} id={key} label={label} />;
+                                                return <SortableHeader  key={key} id={key} label={label} />;
                                             })}
                                             <th className="px-6 py-3 text-center text-gray-700 font-semibold">Conferido</th>
                                         </SortableContext>
@@ -151,7 +151,6 @@ const Inventory: React.FC = () => {
                                 )}
                             </tr>
                         </thead>
-
                         <tbody className="bg-white divide-y divide-gray-100 min-h-[100px]">
                             {filteredProducts.length === 0 ? (
                                 <tr>

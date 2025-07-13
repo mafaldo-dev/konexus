@@ -11,11 +11,6 @@ export interface PurchaseReport {
   averageInvoiceValue: number;
 }
 
-export interface TopProduct {
-  id: string;
-  name: string;
-  quantitySold: number;
-}
 
 export interface TopCustomer {
   id: string;

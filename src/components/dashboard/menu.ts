@@ -52,12 +52,11 @@ export const menuItems = [
       icon: Warehouse,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Inventário', href: '/stock/inventory', icon: Package },
-        { title: 'Movimentações', href: '/stock/movements', icon: TrendingUp },
-        { title: 'Ajustes', href: '/stock/changes', icon: Settings },
-        { title: 'Alertas de Estoque', href: '/stock/alerts', icon: AlertTriangle },
-        { title: 'Transferências', href: '/stock/transfers', icon: Truck },
-        { title: 'Contagem', href: '/stock/counts', icon: Clipboard }
+        { title: 'Inventário', href: '/stock/inventory', icon: Package, access: ['Administrador', 'Conferente'] },
+        { title: 'Movimentações', href: '/stock/movements', icon: TrendingUp, access: ['Administrador', 'Conferente', 'Buyer'] },
+        { title: 'Alertas de Estoque', href: '/shopping/purchase-order', icon: AlertTriangle, acess: ['Administrador', 'Conferente', 'Buyer'] },
+        //{ title: 'Transferências', href: '/stock/transfers', icon: Truck, access: ['Administrador'] },
+        //{ title: 'Contagem', href: '/stock/counts', icon: Clipboard, access: ['Administrador', 'Conferente'] }
       ]
     },
     {
@@ -112,7 +111,8 @@ export const menuItems = [
         { title: 'Segurança', href: '/config/security-area', icon: Shield },
         { title: 'Backup', href: '/config/backup', icon: Database },
         { title: 'Impressoras', href: '/config/impressoras', icon: Printer },
-        { title: 'Integração', href: '/config/integration', icon: Settings }
+        { title: 'Integração', href: '/config/integration', icon: Settings },
+        { title: 'Ajustes', href: '/dashboard', icon: Settings, access: ['Administrador'] },
       ]
     }
   ]
