@@ -21,8 +21,9 @@ function createWindow() {
   );
 
   if (isDev) {
-    //win.webContents.openDevTools();
+    win.webContents.openDevTools();
   }
+  win.webContents.openDevTools();
 }
 
 app.whenReady().then(createWindow);

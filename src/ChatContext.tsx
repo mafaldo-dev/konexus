@@ -137,29 +137,29 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    if (!authUser?.id) {
+    if (authUser) {
+      const newUser: User = {
+        id: authUser.id || '',
+        name: authUser.username,
+        designation: authUser.designation,
+        sector: authUser.sector || authUser.designation || 'Sem setor',
+        status: 'Ativo',
+      };
+      setCurrentUser(newUser);
+
+      setUsers((prevUsers) =>
+        prevUsers.map((u) =>
+          u.id === authUser.id ? { ...u, status: 'Ativo' } : u
+        )
+      );
+
+      fetchUsers();
+    } else {
       setUsers((oldUsers) => oldUsers.map((u) => ({ ...u, status: 'Inativo' })));
       setCurrentUser(null);
       setMessages([]);
-      return;
     }
-
-    if (currentUser && currentUser.id !== authUser.id) {
-      setUserStatus(currentUser.id, 'Inativo');
-    }
-
-    const newUser: User = {
-      id: authUser.id,
-      name: authUser.username,
-      designation: authUser.designation,
-      sector: authUser.sector || authUser.designation || 'Sem setor',
-      status: 'Ativo',
-    };
-
-    setCurrentUser(newUser);
-    fetchUsers();
-    setUserActive();
-  }, [currentUser, authUser?.id, authUser?.designation, authUser?.sector, authUser?.username, currentUser, fetchUsers, setUserActive, setUserStatus]);
+  }, [authUser, fetchUsers]);
 
   useEffect(() => {
     if (!currentUser) return;
