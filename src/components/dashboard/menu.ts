@@ -5,7 +5,7 @@ export const menuItems = [
       key: 'dashboard',
       title: 'Dashboard',
       icon: LayoutDashboard,
-      href: '/dashboard',
+      to: '/dashboard',
       access: ['Administrador', 'Vendedor', 'Financeiro', 'Conferente']
     },
     {
@@ -14,12 +14,12 @@ export const menuItems = [
       icon: Package,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Produtos', href: '/manager/products', icon: Package2, access: ['Administrador', 'Vendedor'] },
-        { title: 'Clientes', href: '/manager/customers', icon: Users, access: ['Administrador', 'Vendedor'] },
-        { title: 'Fornecedores', href: '/manager/suppliers', icon: Truck, access: ['Administrador'] },
-        { title: 'Categorias', href: '/manager/categories', icon: Target, access: ['Administrador', 'Vendedor', 'Conferente'] },
-        { title: 'Marcas', href: '/manager/brands', icon: Award, access: ['Administrador', 'Vendedor'] },
-        { title: 'Unidades', href: '/manager/units', icon: Calculator, access: ['Administrador'] }
+        { title: 'Produtos', to: '/manager/products', icon: Package2, access: ['Administrador', 'Vendedor'] },
+        { title: 'Clientes', to: '/manager/customers', icon: Users, access: ['Administrador', 'Vendedor'] },
+        { title: 'Fornecedores', to: '/manager/suppliers', icon: Truck, access: ['Administrador'] },
+        { title: 'Categorias', to: '/manager/categories', icon: Target, access: ['Administrador', 'Vendedor', 'Conferente'] },
+        { title: 'Marcas', to: '/manager/brands', icon: Award, access: ['Administrador', 'Vendedor'] },
+        { title: 'Unidades', to: '/manager/units', icon: Calculator, access: ['Administrador'] }
       ]
     },
     {
@@ -28,12 +28,12 @@ export const menuItems = [
       icon: ShoppingCart,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Pedidos', href: '/sales/orders', icon: ShoppingBag, access: ['Administrador', 'Vendedor'] },
-        { title: 'Orçamentos', href: '/sales/order-list', icon: FileText, access: ['Administrador', 'Vendedor', 'Conferente'] },
-        { title: 'Vendas Realizadas', href: '/sales/completed', icon: TrendingUp, access: ['Administrador', 'Vendedor'] },
-        { title: 'Comissões', href: '/sales/comissions', icon: DollarSign, access: ['Administrador', 'Financeiro'] },
-        { title: 'Metas', href: '/sales/goals', icon: Target, access: ['Administrador', 'Financeiro', 'Vendedor'] },
-        { title: 'Relatórios', href: '/sales/reports', icon: BarChart3, access: ['Administrador', 'Financeiro'] }
+        { title: 'Pedidos', to: '/sales/orders', icon: ShoppingBag, access: ['Administrador', 'Vendedor'] },
+        { title: 'Orçamentos', to: '/sales/order-list', icon: FileText, access: ['Administrador', 'Vendedor', 'Conferente'] },
+        { title: 'Vendas Realizadas', to: '/sales/completed', icon: TrendingUp, access: ['Administrador', 'Vendedor'] },
+        { title: 'Comissões', to: '/sales/comissions', icon: DollarSign, access: ['Administrador', 'Financeiro'] },
+        { title: 'Metas', to: '/sales/goals', icon: Target, access: ['Administrador', 'Financeiro', 'Vendedor'] },
+        { title: 'Relatórios', to: '/sales/reports', icon: BarChart3, access: ['Administrador', 'Financeiro'] }
       ]
     },
     {
@@ -42,8 +42,8 @@ export const menuItems = [
       icon: ShoppingBag,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro', 'Buyer'],
       submenu: [
-        { title: 'Pedidos de Compra', href: '/shopping/purchase-order', icon: Clipboard, access: ['Administrador', 'Financeiro', 'Buyer'] },
-        { title: 'Recebimentos', href: '/shopping/invoice-entry', icon: Package, access: ['Administrador', 'Financeiro', 'Buyer', 'Conferente'] }
+        { title: 'Pedidos de Compra', to: '/shopping/purchase-order', icon: Clipboard, access: ['Administrador', 'Financeiro', 'Buyer'] },
+        { title: 'Recebimentos', to: '/shopping/invoice-entry', icon: Package, access: ['Administrador', 'Financeiro', 'Buyer', 'Conferente'] }
       ]
     },
     {
@@ -52,11 +52,11 @@ export const menuItems = [
       icon: Warehouse,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Inventário', href: '/stock/inventory', icon: Package, access: ['Administrador', 'Conferente'] },
-        { title: 'Movimentações', href: '/stock/movements', icon: TrendingUp, access: ['Administrador', 'Conferente', 'Buyer'] },
-        { title: 'Alertas de Estoque', href: '/shopping/purchase-order', icon: AlertTriangle, acess: ['Administrador', 'Conferente', 'Buyer'] },
-        //{ title: 'Transferências', href: '/stock/transfers', icon: Truck, access: ['Administrador'] },
-        //{ title: 'Contagem', href: '/stock/counts', icon: Clipboard, access: ['Administrador', 'Conferente'] }
+        { title: 'Inventário', to: '/stock/inventory', icon: Package, access: ['Administrador', 'Conferente'] },
+        { title: 'Movimentações', to: '/stock/movements', icon: TrendingUp, access: ['Administrador', 'Conferente', 'Buyer'] },
+        { title: 'Alertas de Estoque', to: '/shopping/purchase-order', icon: AlertTriangle, acess: ['Administrador', 'Conferente', 'Buyer'] },
+        //{ title: 'Transferências', to: '/stock/transfers', icon: Truck, access: ['Administrador'] },
+        //{ title: 'Contagem', to: '/stock/counts', icon: Clipboard, access: ['Administrador', 'Conferente'] }
       ]
     },
     {
@@ -65,14 +65,14 @@ export const menuItems = [
       icon: DollarSign,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Contas a Pagar', href: '/financeiro/pagar', icon: CreditCard },
-        { title: 'Contas a Receber', href: '/financeiro/receber', icon: DollarSign },
-        { title: 'Fluxo de Caixa', href: '/financeiro/fluxo', icon: TrendingUp },
-        { title: 'Bancos e Contas', href: '/financeiro/bancos', icon: Building },
-        { title: 'Faturas', href: '/financeiro/faturas', icon: FileText },
-        { title: 'Conciliação', href: '/financeiro/conciliacao', icon: Calculator },
-        { title: 'Impostos', href: '/financeiro/impostos', icon: FileBarChart },
-        { title: 'Centros de Custo', href: '/financeiro/centros-custo', icon: Target }
+        { title: 'Contas a Pagar', to: '/financeiro/pagar', icon: CreditCard },
+        { title: 'Contas a Receber', to: '/financeiro/receber', icon: DollarSign },
+        { title: 'Fluxo de Caixa', to: '/financeiro/fluxo', icon: TrendingUp },
+        { title: 'Bancos e Contas', to: '/financeiro/bancos', icon: Building },
+        { title: 'Faturas', to: '/financeiro/faturas', icon: FileText },
+        { title: 'Conciliação', to: '/financeiro/conciliacao', icon: Calculator },
+        { title: 'Impostos', to: '/financeiro/impostos', icon: FileBarChart },
+        { title: 'Centros de Custo', to: '/financeiro/centros-custo', icon: Target }
       ]
     },
     {
@@ -81,13 +81,13 @@ export const menuItems = [
       icon: UserCheck,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Funcionários', href: '/rh/employee', icon: Users },
-        { title: 'Cargos e Salários', href: '/rh/infos', icon: Award },
-        { title: 'Folha de Pagamento', href: '/rh/folha', icon: Calculator },
-        { title: 'Ponto Eletrônico', href: '/rh/ponto', icon: Clock },
-        { title: 'Férias', href: '/rh/ferias', icon: Calendar },
-        { title: 'Benefícios', href: '/rh/beneficios', icon: Award },
-        { title: 'Treinamentos', href: '/rh/treinamentos', icon: Target }
+        { title: 'Funcionários', to: '/rh/employee', icon: Users },
+        { title: 'Cargos e Salários', to: '/rh/infos', icon: Award },
+        { title: 'Folha de Pagamento', to: '/rh/folha', icon: Calculator },
+        { title: 'Ponto Eletrônico', to: '/rh/ponto', icon: Clock },
+        { title: 'Férias', to: '/rh/ferias', icon: Calendar },
+        { title: 'Benefícios', to: '/rh/beneficios', icon: Award },
+        { title: 'Treinamentos', to: '/rh/treinamentos', icon: Target }
       ]
 
     },
@@ -97,7 +97,7 @@ export const menuItems = [
       icon: Users,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Dashboard', href: '/crm/dashboard', icon: BarChart3, access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'] },]
+        { title: 'Dashboard', to: '/crm/dashboard', icon: BarChart3, access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'] },]
     },
     {
       key: 'config',
@@ -105,14 +105,14 @@ export const menuItems = [
       icon: Settings,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Financeiro'],
       submenu: [
-        { title: 'Usuários e Permissões', href: '/config/users-permissions', icon: Users },
-        { title: 'Parâmetros do Sistema', href: '/config/system', icon: Database, access: ['Administrador'] },
-        { title: 'Notificações', href: '/config/notifications', icon: Bell },
-        { title: 'Segurança', href: '/config/security-area', icon: Shield },
-        { title: 'Backup', href: '/config/backup', icon: Database },
-        { title: 'Impressoras', href: '/config/impressoras', icon: Printer },
-        { title: 'Integração', href: '/config/integration', icon: Settings },
-        { title: 'Ajustes', href: '/dashboard', icon: Settings, access: ['Administrador'] },
+        { title: 'Usuários e Permissões', to: '/config/users-permissions', icon: Users },
+        { title: 'Parâmetros do Sistema', to: '/config/system', icon: Database, access: ['Administrador'] },
+        { title: 'Notificações', to: '/config/notifications', icon: Bell },
+        { title: 'Segurança', to: '/config/security-area', icon: Shield },
+        { title: 'Backup', to: '/config/backup', icon: Database },
+        { title: 'Impressoras', to: '/config/impressoras', icon: Printer },
+        { title: 'Integração', to: '/config/integration', icon: Settings },
+        { title: 'Ajustes', to: '/dashboard', icon: Settings, access: ['Administrador'] },
       ]
     }
   ]

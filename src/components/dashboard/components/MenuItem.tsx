@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function MenuItem({ item, sidebarCollapsed, canAccess }: any) {
     const [isExpanded, setExpanded] = useState(false);
@@ -33,13 +34,13 @@ export default function MenuItem({ item, sidebarCollapsed, canAccess }: any) {
                     )}
                 </button>
             ) : (
-                <a
-                    href={item.href}
+                <Link
+                    to={item.href}
                     className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors group"
                 >
                     <Icon className="w-5 h-5 text-slate-400 group-hover:text-slate-200" />
                     {!sidebarCollapsed && <span>{item.title}</span>}
-                </a>
+                </Link>
             )}
 
             {hasSubmenu && isExpanded && !sidebarCollapsed && (
@@ -49,14 +50,14 @@ export default function MenuItem({ item, sidebarCollapsed, canAccess }: any) {
 
                         const SubIcon = subItem.icon;
                         return (
-                            <a
+                            <Link
                                 key={subItem.title}
-                                href={subItem.href}
+                                to={subItem.to}
                                 className="flex items-center gap-3 px-3 py-2 text-sm text-slate-300 rounded-lg hover:bg-slate-800 hover:text-white transition-colors group"
                             >
                                 <SubIcon className="w-4 h-4 text-slate-500 group-hover:text-slate-300" />
                                 <span>{subItem.title}</span>
-                            </a>
+                            </Link>
                         );
                     })}
                 </div>
