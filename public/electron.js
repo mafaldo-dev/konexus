@@ -5,9 +5,9 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 function createWindow() {
   const win = new BrowserWindow({
-    height: 935,
+    height:935,
     width: 1300,
-    titleBarStyle: 'default',
+    titleBarStyle:'default',
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -17,11 +17,11 @@ function createWindow() {
   win.loadURL(
     isDev
       ? 'http://localhost:3000'
-      : `file://${path.join(__dirname, 'build/index.html')}`
+      : `file://${path.join(__dirname, '../build/index.html')}`
   );
 
   if (isDev) {
-    win.webContents.openDevTools();
+    //win.webContents.openDevTools();
   }
 }
 
