@@ -32,22 +32,24 @@
     "eject": "react-scripts eject",
     "lint": "eslint src/**/*.{ts,tsx} --fix",
     "electron:serve": "concurrently -k \"cross-env BROWSER=none npm start\" \"npm run electron:start\"",
-    "electron:build": "npm run build && electron-builder -c.extraMetadata.main=build/electron.js",
+    "electron:build": "npm run build && electron-builder",
     "electron:start": "wait-on tcp:3000 && electron ."
   },
-  "build": {
-    "extends": null,
-    "appId": "com.example.electron-cra",
-    "files": [
-      "dist/**/*",
-      "build/**/*",
-      "node_modules/**/*",
-      "package.json"
-    ],
-    "directories": {
-      "buildResources": "assets"
-    }
+"build": {
+  "appId": "com.guilherme.keppler",
+  "productName": "GUIMAN",
+  "files": [
+    "build/**/*",
+    "public/electron.js"
+  ],
+  "directories": {
+    "buildResources": "src/assets"
   },
+  "win": {
+    "target": "nsis",
+    "icon":"src/assets/image/guiman.ico"
+  }
+},
   "eslintConfig": {
     "extends": [
       "react-app",
