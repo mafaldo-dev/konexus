@@ -1,6 +1,6 @@
 {
   "name": "keppler",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "private": true,
   "homepage": "./",
   "main": "electron/main.js",
@@ -11,6 +11,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@types/react-dom": "^19.0.4",
     "date-fns": "^4.1.0",
+    "electron-updater": "^6.6.2",
     "eslint-config-react-app": "^7.0.1",
     "firebase": "^11.8.1",
     "jspdf": "^3.0.1",
@@ -35,12 +36,20 @@
     "lint": "eslint src/**/*.{ts,tsx} --fix",
     "electron:serve": "concurrently -k \"cross-env BROWSER=none npm start\" \"npm run electron:start\"",
     "electron:build": "npm run build && electron-builder",
-    "electron:start": "wait-on tcp:3000 && electron ."
+    "electron:start": "wait-on tcp:3000 && electron .",
+    "dist": "npm run build && electron-builder --publish always"
   },
   "build": {
     "appId": "com.guilherme.keppler",
     "productName": "GUIMAN",
     "extends": null,
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "mafaldo-dev",
+        "repo": "keppler"
+      }
+    ],
     "files": [
       "build/**/*",
       "electron/**/*",
