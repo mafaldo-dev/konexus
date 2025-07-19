@@ -159,7 +159,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     setCurrentUser(newUser);
     fetchUsers();
     setUserActive();
-  }, [authUser?.id, currentUser?.id, fetchUsers, setUserActive, setUserStatus]);
+  }, [authUser?.id, authUser?.designation, authUser?.sector, authUser?.username, currentUser, fetchUsers, setUserActive, setUserStatus]);
 
   useEffect(() => {
     if (!currentUser) return;
