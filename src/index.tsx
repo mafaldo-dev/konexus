@@ -4,6 +4,8 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { AuthProvider } from './AuthContext';
 import { HashRouter } from 'react-router-dom';
+import './global.css'
+
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
