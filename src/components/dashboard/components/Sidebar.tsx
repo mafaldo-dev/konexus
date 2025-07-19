@@ -8,6 +8,8 @@ import logo from '../../../assets/image/guiman.png';
 import { useChat } from '../../../ChatContext';
 import FloatingChat from '../ChatComunication';
 import ReportProblemChat from './ChatReport';
+import { version } from '../../../version';
+
 
 export default function Sidebar({ sidebarCollapsed }: any) {
   const { user, login } = useAuth();
@@ -82,7 +84,7 @@ export default function Sidebar({ sidebarCollapsed }: any) {
                 </div>
               </div>
               <div className="mt-4 text-center text-xs text-slate-500">
-                Versão: {process.env.REACT_APP_VERSION}
+                Versão: {version}
               </div>
             </div>
           )}
