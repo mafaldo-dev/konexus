@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
@@ -60,7 +60,10 @@ autoUpdater.on('checking-for-update', () => {
 
 autoUpdater.on('update-available', (info) => {
   log.info('Update available.');
-  // Aqui você pode avisar o usuário via IPC se quiser
+  // Envia evento para o renderer avisar usuário
+  if (mainWindow) {
+    mainWindow.webContents.send('update_available');
+  }
 });
 
 autoUpdater.on('update-not-available', (info) => {
@@ -76,10 +79,21 @@ autoUpdater.on('download-progress', (progressObj) => {
   log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
   log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
   log.info(log_message);
+  // Opcional: envie progresso para renderer se quiser mostrar barra de progresso
+  if (mainWindow) {
+    mainWindow.webContents.send('download_progress', progressObj);
+  }
 });
 
 autoUpdater.on('update-downloaded', () => {
-  log.info('Update downloaded; will install now');
-  // Automaticamente fecha e instala
+  log.info('Update downloaded; waiting for user to install');
+  // Envia evento para o renderer avisar que atualização está pronta
+  if (mainWindow) {
+    mainWindow.webContents.send('update_downloaded');
+  }
+});
+
+// Escuta do renderer pedindo para reiniciar e instalar a atualização
+ipcMain.on('restart_app', () => {
   autoUpdater.quitAndInstall();
 });

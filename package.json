@@ -1,6 +1,6 @@
 {
   "name": "keppler",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "homepage": "./",
   "main": "electron/main.js",
@@ -43,6 +43,7 @@
   "build": {
     "appId": "com.guilherme.keppler",
     "productName": "GUIMAN",
+    "asar": true,
     "extends": null,
     "publish": [
       {
@@ -71,13 +72,16 @@
     "win": {
       "target": "nsis",
       "icon": "src/assets/image/guiman.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "GUIMAN"
     }
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
   },
   "browserslist": {
     "production": [
