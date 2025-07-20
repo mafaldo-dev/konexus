@@ -5,6 +5,7 @@ import { useAuth } from "../AuthContext";
 import { db } from "../firebaseConfig";
 import { useChat } from "../ChatContext";
 
+
 // Interface para tipar corretamente os dados retornados do Firestore
 interface EmployeeData {
     id: string;
@@ -86,8 +87,12 @@ export default function useAuthService() {
                     navigate("/sales/orders");
                 } else if (employeeData.designation === "Conferente") {
                     navigate("/sales/order-list");
+                } else  if (employeeData.designation === "Estoquista"){
+                    navigate("/stock/movements");
+                } else if(employeeData.designation === "Buyer") {
+                    navigate("/shopping/purchase-magnament")
                 } else {
-                    navigate("/dashboard");
+                    navigate("/dashboard")
                 }
                 return;
             }

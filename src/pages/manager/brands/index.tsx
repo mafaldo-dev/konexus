@@ -3,6 +3,7 @@ import Dashboard from "../../../components/dashboard/Dashboard"
 import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter'
 import { useDebounce } from '../../../hooks/utils/useDebounce'
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 
 interface Brand {
   id: string
@@ -249,14 +250,14 @@ export default function Brands() {
                         {brand.website && (
                           <div className="flex items-center gap-1 mt-1">
                             <Globe className="w-3 h-3 text-slate-400" />
-                            <a
-                              href={brand.website}
+                            <Link
+                              to={brand.website}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-blue-600 hover:text-blue-800"
                             >
                               {brand.website}
-                            </a>
+                            </Link>
                           </div>
                         )}
                       </div>

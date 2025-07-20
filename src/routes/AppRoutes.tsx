@@ -64,7 +64,7 @@ const AppRoutes = () => {
       <Route 
         path="/dashboard" 
         element={
-          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Vendedor', 'Conferente']}>
+          <DesignationCheck allowed={['Administrador', 'Financeiro']}>
             <AdministrationScreen />
           </DesignationCheck>
       } />
@@ -72,7 +72,7 @@ const AppRoutes = () => {
       <Route 
         path='/sales/goals' 
         element={
-          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Vendedor']}>
+          <DesignationCheck allowed={['Administrador', 'Financeiro']}>
             <Goals />
           </DesignationCheck>
         }
@@ -89,7 +89,7 @@ const AppRoutes = () => {
       <Route
         path="/manager/products"
         element={
-          <DesignationCheck allowed={["Vendedor", "Administrador", "Conferente"]}>
+          <DesignationCheck allowed={["Vendedor", "Administrador", "Conferente", "Estoquista"]}>
             <SearchProducts />
           </DesignationCheck>
         }
@@ -121,7 +121,7 @@ const AppRoutes = () => {
       <Route
         path="/shopping/invoice-entry"
         element={
-          <DesignationCheck allowed={["Administrador", "Conferente", "Vendedor", "Buyer"]}>
+          <DesignationCheck allowed={["Administrador", "Conferente", "Estoquista" ,"Vendedor", "Buyer"]}>
             <InvoiceEntries />
           </DesignationCheck>
         }
@@ -153,7 +153,7 @@ const AppRoutes = () => {
       <Route
         path="/stock/movements"
         element={
-          <DesignationCheck allowed={["Administrador", "Conferente"]}>
+          <DesignationCheck allowed={["Administrador", "Conferente", "Estoquista"]}>
             <MovementsOnStock />
           </DesignationCheck>
         }
@@ -161,7 +161,7 @@ const AppRoutes = () => {
       <Route
         path="/stock/inventory"
         element={
-          <DesignationCheck allowed={["Administrador", "Conferente"]}>
+          <DesignationCheck allowed={["Administrador", "Conferente", "Estoquista"]}>
             <Inventory />
           </DesignationCheck>
         }

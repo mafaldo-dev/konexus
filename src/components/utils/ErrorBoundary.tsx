@@ -1,5 +1,6 @@
 import  { Component, ErrorInfo, ReactNode } from 'react';
 import { StatusMessageType, useSystemStatus, StatusMessage } from '../../SystemStatusContext';
+import { Link } from 'react-router-dom';
 
 interface Props {
   children: ReactNode;
@@ -34,12 +35,12 @@ class ErrorBoundaryComponent extends Component<Props, State> {
         <div className='flex flex-col items-center justify-center p-8 gap-4 text-center'>
           <h1 className='text-xl font-bold'>Ocorreu um erro na aplicação.</h1>
           <p>Um erro inesperado aconteceu. A equipe já foi notificada.</p>
-          <a
-            href="/dashboard"
+          <Link
+            to="/dashboard"
             className="text-blue-600 hover:underline"
           >
             Voltar para o dashboard
-          </a>
+          </Link>
         </div>
 
       );

@@ -15,6 +15,10 @@ export default function NotFound() {
             navigate("/sales/orders")
         } else if (user?.designation === "Conferente") {
             navigate("/sales/order-list")
+        } else if(user?.designation === "Estoquista") {
+            navigate("/stock/movements")
+        } else if (user?.designation === "Buyer") {
+            navigate("shoppíng/purchase-requisition")
         } else {
             navigate("/dashboard")
         }

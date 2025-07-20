@@ -13,6 +13,7 @@ import lupa from "../../../assets/image/search.png"
 import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter'
 import { useDebounce } from '../../../hooks/utils/useDebounce'
 import { insertCustomer, handleAllCustomer, updateCustomer } from "../../../service/api/Administrador/customer/clients"
+import { Link } from "react-router-dom"
 
 const SearchClientes = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<Customer>()
@@ -240,9 +241,9 @@ const SearchClientes = () => {
           )}
       </div>
       <div className="flex justify-start ml-4 gap-2">
-        <a
-          className="bg-white hover:bg-cyan-500 hover:text-white font-semibold text-gray-500 border border-gray-400 font-semibold p-2 rounded-lg w-24 text-center" href="/dashboard">
-          Voltar </a>
+        <Link
+          className="bg-white hover:bg-cyan-500 hover:text-white font-semibold text-gray-500 border border-gray-400 font-semibold p-2 rounded-lg w-24 text-center" to="/dashboard">
+          Voltar </Link>
       </div>
       {modalOpen && newInfos && (
         <>

@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom';
 
 export default function MenuItem({ item, sidebarCollapsed, canAccess }: any) {
     const [isExpanded, setExpanded] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
 
     const toggleMenu = () => {
         setExpanded(!isExpanded);
+        setIsOpen(!isOpen);
     };
 
     if (!canAccess(item.access)) return null;
@@ -43,7 +45,7 @@ export default function MenuItem({ item, sidebarCollapsed, canAccess }: any) {
                 </Link>
             )}
 
-            {hasSubmenu && isExpanded && !sidebarCollapsed && (
+            {hasSubmenu && isOpen && !sidebarCollapsed && (
                 <div className="ml-6 mt-1 space-y-1">
                     {item.submenu?.map((subItem: any) => {
                         if (subItem.access && !canAccess(subItem.access)) return null;

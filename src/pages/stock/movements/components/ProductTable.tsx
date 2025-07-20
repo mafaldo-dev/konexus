@@ -11,12 +11,9 @@ interface ProductTableProps {
 
 const ProductTable: React.FC<ProductTableProps> = ({ products, selectedProduct, handleProductClick, handleContextMenu }) => {
     return (
-        <div
-            className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-            style={{ height: 'calc(100vh - 400px)', minHeight: '500px' }}
-        >
+        <div className="bg-white w-full items-center m-auto rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 400px)", minHeight: "500px" }}>
             <div className="overflow-x-auto h-full">
-                <table className="w-full h-full">
+                <table className="h-full w-full">
                     <thead className="bg-slate-800 text-white sticky top-0">
                         <tr>
                             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Código</th>
