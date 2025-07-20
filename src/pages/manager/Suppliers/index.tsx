@@ -10,7 +10,6 @@ import { getAllSuppliers, insertSupplier, updateSupplier } from '../../../servic
 
 import Swal from 'sweetalert2';
 
-
 const SearchSuppliers = () => {
     const { register, handleSubmit, formState: { errors }, reset } = useForm<Supplier>()
     const [modalOpen, setModalOpen] = useState<boolean>(false)
@@ -18,7 +17,7 @@ const SearchSuppliers = () => {
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
     const [searchTerm, setSearchTerm] = useState<string>("")
-    const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([])
+    const [filter, setFilter] = useState<Supplier[]>([])
     const [currentSupplier, setCurrentSupplier] = useState<Supplier | null>(null)
 
     // Máscaras de formatação
@@ -54,9 +53,10 @@ const SearchSuppliers = () => {
             try {
                 const data = await getAllSuppliers()
                 setSuppliers(data)
-                setFilteredSuppliers(data)
+                setFilter(data)
             } catch (error) {
                 console.error("Erro ao carregar fornecedores:", error)
+                throw new Error("Erro ao recuperar a lista de fornecedores!")
             } finally {
                 setIsLoading(false)
             }
@@ -64,20 +64,6 @@ const SearchSuppliers = () => {
         loadSuppliers()
     }, [])
 
-    // Filtrar fornecedores
-    // useEffect(() => {
-    //     if (searchTerm) {
-    //         const filtered = suppliers.filter(supplier =>
-    //             supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    //             supplier.cnpj.includes(searchTerm) ||
-    //             supplier.code.toLowerCase().includes(searchTerm.toLowerCase())
-    //         setFilteredSuppliers(filtered)
-    // )} else {
-    //         setFilteredSuppliers(suppliers)
-    //     }
-    // }, [searchTerm, suppliers])
-
-    // Cadastrar novo fornecedor
     const onSubmit: SubmitHandler<Supplier> = async (data) => {
         try {
             const supplierData: Supplier = {
@@ -122,9 +108,10 @@ const SearchSuppliers = () => {
             setSuppliers(updatedSuppliers)
             setModalOpen(false)
             alert("Fornecedor atualizado com sucesso!")
-        } catch (Exception) {
-            console.error("Erro ao atualizar fornecedor:", Exception)
+        } catch (error) {
+            console.error("Erro ao atualizar fornecedor:", error)
             alert("Erro ao atualizar fornecedor")
+            throw new Error("Erro ao atualizar os dados Fornecedor!")
         }
     }
 
@@ -144,14 +131,28 @@ const SearchSuppliers = () => {
         if (result.isConfirmed) {
             try {
                 await deleteDoc(doc(db, "Suppliers", id));
-                setSuppliers(suppliers.filter(s => s.id !== id));
+                setSuppliers(suppliers.filter(sup => sup.id !== id));
                 Swal.fire('Excluído!', 'Fornecedor excluído com sucesso.', 'success');
+                const reload = await getAllSuppliers()
+                setSuppliers(reload)
             } catch (error) {
                 console.error("Erro ao excluir fornecedor:", error);
                 Swal.fire('Erro!', 'Erro ao excluir fornecedor.', 'error');
             }
         }
     };
+        //Filtrar fornecedores
+    useEffect(() => {
+        if (searchTerm) {
+            const filtered = suppliers.filter((supplier) =>
+                supplier.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                setFilter(filtered)
+        } else {
+            setFilter(suppliers)
+        }
+    }, [searchTerm, suppliers])
+
+
     return (
         <Dashboard>
             <div className="container mx-auto p-4">
@@ -199,7 +200,7 @@ const SearchSuppliers = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredSuppliers.map((supplier) => (
+                                {filter.map((supplier) => (
                                     <tr key={supplier.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">{supplier.code}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">{supplier.name}</td>

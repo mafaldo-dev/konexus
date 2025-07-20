@@ -1,145 +1,307 @@
-import { SubmitHandler, useForm } from "react-hook-form"
-import { Products } from "../../../service/interfaces"
-import { getAllProducts, insertProductComKardex } from "../../../service/api/Administrador/products"
-import { useState } from "react"
+import { SubmitHandler, useForm } from "react-hook-form";
+import { useState } from "react";
+import { Products } from "../../../service/interfaces";
+import { getAllProducts, insertProductComKardex } from "../../../service/api/Administrador/products";
+import { PackagePlus, Save } from "lucide-react";
+import clsx from "clsx";
 
-export default function FormAdd() {
-    const { register, handleSubmit, formState: { errors }, reset } = useForm<Products>()
-    const [, setOpenRegister] = useState<boolean>(false)
+export default function ProductRegistrationForm() {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<Omit<Products, "id"> & { IOF: string }>({
+    defaultValues: {
+      IOF: "false",
+      statesWithTax: [],
+    },
+  })
 
-    const onSubmit: SubmitHandler<Products> = async (data) => {
-        try {
-            const productData = { ...data, addedAt: new Date() };
-            delete productData.id;
+  const [product, setProduct] = useState<Products[]>([]);
 
-            await insertProductComKardex(productData as Products);
+  const onSubmit: SubmitHandler<Products> = async (data) => {
+    try {
+      const payload: Products = {
+        ...data,
+        IOF: data.IOF === "true",
+        addedAt: new Date(),
+      };
 
-            reset();
-            await getAllProducts();
+      // Remove campos que não devem ir para o Firebase se IOF for false
+      if (data.IOF === "true") {
+        payload.valueOfIof = Number(data.valueOfIof);
+        payload.statesWithTax = data.statesWithTax;
+      } else {
+        delete payload.valueOfIof;
+        delete payload.statesWithTax;
+      }
+      await insertProductComKardex(payload);
+      reset();
+      const updated = await getAllProducts();
+      setProduct(updated);
+    } catch (error) {
+      console.log("Erro ao cadastrar produto: ", error);
+      throw new Error("Erro interno do servidor!");
+    }
+  };
 
-            alert("Produto adicionado com sucesso!");
-            setOpenRegister(false);
-        } catch (error: any) {
-            alert(error.message || "Erro ao adicionar novo produto.");
-        }
-    };
+  const watchIOF = watch("IOF");
+  const selectedStates: string[] = watch("statesWithTax") || [];
+
+  const toggleState = (state: string) => {
+    let newStates: string[];
+    if (selectedStates.includes(state)) {
+      newStates = selectedStates.filter((s) => s !== state);
+    } else {
+      newStates = [...selectedStates, state];
+    }
+    setValue("statesWithTax", newStates, { shouldValidate: true });
+  };
 
 
-    return (
-        <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="flex flex-col">
-                    <label className="font-semibold">Nome</label>
-                    <input
-                        type="text"
-                        {...register("name", { required: true })}
-                        className="input-style border border-gray-200"
-                    />
-                    {errors.name && <span className="text-red-500 text-sm">Nome obrigatório</span>}
-                </div>
+  const brazilianStates = [
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+    "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
+    "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+  ];
 
-                <div className="flex flex-col">
-                    <label className="font-semibold">Código</label>
-                    <input
-                        type="text"
-                        {...register("code", { required: true })}
-                        className="input-style border border-gray-200"
-                    />
-                    {errors.code && <span className="text-red-500 text-sm">Código obrigatório</span>}
-                </div>
+  return (
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="w-[900px] mx-auto p-8 bg-white shadow-lg rounded-lg space-y-6"
+    >
+      <h2 className="text-3xl font-bold text-gray-700 flex items-center gap-3 mb-6">
+        <PackagePlus size={30} /> Cadastro de Produto
+      </h2>
 
-                <div className="flex flex-col">
-                    <label className="font-semibold">Quantidade</label>
-                    <input
-                        type="number"
-                        {...register("quantity", { required: true })}
-                        className="input-style border border-gray-200"
-                    />
-                    {errors.quantity && <span className="text-red-500 text-sm">Obrigatório</span>}
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                <div className="flex flex-col">
-                    <label className="font-semibold">Preço</label>
-                    <input
-                        type="number"
-                        step="0.01"
-                        {...register("price", { required: true })}
-                        className="input-style border border-gray-200"
-                    />
-                    {errors.price && <span className="text-red-500 text-sm">Obrigatório</span>}
-                </div>
+        {/* Nome */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-1">Nome do Produto *</label>
+          <input
+            type="text"
+            {...register("name", { required: "Nome obrigatório" })}
+            className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Ex: Teclado Gamer RGB"
+          />
+          {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name.message}</p>}
+        </div>
 
-                <div className="flex flex-col">
-                    <label className="font-semibold">Fornecedor</label>
-                    <input
-                        type="text"
-                        {...register("supplier", { required: true })}
-                        className="input-style border border-gray-200"
-                    />
-                    {errors.supplier && <span className="text-red-500 text-sm">Obrigatório</span>}
-                </div>
+        {/* Código */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-1">Código *</label>
+          <input
+            type="text"
+            {...register("code", { required: "Código obrigatório" })}
+            className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Ex: PRD-001"
+          />
+          {errors.code && <p className="text-red-600 text-sm mt-1">{errors.code.message}</p>}
+        </div>
 
-                <div className="flex flex-col">
-                    <label className="font-semibold">Localização</label>
-                    <input
-                        type="text"
-                        {...register("location", { required: true })}
-                        className="input-style border border-gray-200"
-                    />
-                    {errors.location && <span className="text-red-500 text-sm">Obrigatório</span>}
-                </div>
+        {/* Preço */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-1">Preço (R$) *</label>
+          <input
+            type="number"
+            step="0.01"
+            {...register("price", { required: "Preço obrigatório", valueAsNumber: true })}
+            className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="100.00"
+          />
+          {errors.price && <p className="text-red-600 text-sm mt-1">{errors.price.message}</p>}
+        </div>
+        {/* Localização */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-1">Localização *</label>
+          <input
+            type="text"
+            {...register("location", { required: "Localização obrigatória" })}
+            className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Ex: Prateleira A"
+          />
+          {errors.location && <p className="text-red-600 text-sm mt-1">{errors.location.message}</p>}
+        </div>
 
-                <div className="flex flex-col">
-                    <label className="font-semibold">Estoque Mínimo</label>
-                    <input
-                        type="number"
-                        {...register("minimum_stock", { required: true })}
-                        className="input-style border border-gray-200"
-                    />
-                    {errors.minimum_stock && <span className="text-red-500 text-sm">Obrigatório</span>}
-                </div>
+        {/* Marca */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-1">Marca *</label>
+          <input
+            type="text"
+            {...register("brand", { required: "Marca obrigatória" })}
+            className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Ex: Logitech"
+          />
+          {errors.brand && <p className="text-red-600 text-sm mt-1">{errors.brand.message}</p>}
+        </div>
 
-                <div className="flex flex-col">
-                    <label className="font-semibold">Marca</label>
-                    <input
-                        type="text"
-                        {...register("brand", { required: true })}
-                        className="input-style border border-gray-200"
-                    />
-                    {errors.brand && <span className="text-red-500 text-sm">Obrigatório</span>}
-                </div>
+        {/* Fornecedor */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-1">Fornecedor *</label>
+          <input
+            type="text"
+            {...register("supplier", { required: "Fornecedor obrigatório" })}
+            className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Ex: Amazon"
+          />
+          {errors.supplier && <p className="text-red-600 text-sm mt-1">{errors.supplier.message}</p>}
+        </div>
 
-                <div className="flex flex-col">
-                    <label className="font-semibold">Categoria</label>
-                    <input
-                        type="text"
-                        {...register("category", { required: true })}
-                        className="input-style border border-gray-200"
-                    />
-                    {errors.category && <span className="text-red-500 text-sm">Obrigatório</span>}
-                </div>
-            </div>
+        {/* Categoria */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-1">Categoria *</label>
+          <input
+            type="text"
+            {...register("category", { required: "Categoria obrigatória" })}
+            className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Ex: Eletrônicos"
+          />
+          {errors.category && <p className="text-red-600 text-sm mt-1">{errors.category.message}</p>}
+        </div>
 
-            <div className="flex flex-col mb-6">
-                <label className="font-semibold">Descrição</label>
-                <textarea
-                    {...register("description", { required: true })}
-                    className="input-style border border-gray-200 min-h-[100px] resize-none"
-                />
-                {errors.description && <span className="text-red-500 text-sm">Obrigatória</span>}
-            </div>
+        {/* Estoque mínimo */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-1">Estoque Mínimo *</label>
+          <input
+            type="number"
+            {...register("minimum_stock", { required: "Estoque mínimo obrigatório", valueAsNumber: true })}
+            className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Ex: 5"
+          />
+          {errors.minimum_stock && <p className="text-red-600 text-sm mt-1">{errors.minimum_stock.message}</p>}
+        </div>
 
-            <div className="flex justify-end gap-4">
-                <button
+        {/* Quantidade */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-1">Quantidade *</label>
+          <input
+            type="number"
+            {...register("quantity", { required: "Quantidade obrigatória", valueAsNumber: true })}
+            className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Ex: 20"
+          />
+          {errors.quantity && <p className="text-red-600 text-sm mt-1">{errors.quantity.message}</p>}
+        </div>
+      </div>
+
+      {/* Descrição - full width */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-600 mb-1">Descrição *</label>
+        <textarea
+          {...register("description", { required: "Descrição obrigatória" })}
+          className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          rows={3}
+          placeholder="Detalhes do produto..."
+        />
+        {errors.description && <p className="text-red-600 text-sm mt-1">{errors.description.message}</p>}
+      </div>
+
+      {/* IOF (radio) */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-600 mb-2">Possui IOF? *</label>
+        <div className="flex gap-6">
+          <label className="inline-flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              value="true"
+              {...register("IOF", { required: "Campo obrigatório" })}
+              className="cursor-pointer"
+            />
+            Sim
+          </label>
+
+          <label className="inline-flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              value="false"
+              {...register("IOF", { required: "Campo obrigatório" })}
+              className="cursor-pointer"
+            />
+            Não
+          </label>
+        </div>
+        {errors.IOF && <p className="text-red-600 text-sm mt-1">{errors.IOF.message}</p>}
+      </div>
+
+      {/* Se IOF for true, mostra valor do IOF e estados */}
+      {watchIOF === "true" && (
+        <>
+          <div>
+            <label className="block text-sm font-semibold text-gray-600 mb-1">Valor do IOF (%) *</label>
+            <input
+              type="number"
+              step="0.01"
+              {...register("valueOfIof", { required: "Campo obrigatório", valueAsNumber: true })}
+              className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Ex: 3.5"
+            />
+            {errors.valueOfIof && <p className="text-red-600 text-sm mt-1">{errors.valueOfIof.message}</p>}
+          </div>
+
+          <div className="mt-6">
+            <label className="block text-sm font-semibold text-gray-600 mb-2">Estados com IOF *</label>
+            <div className="flex flex-wrap gap-2">
+              {brazilianStates.map((state) => {
+                const selected = selectedStates.includes(state);
+                return (
+                  <button
                     type="button"
-                    onClick={() => setOpenRegister(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100"
-                >Cancelar</button>
-                <button
-                    type="submit"
-                    className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >Salvar</button>
+                    key={state}
+                    onClick={() => toggleState(state)}
+                    className={clsx(
+                      "px-4 py-1 rounded-full border transition-colors duration-200",
+                      selected
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                    )}
+                  >
+                    {state}
+                  </button>
+                );
+              })}
             </div>
-        </form>
-    )
+            {errors.statesWithTax && (
+              <p className="text-red-600 text-sm mt-1">{errors.statesWithTax.message || "Selecione ao menos um estado"}</p>
+            )}
+
+            {/* Tags dos estados selecionados */}
+            {selectedStates.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedStates.map((state) => (
+                  <span
+                    key={state}
+                    className="bg-indigo-100 text-indigo-800 text-sm px-3 py-1 rounded-full select-none"
+                  >
+                    {state}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Botões */}
+      <div className="flex justify-end gap-4 mt-8">
+        <button
+          type="button"
+          onClick={() => reset()}
+          className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-100 transition"
+        >
+          Limpar
+        </button>
+
+        <button
+          type="submit"
+          className="flex items-center gap-2 bg-slate-800 hover:bg-indigo-700 text-white px-6 py-2 rounded shadow-md transition"
+        >
+          <Save size={18} /> Salvar Produto
+        </button>
+      </div>
+    </form>
+  );
 }

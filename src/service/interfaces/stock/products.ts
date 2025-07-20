@@ -11,4 +11,7 @@ export interface Products {
     supplier: string
     category: string
     quantity: number
+    IOF?: boolean | string
+    valueOfIof?: number
+    statesWithTax?: string[];
 }
