@@ -4,25 +4,25 @@ import LoginForm from "./components/LoginForm";
 import useAuthService from "./useAuthService";
 
 function useAutoUpdater() {
-    // useEffect(() => {
-    //     const { ipcRenderer } = window.require("electron");
+    useEffect(() => {
+        const { ipcRenderer } = window.require("electron");
 
-    //     ipcRenderer.on('update_available', () => {
-    //         alert("Nova atualização disponível! Ela está sendo baixada em segundo plano.");
-    //     });
+        ipcRenderer.on('update_available', () => {
+            alert("Nova atualização disponível! Ela está sendo baixada em segundo plano.");
+        });
 
-    //     ipcRenderer.on('update_downloaded', () => {
-    //         const wantsRestart = window.confirm('Atualização baixada! Deseja reiniciar o sistema agora?');
-    //         if (wantsRestart) {
-    //             ipcRenderer.send('restart_app');
-    //         }
-    //     });
+        ipcRenderer.on('update_downloaded', () => {
+            const wantsRestart = window.confirm('Atualização baixada! Deseja reiniciar o sistema agora?');
+            if (wantsRestart) {
+                ipcRenderer.send('restart_app');
+            }
+        });
 
-    //     return () => {
-    //         ipcRenderer.removeAllListeners('update_available');
-    //         ipcRenderer.removeAllListeners('update_downloaded');
-    //     };
-    // }, []);
+        return () => {
+            ipcRenderer.removeAllListeners('update_available');
+            ipcRenderer.removeAllListeners('update_downloaded');
+        };
+    }, []);
 }
 
 const LoginPage: React.FC = () => {
