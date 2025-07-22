@@ -55,10 +55,7 @@ export default function OrdersPage() {
         </button>
         <OrderPDF
           order={selectedOrder}
-          onDownloadComplete={() => {
-            console.log("Download finalizado!");
-            // Aqui você pode executar alguma lógica, tipo fechar modal, resetar estado, etc.
-          }}
+          onDownloadComplete={() => {}}
         />
       </div>
     );

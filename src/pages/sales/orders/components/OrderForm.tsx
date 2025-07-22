@@ -79,7 +79,6 @@ export default function OrderForm() {
       };
 
       const id = await insertOrder(orderData);
-      console.log(id)
       navigate("/sales/orders");
     } catch (err) {
       console.error("Erro ao criar pedido:", err);

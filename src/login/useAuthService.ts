@@ -111,7 +111,6 @@ export default function useAuthService() {
                     status: 'Ativo',
                     collection: 'Administracao'
                 });
-                console.log(adminData)
                 navigate("/dashboard");
                 return;
             }

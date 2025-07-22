@@ -1,26 +1,23 @@
 import { useState, useEffect } from "react";
-import { doc, deleteDoc } from "firebase/firestore";
-import { db } from "../../../firebaseConfig";
 import { Products } from "../../../service/interfaces";
-import { getAllProducts, updateProduct } from "../../../service/api/Administrador/products";
+import { deleteProduct, getAllProducts, updateProduct } from "../../../service/api/Administrador/products";
 
 import Dashboard from "../../../components/dashboard/Dashboard";
-import lupa from "../../../assets/image/search.png";
+import UpdadtedProduct from "./modal-edit";
 import FormAdd from "./Form-add";
-import Swal from "sweetalert2";
-import { Filter, Download, MapPin, Search } from "lucide-react";
+
+import { Filter, MapPin, Search, Edit, DeleteIcon } from "lucide-react";
 
 const SearchProducts = () => {
-  const [modalOpen, setIsModalOpen] = useState(false);
   const [openRegister, setOpenRegister] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false)
   const [loading, setLoading] = useState(false);
   const [items, setItem] = useState<Products[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState<Products[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [currentData, setCurrentData] = useState<Products | null>(null)
 
-  // Filtros da nova tabela
   const [filters, setFilters] = useState({
     name: "",
     code: "",
@@ -59,9 +56,7 @@ const SearchProducts = () => {
       try {
         setLoading(true);
         const data = await getAllProducts();
-        console.log(data)
         setItem(data);
-        console.log(data)
         setFilter(data);
       } catch (error) {
         console.error("Erro ao recuperar a lista de produtos.", error);
@@ -72,31 +67,19 @@ const SearchProducts = () => {
     fetchProducts();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    const result = await Swal.fire({
-      title: "Tem certeza?",
-      text: "Deseja excluir este produto?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Sim, excluir!",
-      cancelButtonText: "Cancelar"
-    });
+  const handleDeleteProduct = async (id: string) => {
+    const confirmed = await deleteProduct(id)
 
-    if (result.isConfirmed) {
-      try {
-        await deleteDoc(doc(db, "Stock", id));
-        const reload = await getAllProducts();
-        setItem(reload);
-        Swal.fire("Excluído!", "Produto excluído com sucesso.", "success");
-      } catch (error) {
-        console.error("Erro ao deletar produto: ", error);
-        Swal.fire("Erro!", "Erro ao excluir produto.", "error");
-      }
+    if (confirmed) {
+      const reload = await getAllProducts()
+      setItem(reload)
     }
-  };
+  }
 
+  const handleEditProduct = async (product: Products) => {
+    setCurrentData(product)
+    setOpenEdit(true)
+  }
 
   return (
     <Dashboard>
@@ -120,12 +103,12 @@ const SearchProducts = () => {
                     <Filter className="w-4 h-4" />
                     Filtros
                   </button>
-                    <div className="flex flex-col mb-3 cursor-pointer hover:zoonIn">
-                      <button
-                        onClick={() => setOpenRegister(true)}
-                        className="font-semibold pb-1 w-24 mt-3 ml-1 text-2xl text-slate-900 bg-gray-100 hover:bg-gray-200 border rounded-lg w-26 cursor-pointer"
-                      >+
-                      </button>
+                  <div className="flex flex-col mb-3 cursor-pointer hover:zoonIn">
+                    <button
+                      onClick={() => setOpenRegister(true)}
+                      className="font-semibold pb-1 w-24 mt-3 ml-1 text-2xl text-slate-900 bg-gray-100 hover:bg-gray-200 border rounded-lg w-26 cursor-pointer"
+                    >+
+                    </button>
                   </div>
                   {Object.values(filters).some(f => f !== "") && (
                     <button
@@ -179,6 +162,7 @@ const SearchProducts = () => {
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Preço</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Estoque</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Localização</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -217,6 +201,12 @@ const SearchProducts = () => {
                               <span className="text-xs">{product.location}</span>
                             </div>
                           </td>
+                          <td>
+                            <div className="flex">
+                              <button onClick={() => handleEditProduct(product)}><Edit className="h-4 text-green-500 hover:scale-110" /></button>
+                              <button onClick={() => handleDeleteProduct(product.id)}><DeleteIcon className="h-4 text-red-500 hover:scale-110" /></button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -244,6 +234,22 @@ const SearchProducts = () => {
               </div>
               <FormAdd />
             </div>
+          </div>
+        </>
+      )}
+      {openEdit && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" />
+          <div className="p-6">
+            <div className="relative mb-6">
+              <button
+                onClick={() => setOpenRegister(false)}
+                className="cursor-pointer absolute top-0 right-0 text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+            <UpdadtedProduct product={currentData} onClose={() => setOpenEdit(false)} />
           </div>
         </>
       )}

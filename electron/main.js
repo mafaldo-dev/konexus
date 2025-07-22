@@ -6,10 +6,9 @@ const log = require('electron-log');
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
 
-// Cria a janela do app
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1300,
+    width: 1360,
     height: 935,
     webPreferences: {
       nodeIntegration: true,

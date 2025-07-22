@@ -10,7 +10,6 @@ export default async function invoiceEntries(invoice: Invoice) {
             ...invoice,
             date: new Date()
         });
-        console.log("Nota fiscal criada com sucesso!", docRef.id);
 
         // 2. Para cada produto da nota, atualiza o estoque e registra no Kardex
         for (const item of invoice.products) {

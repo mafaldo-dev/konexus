@@ -83,7 +83,6 @@ export async function updateOrderStatus(orderId: string | number, status: string
   try {
     const orderRef = doc(db, "Orders", String(orderId))
     await updateDoc(orderRef, { status })
-    console.log(`Status do pedido ${orderId} atualizado para ${status}`)
   } catch (error) {
     console.error("Erro ao atualizar status do pedido:", error)
     alert("Erro ao atualizar o status do pedido no banco de dados.")

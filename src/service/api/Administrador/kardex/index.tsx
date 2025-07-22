@@ -135,7 +135,6 @@ export const getKardexMovements = async (productId: string): Promise<Movement[]>
       };
     });
 
-    console.log(`Encontradas ${movements.length} movimentações para o produto ${productId}`);
     return movements;
   } catch (error) {
     console.error("Erro detalhado ao buscar movimentações:", error);

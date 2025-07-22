@@ -29,9 +29,7 @@ export default function SecuritySettingsPage() {
 
   const handleSave = () => {
     setIsLoading(true);
-    console.log("Saving Security Settings:", { passwordPolicy, ipBlockList });
 
-    // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
       setShowSnackbar(true);

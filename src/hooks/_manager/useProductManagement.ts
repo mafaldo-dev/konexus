@@ -30,7 +30,6 @@ export const useProductManagement = (
 
     const handleAddProduct = () => {
         if (!addedProduct || count <= 0 || price <= 0) {
-            console.log(addedProduct)
             alert("Preencha os dados corretamente para adicionar o produto.");
             return;
         }

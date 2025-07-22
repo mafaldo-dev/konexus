@@ -16,7 +16,6 @@ export default function NotaPreview({ quotation }: Props) {
   
   useEffect(() => {
     if(!quotation) {
-      console.log(quotation)
       setInvoice(null)
       return
     }
@@ -38,9 +37,7 @@ export default function NotaPreview({ quotation }: Props) {
 
   return (
     <div className="bg-white p-4">
-      <DanfeTemplate nota={invoice} onDownloadComplete={() => {
-        console.log("Download concluido!")
-      }} />
+      <DanfeTemplate nota={invoice} onDownloadComplete={() => {}} />
       <div className="flex justify-end mt-4">
         <button
           onClick={handleDownload}

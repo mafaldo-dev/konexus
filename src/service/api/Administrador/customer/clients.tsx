@@ -6,7 +6,6 @@ import { Customer } from "../../../interfaces";
 export async function insertCustomer(customer: Customer) {
     try {
         const docRef = await addDoc(collection(db, "Customer"), customer)
-        console.log("Cliente cadastrado com sucesso, ID: ", docRef.id)
         return docRef.id
     } catch (Exception) {
         console.error("Erro ao inserir o Cliente ao sistema.", Exception)

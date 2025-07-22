@@ -22,7 +22,7 @@ root.render(
 
 if (window.require) {
   window.require('electron');
-  console.log('Running in Electron');
+  //console.log('Running in Electron');
   // You can use ipcRenderer here if needed
   // For example:
   // ipcRenderer.on('some-event', (event, arg) => {

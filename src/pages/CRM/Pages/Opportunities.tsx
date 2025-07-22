@@ -33,7 +33,7 @@ const OpportunitiesPage: React.FC = () => {
       {showForm && (
         <OpportunityForm
          // opportunity={editingOpportunity}
-          onSubmit={() => console.log("nothing here!")}
+          onSubmit={() => {}}
           onCancel={handleCancelForm}
         />
       )}

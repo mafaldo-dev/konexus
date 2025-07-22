@@ -34,7 +34,6 @@ export async function updateGoalsStatus(goalId: string | number, status: string)
   try {
     const goalRef = doc(db, "Goal", String(goalId))
     await updateDoc(goalRef, { status })
-    console.log(`Meta atualizada, ${goalId} atualizada para ${status}`)
   } catch (Exception) {
     console.error("Erro ao atualizar status do Meta:", Exception)
     alert("Erro ao atualizar o status da Meta no banco de dados.")

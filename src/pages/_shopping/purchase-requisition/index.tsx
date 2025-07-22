@@ -91,9 +91,8 @@ export default function PurchaseManagementScreen() {
 
   const renderPdfToNewWindow = (quotation: PurchaseRequest) => {
     const nota = mapPurchaseRequestToNota(quotation);
-    const htmlContent = renderToStaticMarkup(<DanfeTemplate nota={nota} onDownloadComplete={() => {
-      console.log("Download concnluido!")
-    }} />);
+    const htmlContent = renderToStaticMarkup(<DanfeTemplate nota={nota} 
+      onDownloadComplete={() => {}} />);
 
     const newWindow = window.open();
     if (newWindow) {

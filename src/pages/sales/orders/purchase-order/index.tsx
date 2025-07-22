@@ -71,9 +71,7 @@ export default function OrdersPage() {
         </button>
         <OrderPDF
           order={selectedOrder}
-          onDownloadComplete={() => {
-            console.log("Download finalizado!")
-          }}
+          onDownloadComplete={() => {}}
         />
       </div>
     )

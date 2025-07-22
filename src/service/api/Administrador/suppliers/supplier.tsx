@@ -5,7 +5,6 @@ import { Supplier } from "../../../interfaces"
 export async function insertSupplier (supplier: Supplier) {
     try {
         const docRef = await addDoc(collection(db, "Suppliers"), supplier)
-        console.log("Fornecedor cadastrado com sucesso:", docRef.id)
         return docRef.id
     }catch(Exception) {
         console.error("Erro ao adicionar novo fornecedor: ", Exception)
@@ -18,7 +17,7 @@ export async function updateSupplier (id: string, updateData: any)  {
     try {
         const supplierRef = doc(db, "Suppliers", id)
         await updateDoc(supplierRef, updateData)
-        console.log("Dados do fornecedor atualizados com sucesso!", updateData)
+
     }catch(Exception) {
         console.error("Erro ao atualizar informações do Fornecedor: ", Exception)
         alert("Erro ao atualizar as informaçoes do Fornecedor.")
@@ -52,10 +51,8 @@ export const handleSupplierWithCode = async (code: string) => {
 
     if(!snapshot.empty) {
       const doc = snapshot.docs[0]
-      console.log(doc)
       return { id: doc.id, ...doc.data() }
     }else {
-      console.log("Fornecedor não existe ou não encontrado!")
       return null
     }
   }catch(Exception) {

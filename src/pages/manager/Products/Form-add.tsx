@@ -43,7 +43,7 @@ export default function ProductRegistrationForm() {
       const updated = await getAllProducts();
       setProduct(updated);
     } catch (error) {
-      console.log("Erro ao cadastrar produto: ", error);
+      console.error("Erro ao cadastrar produto: ", error);
       throw new Error("Erro interno do servidor!");
     }
   };

@@ -31,7 +31,6 @@ export const useCampaigns = () => {
     try {
       if (editingCampaign) {
         // Implement updateCampaign later
-        console.log("Update functionality for campaigns not yet implemented.");
       } else {
         await addCampaign({ ...campaignData, createdAt: new Date() });
       }

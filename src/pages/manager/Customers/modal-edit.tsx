@@ -5,7 +5,7 @@ const EditClient = () => {
     const { register, handleSubmit, formState: { errors } } = useForm<Customer>()
 
     const onSubmit: SubmitHandler<Customer> = async (data) => {
-        console.log(data)
+       
     }
     return (
         <div className="modal">

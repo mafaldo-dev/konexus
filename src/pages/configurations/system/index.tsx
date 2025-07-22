@@ -33,7 +33,6 @@ export default function SystemStatusDashboard() {
 
   const renderMessages = (type: StatusMessageType, icon: React.JSX.Element, colorClass: string) => {
     const list = groupedMessages[type];
-    console.log(messages)
     if (list.length === 0) return null;
 
     return (

@@ -76,7 +76,6 @@ export const SystemStatusProvider = ({ children }: { children: ReactNode }) => {
         `Erro global: ${event.message}`,
         `Arquivo: ${event.filename}, Linha: ${event.lineno}, Coluna: ${event.colno}`
       );
-      console.log(event.message)
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {

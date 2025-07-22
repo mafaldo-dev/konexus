@@ -5,7 +5,6 @@ import OrdersList from '../pages/sales/orders/components/orders-list';
 
 import PurchaseOrder from '../pages/sales/orders/purchase-order';
 import NewOrderPage from '../pages/sales/orders/purchase-order/create-order';
-import SearchClientes from '../pages/manager/Customers';
 import SearchProducts from '../pages/manager/Products';
 import SearchSuppliers from '../pages/manager/Suppliers';
 import EmployeeAdministration from '../pages/RH/employees';
@@ -34,6 +33,7 @@ import NotificationPreferences from '../pages/configurations/notifications';
 import UserManagementPage from '../pages/configurations/users&permissions';
 import SystemStatusPage from '../pages/configurations/parametersOfSystem';
 import ReportsDashboard from '../pages/sales/reports';
+import CustomersContent from '../pages/manager/Customers';
 
 
 const AppRoutes = () => {
@@ -95,10 +95,10 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/manager/customers"
+        path="/manager/customer"
         element={
           <DesignationCheck allowed={["Administrador", "Vendedor"]}>
-            <SearchClientes />
+            <CustomersContent />
           </DesignationCheck>
         }
       />
