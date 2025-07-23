@@ -4,6 +4,7 @@ import { Products } from "../../../service/interfaces";
 import { getAllProducts, insertProductComKardex } from "../../../service/api/Administrador/products";
 import { PackagePlus, Save } from "lucide-react";
 import clsx from "clsx";
+import Swal from "sweetalert2";
 
 export default function ProductRegistrationForm() {
   const {
@@ -44,6 +45,7 @@ export default function ProductRegistrationForm() {
       setProduct(updated);
     } catch (error) {
       console.error("Erro ao cadastrar produto: ", error);
+      Swal.fire('Error!', 'Erro ao adicionar o produto a base de dados...', 'error')
       throw new Error("Erro interno do servidor!");
     }
   };

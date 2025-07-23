@@ -1,6 +1,7 @@
-import { collection, addDoc, getDocs, updateDoc, doc, where, query } from "firebase/firestore"
+import { collection, addDoc, getDocs, updateDoc, doc, where, query, deleteDoc } from "firebase/firestore"
 import { db } from "../../../../firebaseConfig"
 import { Supplier } from "../../../interfaces"
+import Swal from "sweetalert2"
 
 export async function insertSupplier (supplier: Supplier) {
     try {
@@ -103,3 +104,29 @@ export async function searchSuppliers(searchTerm: string): Promise<Supplier[]> {
     throw new Error("Erro ao buscar fornecedores");
   }
 }
+
+export const deleteSupplier = async (id: string): Promise<boolean> => {
+  const result = await Swal.fire({
+    title: "Tem certeza?",
+    text: "Deseja excluir este Fornecedor?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Sim, excluir!",
+    cancelButtonText: "Cancelar"
+  });
+
+  if (!result.isConfirmed) return false;
+
+  try {
+    await deleteDoc(doc(db, "Suppliers", id));
+    Swal.fire("Excluído!", "Fornecedor excluído com sucesso.", "success");
+    return true;
+  } catch (error) {
+    console.error("Erro ao deletar Fornecedor: ", error);
+    Swal.fire("Erro!", "Erro ao excluir Fornecedor.", "error");
+    return false;
+  }
+};
+

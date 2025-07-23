@@ -4,7 +4,6 @@ import { Products } from "../../../interfaces";
 import { createKardexEntry } from "../kardex";
 import Swal from "sweetalert2";
 
-
 export async function insertProductComKardex(produto: Products) {
   try {
     // Passo 1: Verifica se já existe um produto com o mesmo código
@@ -29,10 +28,9 @@ export async function insertProductComKardex(produto: Products) {
     return docRef.id;
   } catch (error) {
     console.error("Erro detalhado:", error);
-    throw error; // repassa o erro pro onSubmit
+    
   }
 }
-
 
 export const updateProduct = async (id: string, updatedData: any) => {
   try {
@@ -40,12 +38,9 @@ export const updateProduct = async (id: string, updatedData: any) => {
     await updateDoc(productRef, updatedData)
   } catch (Exception) {
     console.error("Erro ao atualizar o produto:", Exception)
-    alert("Erro ao atualizar informações do item!!! ")
-    throw new Error()
+    Swal.fire('Error', 'Erro ao atualizar as informações do produto', 'error')
   }
 }
-
-
 
 export const handleProductWithCode = async (code: string | number) => {
   try {
@@ -64,7 +59,6 @@ export const handleProductWithCode = async (code: string | number) => {
     throw new Error ("Erro ao buscar produto pelo codigo")
   }
 }
-
 
 export const getAllProducts = async (searchTerm?: string): Promise<Products[] | any> => {
   try {

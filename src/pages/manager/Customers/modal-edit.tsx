@@ -1,99 +1,172 @@
 import { useForm, SubmitHandler } from 'react-hook-form'
 import { Customer } from '../../../service/interfaces'
+import { useEffect, useState } from 'react'
+import { updateCustomer } from '../../../service/api/Administrador/customer/clients'
+import Swal from 'sweetalert2'
 
-const EditClient = () => {
-    const { register, handleSubmit, formState: { errors } } = useForm<Customer>()
+type Props = {
+    customer: Customer | null
+    onClose: () => void
+}
+
+const UpdatedCustomer = ({ customer, onClose }: Props) => {
+    const [render, setRender] = useState<Customer[]>([])
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<Customer>()
+
+    useEffect(() => {
+        if (customer) {
+            reset(customer)
+        }
+    }, [customer, reset])
 
     const onSubmit: SubmitHandler<Customer> = async (data) => {
-       
+        if (!customer?.id) return
+
+        try {
+            await updateCustomer(customer.id, {
+                ...data,
+                updatedAt: new Date()
+            })
+            Swal.fire('Sucesso', 'Informações atualizadas com sucesso!', 'success')
+            onClose()
+        } catch (error) {
+            console.error("Erro ao atualizar as informações do Cliente")
+            Swal.fire('Erro', 'Erro ao atualizar informações.', 'error')
+            throw new Error("Erro interno do servidor")
+        }
     }
+
     return (
-        <div className="modal">
-            <div className="flex mt-42 items-center justify-center m-auto bg-opacity-50 w-screen">
-                <div className="bg-gray-100 p-6 rounded-lg shadow-lg w-9/12">
-                    <h2 className="text-xl text-center font-bold mb-4">informações de contato</h2>
-                    <form onSubmit={handleSubmit(onSubmit)}>
-                        <div className='flex gap-2'>
-                            <div className='w-full'>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+            <div className="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-8 overflow-y-auto max-h-[90vh] animate-fadeIn">
+                {/* Cabeçalho */}
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-3xl font-bold text-gray-800">Editar Cliente</h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-500 hover:text-red-600 text-3xl leading-none"
+                        aria-label="Fechar"
+                    >
+                        &times;
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+                    {/* Dados pessoais */}
+                    <div>
+                        <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Informações Pessoais</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Nome</label>
                                 <input
                                     type="text"
                                     {...register("name", { required: true })}
-                                    placeholder="Nome"
-                                    className="w-full border p-2 mb-2 rounded"
+                                    className="w-full mt-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Nome completo"
                                 />
-                                {errors.name && <span className="text-red-500 text-xs font-medium">Nome é obrigatório</span>}
+                                {errors.name && <p className="text-sm text-red-500 mt-1">Nome é obrigatório</p>}
                             </div>
-                            <div className='w-full'>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">E-mail</label>
                                 <input
-                                    type="text"
+                                    type="email"
                                     {...register("email", { required: true })}
+                                    className="w-full mt-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="E-mail"
-                                    className="w-full border p-2 mb-2 rounded"
                                 />
+                                {errors.email && <p className="text-sm text-red-500 mt-1">E-mail é obrigatório</p>}
                             </div>
-                            <div className='w-full'>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Telefone</label>
                                 <input
                                     type="text"
                                     {...register("phone", { required: true })}
-                                    placeholder="Telefone"
-                                    className="w-full border p-2 mb-2 rounded"
+                                    className="w-full mt-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="(xx) xxxxx-xxxx"
                                 />
-                                {errors.phone && <span className="text-red-500 text-xs font-medium">Telenefone é obrigatório</span>}
+                                {errors.phone && <p className="text-sm text-red-500 mt-1">Telefone é obrigatório</p>}
                             </div>
                         </div>
-                        <h3 className='p-2 text-center font-semibold font-xl'>Informações de Endereço:</h3>
-                        <div className='flex gap-2 w-full'>
-                            <div className='w-full flex'>
+                    </div>
+
+                    {/* Endereço */}
+                    <div>
+                        <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Endereço</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700">Rua</label>
                                 <input
                                     type="text"
                                     {...register("address.street", { required: true })}
-                                    placeholder="Endereço"
-                                    className="w-full border p-2 mb-2 rounded"
+                                    className="w-full mt-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Rua"
                                 />
-                                {errors.address?.street && <span className="text-red-500 text-xs font-medium">Insira uma rua</span>}
+                                {errors.address?.street && <p className="text-sm text-red-500 mt-1">Rua é obrigatória</p>}
                             </div>
-                            <div className='w-2/12 flex justify-end'>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Número</label>
                                 <input
                                     type="text"
                                     {...register("address.number", { required: true })}
-                                    placeholder='Num'
-                                    className='w-full border p-2  mb-2 rounded'
+                                    className="w-full mt-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Número"
                                 />
-                                {errors.address?.number && <span className="text-red-500 text-xs font-medium">Insira uma numero</span>}
+                                {errors.address?.number && <p className="text-sm text-red-500 mt-1">Número é obrigatório</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Cidade</label>
+                                <input
+                                    type="text"
+                                    {...register("address.city", { required: true })}
+                                    className="w-full mt-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Cidade"
+                                />
+                                {errors.address?.city && <p className="text-sm text-red-500 mt-1">Cidade é obrigatória</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Estado</label>
+                                <input
+                                    type="text"
+                                    {...register("address.state", { required: true })}
+                                    className="w-full mt-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Estado"
+                                />
+                                {errors.address?.state && <p className="text-sm text-red-500 mt-1">Estado é obrigatório</p>}
+                            </div>
+                            <div className="md:col-span-3">
+                                <label className="block text-sm font-medium text-gray-700">CEP</label>
+                                <input
+                                    type="text"
+                                    {...register("address.zip_code", { required: true })}
+                                    className="w-full mt-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="00000-000"
+                                />
+                                {errors.address?.zip_code && <p className="text-sm text-red-500 mt-1">CEP é obrigatório</p>}
                             </div>
                         </div>
-                        <div>
-                            <input
-                                type="text"
-                                {...register("address.city", { required: true })}
-                                placeholder="Cidade"
-                                className="w-full border p-2 mb-2 rounded"
-                            />
-                            {errors.address?.city && <span className="text-red-500 text-xs font-medium">Insira uma  cidade</span>}
-                        </div>
-                        <div>
-                            <input
-                                type="text"
-                                {...register("address.state", { required: true })}
-                                placeholder="Estado"
-                                className="w-full border p-2 mb-2 rounded"
-                            />
-                            {errors.address?.state && <span className="text-red-500 text-xs font-medium">Insira uma estado</span>}
-                        </div>
-                        <div>
-                            <input
-                                type="text"
-                                {...register("address.zip_code", { required: true })}
-                                placeholder="Codigo postal"
-                                className="w-full border p-2 mb-2 rounded"
-                            />
-                            {errors.address?.zip_code && <span className="text-red-500 text-xs font-medium">Insira uma CEP</span>}
-                        </div>
-                    </form>
-                </div>
+                    </div>
+
+                    {/* Botões */}
+                    <div className="flex justify-end pt-4 gap-4 border-t mt-8">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-5 py-2 border border-gray-400 text-gray-700 rounded-lg hover:bg-gray-100 transition"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
+                        >
+                            Salvar
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     )
+
 }
 
-export default EditClient
+export default UpdatedCustomer

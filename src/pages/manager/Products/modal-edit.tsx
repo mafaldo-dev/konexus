@@ -1,7 +1,7 @@
 import { useForm, SubmitHandler } from 'react-hook-form'
 import { Products } from '../../../service/interfaces'
-import { useEffect, useState } from 'react'
-import { getAllProducts, updateProduct } from '../../../service/api/Administrador/products'
+import { useEffect } from 'react'
+import { updateProduct } from '../../../service/api/Administrador/products'
 import Swal from 'sweetalert2'
 
 type Props = {
@@ -51,7 +51,6 @@ const UpdadtedProduct = ({ product, onClose }: Props) => {
               &times;
             </button>
           </div>
-
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>

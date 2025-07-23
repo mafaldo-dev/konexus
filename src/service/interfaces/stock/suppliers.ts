@@ -1,5 +1,5 @@
 export interface Supplier {
-  id?: string
+  id?: string | any
   code: string
   name: string
   tradingName?: string
@@ -16,8 +16,8 @@ export interface Supplier {
     zipCode: string 
     uf: string
   };
-  createdAt: Date | string 
-  updatedAt?: Date | string 
+  createdAt: string  | Date
+  updatedAt?: string | Date
   active: boolean 
   deliveryTime:  number
 }

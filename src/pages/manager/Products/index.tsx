@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Products } from "../../../service/interfaces";
-import { deleteProduct, getAllProducts, updateProduct } from "../../../service/api/Administrador/products";
+import { deleteProduct, getAllProducts } from "../../../service/api/Administrador/products";
 
 import Dashboard from "../../../components/dashboard/Dashboard";
 import UpdadtedProduct from "./modal-edit";
@@ -9,13 +9,12 @@ import FormAdd from "./Form-add";
 import { Filter, MapPin, Search, Edit, DeleteIcon } from "lucide-react";
 
 const SearchProducts = () => {
-  const [openRegister, setOpenRegister] = useState(false);
-  const [openEdit, setOpenEdit] = useState(false)
+  const [openRegister, setOpenRegister] = useState<boolean>(false);
+  const [openEdit, setOpenEdit] = useState<boolean>(false)
   const [loading, setLoading] = useState(false);
   const [items, setItem] = useState<Products[]>([]);
-  const [filter, setFilter] = useState<Products[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState<boolean>(false);
   const [currentData, setCurrentData] = useState<Products | null>(null)
 
   const [filters, setFilters] = useState({
@@ -57,7 +56,6 @@ const SearchProducts = () => {
         setLoading(true);
         const data = await getAllProducts();
         setItem(data);
-        setFilter(data);
       } catch (error) {
         console.error("Erro ao recuperar a lista de produtos.", error);
       } finally {
@@ -76,9 +74,15 @@ const SearchProducts = () => {
     }
   }
 
-  const handleEditProduct = async (product: Products) => {
+  const handleEditProduct = (product: Products) => {
     setCurrentData(product)
     setOpenEdit(true)
+  }
+
+  const handleCloseEditModal = async () => {
+    setOpenEdit(false)
+    const reload = await getAllProducts()
+    setItem(reload)
   }
 
   return (
@@ -243,13 +247,13 @@ const SearchProducts = () => {
           <div className="p-6">
             <div className="relative mb-6">
               <button
-                onClick={() => setOpenRegister(false)}
+                onClick={handleCloseEditModal}
                 className="cursor-pointer absolute top-0 right-0 text-gray-500 hover:text-gray-700 text-2xl"
               >
                 &times;
               </button>
             </div>
-            <UpdadtedProduct product={currentData} onClose={() => setOpenEdit(false)} />
+            <UpdadtedProduct product={currentData} onClose={handleCloseEditModal} />
           </div>
         </>
       )}
