@@ -6,6 +6,7 @@ interface TopCustomersPanelProps {
   customers: TopCustomer[]; // Keep this for now, though we might primarily use customerRank
   customerRank: CustomerRank[];
   giftThreshold: number;
+  onCustomerClick?: (customer: TopCustomer) => void;
 }
 
 const TopCustomersPanel: React.FC<TopCustomersPanelProps> = ({ customers, customerRank, giftThreshold }) => {

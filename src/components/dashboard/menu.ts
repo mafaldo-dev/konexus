@@ -18,9 +18,7 @@ export const menuItems = [
         { title: 'Produtos', to: '/manager/products', icon: Package2, access: ['Administrador', 'Vendedor'] },
         { title: 'Clientes', to: '/manager/customer', icon: Users, access: ['Administrador', 'Vendedor'] },
         { title: 'Fornecedores', to: '/manager/suppliers', icon: Truck, access: ['Administrador'] },
-        { title: 'Categorias', to: '/manager/categories', icon: Target, access: ['Administrador', 'Vendedor', 'Conferente', 'Estoquista'] },
-        { title: 'Marcas', to: '/manager/brands', icon: Award, access: ['Administrador', 'Vendedor'] },
-        { title: 'Unidades', to: '/manager/units', icon: Calculator, access: ['Administrador'] }
+        { title: 'Categorias', to: '/manager/categories', icon: Target, access: ['Administrador', 'Vendedor', 'Conferente', 'Estoquista'] }
       ]
     },
     {
@@ -66,7 +64,7 @@ export const menuItems = [
       icon: DollarSign,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Estoquista' ,'Financeiro'],
       submenu: [
-        { title: 'Contas a Pagar', to: '/financeiro/pagar', icon: CreditCard, access: ['Administrador', 'Financeiro'] },
+        { title: 'Contas a Pagar', to: '/financer/payment', icon: CreditCard, access: ['Administrador', 'Financeiro'] },
         { title: 'Contas a Receber', to: '/financeiro/receber', icon: DollarSign, access: ['Administrador', 'Financeiro'] },
         { title: 'Fluxo de Caixa', to: '/financeiro/fluxo', icon: TrendingUp, access: ['Administrador', 'Financeiro'] },
         { title: 'Bancos e Contas', to: '/financeiro/bancos', icon: Building, access: ['Administrador', 'Financeiro'] },

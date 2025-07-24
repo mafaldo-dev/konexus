@@ -1,18 +1,19 @@
 import { SubmitHandler, useForm } from "react-hook-form";
-import { useState } from "react";
 import { Customer } from "../../../service/interfaces";
 import { PackagePlus, Save } from "lucide-react";
-import { handleAllCustomer, insertCustomer } from "../../../service/api/Administrador/customer/clients";
+import { insertCustomer } from "../../../service/api/Administrador/customer/clients";
 
-export default function CustomerRegistrationForm() {
+interface FormAddedProps {
+    onCustomerAdded: () => void
+}
+
+const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded }) => {
     const {
         register,
         handleSubmit,
         reset,
         formState: { errors },
     } = useForm<Customer>()
-
-    const [cutomer, setCustomer] = useState<Customer[]>([]);
 
     const onSubmit: SubmitHandler<Customer> = async (data) => {
         try {
@@ -22,15 +23,13 @@ export default function CustomerRegistrationForm() {
             };
             await insertCustomer(payload);
             reset();
-            const updated = await handleAllCustomer();
-            setCustomer(updated);
+            onCustomerAdded()
         } catch (error) {
             console.error("Erro ao adicionar novo cliente: ", error);
             throw new Error("Erro interno do servidor!");
         }
     };
 
-    // MASKS ON INPUTS PHONE AND ZIP_CODE
     const maskPhone = (value: string) => {
         return value
             .replace(/\D/g, '')
@@ -194,3 +193,5 @@ export default function CustomerRegistrationForm() {
         </form>
     );
 }
+
+export default CustomerRegistrationForm

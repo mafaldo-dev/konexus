@@ -147,8 +147,9 @@ const CustomersContent = () => {
             </div>
 
             {/* Tabela */}
-            <div className="bg-white w-[1400px] rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 400px)", minHeight: "500px" }}>
-              <div className="overflow-x-auto w-full h-full">
+            <div className="bg-white w-[1500px] rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 400px)", minHeight: "500px" }}>
+              <div className="overflow-x-auto h-full">
+                <div className="overflow-y-auto h-full">
                 <table className="w-full">
                   <thead className="bg-slate-800 text-white sticky top-0">
                     <tr>
@@ -200,6 +201,7 @@ const CustomersContent = () => {
                     )}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           </div>
@@ -211,7 +213,12 @@ const CustomersContent = () => {
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-lg w-[full] max-w-[90vw] z-50 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="relative mb-6">
-                <FormAdd />
+                <FormAdd onCustomerAdded={async () => {
+                  const updated = await handleAllCustomer()
+                  setRender(updated)
+                  setAllCustomers(updated)
+                  setOpenRegister(false)
+                }} />
                 <button
                   onClick={() => setOpenRegister(false)}
                   className="cursor-pointer absolute top-0 right-0 text-gray-500 hover:text-gray-700 text-2xl"

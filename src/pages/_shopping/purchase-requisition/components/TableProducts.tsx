@@ -136,9 +136,9 @@ export default function ProductsTable({
                     <span
                       className={`px-2 py-1 rounded text-xs font-semibold ${severityClasses}`}
                     >
-                      {product.quantity} {product.price || 'UN'}
+                      Saldo = {product.quantity}
                     </span>
-                    <span className="text-slate-500 text-xs">/ {product.minimum_stock} min</span>
+                    <span className="text-slate-500 text-xs">| Saldo Min = {product.minimum_stock}</span>
                   </div>
                 </td>
                 <td className="p-3 text-slate-600">{product.supplier}</td>

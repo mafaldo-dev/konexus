@@ -1,12 +1,15 @@
 import { SubmitHandler, useForm } from "react-hook-form";
-import { useState } from "react";
 import { Products } from "../../../service/interfaces";
-import { getAllProducts, insertProductComKardex } from "../../../service/api/Administrador/products";
+import { insertProductComKardex } from "../../../service/api/Administrador/products";
 import { PackagePlus, Save } from "lucide-react";
 import clsx from "clsx";
 import Swal from "sweetalert2";
 
-export default function ProductRegistrationForm() {
+interface FormAddedProps {
+  onProductsAdded: () => void
+}
+
+const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) => {
   const {
     register,
     handleSubmit,
@@ -20,8 +23,6 @@ export default function ProductRegistrationForm() {
       statesWithTax: [],
     },
   })
-
-  const [product, setProduct] = useState<Products[]>([]);
 
   const onSubmit: SubmitHandler<Products> = async (data) => {
     try {
@@ -41,8 +42,7 @@ export default function ProductRegistrationForm() {
       }
       await insertProductComKardex(payload);
       reset();
-      const updated = await getAllProducts();
-      setProduct(updated);
+      onProductsAdded()
     } catch (error) {
       console.error("Erro ao cadastrar produto: ", error);
       Swal.fire('Error!', 'Erro ao adicionar o produto a base de dados...', 'error')
@@ -307,3 +307,5 @@ export default function ProductRegistrationForm() {
     </form>
   );
 }
+
+export default ProductRegistrationForm

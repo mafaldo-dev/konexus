@@ -14,8 +14,10 @@ type Department = 'vendas' | 'marketing' | 'operacoes' | 'financeiro' | 'rh' | s
 interface GoalCardProps {
   goal: GoalsData;
   onEdit: (goal: GoalsData) => void;
-  onDelete: (id: string | number) => void;
-  index: number;
+  onDelete: (id: string | any) => void;
+  isDeleting?: boolean
+  deleteId?: string
+  index: number
 }
 
 const formatValue = (value: number, unit: Unit): string => {

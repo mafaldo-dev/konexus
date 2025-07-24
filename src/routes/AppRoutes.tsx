@@ -13,8 +13,7 @@ import DesignationCheck from '../PermissionCheck';
 import MovementsOnStock from '../pages/stock/movements';
 import Inventory from '../pages/stock/inventory';
 import Categories from '../pages/manager/categories';
-import Brands from '../pages/manager/brands';
-import Units from '../pages/manager/units';
+
 import CompletedSales from '../pages/sales/completed';
 import Commissions from '../pages/RH/commissions';
 import Layout from '../pages/CRM/Layout';
@@ -34,6 +33,7 @@ import UserManagementPage from '../pages/configurations/users&permissions';
 import SystemStatusPage from '../pages/configurations/parametersOfSystem';
 import ReportsDashboard from '../pages/sales/reports';
 import CustomersContent from '../pages/manager/Customers';
+import AccountsPayable from '../pages/financial/PaymentAccounts';
 
 
 const AppRoutes = () => {
@@ -134,6 +134,14 @@ const AppRoutes = () => {
           </DesignationCheck>
         }
       />
+      <Route 
+        path='/financer/payment'
+        element={
+          <DesignationCheck allowed={['Administrador', 'Financeiro','Gerente']}>
+            <AccountsPayable/>
+          </DesignationCheck>
+        }
+      />
       <Route
         path="/rh/employee"
         element={
@@ -171,22 +179,6 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={["Administrador"]}>
             <Categories />
-          </DesignationCheck>
-        }
-      />
-      <Route
-        path="/manager/brands"
-        element={
-          <DesignationCheck allowed={["Administrador"]}>
-            <Brands />
-          </DesignationCheck>
-        }
-      />
-      <Route
-        path="/manager/units"
-        element={
-          <DesignationCheck allowed={["Administrador"]}>
-            <Units />
           </DesignationCheck>
         }
       />

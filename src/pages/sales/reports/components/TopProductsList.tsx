@@ -6,6 +6,7 @@ import { TopProduct } from '..';
 
 interface TopProductsListProps {
   products: TopProduct[]
+  onProductClick?: (product: TopProduct) => void;
 }
 
 const TopProductsList: React.FC<TopProductsListProps> = ({ products }) => {

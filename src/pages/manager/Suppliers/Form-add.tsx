@@ -1,10 +1,14 @@
-import { useForm } from "react-hook-form"
+import { useForm, SubmitHandler } from "react-hook-form"
+
 import { Supplier } from "../../../service/interfaces"
-import { SubmitHandler } from "react-hook-form"
 import { insertSupplier } from "../../../service/api/Administrador/suppliers/supplier"
 import Swal from "sweetalert2"
 
-export default function FormRegisterSupplier () {
+interface FormAddProps {
+    onSupplierAdded: () => void
+}
+
+const FormRegisterSupplier: React.FC<FormAddProps> = ({ onSupplierAdded }) => {
     const { register, handleSubmit, formState: { errors }, reset } = useForm<Supplier>()
 
     const onSubmit: SubmitHandler<Supplier> = async (data) => {
@@ -21,6 +25,7 @@ export default function FormRegisterSupplier () {
             }
             await insertSupplier(supplierData)
             reset()
+           onSupplierAdded()
             Swal.fire('Sucesso!', 'Fornecedor adicionado com sucesso!', 'success')
         } catch (error) {
             console.error("Erro ao cadastrar fornecedor:", error)
@@ -224,3 +229,5 @@ export default function FormRegisterSupplier () {
         </form>
     )
 }
+
+export default FormRegisterSupplier

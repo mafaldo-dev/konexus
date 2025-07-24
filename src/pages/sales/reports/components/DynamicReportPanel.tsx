@@ -4,6 +4,7 @@ import { BarChart2 } from 'lucide-react';
 interface DynamicReportPanelProps {
   title: string;
   data: { [key: string]: any };
+  icon?: 'sales' | 'purchases' | 'products' | 'customers';
 }
 
 const formatKey = (key: string) =>
