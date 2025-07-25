@@ -13,7 +13,6 @@ const SearchSuppliers = () => {
     const [openRegister, setOpenRegister] = useState<boolean>(false)
     const [loading, setLoading] = useState<boolean>(false)
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
-    const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
     const [showFilters, setShowFilters] = useState<boolean>(false)
     const [currentData, setCurrentData] = useState<Supplier | null>(null)
 
@@ -179,7 +178,7 @@ const SearchSuppliers = () => {
                                                 filteredSupplier.map(supplier => (
                                                     <tr
                                                         key={supplier.id}
-                                                        className={`border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${selectedSupplier?.id === supplier.id ? "bg-slate-50 border-slate-300" : ""}`}
+                                                        className={`border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50`}
                                                         style={{ userSelect: "none" }}
                                                     >
                                                         <td className="px-4 py-2">

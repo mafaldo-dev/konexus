@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Branding from "./components/Branding";
 import LoginForm from "./components/LoginForm";
 import useAuthService from "./useAuthService";

@@ -216,7 +216,6 @@ const CustomersContent = () => {
                 <FormAdd onCustomerAdded={async () => {
                   const updated = await handleAllCustomer()
                   setRender(updated)
-                  setAllCustomers(updated)
                   setOpenRegister(false)
                 }} />
                 <button

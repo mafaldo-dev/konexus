@@ -1,6 +1,6 @@
 import { useForm, SubmitHandler } from 'react-hook-form'
 import { Customer } from '../../../service/interfaces'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { updateCustomer } from '../../../service/api/Administrador/customer/clients'
 import Swal from 'sweetalert2'
 
@@ -10,7 +10,6 @@ type Props = {
 }
 
 const UpdatedCustomer = ({ customer, onClose }: Props) => {
-    const [render, setRender] = useState<Customer[]>([])
     const { register, handleSubmit, reset, formState: { errors } } = useForm<Customer>()
 
     useEffect(() => {

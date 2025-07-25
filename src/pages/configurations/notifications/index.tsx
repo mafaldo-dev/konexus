@@ -87,7 +87,7 @@ export default function NotificationPreferences() {
   const [expandedMessage, setExpandedMessage] = useState<string | null>(null);
   const [notificationSound, setNotificationSound] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(
+  const [unreadCount] = useState(
     messages.filter((msg) => !msg.read).length
   );
 

@@ -185,7 +185,7 @@ const SearchProducts = () => {
                         filteredProducts.map(product => (
                           <tr
                             key={product.id}
-                            className={`border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${selectedProduct?.id === product.id ? "bg-slate-50 border-slate-300" : ""}`}
+                            className={`border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50`}
                             style={{ userSelect: "none" }}
                           >
                             <td className="px-4 py-2">
@@ -241,7 +241,7 @@ const SearchProducts = () => {
               <FormAdd onProductsAdded={async () => {
                 const reload = await getAllProducts()
                 setItem(reload)
-                onclose
+                setOpenRegister(false)
               }} />
             </div>
           </div>

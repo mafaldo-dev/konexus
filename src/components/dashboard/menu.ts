@@ -64,15 +64,7 @@ export const menuItems = [
       icon: DollarSign,
       access: ['Administrador', 'Vendedor', 'Conferente', 'Estoquista' ,'Financeiro'],
       submenu: [
-        { title: 'Contas a Pagar', to: '/financer/payment', icon: CreditCard, access: ['Administrador', 'Financeiro'] },
-        { title: 'Contas a Receber', to: '/financeiro/receber', icon: DollarSign, access: ['Administrador', 'Financeiro'] },
-        { title: 'Fluxo de Caixa', to: '/financeiro/fluxo', icon: TrendingUp, access: ['Administrador', 'Financeiro'] },
-        { title: 'Bancos e Contas', to: '/financeiro/bancos', icon: Building, access: ['Administrador', 'Financeiro'] },
-        { title: 'Faturas', to: '/financeiro/faturas', icon: FileText, access: ['Administrador', 'Financeiro'] },
-        { title: 'Conciliação', to: '/financeiro/conciliacao', icon: Calculator, access: ['Administrador', 'Financeiro'] },
-        { title: 'Impostos', to: '/financeiro/impostos', icon: FileBarChart, access: ['Administrador', 'Financeiro'] },
-        { title: 'Centros de Custo', to: '/financeiro/centros-custo', icon: Target, access: ['Administrador', 'Financeiro'] }
-      ]
+        { title: 'Contas a Pagar', to: '/financer/payment', icon: CreditCard, access: ['Administrador', 'Financeiro'] }]
     },
     {
       key: 'rh',

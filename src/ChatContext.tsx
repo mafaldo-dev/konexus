@@ -167,7 +167,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       setUserStatus(currentUser.id, 'Ausente');
     }, 5 * 60 * 1000);
     return () => clearTimeout(timer);
-  }, [currentUser?.id, setUserStatus]);
+  }, [currentUser, setUserStatus]);
 
   useEffect(() => {
     if (!authUser?.id) return;

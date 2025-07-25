@@ -12,7 +12,7 @@ import PositionsAndSalaries from '../pages/RH/positions&salaries';
 import DesignationCheck from '../PermissionCheck';
 import MovementsOnStock from '../pages/stock/movements';
 import Inventory from '../pages/stock/inventory';
-import Categories from '../pages/manager/categories';
+import Categories from '../pages/manager/Categories';
 
 import CompletedSales from '../pages/sales/completed';
 import Commissions from '../pages/RH/commissions';
@@ -33,7 +33,7 @@ import UserManagementPage from '../pages/configurations/users&permissions';
 import SystemStatusPage from '../pages/configurations/parametersOfSystem';
 import ReportsDashboard from '../pages/sales/reports';
 import CustomersContent from '../pages/manager/Customers';
-import AccountsPayable from '../pages/financial/PaymentAccounts';
+import FinancialDashboard from '../pages/Financial';
 
 
 const AppRoutes = () => {
@@ -138,7 +138,7 @@ const AppRoutes = () => {
         path='/financer/payment'
         element={
           <DesignationCheck allowed={['Administrador', 'Financeiro','Gerente']}>
-            <AccountsPayable/>
+            <FinancialDashboard/>
           </DesignationCheck>
         }
       />

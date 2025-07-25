@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Check, X, PackageCheck, PackageX, ChevronDown, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, PackageCheck, PackageX } from 'lucide-react';
 
 interface ReturnItem {
   id: string;

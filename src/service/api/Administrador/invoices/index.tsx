@@ -6,7 +6,7 @@ import { createKardexEntry } from "../kardex";
 export default async function invoiceEntries(invoice: Invoice) {
     try {
         // 1. Adiciona a nota fiscal na coleção "Invoice"
-        const docRef = await addDoc(collection(db, "Invoice"), {
+        await addDoc(collection(db, "Invoice"), {
             ...invoice,
             date: new Date()
         });

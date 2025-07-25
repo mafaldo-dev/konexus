@@ -1,5 +1,5 @@
 
-import { Movement, Products } from "../../../service/interfaces";
+import { Products } from "../../../service/interfaces";
 
 export interface FilterState {
     name: string;
