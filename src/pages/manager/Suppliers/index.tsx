@@ -8,6 +8,8 @@ import FormAdd from './Form-add'
 import EditModal from './modal-edit'
 import { DeleteIcon, Edit, Filter, MapPin, Search } from 'lucide-react'
 
+import { useAuth } from '../../../AuthContext'
+
 const SearchSuppliers = () => {
     const [openEdit, setOpenEdit] = useState<boolean>(false)
     const [openRegister, setOpenRegister] = useState<boolean>(false)
@@ -15,6 +17,7 @@ const SearchSuppliers = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
     const [showFilters, setShowFilters] = useState<boolean>(false)
     const [currentData, setCurrentData] = useState<Supplier | null>(null)
+    const { user } = useAuth()
 
     const [filters, setFilters] = useState({
         name: "",
@@ -201,10 +204,12 @@ const SearchSuppliers = () => {
                                                             {new Date(supplier.createdAt).toLocaleDateString("pt-BR")}
                                                         </td> */}
                                                         <td>
-                                                            <div className="flex">
-                                                                <button onClick={() => handleEditSupplier(supplier)}><Edit className="h-4 text-green-500 hover:scale-110" /></button>
-                                                                <button onClick={() => handleDeleteSupplier(supplier.id)}><DeleteIcon className="h-4 text-red-500 hover:scale-110" /></button>
-                                                            </div>
+                                                            {user?.designation === "Administrador" && (
+                                                                <div className="flex">
+                                                                    <button onClick={() => handleEditSupplier(supplier)}><Edit className="h-4 text-green-500 hover:scale-110" /></button>
+                                                                    <button onClick={() => handleDeleteSupplier(supplier.id)}><DeleteIcon className="h-4 text-red-500 hover:scale-110" /></button>
+                                                                </div>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 ))

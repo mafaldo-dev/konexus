@@ -5,6 +5,7 @@ import UserFormModal from './components/UserFormModal';
 import Dashboard from '../../../components/dashboard/Dashboard';
 import { handleAllEmployee, updatedEmployee } from '../../../service/api/Administrador/employee';
 import { Employee } from '../../../service/interfaces';
+import Swal from 'sweetalert2';
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<Employee[]>([]);
@@ -32,7 +33,7 @@ export default function UserManagementPage() {
 
     try {
       await updatedEmployee(user.id, user);
-      alert("Dados atualizados com sucesso!");
+      Swal.fire("Sucesso...","Informações atualizadas com sucesso!", 'success')
       setIsModalOpen(false);
       fetchUsers(); // Recarrega a lista de usuários
     } catch (Exception) {

@@ -47,7 +47,6 @@ export const RelatoriosTab: React.FC = () => {
         fim = new Date(hoje.getFullYear(), 11, 31)
         break
       case "personalizado":
-        // Mantém as datas atuais
         break
     }
 
@@ -60,12 +59,12 @@ export const RelatoriosTab: React.FC = () => {
   }
 
   const handlePrintReport = () => {
-    const printWindow = window.open("", "_blank")
+    const printWindow = window.open("")
     if (printWindow && reportContainerRef.current) {
       printWindow.document.write(`
         <html>
           <head>
-            <title>Relatório de Fluxo de Caixa</title>
+          <title>Relatorio fluxo de caixa</title>
             <style>
               * {
                 margin: 0;
@@ -83,6 +82,12 @@ export const RelatoriosTab: React.FC = () => {
                 min-height: 100vh;
                 display: flex;
                 flex-direction: column;
+
+                > h1 {
+                  display: flex;
+                  justify-content: center;
+                  font-size: 1.5em;
+                }
               }
               
               .report-container {
@@ -99,17 +104,19 @@ export const RelatoriosTab: React.FC = () => {
               
               .header {
                 display: flex;
-                justify-content: space-between;
-                align-items: center;
+                justify-content: center;
+                align-items: left;
                 border-bottom: 1px solid #ccc;
                 padding-bottom: 12px;
                 margin-bottom: 12px;
+                padding-left: 0;
               }
               
               .header-left {
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                margin-left: 0;
               }
               
               .logo {
@@ -239,7 +246,6 @@ export const RelatoriosTab: React.FC = () => {
                 white-space: nowrap;
               }
               
-              /* Classes específicas para manter compatibilidade com Tailwind */
               .flex {
                 display: flex;
               }
@@ -343,8 +349,7 @@ export const RelatoriosTab: React.FC = () => {
   }
 
   const handleDownloadPDF = () => {
-    // Aqui você implementaria a lógica para gerar PDF
-    // Por exemplo, usando jsPDF ou html2pdf
+    //ADICIONAR FUNCIONALIDADE DE GERAR PDF
     alert("Funcionalidade de download em PDF será implementada em breve!")
   }
 
@@ -413,23 +418,23 @@ export const RelatoriosTab: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Período</label>
-                <Select value={periodoRelatorio}>
-                  <SelectItem value="diario" onClick={() => handlePeriodoChange("diario")}>
+                <select value={periodoRelatorio}  onChange={(e) => setPeriodoRelatorio(e.target.value)}>
+                  <option value="diario">
                     Diário
-                  </SelectItem>
-                  <SelectItem value="semanal" onClick={() => handlePeriodoChange("semanal")}>
+                  </option>
+                  <option value="semanal">
                     Semanal
-                  </SelectItem>
-                  <SelectItem value="mensal" onClick={() => handlePeriodoChange("mensal")}>
+                  </option>
+                  <option value="mensal">
                     Mensal
-                  </SelectItem>
-                  <SelectItem value="anual" onClick={() => handlePeriodoChange("anual")}>
+                  </option>
+                  <option value="anual">
                     Anual
-                  </SelectItem>
-                  <SelectItem value="personalizado" onClick={() => handlePeriodoChange("personalizado")}>
+                  </option>
+                  <option value="personalizado">
                     Personalizado
-                  </SelectItem>
-                </Select>
+                  </option>
+                </select>
               </div>
 
               <div>

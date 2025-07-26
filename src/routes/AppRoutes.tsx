@@ -89,7 +89,7 @@ const AppRoutes = () => {
       <Route
         path="/manager/products"
         element={
-          <DesignationCheck allowed={["Vendedor", "Administrador", "Conferente", "Estoquista"]}>
+          <DesignationCheck allowed={["Vendedor", "Administrador", "Conferente", "Estoquista", "Gestor", "Gerente"]}>
             <SearchProducts />
           </DesignationCheck>
         }
@@ -121,7 +121,7 @@ const AppRoutes = () => {
       <Route
         path="/shopping/invoice-entry"
         element={
-          <DesignationCheck allowed={["Administrador", "Conferente", "Estoquista" ,"Vendedor", "Buyer"]}>
+          <DesignationCheck allowed={["Administrador", "Conferente", "Buyer", "Financeiro"]}>
             <InvoiceEntries />
           </DesignationCheck>
         }
@@ -135,7 +135,7 @@ const AppRoutes = () => {
         }
       />
       <Route 
-        path='/financer/payment'
+        path='/financer/financial'
         element={
           <DesignationCheck allowed={['Administrador', 'Financeiro','Gerente']}>
             <FinancialDashboard/>

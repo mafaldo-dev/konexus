@@ -8,14 +8,18 @@ import EditForm from './modal-edit'
 
 import { Filter, Search, MapPin, Edit, DeleteIcon } from "lucide-react"
 
+import { useAuth } from '../../../AuthContext'
+
 const CustomersContent = () => {
   const [loading, setLoading] = useState(false)
   const [render, setRender] = useState<Customer[]>([])
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [selectedCustomer] = useState<Customer | null>(null)
   const [currentData, setCurrentData] = useState<Customer | null>(null)
   const [allCustomers, setAllCustomers] = useState<Customer[]>([])
   const [openRegister, setOpenRegister] = useState<boolean>(false)
   const [openEditCustomer, setOpenEditCustomer] = useState<boolean>(false)
+
+  const { user } = useAuth()
 
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
@@ -150,57 +154,59 @@ const CustomersContent = () => {
             <div className="bg-white w-[1500px] rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 400px)", minHeight: "500px" }}>
               <div className="overflow-x-auto h-full">
                 <div className="overflow-y-auto h-full">
-                <table className="w-full">
-                  <thead className="bg-slate-800 text-white sticky top-0">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Código</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Nome</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Telefone</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">E-mail</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Estado</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Adicionado Em:</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCustomers.length === 0 ? (
+                  <table className="w-full">
+                    <thead className="bg-slate-800 text-white sticky top-0">
                       <tr>
-                        <td colSpan={9} className="px-6 py-2 text-center text-gray-500">
-                          <div className="flex flex-col items-center gap-2">
-                            <Search className="w-8 h-8 text-gray-400" />
-                            <p className="font-medium">Nenhum Cliente encontrado</p>
-                            <p className="text-sm">Tente ajustar os filtros de busca</p>
-                          </div>
-                        </td>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Código</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Nome</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Telefone</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">E-mail</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Estado</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Adicionado Em:</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"></th>
                       </tr>
-                    ) : (
-                      filteredCustomers.map(customer => (
-                        <tr
-                          key={customer.id}
-                          className={`border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${selectedCustomer?.id === customer.id ? "bg-slate-50 border-slate-300" : ""}`}
-                          style={{ userSelect: "none" }}
-                        >
-                          <td className="px-4 py-2">
-                            <span className="font-mono text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">
-                              {customer.code}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2 text-xs text-gray-700 max-w-xs truncate">{customer.name}</td>
-                          <td className="px-4 py-2 text-sm text-gray-700">{customer.phone}</td>
-                          <td className="px-4 py-2 text-sm text-gray-700">{customer.email}</td>
-                          <td className="px-4 py-2 text-xs text-gray-700 rounded font-medium flex gap-2 items-center">{customer.address.state} <span><MapPin className="h-4" /></span></td>
-                          <td className="px-4 py-2 font-bold text-sm text-slate-800">{new Date(customer.addedAt.seconds * 1000).toLocaleDateString('pt-BR')}</td>
-                          <td>
-                            <div className="flex">
-                              <button onClick={() => handleEditCustomer(customer)}><Edit className="h-4 text-green-500 hover:scale-110" /></button>
-                              <button onClick={() => handleDeleteCustomer(customer.id)}><DeleteIcon className="h-4 text-red-500 hover:scale-110" /></button>
+                    </thead>
+                    <tbody>
+                      {filteredCustomers.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="px-6 py-2 text-center text-gray-500">
+                            <div className="flex flex-col items-center gap-2">
+                              <Search className="w-8 h-8 text-gray-400" />
+                              <p className="font-medium">Nenhum Cliente encontrado</p>
+                              <p className="text-sm">Tente ajustar os filtros de busca</p>
                             </div>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        filteredCustomers.map(customer => (
+                          <tr
+                            key={customer.id}
+                            className={`border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${selectedCustomer?.id === customer.id ? "bg-slate-50 border-slate-300" : ""}`}
+                            style={{ userSelect: "none" }}
+                          >
+                            <td className="px-4 py-2">
+                              <span className="font-mono text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">
+                                {customer.code}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-xs text-gray-700 max-w-xs truncate">{customer.name}</td>
+                            <td className="px-4 py-2 text-sm text-gray-700">{customer.phone}</td>
+                            <td className="px-4 py-2 text-sm text-gray-700">{customer.email}</td>
+                            <td className="px-4 py-2 text-xs text-gray-700 rounded font-medium flex gap-2 items-center">{customer.address.state} <span><MapPin className="h-4" /></span></td>
+                            <td className="px-4 py-2 font-bold text-sm text-slate-800">{new Date(customer.addedAt.seconds * 1000).toLocaleDateString('pt-BR')}</td>
+                            <td>
+                              {user?.designation === 'Administrador' && (
+                                <div className="flex">
+                                  <button onClick={() => handleEditCustomer(customer)}><Edit className="h-4 text-green-500 hover:scale-110" /></button>
+                                  <button onClick={() => handleDeleteCustomer(customer.id)}><DeleteIcon className="h-4 text-red-500 hover:scale-110" /></button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>

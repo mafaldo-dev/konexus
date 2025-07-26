@@ -6,6 +6,8 @@ import Dashboard from "../../../components/dashboard/Dashboard";
 import UpdadtedProduct from "./modal-edit";
 import FormAdd from "./Form-add";
 
+import { useAuth } from '../../../AuthContext'
+
 import { Filter, MapPin, Search, Edit, DeleteIcon } from "lucide-react";
 
 const SearchProducts = () => {
@@ -13,10 +15,9 @@ const SearchProducts = () => {
   const [openEdit, setOpenEdit] = useState<boolean>(false)
   const [loading, setLoading] = useState(false);
   const [items, setItem] = useState<Products[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [currentData, setCurrentData] = useState<Products | null>(null)
-
+  const { user } = useAuth()
   const [filters, setFilters] = useState({
     name: "",
     code: "",
@@ -207,10 +208,12 @@ const SearchProducts = () => {
                               </div>
                             </td>
                             <td>
-                              <div className="flex">
-                                <button onClick={() => handleEditProduct(product)}><Edit className="h-4 text-green-500 hover:scale-110" /></button>
-                                <button onClick={() => handleDeleteProduct(product.id)}><DeleteIcon className="h-4 text-red-500 hover:scale-110" /></button>
-                              </div>
+                              {user?.designation === "Administrador"  && (
+                                <div className="flex">
+                                  <button onClick={() => handleEditProduct(product)}><Edit className="h-4 text-green-500 hover:scale-110" /></button>
+                                  <button onClick={() => handleDeleteProduct(product.id)}><DeleteIcon className="h-4 text-red-500 hover:scale-110" /></button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))

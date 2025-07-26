@@ -1,4 +1,3 @@
-"use client"
 import { forwardRef } from "react"
 import { Building2, Calendar, FileText } from "lucide-react"
 import { formatCurrency, formatDate } from "../../../../utils/formatters"
@@ -130,7 +129,7 @@ export const ReportPreview = forwardRef<HTMLDivElement, ReportPreviewProps>(
 
         {/* Rodapé */}
         <div className="footer border-t border-gray-300 pt-2 mt-2 text-xs text-gray-600 flex justify-between">
-          <div>FinanceHub - Gestão Financeira Empresarial</div>
+          <div>GUIMAN - Sistema integrado</div>
           <div>Confidencial - Uso Interno</div>
         </div>
       </div>

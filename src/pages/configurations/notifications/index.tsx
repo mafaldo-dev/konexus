@@ -95,7 +95,7 @@ export default function NotificationPreferences() {
     // Simulando dados de mensagens mais realistas
 
     const storedSettings = localStorage.getItem('notification_settings');
-    const storedMessages = localStorage.getItem('sector_messages') || 'Nenhuma Notificação de sistema';
+    const storedMessages = localStorage.getItem('sector_messages') || '[]';
     const storedPrefs = JSON.parse(localStorage.getItem('notification_prefs') || '{}');
 
     if (storedSettings) {
