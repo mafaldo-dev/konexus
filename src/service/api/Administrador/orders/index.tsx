@@ -1,12 +1,36 @@
-import { collection, doc, getDoc, updateDoc, addDoc, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, updateDoc, addDoc, getDocs, runTransaction } from "firebase/firestore";
 
-import { createKardexEntry } from "../kardex"; // ajusta pro seu path real
+import { createKardexEntry } from "../kardex"; 
 import { db } from "../../../../firebaseConfig";
 import { Order } from "../../../interfaces";
 
+export async function getNextOrderNumber(): Promise<string> {
+  const counterRef = doc(db, "counters", "Orders");
+  const PREFIX = "PED-"; // Prefixo definido uma única vez
+
+  return await runTransaction(db, async (transaction) => {
+    const counterSnap = await transaction.get(counterRef);
+
+    if (!counterSnap.exists()) {
+      transaction.set(counterRef, { current: 1 });
+      return `${PREFIX}${String(1).padStart(6, "0")}`; // Já retorna formatado
+    }
+
+    const current = counterSnap.data().current || 0;
+    const next = current + 1;
+    transaction.update(counterRef, { current: next });
+
+    return `${PREFIX}${String(next).padStart(6, "0")}`; // Retorna formatado
+  });
+}
+
+
 export async function insertOrder(order: Order) {
   try {
-    // 1. Verifica se todos os produtos existem e têm saldo suficiente
+    // Gera número sequencial
+    const orderNumber = await getNextOrderNumber();
+
+    // Verifica estoque
     for (const item of order.items) {
       if (!item.productId) throw new Error("Produto sem ID!");
 
@@ -25,10 +49,16 @@ export async function insertOrder(order: Order) {
       }
     }
 
-    // 2. Cria a ordem no Firestore
-    const docRef = await addDoc(collection(db, "Orders"), order);
+    // Adiciona o número gerado à ordem
+    const newOrder: Order = {
+      ...order,
+      order_number: orderNumber,
+    };
 
-    // 3. Atualiza estoque e cria entradas no Kardex
+    // Cria documento da ordem
+    const docRef = await addDoc(collection(db, "Orders"), newOrder);
+
+    // Atualiza estoque e cria entradas no Kardex
     for (const item of order.items) {
       const productRef = doc(db, "Stock", item.productId);
       const productSnap = await getDoc(productRef);
@@ -45,7 +75,7 @@ export async function insertOrder(order: Order) {
         "Venda realizada",
         docRef.id,
         order.userId || "sistema",
-        order.order_number
+        String(orderNumber)
       );
     }
 
@@ -59,8 +89,6 @@ export async function insertOrder(order: Order) {
 }
 
 
-
-
 export async function handleAllOrders(searchTerm?: string): Promise<Order[]> {
     try {
         const ordersRef = collection(db, "Orders")
@@ -72,9 +100,9 @@ export async function handleAllOrders(searchTerm?: string): Promise<Order[]> {
         })) as Order[]
         return orders
     } catch (Exception) {
-        console.error("Erro ao recuperar a lista de Funcionarios!", Exception)
+        console.error("Erro ao recuperar a lista de Pedidos", Exception)
         alert("Erro interno do servidor!!!")
-        throw new Error()
+        throw new Error("Erro interno do servidor!!!")
     }
 }
 

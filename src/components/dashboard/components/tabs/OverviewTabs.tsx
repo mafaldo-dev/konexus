@@ -1,4 +1,4 @@
-import type React from "react"
+import React from "react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Cell } from "recharts"
 import { fluxoCaixaData, distribuicaoData } from "../../../../data/mockData"
 import { formatCurrency } from "../../../../utils/formatters"

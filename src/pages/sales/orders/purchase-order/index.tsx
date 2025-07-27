@@ -53,11 +53,12 @@ export default function OrdersPage() {
     Separando: "bg-slate-50 text-slate-700 border-slate-300",
     Finalizado: "bg-emerald-50 text-emerald-800 border-emerald-200",
     Enviado: "bg-indigo-50 text-indigo-800 border-indigo-200",
+    Liberado: "bg-cyan-50 text-blue-800 border-blue-200"
   }
 
   const totalOrders = orders.length
   const totalValue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0)
-  const pendingOrders = orders.filter((order) => order.status === "Pendente").length
+  const pendingOrders = orders.filter((order) => order.status === "Liberado").length
 
   if (selectedOrder) {
     return (
@@ -126,7 +127,7 @@ export default function OrdersPage() {
                 valueColor: "text-slate-800",
               },
               {
-                title: "Pendentes",
+                title: "Liberados",
                 value: pendingOrders,
                 icon: <Clock className="w-8 h-8 text-slate-600" />,
                 bg: "bg-white border-slate-200",

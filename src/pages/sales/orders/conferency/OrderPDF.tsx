@@ -1,10 +1,10 @@
-
+import { useAuth } from '../../../../AuthContext'
+import { Order } from "../../../../service/interfaces"
 
 import { format } from "date-fns"
 import { MapPin, User, Calendar, Phone, CheckSquare, Package } from "lucide-react"
 
 import logo  from "../../../../assets/image/guiman.png"
-import { Order } from "../../../../service/interfaces"
 
 type OrderPDFProps = {
   order: Order
@@ -12,13 +12,16 @@ type OrderPDFProps = {
 }
 
 export default function OrderPDF({ order, onDownloadComplete }: OrderPDFProps) {
+  const { user } = useAuth()
   if (!order) return null
+
 
   const statusColors: Record<Order["status"], string> = {
     Pendente: "bg-amber-50 text-amber-800 border-amber-200",
     Separando: "bg-slate-50 text-slate-700 border-slate-300",
     Finalizado: "bg-emerald-50 text-emerald-800 border-emerald-200",
     Enviado: "bg-indigo-50 text-indigo-800 border-indigo-200",
+    Liberado: "bg-white text-blue-400 border-blue-200"
   }
 
   const handlePrint = () => {
@@ -83,12 +86,14 @@ export default function OrderPDF({ order, onDownloadComplete }: OrderPDFProps) {
       `}</style>
 
       <div className="no-print mb-6 flex justify-end">
-        <button
-          onClick={handlePrint}
-          className="bg-slate-800 hover:bg-slate-900 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 shadow-sm"
-        >
-          Baixar PDF de Separação
-        </button>
+         {(user?.designation === "Administrador" || user?.designation === "Financeiro") && (
+            <button
+              onClick={handlePrint}
+              className="bg-slate-800 hover:bg-slate-900 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 shadow-sm"
+            >
+              Baixar PDF de Separação
+            </button>        
+        )}
       </div>
 
       <div className="print-area print-horizontal bg-white shadow-lg rounded-lg overflow-hidden print:shadow-none print:rounded-none border border-gray-200">

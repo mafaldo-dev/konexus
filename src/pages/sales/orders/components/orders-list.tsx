@@ -1,20 +1,26 @@
 import type React from "react"
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Truck, Package, CheckCircle, Clock, AlertCircle, Eye } from "lucide-react"
-import Dashboard from "../../../../components/dashboard/Dashboard"
+
+import { Order } from "../../../../service/interfaces"
 import { handleAllOrders, updateOrderStatus } from "../../../../service/api/Administrador/orders"
 
-import OrderPDF from "../conferency/OrderPDF"
-import { Order } from "../../../../service/interfaces"
+import { motion } from "framer-motion"
+import { Truck, Package, CheckCircle, Clock, AlertCircle, Eye, Check } from "lucide-react"
+import Dashboard from "../../../../components/dashboard/Dashboard"
 
-type OrderStatus = "Pendente" | "Separando" | "Finalizado" | "Enviado"
+import OrderPDF from "../conferency/OrderPDF"
+
+
+
+type OrderStatus = "Pendente" | "Liberado" |"Separando" | "Finalizado" | "Enviado"
 
 export default function OrderList() {
   const [selectedTab, setSelectedTab] = useState<OrderStatus>("Pendente")
   const [orders, setOrders] = useState<Order[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
+
+
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -49,7 +55,7 @@ export default function OrderList() {
   }
 
   const handleDownloadComplete = () => {
-    if (selectedOrder && selectedOrder.status === "Pendente") {
+    if (selectedOrder && selectedOrder.status === "Liberado") {
       updateOrderStatus(selectedOrder.id, "Separando")
     }
     setSelectedOrder(null)
@@ -60,6 +66,7 @@ export default function OrderList() {
     Separando: "bg-slate-50 text-slate-700 border-slate-300",
     Finalizado: "bg-emerald-50 text-emerald-800 border-emerald-200",
     Enviado: "bg-indigo-50 text-indigo-800 border-indigo-200",
+    Liberado: "bg-cyan-100 text-blue-500 border-blue-200"
   }
 
   const statusIcons: Record<OrderStatus, React.ReactElement> = {
@@ -67,6 +74,7 @@ export default function OrderList() {
     Separando: <Package className="w-4 h-4" />,
     Finalizado: <CheckCircle className="w-4 h-4" />,
     Enviado: <Truck className="w-4 h-4" />,
+    Liberado: <Check className="w-4 h-4" />
   }
 
   const getOrdersByStatus = (status: OrderStatus) => orders.filter((order) => order.status === status)
@@ -106,7 +114,7 @@ export default function OrderList() {
             animate={{ opacity: 1, y: 0 }}
             className="grid grid-cols-2 md:grid-cols-4 gap-4"
           >
-            {(["Pendente", "Separando", "Finalizado", "Enviado"] as OrderStatus[]).map((status) => (
+            {(["Liberado", "Separando", "Finalizado", "Enviado"] as OrderStatus[]).map((status) => (
               <div
                 key={status}
                 className={`shadow-sm border ${statusButtonClass(status)} rounded-lg p-6 text-center transition-all hover:shadow-md`}
@@ -123,7 +131,7 @@ export default function OrderList() {
             <div className="space-y-6">
               {/* Abas */}
               <div className="grid w-full grid-cols-4 bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-                {(["Pendente", "Separando", "Finalizado", "Enviado"] as OrderStatus[]).map((status) => (
+                {(["Liberado", "Separando", "Finalizado", "Enviado"] as OrderStatus[]).map((status) => (
                   <button
                     key={status}
                     onClick={() => setSelectedTab(status)}
@@ -196,7 +204,7 @@ export default function OrderList() {
                               <Eye className="w-4 h-4" /> Ver PDF
                             </button>
 
-                            {selectedTab === "Pendente" && (
+                            {selectedTab === "Liberado" && (
                               <button
                                 className="bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-slate-800 text-sm font-medium transition-colors"
                                 onClick={() => updateOrderStatusInDb(order.id, "Separando")}
@@ -247,6 +255,8 @@ function statusButtonClass(status: OrderStatus) {
       return "bg-emerald-50 text-emerald-800 border-emerald-200"
     case "Enviado":
       return "bg-indigo-50 text-indigo-800 border-indigo-200"
+    case "Liberado":
+      return "bg-cyan-50 text-blue-600 border-blue-200"
     default:
       return "bg-gray-50 text-gray-700 border-gray-200"
   }
@@ -262,6 +272,8 @@ function statusActiveTabClass(status: OrderStatus) {
       return "bg-emerald-50 text-emerald-800 border-b-2 border-emerald-500"
     case "Enviado":
       return "bg-indigo-50 text-indigo-800 border-b-2 border-indigo-500"
+    case "Liberado":
+      return "bg-cyan-50 text-blue-600 border-blue-200"
     default:
       return "bg-gray-50 text-gray-700 border-b-2 border-gray-500"
   }

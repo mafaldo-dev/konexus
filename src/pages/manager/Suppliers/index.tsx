@@ -104,13 +104,15 @@ const SearchSuppliers = () => {
                                         <Filter className="w-4 h-4" />
                                         Filtros
                                     </button>
-                                    <div className="flex flex-col mb-3 cursor-pointer hover:zoonIn">
-                                        <button
-                                            onClick={() => setOpenRegister(true)}
-                                            className="font-semibold pb-1 w-24 mt-3 ml-1 text-2xl text-slate-900 bg-gray-100 hover:bg-gray-200 border rounded-lg w-26 cursor-pointer"
-                                        >+
-                                        </button>
-                                    </div>
+                                    {(user?.designation === "Administrador" || user?.designation === "Gestor" || user?.designation === "Gerente") && (
+                                        <div className="flex flex-col mb-3 cursor-pointer hover:zoonIn">
+                                            <button
+                                                onClick={() => setOpenRegister(true)}
+                                                className="font-semibold pb-1 w-24 mt-3 ml-1 text-2xl text-slate-900 bg-gray-100 hover:bg-gray-200 border rounded-lg w-26 cursor-pointer"
+                                            >+
+                                            </button>
+                                        </div>
+                                    )}
                                     {Object.values(filters).some(f => f !== "") && (
                                         <button
                                             onClick={clearFilters}

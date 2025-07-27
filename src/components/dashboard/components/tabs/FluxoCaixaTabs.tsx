@@ -1,15 +1,16 @@
-import type React from "react"
-import { Download } from "lucide-react"
+import React, { useState } from 'react'
+
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 import { formatCurrency } from "../../../../utils/formatters"
 import { fluxoCaixaProjecaoData } from "../../../../data/mockData"
-import { Button } from "../ui/Button"
-import { Select, SelectItem } from "../ui/Select"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/Card"
 
-
 export const FluxoCaixaTab: React.FC = () => {
+  const [month, setMonth] = useState(6)
+
+  const filteredData = fluxoCaixaProjecaoData.slice(0, month)
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <div className="lg:col-span-3">
@@ -21,7 +22,7 @@ export const FluxoCaixaTab: React.FC = () => {
           <CardContent>
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={fluxoCaixaProjecaoData}>
+                <BarChart data={filteredData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="mes" stroke="#64748b" fontSize={12} />
                   <YAxis stroke="#64748b" fontSize={12} />
@@ -48,15 +49,15 @@ export const FluxoCaixaTab: React.FC = () => {
             <CardTitle>Controles</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Select value="12">
-              <SelectItem value="3">3 meses</SelectItem>
-              <SelectItem value="6">6 meses</SelectItem>
-              <SelectItem value="12">12 meses</SelectItem>
-            </Select>
-            <Button className="w-full bg-transparent" variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Relatório
-            </Button>
+            <select 
+              value={month} 
+              onChange={(e) => setMonth(Number(e.target.value))}
+              className='p-1 cursor-pointer bg-gray-100'
+              >
+              <option value="3">3 meses</option>
+              <option value="6">6 meses</option>
+              <option value="12">12 meses</option>
+            </select>
           </CardContent>
         </Card>
       </div>

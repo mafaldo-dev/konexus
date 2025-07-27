@@ -1,9 +1,6 @@
-"use client"
+import React, { useState } from "react"
 
-import type React from "react"
-import { useState } from "react"
 import { Plus, Edit, Building2, Wallet } from "lucide-react"
-
 
 import { EditAccountForm } from "../forms/EditAccountForm"
 import { AddAccountForm } from "../forms/AddAccountForm"

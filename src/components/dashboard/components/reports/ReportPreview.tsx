@@ -90,7 +90,6 @@ export const ReportPreview = forwardRef<HTMLDivElement, ReportPreviewProps>(
             </div>
           </div>
 
-          {/* Layout de duas colunas */}
           <div className="content flex gap-3 mb-3">
             {/* Detalhamento das Transações */}
             <div className="column w-full">
@@ -126,8 +125,6 @@ export const ReportPreview = forwardRef<HTMLDivElement, ReportPreviewProps>(
             </div>
           </div>
         </div>
-
-        {/* Rodapé */}
         <div className="footer border-t border-gray-300 pt-2 mt-2 text-xs text-gray-600 flex justify-between">
           <div>GUIMAN - Sistema integrado</div>
           <div>Confidencial - Uso Interno</div>

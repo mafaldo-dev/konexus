@@ -1,7 +1,5 @@
-"use client"
+import React, { useEffect, useState } from "react"
 
-import type React from "react"
-import { useState } from "react"
 import { Search, Filter, Plus, MoreHorizontal } from 'lucide-react'
 import { Button } from "../ui/Button"
 import { Input } from "../ui/Input"
@@ -11,10 +9,48 @@ import { Badge } from "../ui/Badge"
 
 import { contasReceber, contasPagar, faturas, pedidos } from "../../../../data/mockData"
 import { formatCurrency, formatDate, getStatusVariant } from "../../../../utils/formatters"
+import { Order } from "../../../../service/interfaces"
+import handleOrderSales from "../../../../service/api/Administrador/financial"
+import { updateOrderStatus } from "../../../../service/api/Administrador/orders"
+import Swal from "sweetalert2"
 
+type OrderStatus = "Pendente" | "Liberado" | "Separando" | "Finalizado" | "Enviado"
 
 export const MovimentacoesTab: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState("contas-receber")
+  const [orders, setOrders] = useState<Order[]>([])
+
+  const handleOrder = async () => {
+    const response = await handleOrderSales()
+    setOrders(response)
+    console.log(response)
+  }
+
+  useEffect(() => {
+    handleOrder()
+  }, [])
+
+  const toggleUpdateStatusOrder = async (orderId: string | number, newStatus: OrderStatus) => {
+    try {
+      const shouldUpdateStatus = newStatus === "Liberado" || newStatus === "Enviado"
+      if (shouldUpdateStatus) {
+        await updateOrderStatus(orderId, newStatus)
+      }
+      const updatedOrders = orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
+      setOrders(updatedOrders)
+    } catch (error) {
+      console.error("Erro ao atualizar o status do Pedido: ", error)
+      Swal.fire("Erro", "Erro ao atualizar status do pedido!", "error")
+    }
+  }
+
+  const statusColors: Record<OrderStatus, string> = {
+    Pendente: "bg-amber-50 text-amber-800 border-amber-200",
+    Separando: "bg-slate-50 text-slate-700 border-slate-300",
+    Finalizado: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    Enviado: "bg-indigo-50 text-indigo-800 border-indigo-200",
+    Liberado: "bg-cyan-100 text-blue-700 border-blue-200"
+  }
 
   return (
     <div className="space-y-6">
@@ -22,37 +58,33 @@ export const MovimentacoesTab: React.FC = () => {
         <div className="flex gap-1 bg-slate-100/50 p-1 rounded-lg">
           <button
             onClick={() => setActiveSubTab("contas-receber")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSubTab === "contas-receber"
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeSubTab === "contas-receber"
                 ? "bg-white shadow-sm text-slate-900"
                 : "text-slate-600 hover:text-slate-900"
-            }`}
+              }`}
           >
             Contas a Receber
           </button>
           <button
             onClick={() => setActiveSubTab("contas-pagar")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSubTab === "contas-pagar"
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeSubTab === "contas-pagar"
                 ? "bg-white shadow-sm text-slate-900"
                 : "text-slate-600 hover:text-slate-900"
-            }`}
+              }`}
           >
             Contas a Pagar
           </button>
           <button
             onClick={() => setActiveSubTab("faturas")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSubTab === "faturas" ? "bg-white shadow-sm text-slate-900" : "text-slate-600 hover:text-slate-900"
-            }`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeSubTab === "faturas" ? "bg-white shadow-sm text-slate-900" : "text-slate-600 hover:text-slate-900"
+              }`}
           >
             Faturas
           </button>
           <button
             onClick={() => setActiveSubTab("pedidos")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSubTab === "pedidos" ? "bg-white shadow-sm text-slate-900" : "text-slate-600 hover:text-slate-900"
-            }`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeSubTab === "pedidos" ? "bg-white shadow-sm text-slate-900" : "text-slate-600 hover:text-slate-900"
+              }`}
           >
             Pedidos
           </button>
@@ -239,37 +271,37 @@ export const MovimentacoesTab: React.FC = () => {
                   <TableHead>Número</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Produto/Serviço</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Data</TableHead>
+                  <TableHead>Forma de pagamento</TableHead>
+                  <TableHead>Total</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-20">{''}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pedidos.map((pedido: any) => (
-                  <TableRow key={pedido.id}>
+                {orders.map((order) => (
+                  <TableRow key={order.id}>
                     <TableCell>
-                      <p className="font-mono font-medium text-slate-900">{pedido.numero}</p>
+                      <p className="font-mono font-medium text-slate-900">{order.order_number}</p>
                     </TableCell>
                     <TableCell>
-                      <p className="font-medium">{pedido.cliente}</p>
+                      <p className="font-medium">{order.customer_name}</p>
                     </TableCell>
                     <TableCell>
-                      <p className="text-sm text-slate-600">{pedido.produto}</p>
+                      <p className="text-sm text-slate-600">{order.items.length}</p>
                     </TableCell>
                     <TableCell>
-                      <p className="font-semibold">{formatCurrency(pedido.valor)}</p>
+                      <p className="font-semibold">{order.payment_methods}</p>
                     </TableCell>
                     <TableCell>
-                      <p className="text-sm">{formatDate(pedido.data)}</p>
+                      <p className="text-sm">{order.total_amount}</p>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusVariant(pedido.status)} className="capitalize">
-                        {pedido.status}
+                      <Badge className={`capitalize ${statusColors[order.status]}`}>
+                        {order.status}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm">
+                      <Button onClick={() => toggleUpdateStatusOrder(order.id, "Liberado")} variant="ghost" size="sm">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </TableCell>

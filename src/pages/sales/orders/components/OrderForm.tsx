@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { Trash2, Package, User, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, addDays } from "date-fns";
 
 import { useNavigate } from "react-router-dom";
-import { insertOrder } from "../../../../service/api/Administrador/orders";
+import { getNextOrderNumber, insertOrder } from "../../../../service/api/Administrador/orders";
 import { Order } from "../../../../service/interfaces/sales/orders";
 
 import { ProductsProps } from "../../../../service/interfaces";
@@ -15,13 +15,31 @@ type FormValues = Omit<Order, "items" | "userId" | "total_amount" | "order_numbe
   total_amount?: number;
 };
 
+
 export default function OrderForm() {
   const [products, setProducts] = useState<ProductsProps[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  // Gera o número do pedido uma única vez ao montar o componente
-  const [orderNumber] = useState(() => `PED-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
+
+  const [orderNumber, setOrderNumber] = useState<string>("Carregando...");
+
+  const initializeOrderNumber = async () => {
+    const savedNumber = sessionStorage.getItem('currentOrderNumber');
+
+    if (savedNumber) {
+      setOrderNumber(savedNumber);
+    } else {
+      // Agora getNextOrderNumber já retorna "PED-000123" formatado
+      const fullOrderNumber = await getNextOrderNumber();
+      sessionStorage.setItem('currentOrderNumber', fullOrderNumber);
+      setOrderNumber(fullOrderNumber);
+    }
+  };
+
+  useEffect(() => {
+    initializeOrderNumber()
+  },[])
 
   const {
     productCode,
@@ -48,6 +66,7 @@ export default function OrderForm() {
       order_date: format(new Date(), "yyyy-MM-dd"),
       delivery_date: format(addDays(new Date(), 7), "yyyy-MM-dd"),
       status: "Pendente",
+      payment_methods: ["Boleto"],
       notes: "",
     },
   });
@@ -79,6 +98,7 @@ export default function OrderForm() {
       };
 
       await insertOrder(orderData);
+      sessionStorage.removeItem('currentOrderNumber');
       navigate("/sales/orders");
     } catch (err) {
       console.error("Erro ao criar pedido:", err);
@@ -95,6 +115,7 @@ export default function OrderForm() {
       .replace(/(-\d{4})\d+?$/, "$1");
   };
 
+  const paymentOptions = ["Pix", "Boleto", "Cartão Crédito", "Cartão Débito"];
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
@@ -139,6 +160,26 @@ export default function OrderForm() {
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
                   />
                   {errors.delivery_date && <p className="text-red-600 text-sm mt-1">{errors.delivery_date.message}</p>}
+                </div>
+                <div className="flex flex-col">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                    Forma de Pagamento *
+                  </label>
+                  <select
+                    {...register("payment_methods", { required: "Forma de pagamento é obrigatória" })}
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors"
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Selecione a forma de pagamento</option>
+                    {paymentOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.payment_methods && (
+                    <p className="text-red-600 text-sm mt-1">{errors.payment_methods.message}</p>
+                  )}
                 </div>
               </div>
             </div>

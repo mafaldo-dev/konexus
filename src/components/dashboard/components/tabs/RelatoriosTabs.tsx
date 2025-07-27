@@ -1,11 +1,7 @@
-"use client"
-
-import type React from "react"
-import { useState, useRef } from "react"
+import React, { useState, useRef } from "react"
 import { Printer, Download, FileText } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/Card"
 import { Button } from "../ui/Button"
-import { Select, SelectItem } from "../ui/Select"
 import { DatePicker } from "../ui/DatePicker"
 import { Badge } from "../ui/Badge"
 import { Modal } from "../ui/Modal"
@@ -353,12 +349,10 @@ export const RelatoriosTab: React.FC = () => {
     alert("Funcionalidade de download em PDF será implementada em breve!")
   }
 
-  // Filtrar transações pelo período selecionado
   const transacoesFiltradas = transacoesFluxoCaixa.filter((transacao: any) => {
     const [ano, mes, dia] = transacao.data.split("-").map(Number)
-    const dataTransacao = new Date(ano, mes - 1, dia) // Mês em JS é 0-indexed
+    const dataTransacao = new Date(ano, mes - 1, dia) 
 
-    // Resetar horas para comparação apenas por data
     const dataInicio = new Date(dataInicioRelatorio)
     dataInicio.setHours(0, 0, 0, 0)
 
@@ -368,7 +362,6 @@ export const RelatoriosTab: React.FC = () => {
     return dataTransacao >= dataInicio && dataTransacao <= dataFim
   })
 
-  // Calcular totais para o relatório
   const totalEntradas = transacoesFiltradas.filter((t:any) => t.tipo === "entrada").reduce((sum:any, t:any) => sum + t.valor, 0)
   const totalSaidas = transacoesFiltradas.filter((t:any) => t.tipo === "saida").reduce((sum:any, t:any) => sum + t.valor, 0)
   const saldoPeriodo = totalEntradas - totalSaidas

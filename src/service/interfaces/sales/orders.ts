@@ -8,6 +8,8 @@ export interface OrderItem {
   location: string
 }
 
+type PaymentMethods = "Pix" | "Boleto" | "Cartão Credito" | "Cartao Debito"
+
 export interface Order {
   id?: string | any;
   userId: string
@@ -18,8 +20,9 @@ export interface Order {
   salesperson: string;
   order_date: string | Date | any;
   total_amount: number | any;
-  status: "Pendente" | "Separando" | "Finalizado" | "Enviado";
+  status: "Pendente" | "Liberado" |"Separando" | "Finalizado" | "Enviado";
   items: OrderItem[];
   notes: string
   delivery_date: string
+  payment_methods: PaymentMethods[]
 }
