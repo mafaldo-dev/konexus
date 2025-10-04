@@ -1,5 +1,5 @@
 {
-  "name": "guiman",
+  "name": "konexus",
   "version": "1.0.4",
   "private": true,
   "homepage": "./",
@@ -13,7 +13,6 @@
     "electron-log": "^5.4.1",
     "electron-updater": "^6.6.2",
     "eslint-config-react-app": "^7.0.1",
-    "firebase": "^11.8.1",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.518.0",
@@ -41,7 +40,7 @@
   },
   "build": {
     "appId": "com.guilherme.keppler",
-    "productName": "GUIMAN",
+    "productName": "Konexus",
     "asar": true,
     "extends": null,
     "publish": [
@@ -80,7 +79,7 @@
       "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "GUIMAN"
+      "shortcutName": "Konexus"
     }
   },
   "browserslist": {

@@ -352,7 +352,7 @@ export default function DanfeTemplate({ nota, onDownloadComplete }: DanfeTemplat
                 <Cell label="NOME/RAZÃO SOCIAL" colSpan={2} className="text-left font-semibold">
                   {nota.destinatario?.nome}
                 </Cell>
-                <Cell label="CNPJ/CPF">{nota.destinatario?.cnpjCpf}</Cell>
+                <Cell label="CNPJ/CPF">{nota.destinatario?.national_register_code}</Cell>
                 <Cell label="DATA DA EMISSÃO">{formatDateSimple(nota.dataEmissao)}</Cell>
               </Row>
               <Row>

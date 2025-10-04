@@ -66,7 +66,7 @@ const UpdatedSupplierForm = ({ supplier, onClose }: Props) => {
               <label className="block text-sm font-medium text-gray-700">CNPJ</label>
               <input
                 type="text"
-                {...register("cnpj")}
+                {...register("national_register_code")}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm"
               />
             </div>
@@ -85,7 +85,7 @@ const UpdatedSupplierForm = ({ supplier, onClose }: Props) => {
             <label className="block text-sm font-medium text-gray-700">Nome Fantasia</label>
             <input
               type="text"
-              {...register("tradingName")}
+              {...register("trading_name")}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm"
             />
           </div>
@@ -108,7 +108,7 @@ const UpdatedSupplierForm = ({ supplier, onClose }: Props) => {
               />
             </div>
           </div>
-
+              {/*
           <div className="border-t pt-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Endereço</h3>
 
@@ -185,6 +185,7 @@ const UpdatedSupplierForm = ({ supplier, onClose }: Props) => {
               </div>
             </div>
           </div>
+          */}
 
           <div className="flex justify-end gap-3">
             <button

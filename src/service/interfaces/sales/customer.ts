@@ -5,11 +5,12 @@ export interface Customer {
     email: string;
     code: string
     address: {
-        state?: string;
+        id?:  string | number
         city: string;
-        number: string
+        number: number
         street: string;
-        zip_code: string;
+        zip: string;
+        type: 'shipping' | 'billing';
     }
-    addedAt: string | any
+    createdAt: string | any
 }

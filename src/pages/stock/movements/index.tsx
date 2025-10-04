@@ -2,7 +2,7 @@ import type React from "react";
 import { useState, useEffect, useMemo } from "react";
 import Dashboard from "../../../components/dashboard/Dashboard";
 import { ContextMenuPosition, FilterState, ReportConfig } from "./movementsType";
-import { getAllProducts } from "../../../service/api/Administrador/products";
+import { handleAllProducts } from "../../../service/api/Administrador/products";
 import { getKardexMovements } from "../../../service/api/Administrador/kardex";
 import Header from "./components/Header";
 import FilterBar from "./components/FilterBar";
@@ -56,8 +56,9 @@ export default function ProfessionalProductList() {
 
     const getProducts = async () => {
         try {
-            const response = await getAllProducts();
+            const response = await handleAllProducts();
             setProducts(response);
+            console.log(response)
         } catch (error) {
             console.error("Erro ao recuperar a lista de produtos!", error);
             throw new Error("Erro interno do servidor");
@@ -95,7 +96,6 @@ export default function ProfessionalProductList() {
                 product.code.toLowerCase().includes(filters.code.toLowerCase()) &&
                 (product.brand?.toLowerCase() || '').includes(filters.brand.toLowerCase()) &&
                 product.description.toLowerCase().includes(filters.description.toLowerCase()) &&
-                product.supplier.toLowerCase().includes(filters.supplier.toLowerCase()) &&
                 (product.category?.toLowerCase() || '').includes(filters.category.toLowerCase())
             );
         });
@@ -162,7 +162,7 @@ export default function ProfessionalProductList() {
             if (reportConfig.includeName) row.Nome = product.name;
             if (reportConfig.includeDescription) row.Descrição = product.description;
             if (reportConfig.includeBrand) row.Marca = product.brand;
-            if (reportConfig.includeSupplier) row.Fornecedor = product.supplier;
+            if (reportConfig.includeSupplier) row.Fornecedor = product.supplier_id;
             if (reportConfig.includeCategory) row.Categoria = product.category;
             if (reportConfig.includePrice) row.Preço = `R$ ${product.price}`;
             if (reportConfig.includeStock) row.Estoque = product.minimum_stock;

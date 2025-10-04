@@ -1,18 +1,18 @@
 import { handleAllOrders } from '../orders/index';
-import { getAllProducts } from '../products/index';
+import { handleAllProducts } from '../products/index';
 
 import { SalesReport, PurchaseReport, TopCustomer, CustomerRank } from '../../../interfaces/reports';
-import { Order,  Customer } from '../../../interfaces';
-import { handleAllCustomer } from '../customer/clients';
+import { Customer, OrderResponse } from '../../../interfaces';
+import { handleAllCustomers } from '../customer/clients';
 import { TopProduct } from '../../../../pages/sales/reports';
 
 
 export const getSalesReports = async (): Promise<SalesReport> => {
-  const orders: Order[] = await handleAllOrders();
+  const orders: OrderResponse[] = await handleAllOrders();
   if (!orders || orders.length === 0) {
     return { totalSales: 0, numberOfOrders: 0, averageOrderValue: 0 };
   }
-  const totalSales = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+  const totalSales = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
   const numberOfOrders = orders.length;
   const averageOrderValue = numberOfOrders > 0 ? totalSales / numberOfOrders : 0;
 
@@ -33,7 +33,7 @@ export const getPurchaseReports = async (): Promise<PurchaseReport> => {
 
 export const getTopProducts = async (): Promise<TopProduct[]> => {
   // Buscar produtos (ou pedidos) completos
-  const products = await getAllProducts(); // Suponho que retorne um array com objetos do tipo correto
+  const products = await handleAllProducts(); // Suponho que retorne um array com objetos do tipo correto
   if (!products) return [];
 
   // Transformar para TopProduct[] (ou filtrar os campos desejados)
@@ -54,9 +54,9 @@ export const getTopProducts = async (): Promise<TopProduct[]> => {
 };
 
 
-export const getTopCustomers = async (): Promise<TopCustomer[]> => {
-  const orders: Order[] = await handleAllOrders();
-  const clients: Customer[] = await handleAllCustomer();
+export const getTopCustomers = async (customer: string): Promise<TopCustomer[]> => {
+  const orders: OrderResponse[] = await handleAllOrders();
+  const clients: Customer[] = await handleAllCustomers();
 
   if (!orders || !clients) return [];
 
@@ -64,8 +64,8 @@ export const getTopCustomers = async (): Promise<TopCustomer[]> => {
 
   for (const order of orders) {
     // Assuming customer_name is the identifier
-    if (order.customer_name && order.total_amount) {
-      customerSpending[order.customer_name] = (customerSpending[order.customer_name] || 0) + order.total_amount;
+    if (order.customer.name && order.totalAmount) {
+      customerSpending[order.customer.name] = (customerSpending[order.customer.name] || 0) + order.totalAmount;
     }
   }
 
@@ -79,6 +79,7 @@ export const getTopCustomers = async (): Promise<TopCustomer[]> => {
 
   return topCustomers;
 };
+{/*
 
 export const getCustomerRank = async (): Promise<CustomerRank[]> => {
   const topCustomers = await getTopCustomers();
@@ -89,3 +90,4 @@ export const getCustomerRank = async (): Promise<CustomerRank[]> => {
     totalSpent: customer.totalSpent,
   }));
 };
+*/}

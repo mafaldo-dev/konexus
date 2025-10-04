@@ -19,9 +19,10 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
         try {
             const payload: Customer = {
                 ...data,
-                addedAt: new Date(),
+                createdAt: new Date(),
             };
             await insertCustomer(payload);
+            console.log(payload)
             reset();
             onCustomerAdded()
         } catch (error) {
@@ -107,18 +108,6 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
                     {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>}
                 </div>
 
-                {/* Estado */}
-                <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Estado *</label>
-                    <input
-                        type="text"
-                        {...register("address.state", { required: "Adicione um estado ao cliente" })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Ex: São paulo"
-                    />
-                    {errors.address?.state && <p className="text-red-600 text-sm mt-1">{errors.address?.state.message}</p>}
-                </div>
-
                 {/* Cidade */}
                 <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">Cidade *</label>
@@ -159,7 +148,7 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
                 <div>
                     <label className="block text-sm font-semibold text-gray-600 mb-1">CEP *</label>
                     <input
-                        {...register("address.zip_code",
+                        {...register("address.zip",
                             {
                                 required: "Adicione um CEP ao cliente",
                                 onChange: (e) => {
@@ -169,7 +158,7 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
                         className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         placeholder="Ex: XXXXX-XXX"
                     />
-                    {errors.address?.zip_code && <p className="text-red-600 text-sm mt-1">{errors.address?.zip_code.message}</p>}
+                    {errors.address?.zip && <p className="text-red-600 text-sm mt-1">{errors.address?.zip.message}</p>}
                 </div>
             </div>
 

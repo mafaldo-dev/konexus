@@ -57,7 +57,7 @@ const ProductTable: React.FC<ProductTableProps> = ({ products, selectedProduct, 
                                     <td className="px-4 py-2 font-semibold text-sm text-gray-900">{product.name}</td>
                                     <td className="px-4 py-2 text-xs text-gray-700 max-w-xs truncate">{product.description}</td>
                                     <td className="px-4 py-2 text-sm text-gray-700">{product.brand}</td>
-                                    <td className="px-4 py-2 text-sm text-gray-700">{product.supplier}</td>
+                                    <td className="px-4 py-2 text-sm text-gray-700">{product.supplier_id}</td>
                                     <td className="px-4 py-2">
                                         <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-medium">
                                             {product.category}

@@ -1,67 +1,77 @@
-import { collection, getDocs, addDoc, query, where, doc, updateDoc } from "firebase/firestore"
-import { db } from "../../../../firebaseConfig"
+import { apiRequest } from "../../api"
 import { Employee } from "../../../interfaces"
+import Swal from "sweetalert2"
 
 
+// Inserir novo colaborador
 export async function insertEmployee(employee: Employee) {
+  const token: any = localStorage.getItem("token")
+
   try {
-    const docRef = await addDoc(collection(db, "Employee"), employee)
-    return docRef.id
-  } catch (Exception) {
-    console.error("Erro ao realizar cadastro do Colaborador", Exception)
-    alert("Erro ao adicionar o COLABORADOR a base de dados!!!")
-    throw new Error("Erro interno do servidor!")
-  }
-}
-
-export async function handleAllEmployee(searchTerm?: string): Promise<Employee[]> {
-    try {
-        const employeeRef = collection(db, "Employee")
-        const snapshot = await getDocs(employeeRef)
-
-        const employee: Employee[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-        })) as Employee[]
-        return employee
-    } catch (Exception) {
-        console.error("Erro ao recuperar a lista de Funcionarios!", Exception)
-        alert("Erro interno do servidor!!!")
-        throw new Error("Erro interno do servidor!")
+    const response = await apiRequest("employee/create", "POST", employee, token)
+    console.log(response)
+    if (!response.ok) {
+      return null
     }
-}
-
-export const updatedEmployee = async (id: string, updatedData: any) => {
-  try {
-    const employeeRef = doc(db, "Employee", id)
-    await updateDoc(employeeRef, updatedData)
-  } catch (Exception) {
-    console.error("Erro ao atualizar os dados do colaborador:", Exception)
-    alert("Erro ao atualizar informações do colaborador!!! ")
-    throw new Error("Erro interno do servidor!")
-  }
-}
-
-export async function handleDesignations(designation?: string): Promise<Employee[]> {
-  try {
-    const employeeRef = collection(db, "Employee")
-    
-    // Se tiver filtro, monta query com where
-    const q = designation
-      ? query(employeeRef, where("designation", "==", designation))
-      : employeeRef
-
-    const snapshot = await getDocs(q)
-
-    const employees: Employee[] = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Employee[]
-
-    return employees
+    return response
   } catch (error) {
-    console.error("Erro ao recuperar a lista de Funcionarios!", error)
-    alert("Erro interno do servidor!!!")
-    throw new Error("Erro interno do servidor!")
+    console.error("Erro ao realizar cadastro do Colaborador", error)
+    Swal.fire("Alert", "Erro ao adicionar novo colaborador!", "error")
   }
 }
+
+// Buscar todos os colaboradores (com ou sem termo de pesquisa)
+export async function handleAllEmployee(token?: string): Promise<Employee[] | any> {
+  try {
+    const response = await apiRequest(`employee/all`, "GET", undefined, token);
+    const employee = response.data
+
+    if (typeof employee === 'object' && !Array.isArray(employee.data)) {
+      return [employee]
+    }
+
+
+
+  } catch (err) {
+    console.error("Erro ao recuperar a lista de Funcionários!", err);
+    Swal.fire("Erro", "Erro interno do servidor!", "error");
+  }
+  return []
+}
+export async function designation(token?: string) {
+  try {
+    const response = await apiRequest("employee/all", "GET", undefined, token);
+    const employees = response.data;
+
+    const grouped = employees.reduce((acc: any, emp: any) => {
+      const key = emp.sector || emp.designation || "Sem função";
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(emp);
+      return acc;
+    }, {});
+
+    const countsArray = Object.entries(grouped).map(([key, value]) => ({
+      designation: key,
+      count: (value as any[]).length
+    }));
+
+
+    return countsArray;
+  } catch (err) {
+    console.error("Erro ao recuperar designações:", err);
+    return {};
+  }
+}
+
+// Atualizar colaborador
+export const updatedEmployee = async (id: string, updatedData: Partial<Employee>) => {
+  //const token: any = localStorage.getItem("token")
+  //try {
+  // await apiRequest(`employee/${id}`, "PUT", updatedData, token)
+  //} catch (error) {
+  // console.error("Erro ao atualizar os dados do colaborador:", error)
+  // alert("Erro ao atualizar informações do colaborador!!!")
+  //throw new Error("Erro interno do servidor!")
+  // }
+}
+

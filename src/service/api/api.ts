@@ -1,65 +1,64 @@
-// import { db } from "../../firebaseConfig";
-// import { collection } from "firebase/firestore"
-// import { Login } from "../../utils/login";
+export const apiRequest = async <T = any>(
+  endpoint: string,
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  body?: any,
+  token?: string
+): Promise<T | null> => {
+  const url = `http://localhost:3010/${endpoint}`;
 
-// export const apiRequest = async (
-//     endpoint: string,
-//     method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-//     body?: any,
-//     token?: string | any,
-// ) => {
-//     const url = `http://localhost:3001/${endpoint}`;
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
 
-//     try {
-//         // SALVA NA VARIAVEL HEADERS O FORMATO DA REQUISIÇÃO 
-//         const headers: Record<string, string> = {
-//             "Content-Type": "application/json",
-//         };
-//         // FAZ A PASSAGEM DO TOKEN NO HEADERS PRA AUTENTICAÇAO
-//         if (token) {
-//             headers["Authorization"] = `Bearer ${token}`; // Garante que o token seja enviado corretamente
-//         }
-//         //DEFINI O QUE VAI SER PASSADO NA REQUISIÇÃO
-//         const options: RequestInit = {
-//             method,
-//             headers,
-//         };
-// // VERIFICA O METODO QUE ESTA SENDO PASSADO E SO EXIGE BODY CASO ATENDA O QUE FOI SETADO
-//         if (body && (method === "POST" || method === "PUT")) {
-//             options.body = JSON.stringify(body);
-//         }
-//         // PEGA A RESPOSTA DA REQUISIÇÃO
-//         const response = await fetch(url, options);
-
-// // VERIFICA SI OS ENDPOINTS ESTAO CORRETOS E FUNCIONANDO CASO CONTRARIO RETORNA STATUS 500
-//         if (!response.ok) {
-//             const errorDetails = await response.text();
-//             console.error(`Erro na API (${endpoint}):`, response.status, errorDetails);
-//             throw new Error(`Erro na requisição ${endpoint}: ${response.statusText}`);
-//         }
-
-//         return await response.json();
-//     } catch (error) {
-//         console.error(`Erro ao acessar a API (${endpoint}):`, error);
-//         return null;
-//     }
-// };
-
-
-// Request information about the logged user in the database
-
-// export const handleLogin = async(username: string, password: string)=> {
-//     try {
-//         const adminsRef = collection(db, "adm");
-        
-//         console.log("Logado com sucesso", username)
-
-        
+    // 🔁 CORREÇÃO CRÍTICA: Pega o token do localStorage de forma SÍNCRONA
+    const authToken = token || localStorage.getItem('token');
     
-//     }catch(exe){
-//         //console.error("Erro ao recuperar dados do servidor.")
-//         return null
-//     }
-// }
+    //console.log('🔐 Token encontrado:', authToken ? 'SIM' : 'NÃO'); // 🔁 DEBUG
+    
+    if (authToken && authToken !== 'null' && authToken !== 'undefined') {
+      // 🔁 Remove aspas e espaços extras
+      const cleanToken = authToken.replace(/^["']|["']$/g, '').trim();
+      headers['Authorization'] = `Bearer ${cleanToken}`;
+      //console.log('✅ Token enviado no header'); // 🔁 DEBUG
+    } else {
+      console.warn('❌ Token não disponível para envio'); // 🔁 DEBUG
+    }
 
-export {}
+    const options: RequestInit = {
+      method,
+      headers,
+    };
+
+    if (body && (method === 'POST' || method === 'PUT')) {
+      options.body = JSON.stringify(body);
+    }
+
+    //console.log('📤 Requisição para:', url, { headers, method }); // 🔁 DEBUG
+
+    const response = await fetch(url, options);
+
+    //console.log('📥 Resposta:', response.status, response.statusText); // 🔁 DEBUG
+
+    if (response.status === 403) {
+      const errorText = await response.text();
+      console.error('❌ 403 - Acesso negado:', errorText);
+      
+      // Limpa token inválido
+      localStorage.removeItem('token');
+      localStorage.removeItem('userData');
+      
+      throw new Error('Token inválido ou expirado. Faça login novamente.');
+    }
+
+    if (!response.ok) {
+      const errorDetails = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorDetails}`);
+    }
+
+    return await response.json();
+  } catch (err) {
+    console.warn(`Erro na API (${endpoint}):`, err);
+    throw err;
+  }
+};

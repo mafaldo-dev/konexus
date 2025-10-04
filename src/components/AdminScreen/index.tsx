@@ -1,21 +1,20 @@
 import React, { useEffect, useState, useMemo } from "react"
 
 import { Products, Customer, Employee } from "../../service/interfaces"
-import { getAllProducts } from "../../service/api/Administrador/products"
-import { handleAllCustomer } from "../../service/api/Administrador/customer/clients"
-import { handleAllEmployee, handleDesignations } from "../../service/api/Administrador/employee"
+import { handleAllProducts } from "../../service/api/Administrador/products"
+import { handleAllCustomers } from "../../service/api/Administrador/customer/clients"
+import { designation, handleAllEmployee } from "../../service/api/Administrador/employee"
 
 import Dashboard from "../dashboard/Dashboard"
 
 import TableProducts from "./components/table-products"
-import TabsComponent from "./components/Tabs-Component"
 
 const AdministrationScreen = () => {
   const [remember, setRemembers] = useState(localStorage.getItem("remember") || "")
   const [rememberTitle, setRememberTitle] = useState(localStorage.getItem("RememberTitle") || "")
 
   const [products, setProducts] = useState<Products[]>([])
-  const [customer, setCustomer] = useState<Customer[]>([])
+  const [customer, setCustomer] = useState<Customer[] | any>([])
   const [employee, setEmployee] = useState<Employee[]>([])
   const [role, setRole] = useState<Employee[] | any>([])
 
@@ -31,47 +30,31 @@ const AdministrationScreen = () => {
     localStorage.setItem("remember", remember)
     localStorage.setItem("RememberTitle", rememberTitle)
   }
+  useEffect(() => {
+  const handleData = async () => {
+    try {
+      const [ employes, designatio ] = await Promise.all([
+        handleAllEmployee(),
+        designation()
+      ]);
+
+      setEmployee(employes);
+      setRole(designatio);
+      
+    } catch (err) {
+      console.error("Erro ao carregar dados:", err);
+    }
+  };
+
+  handleData();
+}, []);
+
 
   const LOW_STOCK_THRESHOLD = 10;
 
   const low = useMemo(() => {
     return products.filter((product) => product.quantity <= LOW_STOCK_THRESHOLD);
   }, [products]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [resProducts, resCustomer, resEmployee, employees] = await Promise.all([
-          getAllProducts(),
-          handleAllCustomer(),
-          handleAllEmployee(),
-          handleDesignations()
-        ]);
-
-        setProducts(resProducts);
-        setCustomer(resCustomer);
-        setEmployee(resEmployee);
-
-        // Agrupa por `designation`
-        const groupedByDesignation = employees.reduce((acc, emp) => {
-          const key = emp.designation || "Sem função";
-          if (!acc[key]) {
-            acc[key] = [];
-          }
-          acc[key].push(emp);
-          return acc;
-        }, {} as Record<string, Employee[]>);
-
-        const apenasArrays = Object.values(groupedByDesignation);
-        setRole(apenasArrays);
-
-      } catch (error) {
-        console.error("Erro ao carregar dados do dashboard:", error);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   return (
     <Dashboard>
@@ -188,7 +171,7 @@ const AdministrationScreen = () => {
                       </div>
                     </div>
                   </div>
-                  <TabsComponent />
+                 {/*  <TabsComponent />*/}
                 </div>
                 {/* Rascunho */}
                 <div className="bg-white shadow rounded-lg overflow-hidden">

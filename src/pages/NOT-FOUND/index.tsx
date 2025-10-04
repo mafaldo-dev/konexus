@@ -11,13 +11,13 @@ export default function NotFound() {
     const navigate = useNavigate()
 
     const handleUserAuthorized = () => {
-        if(user?.designation === "Vendedor") {
+        if(user?.role === "Vendedor") {
             navigate("/sales/orders")
-        } else if (user?.designation === "Conferente") {
+        } else if (user?.role === "Conferente") {
             navigate("/sales/order-list")
-        } else if(user?.designation === "Estoquista") {
+        } else if(user?.role === "Estoquista") {
             navigate("/stock/movements")
-        } else if (user?.designation === "Buyer") {
+        } else if (user?.role === "Buyer") {
             navigate("shoppíng/purchase-requisition")
         } else {
             navigate("/dashboard")

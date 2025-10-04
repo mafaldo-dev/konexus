@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { Order } from "../../../service/interfaces";
+import { Order, OrderResponse } from "../../../service/interfaces";
 
 import { Search, Plus, Eye, Package, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
@@ -16,9 +16,9 @@ export default function OrdersPage() {
   const { orders, isLoading, error } = useOrders();
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
 
-  const filteredOrders = useSearchFilter(orders, debouncedSearchTerm, ['customer_name', 'order_number', 'salesperson']);
+  const filteredOrders = useSearchFilter(orders, debouncedSearchTerm, ['orderNumber', 'salesperson']);
 
   useEffect(() => {
     if (error) {
@@ -36,11 +36,11 @@ export default function OrdersPage() {
 
   const totalOrders = orders.length;
   const totalValue = orders.reduce(
-    (sum, order) => sum + (order.total_amount || 0),
+    (sum, order) => sum + (order.totalAmount || 0),
     0
   );
   const pendingOrders = orders.filter(
-    (order) => order.status === "Pendente"
+    (order) => order.orderStatus === "Pendente"
   ).length;
 
   if (selectedOrder) {
@@ -194,27 +194,27 @@ export default function OrdersPage() {
                     ) : (
                       filteredOrders.map((order) => (
                         <tr key={order.id} className="hover:bg-slate-50">
-                          <td className="px-6 py-4 font-mono text-blue-600">{order.order_number}</td>
+                          <td className="px-6 py-4 font-mono text-blue-600">{order.orderNumber}</td>
                           <td className="px-6 py-4">
                             <div>
-                              <p className="font-medium">{order.customer_name}</p>
-                              {order.customer_phone && (
-                                <p className="text-sm text-slate-500">{order.customer_phone}</p>
+                              <p className="font-medium">{order.customer.phone}</p>
+                              {order.customer.phone && (
+                                <p className="text-sm text-slate-500">{order.customer.phone}</p>
                               )}
                             </div>
                           </td>
                           <td className="px-6 py-4">{order.salesperson}</td>
                           <td className="px-6 py-4">
-                            {format(new Date(order.order_date), "dd/MM/yyyy")}
+                            {format(new Date(order.orderDate), "dd/MM/yyyy")}
                           </td>
                           <td className="px-6 py-4 font-semibold text-emerald-600">
-                            R$ {order.total_amount?.toFixed(2) || "0.00"}
+                            R$ {order.totalAmount?.toFixed(2) || "0.00"}
                           </td>
                           <td className="px-6 py-4">
                             <span
-                              className={`text-xs px-2 py-1 rounded-full border ${statusColors[order.status.toLowerCase()]}`}
+                              className={`text-xs px-2 py-1 rounded-full border ${statusColors[order.orderStatus.toLowerCase()]}`}
                             >
-                              {order.status}
+                              {order.orderStatus}
                             </span>
                           </td>
                           <td className="px-6 py-4">

@@ -16,11 +16,11 @@ interface Empresa {
 
 interface Destinatario {
   nome: string;
-  cnpjCpf: string;
-  endereco: string;
-  cidade: string;
-  uf: string;
-  numero: number
+  national_register_code: string;
+  endereco?: string;
+  cidade?: string;
+  uf?: string;
+  numero?: number
  // telefone: number
   inscricaoEstadual: string;
 }
@@ -88,11 +88,11 @@ export const mapPurchaseRequestToNota = (purchaseRequest: PurchaseRequest): Nota
 
   const destinatario: Destinatario = {
     nome: purchaseRequest.companyData.company_name,
-    cnpjCpf: purchaseRequest.companyData.cnpj,
-    endereco: purchaseRequest.companyData.address.street,
-    cidade: purchaseRequest.companyData.address.city,
-    uf: purchaseRequest.companyData.address.state,
-    numero: purchaseRequest.companyData.address.number,
+    national_register_code: purchaseRequest.companyData.cnpj,
+    //endereco: purchaseRequest.companyData.address.street,
+    //cidade: purchaseRequest.companyData.address.city,
+    //uf: purchaseRequest.companyData.address.state,
+   // numero: purchaseRequest.companyData.address.number,
     //telefone: purchaseRequest.companyData.phone,
     inscricaoEstadual: purchaseRequest.companyData.cnpj || "ISENTO",
   };
@@ -173,7 +173,7 @@ export const generateQuotationPdf = async (quotation: PurchaseRequest): Promise<
   y += 5;
   doc.text(`Endereço: ${notaData.destinatario.endereco}, ${notaData.destinatario.cidade} - ${notaData.destinatario.uf}`, 10, y);
   y += 5;
-  doc.text(`CNPJ/CPF: ${notaData.destinatario.cnpjCpf} Inscrição Estadual: ${notaData.destinatario.inscricaoEstadual}`, 10, y);
+  doc.text(`CNPJ/CPF: ${notaData.destinatario.national_register_code} Inscrição Estadual: ${notaData.destinatario.inscricaoEstadual}`, 10, y);
   y += 10;
 
   const headers = [["CÓD. PROD.", "DESCRIÇÃO", "QUANT.", "VALOR UNIT.", "VALOR TOTAL"]];

@@ -90,7 +90,7 @@ export default function UserManagementPage() {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-slate-900">{employee.username}</div>
-                        <div className="text-sm text-slate-500">{employee.designation}</div>
+                        <div className="text-sm text-slate-500">{employee.role}</div>
                       </div>
                     </div>
                   </td>

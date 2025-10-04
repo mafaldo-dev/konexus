@@ -9,29 +9,20 @@ export enum EmployeeFunction {
     MANAGER = "Gerente",
     ADMIN = "Administração"
 }
+export enum EmployeeSector {
+    COMERCIAL = "Comercial",
+    ESTOQUE = "Estoque",
+    GERENCIA = "Gerencia",
+    ESCRITORIO = "Escritorio"
+}
 
 export interface Employee {
     id?: string
     username: string
     password: string
-    designation: EmployeeFunction
+    role: EmployeeFunction
     access: EmployeeDesignation
-    salary: string
-    dataEmployee: {
-        fullname: string
-        phone: string
-        email: string
-        birth_date: string | any
-        RG: string
-        CPF: string
-    },
-    address: {
-        city: string
-        state: string
-        street: string
-        num: number | any
-    },
-    createdAt: Date | string
-    updatedAt?: Date | string
     active: boolean
+    status: boolean
+    sector: EmployeeSector
 }

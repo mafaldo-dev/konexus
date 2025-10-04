@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, TrendingUp } from 'lucide-react';
 
@@ -7,7 +7,7 @@ import SalesFilters from './components/SalesFilters';
 import SalesTable from './components/SalesTable';
 import Dashboard from '../../../components/dashboard/Dashboard';
 
-import { Order as OrderType } from '../../../service/interfaces/sales/orders';
+import { OrderResponse as OrderType } from '../../../service/interfaces/sales/orders';
 import { handleAllOrders } from '../../../service/api/Administrador/orders';
 
 export default function CompletedSales() {
@@ -25,7 +25,7 @@ export default function CompletedSales() {
       try {
         setLoading(true);
         const allOrders: OrderType[] = await handleAllOrders('-order_date');
-        const completedOrders = allOrders.filter(order => order.status === "Enviado");
+        const completedOrders = allOrders.filter(order => order.orderStatus === "Liberado");
         setOrders(completedOrders);
       } catch (err) {
         console.error("Erro ao buscar vendas realizadas:", err);
@@ -56,8 +56,8 @@ export default function CompletedSales() {
 
     if (searchTerm) {
       filtered = filtered.filter(order =>
-        order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.order_number.toLowerCase().includes(searchTerm.toLowerCase())
+        order.customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -84,7 +84,7 @@ export default function CompletedSales() {
           break;
       }
 
-      filtered = filtered.filter(order => new Date(order.order_date) >= filterDate);
+      filtered = filtered.filter(order => new Date(order.orderDate) >= filterDate);
     }
 
     return filtered;

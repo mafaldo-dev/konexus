@@ -65,9 +65,9 @@ export default function Commissions() {
           handleAllOrders()
         ]);
 
-        const completedSales = orders.filter(order => order.status === "Enviado");
+        const completedSales = orders.filter(order => order.orderStatus === "Enviado");
 
-        const employeesWithCommissions = employees.map(employee => {
+        const employeesWithCommissions = employees.map((employee: any) => {
           const salesByEmployee = completedSales.filter(
             order => order.salesperson === employee.username
           );
@@ -85,11 +85,11 @@ export default function Commissions() {
             const [year, monthNum] = month.value.split('-').map(Number);
 
             const salesInMonth = salesByEmployee.filter(order => {
-              const orderDate = new Date(order.order_date);
+              const orderDate = new Date(order.orderDate);
               return orderDate.getFullYear() === year && (orderDate.getMonth() + 1) === monthNum;
             });
 
-            const totalSales = salesInMonth.reduce((sum, order) => sum + order.total_amount, 0);
+            const totalSales = salesInMonth.reduce((sum, order) => sum + order.totalAmount, 0);
             const totalCommission = totalSales * COMMISSION_RATE;
             const bonus = totalSales >= SALES_GOAL ? BONUS_AMOUNT : 0;
 
@@ -123,7 +123,7 @@ export default function Commissions() {
           bonus: dataForMonth.bonus,
         };
       })
-      .filter(emp => emp.designation === "Vendedor"); // Apenas vendedores
+      .filter(emp => emp.role === "Vendedor"); // Apenas vendedores
   }, [employeesData, selectedMonth]);
 
 

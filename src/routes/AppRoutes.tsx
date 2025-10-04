@@ -12,7 +12,7 @@ import PositionsAndSalaries from '../pages/RH/positions&salaries';
 import DesignationCheck from '../PermissionCheck';
 import MovementsOnStock from '../pages/stock/movements';
 import Inventory from '../pages/stock/inventory';
-import Categories from '../pages/manager/Categories';
+//import Categories from '../pages/manager/Categories';
 
 import CompletedSales from '../pages/sales/completed';
 import Commissions from '../pages/RH/commissions';
@@ -34,6 +34,8 @@ import SystemStatusPage from '../pages/configurations/parametersOfSystem';
 import ReportsDashboard from '../pages/sales/reports';
 import CustomersContent from '../pages/manager/Customers';
 import FinancialDashboard from '../pages/Financial';
+import Categories from '../pages/manager/categories';
+
 
 
 const AppRoutes = () => {
@@ -41,8 +43,9 @@ const AppRoutes = () => {
     <Routes>
       {/* AREA DE LOGIN */}
       <Route path="/" element={<LoginPage />} />
-      {/* PAINEL ADMIN */}
       
+      
+      {/* PAINEL ADMIN */}    
 
       {/* ROTA ÚNICA PARA PEDIDOS - gerencia internamente list/create */}
       <Route path="/sales/orders" element={<PurchaseOrder />} />
@@ -107,7 +110,7 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={["Administrador", "Comprador"]}>
             <SearchSuppliers />
-          </DesignationCheck>
+         /</DesignationCheck>
         }
       />
        <Route
@@ -129,9 +132,9 @@ const AppRoutes = () => {
       <Route
         path="/sales/reports"
         element={
-          <DesignationCheck allowed={["Administrador", "Financeiro", "Gerente"]}>
+         // <DesignationCheck allowed={["Administrador", "Financeiro", "Gerente"]}>
             <ReportsDashboard />
-          </DesignationCheck>
+         // </DesignationCheck>
         }
       />
       <Route 
@@ -155,7 +158,7 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={["Administrador", "Financeiro"]}>
             <PositionsAndSalaries />
-          </DesignationCheck>
+         /</DesignationCheck>
         }
       />
       <Route
@@ -163,7 +166,7 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={["Administrador", "Conferente", "Estoquista"]}>
             <MovementsOnStock />
-          </DesignationCheck>
+         /</DesignationCheck>
         }
       />
       <Route
@@ -174,6 +177,7 @@ const AppRoutes = () => {
           </DesignationCheck>
         }
       />
+      
       <Route
         path="/manager/categories"
         element={
@@ -182,6 +186,7 @@ const AppRoutes = () => {
           </DesignationCheck>
         }
       />
+    
       <Route path='not-found' element={ <NotFound />} />
       {/* AREA DE CONFIGURAÇÕES */}
       <Route path="/config">
@@ -204,7 +209,7 @@ const AppRoutes = () => {
         <Route 
           path="/config/notifications" 
           element={
-            <DesignationCheck allowed={['Administrador']}>
+           <DesignationCheck allowed={['Administrador']}>
               <NotificationPreferences />
             </DesignationCheck>
           } 

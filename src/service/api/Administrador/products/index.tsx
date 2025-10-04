@@ -1,83 +1,123 @@
-import { addDoc, collection, query, where, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db } from "../../../../firebaseConfig";
-import { Products } from "../../../interfaces";
-import { createKardexEntry } from "../kardex";
+// productsApi.ts
 import Swal from "sweetalert2";
+import { apiRequest } from "../../api";
+import { Products } from "../../../interfaces";
 
-export async function insertProductComKardex(produto: Products) {
+/**
+ * Insere um produto e registra entrada no Kardex via backend
+ */
+export const insertProductComKardex = async (produto: Products, token?: string): Promise<string | null> => {
   try {
-    // Passo 1: Verifica se já existe um produto com o mesmo código
-    const productRef = collection(db, "Stock");
-    const q = query(productRef, where("code", "==", produto.code));
-    const snap = await getDocs(q);
-
-    if (!snap.empty) {
-      throw new Error("Produto com este código já está cadastrado.");
+    const response = await apiRequest("product/create", "POST", produto, token);
+    if (!response || !response.product) {
+      console.error("Erro ao criar produto: resposta inválida");
+      return null;
     }
+    return response.product.id;
+  } catch (error: any) {
+    console.error("Erro ao adicionar produto:", error.message || error);
+    Swal.fire("Erro", error.message || "Erro ao adicionar produto", "error");
+    return null;
+  }
+};
 
-    // Passo 2: Cadastra o produto
-    const docRef = await addDoc(productRef, produto);
+/**
+ * Atualiza produto
+ */
+export const updateProduct = async (id: string, updatedData: any, token?: string) => {
+  try {
+    const response = await apiRequest(`product/${id}`, "PUT", updatedData, token);
+    return response;
+  } catch (error: any) {
+    console.error("Erro ao atualizar produto:", error.message || error);
+    Swal.fire("Erro", error.message || "Erro ao atualizar produto", "error");
+    return null;
+  }
+};
 
-    // Passo 3: Registra entrada no Kardex
-    await createKardexEntry(
-      docRef.id,
-      "entrada",
-      Number(produto.quantity ?? 0),
-      `Cadastro inicial do produto: ${produto.name} (${produto.brand})`
-    );
-    return docRef.id;
-  } catch (error) {
-    console.error("Erro detalhado:", error);
+/**
+ * Busca produto pelo código
+ */
+// productsApi.ts ou ordersApi.ts
+
+/**
+ * Busca todos os produtos e filtra pelo código
+ */
+export const handleProductWithCode = async (code: string | number, token?: string): Promise<Products | null> => {
+  try {
+    // Busca todos os produtos
+    const response = await apiRequest("product/all", "GET", undefined, token);
     
-  }
-}
-
-export const updateProduct = async (id: string, updatedData: any) => {
-  try {
-    const productRef = doc(db, "Stock", id)
-    await updateDoc(productRef, updatedData)
-  } catch (Exception) {
-    console.error("Erro ao atualizar o produto:", Exception)
-    Swal.fire('Error', 'Erro ao atualizar as informações do produto', 'error')
-  }
-}
-
-export const handleProductWithCode = async (code: string | number) => {
-  try {
-    const productRef = collection(db, "Stock")
-    const get = query(productRef, where("code", "==", String (code)))
-    const snapshot = await getDocs(get)
-
-    if(!snapshot.empty) {
-      const doc = snapshot.docs[0]
-      return { id: doc.id, ...doc.data() }
-    }else {
-      return null
+    if (!response || !response.products) {
+      throw new Error("Nenhum produto encontrado");
     }
-  }catch(Exception) {
-    console.error("Erro ao recuperar Informações do produto: ", Exception)
-    throw new Error ("Erro ao buscar produto pelo codigo")
-  }
-}
 
-export const getAllProducts = async (searchTerm?: string): Promise<Products[] | any> => {
+    // Converte o código para string para comparação (caso seja número)
+    const searchCode = code.toString().trim();
+    
+    // Filtra os produtos pelo código
+    const foundProduct = response.products.find((product: Products) => 
+      product.code?.toString().trim() === searchCode
+    );
+
+    if (!foundProduct) {
+      throw new Error(`Produto com código ${code} não encontrado`);
+    }
+
+    return foundProduct;
+  } catch (error: any) {
+    console.error("Erro ao buscar produto pelo código:", error.message || error);
+    throw new Error(error.message || "Erro ao buscar produto pelo código");
+  }
+};
+
+// Versão alternativa que retorna null em vez de erro (se preferir)
+export const handleProductWithCodeSilent = async (code: string | number, token?: string): Promise<Products | null> => {
   try {
-    const productRef = collection(db, "Stock")
-    const snapshot = await getDocs(productRef)
+    const response = await apiRequest("product/all", "GET", undefined, token);
+    
+    if (!response || !response.products) {
+      return null;
+    }
 
-    const produtos: Products[] = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Products[]
-    return produtos
-  } catch (Exception) {
-    console.error("Erro ao recuperar a lista de itens: ", Exception)
-    alert("Erro interno do servidor!!!")
-    throw new Error()
+    const searchCode = code.toString().trim();
+    const foundProduct = response.products.find((product: Products) => 
+      product.code?.toString().trim() === searchCode
+    );
+
+    return foundProduct || null;
+  } catch (error: any) {
+    console.error("Erro ao buscar produto pelo código:", error.message || error);
+    return null;
   }
-}
+};
 
-export const deleteProduct = async (id: string): Promise<boolean> => {
+/**
+ * Recupera todos os produtos
+ */
+export const handleAllProducts = async (token?: string): Promise<Products[]> => {
+  try {
+    const response = await apiRequest("product/all", "GET", undefined, token);
+    const product = response.products
+
+    if(product.length === 0){
+      Array.isArray(product.products)
+      return [product.products]
+    } 
+   
+    return response?.products || [];
+  
+  } catch (error: any) {
+    console.error("Erro ao recuperar lista de produtos:", error.message || error);
+    Swal.fire("Erro", "Erro ao recuperar lista de produtos", "error");
+    return [];
+  }
+};
+
+/**
+ * Exclui produto
+ */
+export const deleteProduct = async (id: string, token?: string): Promise<boolean> => {
   const result = await Swal.fire({
     title: "Tem certeza?",
     text: "Deseja excluir este produto?",
@@ -92,14 +132,12 @@ export const deleteProduct = async (id: string): Promise<boolean> => {
   if (!result.isConfirmed) return false;
 
   try {
-    await deleteDoc(doc(db, "Stock", id));
+    await apiRequest(`product/${id}`, "DELETE", undefined, token);
     Swal.fire("Excluído!", "Produto excluído com sucesso.", "success");
     return true;
-  } catch (error) {
-    console.error("Erro ao deletar produto: ", error);
-    Swal.fire("Erro!", "Erro ao excluir produto.", "error");
+  } catch (error: any) {
+    console.error("Erro ao deletar produto:", error.message || error);
+    Swal.fire("Erro", "Erro ao excluir produto", "error");
     return false;
   }
 };
-
-

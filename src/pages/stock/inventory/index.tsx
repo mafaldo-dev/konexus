@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllProducts } from '../../../service/api/Administrador/products';
+import { handleAllProducts } from '../../../service/api/Administrador/products';
 import { Products } from '../../../service/interfaces';
 import Dashboard from '../../../components/dashboard/Dashboard';
 import logo from '../../../assets/image/guiman.png'
@@ -41,7 +41,7 @@ const Inventory: React.FC = () => {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const allProductsInventory = async () => {
-        const res = await getAllProducts();
+        const res = await handleAllProducts();
         setAllProducts(res);
     };
 

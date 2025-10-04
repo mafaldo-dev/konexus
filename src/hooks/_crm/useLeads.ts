@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { Lead, OpportunityData } from '../../service/interfaces';
-import { getLeads } from '../../service/api/crm/crm';
+//import { getLeads } from '../../service/api/crm/crm';
 import { createOpportunity } from '../../service/api/Administrador/opportunities';
 
 export const useLeads = () => {
@@ -17,8 +17,8 @@ export const useLeads = () => {
   const fetchLeads = useCallback(async () => {
     setIsLoading(true);
     try {
-      const fetchedLeads = await getLeads(filters);
-      setLeads(fetchedLeads);
+      //const fetchedLeads = await getLeads(filters);
+      //setLeads(fetchedLeads);
     } catch (error) {
       console.error("Erro ao buscar leads:", error);
       setLeads([]);

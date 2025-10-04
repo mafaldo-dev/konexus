@@ -16,13 +16,7 @@ export const useSupplierSearch = (setValue: any) => {
             if (supplierData) {
                 setSupplier(supplierData);
                 setValue("dataEnterprise.enterprise", supplierData.name || "");
-                setValue("dataEnterprise.cnpj", supplierData.cnpj || "");
-                setValue("dataEnterprise.address.uf", supplierData.address.uf || "");
-                setValue("dataEnterprise.address.state", supplierData.address.state || "");
-                setValue("dataEnterprise.address.city", supplierData.address.city || "");
-                setValue("dataEnterprise.address.neighborhood", supplierData.address.neighborhood || "");
-                setValue("dataEnterprise.address.street", supplierData.address.street || "");
-                setValue("dataEnterprise.address.number", supplierData.address.number || "");
+                setValue("dataEnterprise.cnpj", supplierData.national_register_code || "");
             } else {
                 alert("Fornecedor não encontrado!");
             }

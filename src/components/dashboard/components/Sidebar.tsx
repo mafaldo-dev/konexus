@@ -10,33 +10,31 @@ import FloatingChat from '../ChatComunication';
 import ReportProblemChat from './ChatReport';
 import { version } from '../../../version';
 
-
 export default function Sidebar({ sidebarCollapsed }: any) {
-  const { user, login } = useAuth();
-  const designation = user?.designation || "";
+  const { user } = useAuth();
+  const designation = user?.role || "";
   const username = user?.username || "Usuário";
   const userSector = designation;
 
-  const { currentUser } = useChat();
+  const { currentUser, setUserActive } = useChat();
   const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
-    if (user && !currentUser) {
-      login({
-        id: user.id,
-        username: user.username,
-        designation: user.designation,
-        sector: user.designation,
-        status: user.status,
-        collection: user.collection
-      });
+    if (user && currentUser) {
+      setUserActive();
     }
-  }, [user, currentUser, username, designation, login]);
+  }, [user, currentUser, setUserActive]);
 
   function canAccess(allowed: string[]) {
-    return allowed.includes(designation);
+    const result = allowed.includes(designation);
+    return result;
   }
 
+  // 🔁 DEBUG: Verifique quais itens serão renderizados
+  const accessibleItems = menuItems.filter(item => 
+    canAccess(item.access || [])
+  );
+  
   // Salvar mensagens no localStorage
   const handleSendMessage = (msg: any) => {
     const stored = localStorage.getItem('sector_messages');
@@ -54,7 +52,7 @@ export default function Sidebar({ sidebarCollapsed }: any) {
               <img src={logo || "/placeholder.svg"} alt="Logo Guiman" className="w-8 h-8" />
               {!sidebarCollapsed && (
                 <div>
-                  <h1 className="text-lg font-bold text-white">GUIMAN</h1>
+                  <h1 className="text-lg font-bold text-white">Konéxus</h1>
                   <p className="text-xs text-slate-400">Sistema Integrado</p>
                 </div>
               )}

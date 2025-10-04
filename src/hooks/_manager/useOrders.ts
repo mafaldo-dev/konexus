@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Order } from '../../service/interfaces';
+import { OrderResponse } from '../../service/interfaces';
 import { handleAllOrders } from '../../service/api/Administrador/orders';
 
 
 interface UseOrdersResult {
-  orders: Order[];
+  orders: OrderResponse[];
   isLoading: boolean;
   error: Error | null;
   refetchOrders: () => void;
 }
 
 export const useOrders = (): UseOrdersResult => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 

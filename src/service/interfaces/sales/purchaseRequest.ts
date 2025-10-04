@@ -12,12 +12,6 @@ export interface PurchaseRequest {
     email: string
     cnpj: string
     phone: number
-    address: {
-      state: string,
-      city: string,
-      street: string,
-      number: number
-    }
   }
   products: {
     id: string,

@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, DollarSign, Package, Users } from "lucide-react";
-import { Order } from "../../../../service/interfaces/sales/orders";
+import { Order, OrderResponse } from "../../../../service/interfaces/sales/orders";
 
 
 
@@ -15,14 +15,14 @@ interface Metric {
 }
 
 interface Props {
-  orders: Order[];
+  orders: OrderResponse[];
 }
 
 const SalesMetricsCards: React.FC<Props> = ({ orders }) => {
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
+  const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
   const totalOrders = orders.length;
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-  const uniqueCustomers = new Set(orders.map((order) => order.customer_name)).size;
+  const uniqueCustomers = new Set(orders.map((order) => order.customer.name)).size;
 
   const metrics: Metric[] = [
     {

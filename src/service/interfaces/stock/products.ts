@@ -3,15 +3,13 @@ export interface Products {
     name: string;
     code: string
     price: number
-    addedAt: string | any
+    coast: number
+    quantity: number
+    createdAt: string | any
     description: string;
     location: string
     minimum_stock: number
     brand: string
-    supplier: string
+    supplier_id: string 
     category: string
-    quantity: number
-    IOF?: boolean | string
-    valueOfIof?: number
-    statesWithTax?: string[];
 }

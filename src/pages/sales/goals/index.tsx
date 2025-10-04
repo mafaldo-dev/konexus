@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { deleteDoc, doc } from 'firebase/firestore';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Target, BarChart3, Search, Filter, X, AlertCircle } from 'lucide-react';
-import { db } from '../../../firebaseConfig';
+
 import { handleAllGoals, insertGoal } from '../../../service/api/Administrador/goals';
 import { GoalsData } from '../../../service/interfaces';
 import GoalsOverview from '../goals/components/GoalsOverview';
@@ -62,18 +62,7 @@ export default function Goals() {
     };
 
     const handleDelete = async (id: string) => {
-        try {
-            setIsDeleting(true);
-            setDeleteId(id);
-            await deleteDoc(doc(db, "Goal", id));
-            setGoals(goals.filter(goal => goal.id !== id));
-        } catch (err) {
-            console.error("Erro ao deletar meta: ", err);
-            setError('Falha ao deletar meta. Tente novamente.');
-        } finally {
-            setIsDeleting(false);
-            setDeleteId(null);
-        }
+      
     };
 
     const handleEditGoal = (goal: GoalsData) => {

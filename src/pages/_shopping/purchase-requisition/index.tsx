@@ -61,7 +61,7 @@ export default function PurchaseManagementScreen() {
 
   // Agora, aplica o filtro por fornecedor com useMemo
   const lowStockProducts = useMemo(() => {
-    return filteredLowStock.filter(product => !selectedSupplier || product.supplier === selectedSupplier);
+    return filteredLowStock.filter(product => !selectedSupplier || product.supplier_id === selectedSupplier);
   }, [filteredLowStock, selectedSupplier]);
 
 

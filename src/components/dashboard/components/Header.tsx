@@ -7,7 +7,7 @@ export default function Header({ sidebarCollapsed, setSidebarCollapsed }: any) {
     const { user, logout } = useAuth();
     const { setUserInactive } = useChat();
     const username = user?.username;
-    const designation = user?.designation || "";
+    const designation = user?.role || "";
     const getNowHour = useDateTime();
 
  

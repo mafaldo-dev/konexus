@@ -1,3 +1,4 @@
+
 import { ChatProvider } from "./ChatContext";
 import { ErrorBoundary } from "./components/utils/ErrorBoundary";
 import AppRoutes from "./routes/AppRoutes";
@@ -8,7 +9,7 @@ const App = () => {
   return (
     <SystemStatusProvider>
       <ErrorBoundary>
-        <ChatProvider>
+        <ChatProvider>  
           <AppRoutes />
         </ChatProvider>
       </ErrorBoundary>

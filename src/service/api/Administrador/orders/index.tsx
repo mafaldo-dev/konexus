@@ -1,119 +1,179 @@
-import { collection, doc, getDoc, updateDoc, addDoc, getDocs, runTransaction } from "firebase/firestore";
+// ordersApi.ts
+import { apiRequest } from "../../api";
+import { Order, Customer, OrderResponse } from "../../../interfaces";
 
-import { createKardexEntry } from "../kardex"; 
-import { db } from "../../../../firebaseConfig";
-import { Order } from "../../../interfaces";
-
-export async function getNextOrderNumber(): Promise<string> {
-  const counterRef = doc(db, "counters", "Orders");
-  const PREFIX = "PED-"; // Prefixo definido uma única vez
-
-  return await runTransaction(db, async (transaction) => {
-    const counterSnap = await transaction.get(counterRef);
-
-    if (!counterSnap.exists()) {
-      transaction.set(counterRef, { current: 1 });
-      return `${PREFIX}${String(1).padStart(6, "0")}`; // Já retorna formatado
-    }
-
-    const current = counterSnap.data().current || 0;
-    const next = current + 1;
-    transaction.update(counterRef, { current: next });
-
-    return `${PREFIX}${String(next).padStart(6, "0")}`; // Retorna formatado
-  });
-}
-
-
-export async function insertOrder(order: Order) {
+/**
+ * Busca o último orderNumber do backend - CORRIGIDO
+ */
+export const getLastOrderNumber = async (token?: string): Promise<string> => {
   try {
-    // Gera número sequencial
-    const orderNumber = await getNextOrderNumber();
-
-    // Verifica estoque
-    for (const item of order.items) {
-      if (!item.productId) throw new Error("Produto sem ID!");
-
-      const productRef = doc(db, "Stock", item.productId);
-      const productSnap = await getDoc(productRef);
-
-      if (!productSnap.exists()) {
-        throw new Error(`Produto com ID ${item.productId} não encontrado.`);
-      }
-
-      const productData = productSnap.data();
-      const newQuantity = (productData.quantity || 0) - item.quantity;
-
-      if (newQuantity < 0) {
-        throw new Error(`Saldo insuficiente para o produto ${item.product_name}`);
-      }
+    const response = await apiRequest("orders/last-number", "GET", undefined, token);
+   // console.log("Resposta do last-number:", response);
+    
+    if (!response || !response.lastOrderNumber) {
+      return "100"; // Fallback como STRING
     }
+    return response.lastOrderNumber.toString(); // Garantir que seja string
+  } catch (error) {
+    console.error("Erro ao buscar último número do pedido:", error);
+    return "100"; // Fallback como STRING
+  }
+};
 
-    // Adiciona o número gerado à ordem
-    const newOrder: Order = {
+/**
+ * Gera o próximo orderNumber baseado no último - CORRIGIDO
+ */
+export const generateNextOrderNumber = (lastOrderNumber: string): string => {
+  //console.log("Último orderNumber recebido:", lastOrderNumber);
+  
+  // Se for número, converte para string com prefixo P-
+  if (typeof lastOrderNumber === 'number') {
+    return `P-${lastOrderNumber + 1}`;
+  }
+  
+  // Se for string com prefixo P-
+  const match = lastOrderNumber.match(/P-(\d+)/);
+  if (match && match[1]) {
+    const nextNumber = parseInt(match[1]) + 1;
+    return `P-${nextNumber}`;
+  }
+  
+  // Se for apenas número como string
+  if (!isNaN(Number(lastOrderNumber))) {
+    return `P-${parseInt(lastOrderNumber) + 1}`;
+  }
+  
+  // Fallback
+  return "P-100";
+};
+
+/**
+ * Obtém e gera o próximo orderNumber - CORRIGIDO
+ */
+export const getNextOrderNumber = async (token?: string): Promise<string> => {
+  try {
+    const lastOrderNumber = await getLastOrderNumber(token);
+    //console.log("Último número do backend:", lastOrderNumber);
+    
+    const nextOrderNumber = generateNextOrderNumber(lastOrderNumber);
+   // console.log("Próximo número gerado:", nextOrderNumber);
+    
+    return nextOrderNumber;
+  } catch (error) {
+    console.error("Erro ao gerar próximo número do pedido:", error);
+    return "P-100"; // Fallback como STRING
+  }
+};
+
+/**
+ * Busca lista de clientes
+ */
+export const getCustomers = async (token?: string): Promise<Customer[]> => {
+  try {
+    const response = await apiRequest("orders/customers/list", "GET", undefined, token);
+    if (!response || !response.customers) return [];
+    return response.customers;
+  } catch (error) {
+    console.error("Erro ao buscar clientes:", error);
+    return [];
+  }
+};
+
+/**
+ * Insere um novo pedido - ATUALIZADO com orderNumber
+ */
+export const insertOrder = async (order: Order, token?: string): Promise<any> => {
+  try {
+    // Garantir que o orderStatus seja 'pending' se não informado
+    const orderData = {
       ...order,
-      order_number: orderNumber,
+      orderStatus: order.orderStatus || 'pending'
     };
 
-    // Cria documento da ordem
-    const docRef = await addDoc(collection(db, "Orders"), newOrder);
+   // console.log("Enviando dados para criar pedido:", orderData);
 
-    // Atualiza estoque e cria entradas no Kardex
-    for (const item of order.items) {
-      const productRef = doc(db, "Stock", item.productId);
-      const productSnap = await getDoc(productRef);
-      const productData = productSnap.data();
-
-      const newQuantity = (productData?.quantity || 0) - item.quantity;
-
-      await updateDoc(productRef, { quantity: newQuantity });
-
-      await createKardexEntry(
-        item.productId,
-        "saida",
-        item.quantity,
-        "Venda realizada",
-        docRef.id,
-        order.userId || "sistema",
-        String(orderNumber)
-      );
+    const response = await apiRequest("orders/create", "POST", orderData, token);
+    
+    if (!response) {
+      console.error("Erro ao criar pedido: resposta inválida");
+      return null;
     }
-
-    return docRef.id;
-
-  } catch (err: any) {
-    console.error("Erro ao criar Order de pedido", err.message || err);
-    alert(`Erro ao adicionar ordem: ${err.message || "Erro interno"}`);
-    throw err;
-  }
-}
-
-
-export async function handleAllOrders(searchTerm?: string): Promise<Order[]> {
-    try {
-        const ordersRef = collection(db, "Orders")
-        const snapshot = await getDocs(ordersRef)
-
-        const orders: Order[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-        })) as Order[]
-        return orders
-    } catch (Exception) {
-        console.error("Erro ao recuperar a lista de Pedidos", Exception)
-        alert("Erro interno do servidor!!!")
-        throw new Error("Erro interno do servidor!!!")
-    }
-}
-
-
-export async function updateOrderStatus(orderId: string | number, status: string) {
-  try {
-    const orderRef = doc(db, "Orders", String(orderId))
-    await updateDoc(orderRef, { status })
+    
+    return response;
   } catch (error) {
-    console.error("Erro ao atualizar status do pedido:", error)
-    alert("Erro ao atualizar o status do pedido no banco de dados.")
-    throw new Error("Falha ao atualizar status do pedido")
+    console.error("Erro ao criar pedido:", error);
+    return null;
   }
-}
+};
+
+/**
+ * Recupera todos os pedidos - VERSÃO SIMPLIFICADA
+ */
+export const handleAllOrders = async (token?: string): Promise<OrderResponse[]> => {
+  const tkn = token || localStorage.getItem('token');
+  
+  try {
+    const response = await apiRequest("orders/all", "GET", undefined, tkn as string);
+
+    console.log("Resposta completa da API:", response);
+    
+    // Versão simplificada - assume que a resposta é o array de orders
+    // ou tem a propriedade orders
+    const orders = (response as any)?.orders || response || [];
+    
+    if (!Array.isArray(orders)) {
+      console.warn("Orders não é um array:", orders);
+      return [];
+    }
+    
+    return orders;
+  } catch (error) {
+    console.error("Erro ao recuperar pedidos:", error);
+    return [];
+  }
+};
+
+/**
+ * Recupera um pedido específico por ID
+ */
+export const getOrderById = async (orderId: string | number, token?: string): Promise<Order | null> => {
+  try {
+    const response = await apiRequest(`orders/${orderId}`, "GET", undefined, token);
+    if (!response || !response.order) return null;
+    return response.order;
+  } catch (error) {
+    console.error("Erro ao buscar pedido:", error);
+    return null;
+  }
+};
+
+/**
+ * Atualiza o status de um pedido - ATUALIZADO
+ */
+export const updateOrderStatus = async (
+  orderId: number | string,
+  orderStatus: string,
+  token?: string
+): Promise<any> => {
+  try {
+    const body = { orderStatus };
+    const response = await apiRequest(`orders/${orderId}/status`, "PUT", body, token);
+    return response;
+  } catch (error) {
+    console.error("Erro ao atualizar status do pedido:", error);
+    return null;
+  }
+};
+
+/**
+ * Deleta um pedido
+ */
+export const deleteOrder = async (orderId: number | string, token?: string): Promise<boolean> => {
+  try {
+    const response = await apiRequest(`orders/${orderId}`, "DELETE", undefined, token);
+    return !!response;
+  } catch (error) {
+    console.error("Erro ao deletar pedido:", error);
+    return false;
+  }
+};

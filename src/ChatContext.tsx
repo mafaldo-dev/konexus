@@ -1,35 +1,24 @@
+// ChatContext.tsx
 import {
   createContext,
   useContext,
   useState,
   ReactNode,
   useEffect,
-  useReducer,
-  useCallback
+  useReducer
 } from 'react';
 import { useAuth } from './AuthContext';
+import { fetchMessages, markMessagesReadAPI, sendMessageAPI } from './service/api/chat';
 import { handleAllEmployee } from './service/api/Administrador/employee';
-import { db } from "./firebaseConfig";
-import {
-  addDoc,
-  collection,
-  query,
-  orderBy,
-  where,
-  onSnapshot,
-  doc,
-  getDocs,
-  writeBatch
-} from "firebase/firestore";
 
-// Tipos
-export type UserStatus = 'Ativo' | 'Ausente' | 'Inativo';
+export type UserStatus = 'online' | 'offline' | 'away';
 
 export interface User {
   id: string;
-  name: string;
+  username: string;
+  role: string;
+  active: boolean;
   designation: string;
-  sector: string;
   status: UserStatus;
 }
 
@@ -69,16 +58,50 @@ interface ChatContextData {
   users: User[];
   messages: Message[];
   setUserStatus: (userId: string, status: UserStatus) => void;
-  sendMessage: (msg: Omit<Message, 'id' | 'timestamp' | 'read'>) => void;
+  sendMessage: (msg: Omit<Message, 'id' | 'timestamp' | 'read' | 'role'>) => void;
   markMessagesRead: (senderId: string, recipientId: string) => void;
   fetchUsers: () => Promise<void>;
+  refreshMessages: () => Promise<void>;
   setUserInactive: () => void;
   setUserActive: () => void;
   unreadCounts: UnreadCountsState;
-  setUnreadCounts: React.Dispatch<Action>;
+  setUnreadCounts: React.Dispatch<Action>; // ✅ ADICIONADO DE VOLTA
 }
 
 const ChatContext = createContext<ChatContextData | undefined>(undefined);
+
+// Chave para sessionStorage
+const ONLINE_USERS_KEY = 'chat_online_users';
+
+// Funções para gerenciar sessionStorage
+const getOnlineUsersFromStorage = (): Record<string, UserStatus> => {
+  try {
+    const stored = sessionStorage.getItem(ONLINE_USERS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+};
+
+const setOnlineUserInStorage = (userId: string, status: UserStatus) => {
+  try {
+    const onlineUsers = getOnlineUsersFromStorage();
+    onlineUsers[userId] = status;
+    sessionStorage.setItem(ONLINE_USERS_KEY, JSON.stringify(onlineUsers));
+  } catch (error) {
+    console.error('Erro ao salvar no sessionStorage:', error);
+  }
+};
+
+const removeOnlineUserFromStorage = (userId: string) => {
+  try {
+    const onlineUsers = getOnlineUsersFromStorage();
+    delete onlineUsers[userId];
+    sessionStorage.setItem(ONLINE_USERS_KEY, JSON.stringify(onlineUsers));
+  } catch (error) {
+    console.error('Erro ao remover do sessionStorage:', error);
+  }
+};
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const { user: authUser } = useAuth();
@@ -88,177 +111,160 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [unreadCounts, dispatchUnreadCounts] = useReducer(unreadCountsReducer, {});
 
-  const fetchUsers = useCallback(async () => {
+  // ✅ ADICIONADO: Exportar o dispatch para os componentes
+  const setUnreadCounts = dispatchUnreadCounts;
+
+  // Função para buscar mensagens
+  const refreshMessages = async () => {
+    if (!authUser?.id) return;
+
+    try {
+      const msgs = await fetchMessages(authUser.id);
+      setMessages(msgs.sort((a: Message, b: Message) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      ));
+    } catch (err) {
+      console.error("Erro ao buscar mensagens:", err);
+    }
+  };
+
+  const fetchUsers = async () => {
     try {
       const employees = await handleAllEmployee();
+      const onlineUsers = getOnlineUsersFromStorage();
 
       const usersFromApi: User[] = employees.map((emp: any) => ({
-        id: emp.id.toString(),
-        name: emp.username || 'Sem nome',
-        designation: emp.designation || 'Sem cargo',
-        sector: emp.sector || emp.designation || 'Sem setor',
-        status: emp.status === true ? 'Ativo' : 'Inativo',
+        id: emp.id,
+        username: emp.username || emp.name || 'Sem nome',
+        role: emp.role || 'Administrador',
+        designation: emp.sector || "Geral",
+        active: emp.active || false,
+        status: onlineUsers[emp.id] || 'offline',
       }));
 
       setUsers(usersFromApi);
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
     }
-  }, []);
-
-  const setUserStatus = useCallback((userId: string, status: UserStatus) => {
-    setUsers(oldUsers =>
-      oldUsers.map(u => (u.id === userId ? { ...u, status } : u))
-    );
-
-    setCurrentUser(curr => {
-      if (!curr || curr.id !== userId) return curr;
-      return { ...curr, status };
-    });
-  }, []);
-
-  const setUserActive = useCallback(() => {
-    if (!authUser?.id) return;
-
-    setUsers((prevUsers) =>
-      prevUsers.map((u) =>
-        u.id === authUser.id ? { ...u, status: 'Ativo' } : u
-      )
-    );
-
-    setCurrentUser((prev) =>
-      prev ? { ...prev, status: 'Ativo' } : null
-    );
-  }, [authUser?.id]);
-
-  const setUserInactive = () => {
-    if (!currentUser) return;
-    setUserStatus(currentUser.id, 'Inativo');
   };
 
-  useEffect(() => {
-    if (authUser) {
-      const newUser: User = {
-        id: authUser.id || '',
-        name: authUser.username,
-        designation: authUser.designation,
-        sector: authUser.sector || authUser.designation || 'Sem setor',
-        status: 'Ativo',
-      };
-      setCurrentUser(newUser);
-
-      setUsers((prevUsers) =>
-        prevUsers.map((u) =>
-          u.id === authUser.id ? { ...u, status: 'Ativo' } : u
-        )
-      );
-
-      fetchUsers();
+  const setUserStatus = (userId: string, status: UserStatus) => {
+    if (status === 'offline') {
+      removeOnlineUserFromStorage(userId);
     } else {
-      setUsers((oldUsers) => oldUsers.map((u) => ({ ...u, status: 'Inativo' })));
-      setCurrentUser(null);
-      setMessages([]);
+      setOnlineUserInStorage(userId, status);
     }
-  }, [authUser, fetchUsers]);
 
-  useEffect(() => {
-    if (!currentUser) return;
-    const timer = setTimeout(() => {
-      setUserStatus(currentUser.id, 'Ausente');
-    }, 5 * 60 * 1000);
-    return () => clearTimeout(timer);
-  }, [currentUser, setUserStatus]);
+    setUsers(oldUsers =>
+      oldUsers.map(u =>
+        u.id === userId && u.status !== status
+          ? { ...u, status }
+          : u
+      )
+    );
+    setCurrentUser(curr => (curr && curr.id === userId ? { ...curr, status } : curr));
+  };
 
-  useEffect(() => {
+  const setUserActive = () => {
     if (!authUser?.id) return;
+    setUserStatus(authUser.id, 'online');
+  };
 
-    const messagesCollectionRef = collection(db, "messages");
-
-    const sentQuery = query(
-      messagesCollectionRef,
-      where("senderId", "==", authUser.id),
-      orderBy("timestamp")
-    );
-
-    const receivedQuery = query(
-      messagesCollectionRef,
-      where("recipientId", "==", authUser.id),
-      orderBy("timestamp")
-    );
-
-    let sentMessages: Message[] = [];
-    let receivedMessages: Message[] = [];
-
-    const unsubscribeSent = onSnapshot(sentQuery, (snapshot) => {
-      sentMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
-      const allMessages = [...sentMessages, ...receivedMessages];
-      const uniqueMessages = Array.from(new Map(allMessages.map(msg => [msg.id, msg])).values());
-      setMessages(uniqueMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
-    });
-
-    const unsubscribeReceived = onSnapshot(receivedQuery, (snapshot) => {
-      receivedMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
-      const allMessages = [...sentMessages, ...receivedMessages];
-      const uniqueMessages = Array.from(new Map(allMessages.map(msg => [msg.id, msg])).values());
-      setMessages(uniqueMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
-    });
-
-    return () => {
-      unsubscribeSent();
-      unsubscribeReceived();
-    };
-  }, [authUser?.id]);
-
-  useEffect(() => {
-    if (!authUser) return;
-
-    const newUnreadMap: Record<string, number> = {};
-
-    messages.forEach((msg) => {
-      if (msg.recipientId === authUser.id && !msg.read) {
-        newUnreadMap[msg.senderId] = (newUnreadMap[msg.senderId] || 0) + 1;
-      }
-    });
-
-    const hasChanged = Object.keys(newUnreadMap).some(
-      key => newUnreadMap[key] !== unreadCounts[key]
-    );
-
-    if (hasChanged) {
-      dispatchUnreadCounts({ type: 'SET_UNREAD', unreadMap: newUnreadMap });
-    }
-  }, [messages, authUser, unreadCounts]);
+  const setUserInactive = () => {
+    if (!authUser?.id) return;
+    setUserStatus(authUser.id, 'offline');
+  };
 
   const sendMessage = async (msg: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
     try {
-      const newMessage = {
+      const newMsg: Omit<Message, 'id'> = {
         ...msg,
         timestamp: new Date().toISOString(),
         read: false,
       };
-      await addDoc(collection(db, "messages"), newMessage);
+
+      await sendMessageAPI(newMsg);
+      // Atualiza mensagens após enviar
+      setTimeout(refreshMessages, 500);
     } catch (error) {
-      console.error("Erro ao enviar mensagem para o Firestore:", error);
+      console.error("Erro ao enviar mensagem:", error);
     }
   };
 
   const markMessagesRead = async (senderId: string, recipientId: string) => {
-    const messagesRef = collection(db, "messages");
-    const q = query(
-      messagesRef,
-      where("senderId", "==", senderId),
-      where("recipientId", "==", recipientId),
-      where("read", "==", false)
-    );
-    const querySnapshot = await getDocs(q);
-    const batch = writeBatch(db);
-
-    querySnapshot.forEach((docSnap) => {
-      batch.update(doc(db, "messages", docSnap.id), { read: true });
-    });
-
-    await batch.commit();
+    try {
+      await markMessagesReadAPI(senderId, recipientId);
+      // Atualiza mensagens após marcar como lidas
+      setTimeout(refreshMessages, 500);
+    } catch (error) {
+      console.error("Erro ao marcar mensagens como lidas:", error);
+    }
   };
+
+  // Efeito único de inicialização
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeChat = async () => {
+      if (!authUser || !mounted) return;
+
+      // Aguarda um pouco para garantir que o token está disponível
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const onlineUsers = getOnlineUsersFromStorage();
+      const userStatus = onlineUsers[authUser.id] || 'online';
+
+      if (!onlineUsers[authUser.id]) {
+        setOnlineUserInStorage(authUser.id, 'online');
+      }
+
+      if (mounted) {
+        setCurrentUser({
+          id: authUser.id || '',
+          username: authUser.username,
+          role: authUser.role,
+          designation: authUser.designation,
+          active: authUser.active || false,
+          status: userStatus,
+        });
+
+        try {
+          await fetchUsers();
+          await refreshMessages();
+        } catch (error) {
+          console.error('Erro na inicialização:', error);
+        }
+      }
+    };
+
+    initializeChat();
+
+    return () => {
+      mounted = false;
+      if (authUser?.id) {
+        removeOnlineUserFromStorage(authUser.id);
+      }
+    };
+  }, []); // Só depende do ID
+
+  // Efeito para unread counts
+ useEffect(() => {
+  if (!authUser) return;
+
+  const newUnreadMap: Record<string, number> = {};
+  messages.forEach(msg => {
+    if (msg.recipientId === authUser.id && !msg.read) {
+      newUnreadMap[msg.senderId] = (newUnreadMap[msg.senderId] || 0) + 1;
+    }
+  });
+
+  // Só despacha se for diferente do estado atual
+  const same = JSON.stringify(unreadCounts) === JSON.stringify(newUnreadMap);
+  if (!same) {
+    dispatchUnreadCounts({ type: 'SET_UNREAD', unreadMap: newUnreadMap });
+  }
+}, [messages, authUser, unreadCounts]);
+
 
   return (
     <ChatContext.Provider
@@ -270,10 +276,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         sendMessage,
         markMessagesRead,
         fetchUsers,
+        refreshMessages,
         setUserInactive,
         setUserActive,
         unreadCounts,
-        setUnreadCounts: dispatchUnreadCounts,
+        setUnreadCounts, // ✅ ADICIONADO NO PROVIDER
       }}
     >
       {children}
@@ -281,8 +288,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export function useChat() {
+export const useChat = () => {
   const context = useContext(ChatContext);
-  if (!context) throw new Error('useChat must be used within ChatProvider');
+  if (!context) {
+    throw new Error('useChat deve ser usado dentro de um ChatProvider');
+  }
   return context;
-}
+};

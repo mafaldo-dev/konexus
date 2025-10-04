@@ -1,111 +1,90 @@
-import { collection, addDoc, getDocs, updateDoc, doc, where, query, deleteDoc } from "firebase/firestore"
-import { db } from "../../../../firebaseConfig"
-import { Supplier } from "../../../interfaces"
-import Swal from "sweetalert2"
+// supplierApi.ts
+import Swal from "sweetalert2";
+import { apiRequest } from "../../api";
+import { Supplier } from "../../../interfaces";
 
-export async function insertSupplier (supplier: Supplier) {
-    try {
-        const docRef = await addDoc(collection(db, "Suppliers"), supplier)
-        return docRef.id
-    }catch(Exception) {
-        console.error("Erro ao adicionar novo fornecedor: ", Exception)
-        alert("Erro ao adicionar novo FORNECEDOR... Tente novamente.")
-        throw new Error()
-    }
-}
-
-export async function updateSupplier (id: string, updateData: any)  {
-    try {
-        const supplierRef = doc(db, "Suppliers", id)
-        await updateDoc(supplierRef, updateData)
-
-    }catch(Exception) {
-        console.error("Erro ao atualizar informações do Fornecedor: ", Exception)
-        alert("Erro ao atualizar as informaçoes do Fornecedor.")
-        throw new Error()
-    }
-}
-
-export async function getAllSuppliers (serchTerm?: string): Promise<Supplier[]> {
-    try {
-        const supplierRef = collection(db, "Suppliers")
-        const snapshot = await getDocs(supplierRef)
-
-        const suppliers: Supplier[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-        })) as Supplier[]
-        return suppliers
-    }catch(Exception) {
-        console.error("Erro ao recuperar Fornecedores: ", Exception)
-        alert("Erro ao recuperar a lista de fornecedores")
-        throw new Error()
-    }
-}
-
-export const handleSupplierWithCode = async (code: string) => {
+/**
+ * Cria um novo fornecedor
+ */
+export const insertSupplier = async (supplier: Supplier, token?: string): Promise<string | null> => {
   try {
-    const productRef = collection(db, "Suppliers")
-    const get = query(productRef, where("code", "==", String (code)))
-    const snapshot = await getDocs(get)
-
-
-    if(!snapshot.empty) {
-      const doc = snapshot.docs[0]
-      return { id: doc.id, ...doc.data() }
-    }else {
-      return null
+    const response = await apiRequest("supplier/create", "POST", supplier, token);
+    if (!response || !response.supplier) {
+      console.error("Erro ao adicionar fornecedor: resposta inválida");
+      return null;
     }
-  }catch(Exception) {
-    console.error("Erro ao recuperar Informações do fornecedor: ", Exception)
-    throw new Error ("Erro ao buscar fornecedor pelo codigo")
+    return response.supplier.id;
+  } catch (error: any) {
+    console.error("Erro ao adicionar fornecedor:", error.message || error);
+    Swal.fire("Erro", error.message || "Erro ao adicionar fornecedor", "error");
+    return null;
   }
-}
+};
 
-export async function searchSuppliers(searchTerm: string): Promise<Supplier[]> {
+/**
+ * Atualiza informações de um fornecedor
+ */
+export const updateSupplier = async (id: string, updateData: any, token?: string): Promise<boolean> => {
   try {
-    const suppliersRef = collection(db, "Suppliers");
-    const suppliers: Supplier[] = [];
-
-    // Consulta por nome (case-insensitive)
-    const nameQuery = query(
-      suppliersRef,
-      where("name", ">=", searchTerm),
-      where("name", "<=", searchTerm + "\uf8ff")
-    );
-
-    // Consulta por código
-    const codeQuery = query(suppliersRef, where("code", "==", searchTerm));
-
-    const [nameSnapshot, codeSnapshot] = await Promise.all([
-      getDocs(nameQuery),
-      getDocs(codeQuery),
-    ]);
-
-    const supplierIds = new Set<string>();
-
-    nameSnapshot.forEach((doc) => {
-      if (!supplierIds.has(doc.id)) {
-        suppliers.push({ id: doc.id, ...doc.data() } as Supplier);
-        supplierIds.add(doc.id);
-      }
-    });
-
-    codeSnapshot.forEach((doc) => {
-      if (!supplierIds.has(doc.id)) {
-        suppliers.push({ id: doc.id, ...doc.data() } as Supplier);
-        supplierIds.add(doc.id);
-      }
-    });
-
-    return suppliers;
-  } catch (error) {
-    console.error("Erro ao buscar fornecedores:", error);
-    throw new Error("Erro ao buscar fornecedores");
+    await apiRequest(`supplier/${id}`, "PUT", updateData, token);
+    return true;
+  } catch (error: any) {
+    console.error("Erro ao atualizar fornecedor:", error.message || error);
+    Swal.fire("Erro", error.message || "Erro ao atualizar fornecedor", "error");
+    return false;
   }
-}
+};
 
-export const deleteSupplier = async (id: string): Promise<boolean> => {
+/**
+ * Retorna todos os fornecedores
+ */
+export const handleAllSuppliers = async (token?: string): Promise<Supplier[]> => {
+  try {
+    const response = await apiRequest("supplier/all", "GET", undefined, token);
+    
+    const supplier = response.suppliers
+    if(supplier.length === 0){
+      Array.isArray(supplier.suppliers)
+      return [supplier.suppliers]
+    } 
+    return response?.suppliers || [];
+  } catch (error: any) {
+    console.error("Erro ao recuperar fornecedores:", error.message || error);
+    Swal.fire("Erro", "Erro ao recuperar fornecedores", "error");
+    return [];
+  }
+};
+
+/**
+ * Busca fornecedor pelo código
+ */
+export const handleSupplierWithCode = async (code: string, token?: string): Promise<Supplier | null> => {
+  try {
+    const response = await apiRequest(`supplier/code/${code}`, "GET", undefined, token);
+    return response?.supplier || null;
+  } catch (error: any) {
+    console.error("Erro ao buscar fornecedor pelo código:", error.message || error);
+    return null;
+  }
+};
+
+/**
+ * Busca fornecedores por termo (nome ou código)
+ */
+export const searchSuppliers = async (searchTerm: string, token?: string): Promise<Supplier[]> => {
+  try {
+    const response = await apiRequest(`suppliers/search?term=${encodeURIComponent(searchTerm)}`, "GET", undefined, token);
+    return response?.suppliers || [];
+  } catch (error: any) {
+    console.error("Erro ao buscar fornecedores:", error.message || error);
+    return [];
+  }
+};
+
+/**
+ * Exclui fornecedor
+ */
+export const deleteSupplier = async (id: string, token?: string): Promise<boolean> => {
   const result = await Swal.fire({
     title: "Tem certeza?",
     text: "Deseja excluir este Fornecedor?",
@@ -120,13 +99,12 @@ export const deleteSupplier = async (id: string): Promise<boolean> => {
   if (!result.isConfirmed) return false;
 
   try {
-    await deleteDoc(doc(db, "Suppliers", id));
+    await apiRequest(`suppliers/${id}`, "DELETE", undefined, token);
     Swal.fire("Excluído!", "Fornecedor excluído com sucesso.", "success");
     return true;
-  } catch (error) {
-    console.error("Erro ao deletar Fornecedor: ", error);
-    Swal.fire("Erro!", "Erro ao excluir Fornecedor.", "error");
+  } catch (error: any) {
+    console.error("Erro ao deletar fornecedor:", error.message || error);
+    Swal.fire("Erro!", "Erro ao excluir fornecedor.", "error");
     return false;
   }
 };
-

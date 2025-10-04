@@ -81,7 +81,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
                 <label className="block text-sm font-medium text-slate-700">Função</label>
                 <select
                   name="designation"
-                  value={formData.designation || ''}
+                  value={formData.role || ''}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { getAllProducts } from '../../../service/api/Administrador/products';
+import { handleAllProducts } from '../../../service/api/Administrador/products';
 import { Products } from '../../../service/interfaces';
 
 const LoadingSpinner = () => (
@@ -105,7 +105,7 @@ export default function TableProducts() {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
-                const response = await getAllProducts();
+                const response = await handleAllProducts();
                 setProducts(response);
             } catch (err) {
                 setError('Erro ao recuperar produtos.');

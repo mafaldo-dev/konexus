@@ -1,27 +1,24 @@
 import { useAuth } from '../../../../AuthContext'
-import { Order } from "../../../../service/interfaces"
+import { Order, OrderResponse } from "../../../../service/interfaces"
 
-import { format } from "date-fns"
-import { MapPin, User, Calendar, Phone, CheckSquare, Package } from "lucide-react"
+import { CheckSquare, Package, Download, Printer, SidebarClose } from "lucide-react"
+import logo from "../../../../assets/image/guiman.png"
+import { useNavigate } from 'react-router-dom'
 
-import logo  from "../../../../assets/image/guiman.png"
 
 type OrderPDFProps = {
-  order: Order
+  order: OrderResponse
   onDownloadComplete: () => void
 }
 
 export default function OrderPDF({ order, onDownloadComplete }: OrderPDFProps) {
+  const navigate = useNavigate()
   const { user } = useAuth()
+
   if (!order) return null
 
-
-  const statusColors: Record<Order["status"], string> = {
-    Pendente: "bg-amber-50 text-amber-800 border-amber-200",
-    Separando: "bg-slate-50 text-slate-700 border-slate-300",
-    Finalizado: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    Enviado: "bg-indigo-50 text-indigo-800 border-indigo-200",
-    Liberado: "bg-white text-blue-400 border-blue-200"
+  const returnToList = () => {
+    navigate('/sales/order-list')
   }
 
   const handlePrint = () => {
@@ -32,268 +29,301 @@ export default function OrderPDF({ order, onDownloadComplete }: OrderPDFProps) {
   }
 
   return (
-    <div className="print:p-0 print:m-0">
+    <div className="flex justify-center print:p-0 print:m-0">
       <style>{`
         @media print {
-          @page {
-            size: A4 landscape;
-            margin: 15mm;
+          @page { 
+            size: A4 landscape; 
+            margin: 15mm; 
+            border: 1px solid gray;
           }
-          body * {
+          body * { 
             visibility: hidden;
           }
-          .print-area, .print-area * {
-            visibility: visible;
+          .print-area, .print-area * { 
+            visibility: visible; 
           }
-          .print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
+          .print-area { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
             width: 100%;
-            max-width: none;
+            height: 100%;
+            margin: auto; 
           }
-          .no-print {
-            display: none !important;
+          .no-print { 
+            display: none !important; 
           }
-          .print-horizontal {
-            width: 100%;
-            max-width: 297mm;
+          .print-table { 
+            width: 100%; 
+            border-collapse: collapse; 
           }
-          .print-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+          .print-signatures { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-top: 20px; 
           }
-          .print-info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 20px;
+          .print-signatures > div { 
+            flex: 1; 
+            margin-right: 20px; 
           }
-          .print-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
+          .print-signatures > div:last-child { 
+            margin-right: 0; 
           }
-          .print-signatures {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 40px;
-            margin-top: 40px;
+          .print-break { 
+            page-break-inside: avoid; 
           }
         }
       `}</style>
+      <div className=' w-[100vw] flex flex-col bg-gray-300 items-center justify-center'>
+        <header className='flex flex-row justify-end w-full h-[4vh] px-2 py-2 bg-slate-800'>
+          <nav>
+            <ul className='flex flex-row gap-1'>
+              <li>
+                <div className="no-print mb-8 w-full flex justify-center">
+                  {(user?.role === "Administrador" || user?.role === "Financeiro") && (
+                    <button
+                      onClick={handlePrint}
+                      className="flex items-center w-[30px]
+                        gap-2 text-white 
+                        px-2 py-1 rounded-lg font-medium transition-all 
+                        duration-200 shadow-md hover:shadow-lg w-16"
+                    >
+                      <Package className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </li>
+              <li>
+                <div className="no-print mb-8 w-full flex justify-center">
+                  {(user?.role === "Administrador" || user?.role === "Financeiro") && (
+                    <button
+                      onClick={handlePrint}
+                      className="flex items-center w-[30px]
+                        gap-2 text-white 
+                        px-2 py-1 rounded-lg font-medium transition-all 
+                        duration-200 shadow-md hover:shadow-lg w-16"
+                    >
+                      <Download className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </li>
+              <li>
+                <div className="no-print mb-8 w-full flex justify-center">
+                  {(user?.role === "Administrador" || user?.role === "Financeiro") && (
+                    <button
+                      onClick={handlePrint}
+                      className="flex items-center w-[30px]
+                        gap-2 text-white 
+                        px-2 py-1 rounded-lg font-medium transition-all 
+                        duration-200 shadow-md hover:shadow-lg w-16"
+                    >
+                      <Printer className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </li>
+              <li>
+                <div className="no-print mb-8 w-full flex justify-center">
+                  {(user?.role === "Administrador" || user?.role === "Financeiro") && (
+                    <button onClick={returnToList}
+                      className="flex items-center w-[30px]
+                        gap-2 text-white 
+                        px-2 py-1 rounded-lg font-medium transition-all 
+                        duration-200 shadow-md hover:shadow-lg w-16"
+                    >
+                      <SidebarClose className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </li>
+            </ul>
+          </nav>
+        </header>
+        {/* Conteúdo do PDF */}
+        <div className="print-area bg-white  w-full max-w-[100vw] p-8 rounded-sm border border-gray-200 shadow-sm print:shadow-none">
 
-      <div className="no-print mb-6 flex justify-end">
-         {(user?.designation === "Administrador" || user?.designation === "Financeiro") && (
-            <button
-              onClick={handlePrint}
-              className="bg-slate-800 hover:bg-slate-900 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 shadow-sm"
-            >
-              Baixar PDF de Separação
-            </button>        
-        )}
-      </div>
-
-      <div className="print-area print-horizontal bg-white shadow-lg rounded-lg overflow-hidden print:shadow-none print:rounded-none border border-gray-200">
-        {/* Cabeçalho da empresa */}
-        <div className="bg-slate-900 text-white p-6 print-header print:bg-slate-900">
-          <div className="flex justify-between items-center w-full">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700">
+          {/* Cabeçalho */}
+          <div className="flex justify-between items-start mb-4 -mt-6 pb-6 border-b border-gray-100">
+            <div className="flex items-start gap-4">
+              <div className="w-20 h-20 flex items-center justify-center 
+                    rounded-xl shadow-sm">
                 <img
                   src={logo}
                   alt="Logo Guiman"
-                  className="w-12 h-12 rounded-md object-cover"
+                  className="w-14 h-14 object-cover rounded-lg"
                   onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = "none"
-                    const fallback = target.nextElementSibling as HTMLElement
-                    if (fallback) fallback.style.display = "flex"
+                    (e.target as HTMLImageElement).style.display = "none"
+                    const parent = (e.target as HTMLImageElement).parentElement
+                    if (parent) {
+                      parent.innerHTML = '<Package className="w-8 h-8 text-white" />'
+                    }
                   }}
                 />
-                <div className="hidden w-12 h-12 bg-slate-700 rounded-md items-center justify-center">
-                  <Package className="w-6 h-6 text-slate-300" />
-                </div>
               </div>
               <div>
-                <h1 className="text-3xl font-bold mb-1 text-white">Vendas Guiman</h1>
-                <p className="text-slate-300 text-lg font-medium">Lista de Separação - Expedição</p>
-                <p className="text-slate-400 text-sm mt-1">guiman-company@gmail.com | (11) xxxxx-xxxx</p>
+                <h1 className="text-1xl font-bold text-gray-900 mb-1">Vendas Konéxus</h1>
+                <p className="text-gray-600 font-medium text-sm">Lista de Separação - Expedição</p>
+                <div className="flex items-center gap-4 mt-1">
+                  <p className="text-gray-500 text-sm flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    konexuserp@gmail.com
+                  </p>
+                  <p className="text-gray-500 text-sm">(11) xxxxx-xxxx</p>
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-                <p className="text-sm text-slate-400 mb-1 font-medium">Pedido Nº</p>
-                <p className="text-3xl font-bold text-white">{order.order_number}</p>
-                <div className="flex items-center gap-2 mt-3 justify-end">
-                  <span
-                    className={`text-xs px-3 py-1.5 rounded-full font-semibold border ${statusColors[order.status]}`}
-                  >
-                    {order.status.toUpperCase()}
+
+            <div className="text-center w-[15vw]">
+              <div className="bg-gradient-to-br h-[8vh] from-gray-50 to-gray-100 p-4 rounded-xl border border-gray-200 shadow-sm">
+                <p className="text-sm text-gray-500 uppercase tracking-wide -mt-3">Pedido Nº</p>
+                <p className="text-sm font-bold text-gray-900 mt-1">{order.orderNumber}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Informações principais */}
+          <div className="flex flex-row items-center justify-between border border-gray-200 rounded-lg px-6 py-3 gap-12 mb-8">
+
+            {/* Dados do Cliente */}
+
+            <div>
+              <h3 className="text-sm font-bold mb-2 text-black">Dados do cliente</h3>
+              <p className="font-medium text-black text-sm mb-2">{order.customer.name}</p>
+
+              {order.shipping ? (
+                <div className="mb-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-black">
+                    Endereço de Cobrança:
                   </span>
+                  <p className="text-black text-sm">
+                    {order.shipping?.city}, {order.shipping?.number} - {order.shipping?.street},
+                    CEP: {order.shipping?.zip}
+                  </p>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Datas */}
-        <div className="p-4 bg-gray-50 border-b border-gray-200">
-          <div className="flex justify-between items-center text-sm">
-            <div className="flex items-center gap-2 text-gray-700">
-              <Calendar className="w-4 h-4 text-gray-500" />
-              <span className="font-medium">Expedido em: {order.order_date.split("-").reverse().join("/")}</span>
-            </div>
-            {order.delivery_date && (
-              <div className="text-gray-700 font-medium">
-                Previsão de Entrega: {format(new Date(order.delivery_date), "dd/MM/yyyy")}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {/* Cliente e Separação */}
-          <div className="print-info-grid grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="border border-gray-200 shadow-sm rounded-lg p-5 bg-white">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-slate-600" />
+              ) : (
+                <div className="mb-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-black">
+                    Endereço de Entrega:
+                  </span>
+                  <p className="text-black bg-red-500 text-sm">
+                    {order.billing?.city}, {order.billing?.street} - {order.billing?.number},
+                    CEP: {order.billing?.zip}
+                  </p>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">Dados do Cliente</h3>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Nome</p>
-                  <p className="font-semibold text-gray-900 mt-1">{order.customer_name}</p>
-                </div>
-                {order.customer_phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-700 font-medium">{order.customer_phone}</span>
-                  </div>
-                )}
-                {order.customer_address && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-                        Endereço de Entrega
-                      </span>
-                    </div>
-                    <p className="text-gray-700 pl-6 leading-relaxed">{order.customer_address}</p>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
-            <div className="border border-gray-200 shadow-sm rounded-lg p-5 bg-white">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
-                  <CheckSquare className="w-4 h-4 text-slate-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">Informações da Separação</h3>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Vendedor Responsável</p>
-                  <p className="font-semibold text-gray-900 mt-1">{order.salesperson}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total de Itens</p>
-                  <p className="text-2xl font-bold text-slate-700 mt-1">{order.items.length} itens</p>
-                </div>
-              </div>
+
+            {/* Expedido em */}
+            <div>
+              <h3 className="text-sm font-bold mb-2 text-black">Expedido em</h3>
+              <p className="text-black text-sm font-medium">
+                {new Date(order.orderDate).toLocaleDateString()}
+              </p>
+            </div>
+
+            {/* Vendedor */}
+            <div>
+              <h3 className="text-sm font-bold mb-2 text-black">Vendedor</h3>
+              <p className="text-black text-sm font-medium">{order.salesperson}</p>
+            </div>
+
+            {/* Total de Itens */}
+            <div>
+              <h3 className="text-sm font-bold mb-2 text-black">Total de Itens</h3>
+              <p className="text-black text-sm font-medium">{order.orderItems.length}</p>
             </div>
           </div>
+
+          {/* Data */}
 
           {/* Tabela de Produtos */}
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
-                <CheckSquare className="w-4 h-4 text-slate-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Lista de Separação - Expedição</h3>
+          <div className="border border-gray-200 rounded-xl overflow-hidden mb-8 shadow-sm print-break">
+            <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-4">
+              <h3 className="text-white font-semibold flex items-center gap-2">
+                <CheckSquare className="w-5 h-5" />
+                Itens para Separação
+              </h3>
             </div>
-            <div className="border border-gray-200 shadow-sm rounded-lg overflow-hidden">
-              <table className="print-table w-full">
-                <thead>
-                  <tr className="bg-slate-800 text-white">
-                    <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">✓ Separado</th>
-                    <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Código</th>
-                    <th className="text-left p-4 font-semibold text-sm uppercase tracking-wide">Produto</th>
-                    <th className="text-center p-4 font-semibold text-sm uppercase tracking-wide">Quantidade</th>
-                    <th className="text-center p-4 font-semibold text-sm uppercase tracking-wide">
-                      Localização no Estoque
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.items.map((item, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="p-4">
-                        <div className="w-6 h-6 border-2 border-gray-400 rounded-sm"></div>
-                      </td>
-                      <td className="p-4">
-                        <span className="font-mono text-sm bg-gray-100 text-gray-800 px-3 py-1.5 rounded font-medium">
-                          {item.product_code}
-                        </span>
-                      </td>
-                      <td className="p-4 font-semibold text-gray-900">{item.product_name}</td>
-                      <td className="p-4 text-center">
-                        <span className="inline-flex items-center justify-center w-10 h-10 bg-slate-100 text-slate-800 rounded-full font-bold text-lg">
-                          {item.quantity}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        {item.location ? (
-                          <span className="inline-flex items-center gap-2 bg-gray-100 text-gray-800 px-3 py-2 rounded-full text-sm font-semibold">
-                            <MapPin className="w-3 h-3" />
-                            {item.location}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-sm font-medium">Localização não definida</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
 
-          {/* Assinaturas */}
-          <div className="print-signatures grid grid-cols-1 md:grid-cols-3 gap-8 pt-6">
-            {["Separado por", "Conferido por", "Expedido por"].map((label, i) => (
-              <div key={i}>
-                <p className="text-sm text-gray-600 mb-3 font-semibold uppercase tracking-wide">{label}:</p>
-                <div className="border-b-2 border-gray-400 pb-1 mb-2 h-8"></div>
-                <p className="text-xs text-gray-500 font-medium">Nome e Assinatura</p>
-              </div>
-            ))}
+            <table className="w-full print-table">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider w-16">✓</th>
+                  <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider w-24">Código</th>
+                  <th className="p-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Produto</th>
+                  <th className="p-4 text-center text-sm font-semibold text-gray-700 uppercase tracking-wider w-32">Quantidade</th>
+                  <th className="p-4 text-center text-sm font-semibold text-gray-700 uppercase tracking-wider w-40">Localização</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.orderItems.map((item, i) => (
+                  <tr
+                    key={i}
+                    className={`border-b border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors`}
+                  >
+                    <td className="p-4">
+                      <div className="w-6 h-6 border-2 border-gray-400 rounded-sm flex items-center justify-center">
+                        <div className="w-3 h-3 bg-transparent rounded-sm"></div>
+                      </div>
+                    </td>
+                    <td className="p-4 font-mono text-sm font-medium text-gray-800">{item.productCode}</td>
+                    <td className="p-4 text-gray-800">{item.productName}</td>
+                    <td className="p-4 text-center">
+                      <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {item.quantity}
+                      </span>
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${item.location && item.location !== "Não definido"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-800"
+                        }`}>
+                        {item.location || "Não definido"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           {/* Observações */}
           {order.notes && (
-            <div className="border-t border-gray-200 pt-6">
-              <p className="text-sm text-gray-600 mb-3 font-semibold uppercase tracking-wide">Observações:</p>
-              <p className="text-gray-800 bg-amber-50 p-4 rounded-lg border border-amber-200 leading-relaxed">
-                {order.notes}
+            <div className="border border-amber-200 rounded-xl p-5 mb-8 bg-amber-50">
+              <p className="text-sm text-amber-700 font-semibold mb-2 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                Observações
               </p>
+              <p className="text-amber-800">{order.notes}</p>
             </div>
           )}
-        </div>
 
-        {/* Rodapé */}
-        <div className="bg-gray-50 p-4 text-center text-xs text-gray-600 border-t border-gray-200">
-          <p className="font-medium">
-            Este documento foi gerado automaticamente pelo sistema GUIMAN em{" "}
-            {format(new Date(order.order_date), "dd/MM/yyyy")}
-          </p>
+          {/* Assinaturas */}
+          <div className="flex flex-row justify-between print-signatures mb-8 pt-6 border-t border-gray-200">
+            {["Separado por", "Conferido por"].map((label, i) => (
+              <div key={i} className="text-center w-full">
+                <p className="text-sm text-gray-600 mb-4 font-medium">{label}</p>
+                <div className="border-b-2 border-gray-400 h-10 mb-2 mx-4"></div>
+                <p className="text-xs text-gray-500">Assinatura</p>
+                <p className="text-xs text-gray-400 mt-1">Data: ____/____/______</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Rodapé */}
+          <div className="text-center text-xs text-gray-500 border-t border-gray-200 pt-4">
+            <p>Documento gerado automaticamente pelo sistema Konéxus em {new Date().toLocaleDateString()}</p>
+            <p className="mt-1">Vendas Konéxus • konexuserp@gmail.com • (11) xxxxx-xxxx</p>
+          </div>
+
         </div>
       </div>
+
     </div>
   )
 }

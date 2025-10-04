@@ -1,47 +1,58 @@
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db } from "../../../../firebaseConfig";
+import { apiRequest } from "../../api";
 import { Customer } from "../../../interfaces";
 import Swal from "sweetalert2";
 
-export async function insertCustomer(customer: Customer) {
-    try {
-        const docRef = await addDoc(collection(db, "Customer"), customer)
-        return docRef.id
-    } catch (error) {
-        console.error("Erro ao inserir o Cliente ao sistema.", error)
-        alert("Erro ao cadastrar cliente!!!")
-        throw new Error()
-    }
+// Criar cliente
+export async function insertCustomer(customer: Customer, token?: string) {
+  try {
+    const result = await apiRequest("customer/create", "POST", customer, token);
+    console.log(result)
+    
+    return result?.id;
+
+  } catch (error) {
+    console.error("Erro ao inserir o Cliente ao sistema.", error);
+    Swal.fire("Erro!", "Erro ao cadastrar cliente!!!", "error");
+  }
 }
 
-export async function updateCustomer(id: string, updatedData: any) {
-    try {
-        const customerRef = doc(db, "Customer", id)
-        await updateDoc(customerRef, updatedData)
-    } catch (error) {
-        console.error("Erro ao atualizar os dados do cliente!", error)
-        throw new Error('Erro interno do servidor')
-    }
+// Atualizar cliente
+export async function updateCustomer(id: string, updatedData: any, token?: string) {
+  try {
+    const response = await apiRequest(`customer/${id}`, "PUT", updatedData, token);
+    
+    return response
+
+  } catch (error) {
+    console.error("Erro ao atualizar os dados do cliente!", error);
+    Swal.fire("Erro!", "Erro ao atualizar cliente!", "error");
+  }
 }
 
-export async function handleAllCustomer(searchTerm?: string): Promise<Customer[]> {
-    try {
-        const clientRef = collection(db, "Customer")
-        const snapshot = await getDocs(clientRef)
+// Listar clientes
+export const handleAllCustomers = async (): Promise<Customer[]> => {
+  const tkn = localStorage.getItem("token")
+  
+  try {
+    const response = await apiRequest("customer/all", "GET", undefined, tkn as string);
 
-        const clients: Customer[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-        })) as Customer[]
-        return clients
-    } catch (error) {
-        console.error("Erro ao recuperar a lista de Clientes!", error)
-        alert("Erro interno do servidor!!!")
-        throw new Error('Erro interno do servidor')
+    const customers = response.data || response.customers || [];
+    
+    if (!Array.isArray(customers)) {
+      console.warn("Customers não é um array:", customers);
+      return [];
     }
-}
-
-export const deleteCustomer = async (id: string): Promise<boolean> => {
+    
+    return customers;
+    
+  } catch (error: any) {
+    console.error("Erro ao recuperar lista de clientes:", error.message || error);
+    Swal.fire("Erro", "Erro ao recuperar lista de clientes", "error");
+    return [];
+  }
+};
+// Deletar cliente
+export const deleteCustomer = async (id: string, token?: string): Promise<boolean> => {
   const result = await Swal.fire({
     title: "Tem certeza?",
     text: "Deseja excluir este cliente?",
@@ -56,7 +67,7 @@ export const deleteCustomer = async (id: string): Promise<boolean> => {
   if (!result.isConfirmed) return false;
 
   try {
-    await deleteDoc(doc(db, "Customer", id));
+    await apiRequest(`customer/${id}`, "DELETE", undefined, token);
     Swal.fire("Excluído!", "Cliente excluído com sucesso.", "success");
     return true;
   } catch (error) {

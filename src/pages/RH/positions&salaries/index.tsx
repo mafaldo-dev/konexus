@@ -18,6 +18,8 @@ export default function PositionsAndSalaries() {
   const [activeTab, setActiveTab] = useState<'list' | 'stats'>('list');
   const [loading, setLoading] = useState(true);
 
+  {/* */}
+
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
@@ -34,28 +36,11 @@ export default function PositionsAndSalaries() {
   }, []);
 
   const groupedByRole = employees.reduce((acc: Record<string, Employee[]>, emp) => {
-    if (!emp.designation) return acc;
-    acc[emp.designation] = [...(acc[emp.designation] || []), emp];
+    if (!emp.role) return acc;
+    acc[emp.role] = [...(acc[emp.role] || []), emp];
     return acc;
   }, {});
-
-  const chartData = Object.entries(groupedByRole).map(([role, emps]) => {
-    const totalRoleSalary = emps.reduce((sum, emp) => sum + (Number(emp.salary) || 0), 0);
-    return {
-      name: role,
-      employees: emps.length,
-      avgSalary: totalRoleSalary / emps.length
-    };
-  });
-
-  const totalEmployees = employees.length;
-  const totalSalary = employees.reduce((sum, emp) => sum + (Number(emp.salary) || 0), 0);
-  const avgSalary = totalSalary / (totalEmployees || 1);
-
-  const highestPaid = employees.length > 0
-    ? employees.reduce((max, emp) =>
-        Number(emp.salary) > Number(max.salary) ? emp : max, employees[0])
-    : null;
+   
 
   return (
     <Dashboard>
@@ -89,9 +74,6 @@ export default function PositionsAndSalaries() {
         ) : activeTab === 'list' ? (
           <div className="space-y-6">
             {Object.entries(groupedByRole).map(([role, employees]) => {
-              const totalRoleSalary = employees.reduce((sum, emp) => sum + (Number(emp.salary) || 0), 0);
-              const avgRoleSalary = totalRoleSalary / employees.length;
-
               return (
                 <div key={role} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
                   <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 flex items-center justify-between">
@@ -103,7 +85,7 @@ export default function PositionsAndSalaries() {
                       </span>
                     </h2>
                     <div className="text-sm font-medium bg-white px-3 py-1 rounded-full shadow-sm">
-                      Média salarial: <span className="text-blue-600">R$ {avgRoleSalary.toFixed(2)}</span>
+                      Média salarial: <span className="text-blue-600">R$</span>
                     </div>
                   </div>
 
@@ -121,18 +103,10 @@ export default function PositionsAndSalaries() {
                         {employees.map((employee) => (
                           <tr key={employee.id} className="hover:bg-gray-50 transition-colors">
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium">
-                                  {employee.dataEmployee?.fullname?.charAt(0) || employee.username?.charAt(0)}
-                                </div>
-                                <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">{employee.dataEmployee?.fullname || 'Não informado'}</div>
-                                  <div className="text-sm text-gray-500">{employee.dataEmployee?.email}</div>
-                                </div>
-                              </div>
+                              
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500">{employee.username}</td>
-                            <td className="px-6 py-4 text-sm font-medium text-gray-900">R$ {Number(employee.salary).toFixed(2)}</td>
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">R$</td>
                             <td className="px-6 py-4">
                               <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${employee.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                 {employee.active ? 'Ativo' : 'Inativo'}
@@ -159,27 +133,19 @@ export default function PositionsAndSalaries() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <div className="text-sm font-medium text-blue-800">Total de Funcionários</div>
-                  <div className="text-2xl font-bold text-blue-600 mt-1">{totalEmployees}</div>
+                  <div className="text-2xl font-bold text-blue-600 mt-1">{"totalEmployees"}</div>
                 </div>
 
                 <div className="bg-green-50 p-4 rounded-lg">
                   <div className="text-sm font-medium text-green-800">Folha Salarial Total</div>
-                  <div className="text-2xl font-bold text-green-600 mt-1">R$ {totalSalary.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-green-600 mt-1">R$</div>
                 </div>
 
                 <div className="bg-purple-50 p-4 rounded-lg">
                   <div className="text-sm font-medium text-purple-800">Média Salarial</div>
-                  <div className="text-2xl font-bold text-purple-600 mt-1">R$ {avgSalary.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-purple-600 mt-1">R$</div>
                 </div>
 
-                {highestPaid && (
-                  <div className="bg-yellow-50 p-4 rounded-lg">
-                    <div className="text-sm font-medium text-yellow-800">Maior Salário</div>
-                    <div className="text-xl font-bold text-yellow-600 mt-1">
-                      {highestPaid.dataEmployee?.fullname || highestPaid.username} - R$ {Number(highestPaid.salary).toFixed(2)}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -192,7 +158,7 @@ export default function PositionsAndSalaries() {
 
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
+                  <BarChart>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -211,7 +177,7 @@ export default function PositionsAndSalaries() {
                 <Award className="mr-2 text-blue-600" />
                 Top Cargos por Média Salarial
               </h3>
-
+            {/*
               <div className="space-y-4">
                 {chartData
                   .sort((a, b) => b.avgSalary - a.avgSalary)
@@ -231,6 +197,7 @@ export default function PositionsAndSalaries() {
                     </div>
                   ))}
               </div>
+            */}
             </div>
           </div>
         )}

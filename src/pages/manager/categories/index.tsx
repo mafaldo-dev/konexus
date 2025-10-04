@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Products } from "../../../service/interfaces/stock/products"
-import { getAllProducts } from "../../../service/api/Administrador/products"
+import { handleAllProducts } from "../../../service/api/Administrador/products"
 import { Search, X, ChevronDown, BarChart2, Layers, Clock, CheckCircle, XCircle } from "lucide-react"
 import Dashboard from "../../../components/dashboard/Dashboard"
 
@@ -24,11 +24,12 @@ const Categories = () => {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
+
   useEffect(() => {
     const fetchProductsAndBuildCategories = async () => {
       try {
         setIsLoading(true)
-        const products: Products[] = await getAllProducts()
+        const products: Products[] = await handleAllProducts()
         setAllProducts(products)
 
         const categoryMap = new Map<string, Category>()
@@ -83,6 +84,9 @@ const Categories = () => {
     return allProducts.filter(product => product.category === selectedCategory.name)
   }, [selectedCategory, allProducts])
 
+
+//const filteredCategories = [0, 1]
+//const filteredProducts = [0, 1]
   return (
     <Dashboard>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -162,24 +166,16 @@ const Categories = () => {
                 >
                   <div className="p-5">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium text-gray-900 truncate">{category.name}</h3>
+                      <h3 className="text-lg font-medium text-gray-900 truncate">{category.id}</h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        category.status === "active" 
-                          ? "bg-green-100 text-green-800" 
-                          : "bg-red-100 text-red-800"
-                      }`}>
-                        {category.status === "active" ? (
-                          <CheckCircle className="mr-1 h-3 w-3" />
-                        ) : (
-                          <XCircle className="mr-1 h-3 w-3" />
-                        )}
-                        {category.status === "active" ? "Ativa" : "Inativa"}
+                        category}`}>
+                        
                       </span>
                     </div>
 
                     <div className="mt-4 flex items-center text-sm text-gray-500">
                       <BarChart2 className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                      <span>{category.productsCount} produto{category.productsCount !== 1 ? 's' : ''}</span>
+                      <span>{category.status} produto{category.name}</span>
                     </div>
 
                     <div className="mt-2 flex items-center text-sm text-gray-500">
@@ -190,7 +186,7 @@ const Categories = () => {
 
                   <div className="bg-gray-50 px-5 py-3 flex justify-end space-x-3 border-t border-gray-200">
                     <button 
-                      onClick={() => handleViewProducts(category)}
+                      onClick={()=> void("")}
                       className="text-sm font-medium text-gray-600 hover:text-gray-500"
                     >
                       Ver produtos
@@ -240,10 +236,10 @@ const Categories = () => {
                           {new Intl.NumberFormat('pt-BR', {
                             style: 'currency',
                             currency: 'BRL'
-                          }).format(product.price || 0)}
+                          }).format(product.price)}
                         </div>
                         <div className="text-sm text-gray-500 truncate">
-                          {product.supplier || 'N/A'}
+                          {product.supplier_id}
                         </div>
                         <div className="text-sm text-gray-500">
                           {product.quantity}

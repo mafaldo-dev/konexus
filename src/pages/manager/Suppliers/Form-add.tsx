@@ -18,10 +18,6 @@ const FormRegisterSupplier: React.FC<FormAddProps> = ({ onSupplierAdded }) => {
                 active: true,
                 createdAt: new Date(),
                 updatedAt: new Date(),
-                address: {
-                    ...data.address,
-                    number: data.address.number.toString()
-                }
             }
             await insertSupplier(supplierData)
             reset()
@@ -51,12 +47,12 @@ const FormRegisterSupplier: React.FC<FormAddProps> = ({ onSupplierAdded }) => {
             .replace(/(-\d{4})\d+?$/, '$1')
     }
 
-    const maskZipCode = (value: string) => {
-        return value
-            .replace(/\D/g, '')
-            .replace(/(\d{5})(\d)/, '$1-$2')
-            .replace(/(-\d{3})\d+?$/, '$1')
-    }
+   // const maskZipCode = (value: string) => {
+     //   return value
+       //     .replace(/\D/g, '')
+         //   .replace(/(\d{5})(\d)/, '$1-$2')
+           // .replace(/(-\d{3})\d+?$/, '$1')
+    //}
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -72,7 +68,7 @@ const FormRegisterSupplier: React.FC<FormAddProps> = ({ onSupplierAdded }) => {
                 <div>
                     <label className="block text-sm font-medium text-gray-700">CNPJ*</label>
                     <input
-                        {...register("cnpj", {
+                        {...register("national_register_code", {
                             required: true,
                             onChange: (e) => {
                                 e.target.value = maskCNPJ(e.target.value)
@@ -80,12 +76,12 @@ const FormRegisterSupplier: React.FC<FormAddProps> = ({ onSupplierAdded }) => {
                         })}
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     />
-                    {errors.cnpj && <span className="text-red-500 text-xs">Campo obrigatório</span>}
+                    {errors.national_register_code && <span className="text-red-500 text-xs">Campo obrigatório</span>}
                 </div>
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-gray-700">Razão Social*</label>
+                <label className="block text-sm font-medium text-gray-700">Nome*</label>
                 <input
                     {...register("name", { required: true })}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -96,7 +92,7 @@ const FormRegisterSupplier: React.FC<FormAddProps> = ({ onSupplierAdded }) => {
             <div>
                 <label className="block text-sm font-medium text-gray-700">Nome Fantasia</label>
                 <input
-                    {...register("tradingName")}
+                    {...register("trading_name")}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
             </div>
@@ -126,7 +122,7 @@ const FormRegisterSupplier: React.FC<FormAddProps> = ({ onSupplierAdded }) => {
                     {errors.phone && <span className="text-red-500 text-xs">Campo obrigatório</span>}
                 </div>
             </div>
-
+                        {/*
             <div className="border-t pt-4">
                 <h3 className="text-lg font-medium">Endereço</h3>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -210,6 +206,7 @@ const FormRegisterSupplier: React.FC<FormAddProps> = ({ onSupplierAdded }) => {
                     </div>
                 </div>
             </div>
+            */}
 
             <div className="flex justify-end space-x-3 pt-4">
                 <button

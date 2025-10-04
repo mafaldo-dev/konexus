@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+
 import Branding from "./components/Branding";
 import LoginForm from "./components/LoginForm";
 import useAuthService from "./useAuthService";
 import Swal from "sweetalert2";
+
 
 function useAutoUpdater() {
     // useEffect(() => {
@@ -28,14 +30,12 @@ function useAutoUpdater() {
 }
 
 const LoginPage: React.FC = () => {
-    useAutoUpdater();
-
     const [credentials, setCredentials] = useState({ user: "", pass: "" });
     const { loading, error, handleLogin } = useAuthService();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        handleLogin(credentials);
+        handleLogin(credentials.user, credentials.pass);
     };
 
     return (

@@ -4,12 +4,15 @@ import { insertProductComKardex } from "../../../service/api/Administrador/produ
 import { PackagePlus, Save } from "lucide-react";
 import clsx from "clsx";
 import Swal from "sweetalert2";
+import { handleAllSuppliers } from "../../../service/api/Administrador/suppliers/supplier";
+import { useEffect, useState } from "react";
 
 interface FormAddedProps {
   onProductsAdded: () => void
 }
 
 const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) => {
+  const [supId, setSupId] = useState<any>()
   const {
     register,
     handleSubmit,
@@ -17,30 +20,17 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
     setValue,
     reset,
     formState: { errors },
-  } = useForm<Omit<Products, "id"> & { IOF: string }>({
-    defaultValues: {
-      IOF: "false",
-      statesWithTax: [],
-    },
-  })
+  } = useForm<Products>()
 
   const onSubmit: SubmitHandler<Products> = async (data) => {
     try {
       const payload: Products = {
         ...data,
-        IOF: data.IOF === "true",
-        addedAt: new Date(),
+        createdAt: new Date(),
       };
 
-      // Remove campos que não devem ir para o Firebase se IOF for false
-      if (data.IOF === "true") {
-        payload.valueOfIof = Number(data.valueOfIof);
-        payload.statesWithTax = data.statesWithTax;
-      } else {
-        delete payload.valueOfIof;
-        delete payload.statesWithTax;
-      }
       await insertProductComKardex(payload);
+      console.log(payload)
       reset();
       onProductsAdded()
     } catch (error) {
@@ -50,25 +40,14 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
     }
   };
 
-  const watchIOF = watch("IOF");
-  const selectedStates: string[] = watch("statesWithTax") || [];
-
-  const toggleState = (state: string) => {
-    let newStates: string[];
-    if (selectedStates.includes(state)) {
-      newStates = selectedStates.filter((s) => s !== state);
-    } else {
-      newStates = [...selectedStates, state];
+  useEffect(() => {
+    const handleSupplierId = async () => {
+      const response = await handleAllSuppliers()
+      console.log(response)
+      setSupId(response)
     }
-    setValue("statesWithTax", newStates, { shouldValidate: true });
-  };
-
-
-  const brazilianStates = [
-    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
-    "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
-    "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
-  ];
+    handleSupplierId()
+  }, [])
 
   return (
     <form
@@ -117,6 +96,17 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
           />
           {errors.price && <p className="text-red-600 text-sm mt-1">{errors.price.message}</p>}
         </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-600 mb-1">Custo (R$) *</label>
+          <input
+            type="number"
+            step="0.01"
+            {...register("coast", { required: "Preço obrigatório", valueAsNumber: true })}
+            className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="100.00"
+          />
+          {errors.coast && <p className="text-red-600 text-sm mt-1">{errors.coast.message}</p>}
+        </div>
         {/* Localização */}
         <div>
           <label className="block text-sm font-semibold text-gray-600 mb-1">Localização *</label>
@@ -143,15 +133,28 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
 
         {/* Fornecedor */}
         <div>
-          <label className="block text-sm font-semibold text-gray-600 mb-1">Fornecedor *</label>
-          <input
-            type="text"
-            {...register("supplier", { required: "Fornecedor obrigatório" })}
+          <label className="block text-sm font-semibold text-gray-600 mb-1">
+            Fornecedor *
+          </label>
+          <select
+            {...register("supplier_id", { required: "Fornecedor obrigatório" })}
             className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="Ex: Amazon"
-          />
-          {errors.supplier && <p className="text-red-600 text-sm mt-1">{errors.supplier.message}</p>}
+            defaultValue=""
+          >
+            <option value="" disabled>Selecione um fornecedor</option>
+            {supId?.map((supplier: any) => (
+              <option key={supplier.id} value={supplier.id}>
+                {supplier.name}
+              </option>
+            ))}
+          </select>
+          {errors.supplier_id && (
+            <p className="text-red-600 text-sm mt-1">
+              {errors.supplier_id.message}
+            </p>
+          )}
         </div>
+
 
         {/* Categoria */}
         <div>
@@ -202,7 +205,7 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
         {errors.description && <p className="text-red-600 text-sm mt-1">{errors.description.message}</p>}
       </div>
 
-      {/* IOF (radio) */}
+      {/* IOF (radio) 
       <div>
         <label className="block text-sm font-semibold text-gray-600 mb-2">Possui IOF? *</label>
         <div className="flex gap-6">
@@ -228,65 +231,7 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
         </div>
         {errors.IOF && <p className="text-red-600 text-sm mt-1">{errors.IOF.message}</p>}
       </div>
-
-      {/* Se IOF for true, mostra valor do IOF e estados */}
-      {watchIOF === "true" && (
-        <>
-          <div>
-            <label className="block text-sm font-semibold text-gray-600 mb-1">Valor do IOF (%) *</label>
-            <input
-              type="number"
-              step="0.01"
-              {...register("valueOfIof", { required: "Campo obrigatório", valueAsNumber: true })}
-              className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Ex: 3.5"
-            />
-            {errors.valueOfIof && <p className="text-red-600 text-sm mt-1">{errors.valueOfIof.message}</p>}
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-semibold text-gray-600 mb-2">Estados com IOF *</label>
-            <div className="flex flex-wrap gap-2">
-              {brazilianStates.map((state) => {
-                const selected = selectedStates.includes(state);
-                return (
-                  <button
-                    type="button"
-                    key={state}
-                    onClick={() => toggleState(state)}
-                    className={clsx(
-                      "px-4 py-1 rounded-full border transition-colors duration-200",
-                      selected
-                        ? "bg-indigo-600 text-white border-indigo-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                    )}
-                  >
-                    {state}
-                  </button>
-                );
-              })}
-            </div>
-            {errors.statesWithTax && (
-              <p className="text-red-600 text-sm mt-1">{errors.statesWithTax.message || "Selecione ao menos um estado"}</p>
-            )}
-
-            {/* Tags dos estados selecionados */}
-            {selectedStates.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {selectedStates.map((state) => (
-                  <span
-                    key={state}
-                    className="bg-indigo-100 text-indigo-800 text-sm px-3 py-1 rounded-full select-none"
-                  >
-                    {state}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
+*/}
       {/* Botões */}
       <div className="flex justify-end gap-4 mt-8">
         <button

@@ -41,7 +41,7 @@ const UpdadtedProduct = ({ product, onClose }: Props) => {
   return (
     <div className="modal">
       <div className="flex items-center justify-center fixed inset-0 bg-black/50 z-40">
-        <div className="bg-white p-6 rounded-lg shadow-lg w-[90vw] max-w-4xl max-h-[90vh] overflow-y-auto z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg w-[100vw] max-w-4xl max-h-[100vh] overflow-y-auto z-50">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">Editar Produto</h2>
             <button
@@ -94,7 +94,7 @@ const UpdadtedProduct = ({ product, onClose }: Props) => {
                 <label className="block text-sm font-medium">Fornecedor</label>
                 <input
                   type="text"
-                  {...register("supplier", { required: true })}
+                  {...register("supplier_id", { required: true })}
                   className="w-full border rounded p-2"
                 />
               </div>
@@ -144,41 +144,11 @@ const UpdadtedProduct = ({ product, onClose }: Props) => {
                   className="w-full border rounded p-2"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium">IOF</label>
-                <select {...register("IOF")} className="w-full border rounded p-2">
-                  <option value="">--</option>
-                  <option value="true">Sim</option>
-                  <option value="false">Não</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium">Valor do IOF</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  {...register("valueOfIof")}
-                  className="w-full border rounded p-2"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium">Estados com Taxa</label>
-                <input
-                  type="text"
-                  {...register("statesWithTax")}
-                  className="w-full border rounded p-2"
-                  placeholder="Separar por vírgulas: SP, RJ, MG"
-                />
-              </div>
             </div>
-
             <div className="text-right pt-4">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
+                className="bg-slate-800 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
               >
                 Salvar Alterações
               </button>

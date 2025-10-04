@@ -7,7 +7,6 @@ import {
   getPurchaseReports,
   getTopProducts,
   getTopCustomers,
-  getCustomerRank
 } from '../../../service/api/Administrador/reports';
 import {
   SalesReport,
@@ -48,21 +47,19 @@ const ReportsDashboard: React.FC = () => {
         salesData, 
         purchaseData, 
         productsData, 
-        customersData, 
-        rankData
+        //customersData, 
+        //rankData
       ] = await Promise.all([
         getSalesReports(),
         getPurchaseReports(),
         getTopProducts(),
-        getTopCustomers(),
-        getCustomerRank()
       ]);
 
       setSalesReport(salesData);
       setPurchaseReport(purchaseData);
       setTopProducts(productsData);
-      setTopCustomers(customersData);
-      setCustomerRank(rankData);
+      //setTopCustomers(customersData);
+      //setCustomerRank(rankData);
       
       setLastUpdated(new Date().toLocaleTimeString('pt-BR'));
     } catch (err) {

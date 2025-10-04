@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { Campaign } from '../../service/interfaces';
-import { getCampaigns, addCampaign } from '../../service/api/crm/crm';
+//import { getCampaigns, addCampaign } from '../../service/api/crm/crm';
 
 export const useCampaigns = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -14,8 +14,8 @@ export const useCampaigns = () => {
   const loadCampaigns = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data: Campaign[] = await getCampaigns();
-      setCampaigns(data);
+      //const data: Campaign[] = await getCampaigns();
+      //setCampaigns(data);
     } catch (error) {
       console.error("Erro ao carregar campanhas:", error);
     } finally {
@@ -32,7 +32,7 @@ export const useCampaigns = () => {
       if (editingCampaign) {
         // Implement updateCampaign later
       } else {
-        await addCampaign({ ...campaignData, createdAt: new Date() });
+        //await addCampaign({ ...campaignData, createdAt: new Date() });
       }
       setShowForm(false);
       setEditingCampaign(null);

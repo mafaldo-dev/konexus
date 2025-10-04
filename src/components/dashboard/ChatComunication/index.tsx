@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../../AuthContext';
 import { useChat, User } from '../../../ChatContext';
 
-
 export default function FloatingChat() {
   const { user: authUser } = useAuth();
   const {
@@ -11,7 +10,7 @@ export default function FloatingChat() {
     sendMessage,
     markMessagesRead,
     unreadCounts,
-    setUnreadCounts,
+    setUnreadCounts
   } = useChat();
 
   const [chatOpen, setChatOpen] = useState(false);
@@ -27,37 +26,22 @@ export default function FloatingChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!authUser) return;
-
-    const unreadMap: Record<string, number> = {};
-
-    messages.forEach((msg) => {
-      if (msg.recipientId === authUser.id && !msg.read) {
-        unreadMap[msg.senderId] = (unreadMap[msg.senderId] || 0) + 1;
-      }
-    });
-
-    setUnreadCounts({ type: 'SET_UNREAD', unreadMap });
-  }, [messages, authUser, setUnreadCounts]);
-
 
   const openChatWithUser = async (user: User) => {
     if (!authUser) return;
 
-    // Espera antes de abrir o chat
-    setTimeout(async () => {
-      setChatOpen(true);
-      setPopupUser(user);
-      setPopupMessage('');
-      closeContextMenu();
+    setChatOpen(true);
+    setPopupUser(user);
+    setPopupMessage('');
+    closeContextMenu();
 
+    try {
       await markMessagesRead(user.id, authUser.id!);
-
       setUnreadCounts({ type: 'RESET_UNREAD', userId: user.id });
-    }, 500); // 400ms costuma ser suficiente (4 segundos é muito)
+    } catch (error) {
+      console.error('Erro ao marcar mensagens como lidas:', error);
+    }
   };
-
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -72,15 +56,14 @@ export default function FloatingChat() {
     setContextMenu({ visible: false, x: 0, y: 0, user: null });
   };
 
-
   const handleWave = () => {
     if (!contextMenu.user || !authUser) return;
 
     sendMessage({
       senderId: authUser.id!,
       senderName: authUser.username,
+      sector: authUser.designation || "Geral",
       recipientId: contextMenu.user.id,
-      sector: contextMenu.user.sector,
       content: '👋',
     });
 
@@ -93,8 +76,8 @@ export default function FloatingChat() {
     sendMessage({
       senderId: authUser.id!,
       senderName: authUser.username,
+      sector: authUser.designation || "Geral",
       recipientId: popupUser.id,
-      sector: popupUser.sector,
       content: popupMessage.trim(),
     });
 
@@ -111,8 +94,8 @@ export default function FloatingChat() {
       sendMessage({
         senderId: authUser.id!,
         senderName: authUser.username,
+        sector: authUser.designation || "Geral",
         recipientId: popupUser.id,
-        sector: popupUser.sector,
         content: `📎 Enviou um arquivo: ${file.name}`,
       });
       e.target.value = '';
@@ -167,7 +150,7 @@ export default function FloatingChat() {
           <div className="bg-slate-900 text-white px-4 py-2 rounded-t-lg flex justify-between items-center">
             <div>
               <h3 className="font-semibold text-lg">{authUser.username}</h3>
-              <p className="text-sm text-gray-300">{authUser.designation}</p>
+              <p className="text-sm text-gray-300">{authUser.role}</p>
             </div>
             <button onClick={() => setChatOpen(false)} className="hover:text-red-400 font-bold text-xl">✕</button>
           </div>
@@ -180,10 +163,11 @@ export default function FloatingChat() {
                 key={u.id}
                 className="relative flex items-center gap-2 bg-gray-100 hover:bg-gray-200 w-full px-4 py-2 rounded cursor-pointer"
                 onContextMenu={(e) => handleContextMenu(e, u)}
+                onClick={() => openChatWithUser(u)}
               >
-                <span className={`w-3 h-3 rounded-full ${u.status === 'Ativo' ? 'bg-green-500' : u.status === 'Ausente' ? 'bg-yellow-400' : 'bg-gray-400'}`} />
+                <span className={`w-3 h-3 rounded-full ${u.status === 'online' ? 'bg-green-500' : u.status === 'away' ? 'bg-yellow-400' : 'bg-gray-400'}`} />
                 <span className={`text-sm font-medium ${u.id === authUser.id ? 'font-bold' : ''}`}>
-                  {u.name}{u.id === authUser.id ? ' (Você)' : ''}
+                  {u.username}{u.id === authUser.id ? ' (Você)' : ''}
                 </span>
 
                 {u.id !== authUser.id && unreadCounts[u.id] > 0 && (
@@ -216,7 +200,7 @@ export default function FloatingChat() {
       {popupUser && (
         <div className="fixed bottom-20 right-1/2 translate-x-1/2 w-[400px] bg-white border rounded shadow-lg z-50 flex flex-col max-h-[500px]">
           <div className="bg-slate-900 text-white px-4 py-2 rounded-t flex justify-between items-center">
-            <span>Conversando com {popupUser.name}</span>
+            <span>Conversando com {popupUser.username}</span>
             <button onClick={() => setPopupUser(null)} className="hover:text-red-400 font-bold text-xl">✕</button>
           </div>
 
@@ -231,7 +215,9 @@ export default function FloatingChat() {
                 className={`p-2 rounded max-w-[70%] ${m.senderId === authUser.id ? 'bg-blue-100 self-end' : 'bg-gray-100 self-start'}`}
               >
                 <div>{m.content}</div>
-                <div className="text-xs text-gray-400 mt-1">{m.timestamp}</div>
+                <div className="text-xs text-gray-400 mt-1">
+                  {new Date(m.timestamp).toLocaleTimeString()}
+                </div>
               </div>
             ))}
             <div ref={messagesEndRef} />

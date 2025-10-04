@@ -1,5 +1,5 @@
+// useProductManagement.ts
 import { useState } from 'react';
-
 import { ProductsProps, Products } from '../../service/interfaces';
 import { handleProductWithCode } from '../../service/api/Administrador/products';
 
@@ -8,7 +8,7 @@ export const useProductManagement = (
 ) => {
     const [productCode, setProductCode] = useState<string>("");
     const [addedProduct, setAddedProduct] = useState<Products | null>(null);
-    const [count, setCount] = useState(0);
+    const [count, setCount] = useState(1); // Inicia com 1
     const [price, setPrice] = useState(0);
 
     const handleProduct = async () => {
@@ -18,6 +18,9 @@ export const useProductManagement = (
             const productData = await handleProductWithCode(productCode);
             if (productData) {
                 setAddedProduct(productData as Products);
+                // Define automaticamente o preço do produto
+                setPrice(productData.price || 0);
+                setCount(1); // Reseta a quantidade para 1
             } else {
                 setAddedProduct(null);
                 alert("Nenhum produto encontrado com o código fornecido!");
@@ -29,7 +32,7 @@ export const useProductManagement = (
     };
 
     const handleAddProduct = () => {
-        if (!addedProduct || count <= 0 || price <= 0) {
+        if (!addedProduct || count <= 0) {
             alert("Preencha os dados corretamente para adicionar o produto.");
             return;
         }
@@ -41,7 +44,7 @@ export const useProductManagement = (
                 product_name: addedProduct.name,
                 quantity: count,
                 tipe: addedProduct.description,
-                price: price,
+                price: price, // Usa o preço definido (que é o do produto)
                 code: addedProduct.code,
                 location: addedProduct.location
             }
@@ -49,7 +52,7 @@ export const useProductManagement = (
 
         setAddedProduct(null);
         setProductCode('');
-        setCount(0);
+        setCount(1);
         setPrice(0);
     };
 
@@ -60,7 +63,7 @@ export const useProductManagement = (
         count,
         setCount,
         price,
-        setPrice,
+        setPrice, // Mantém setPrice caso queira permitir alteração manual
         handleProduct,
         handleAddProduct,
     };

@@ -78,13 +78,7 @@ export default function PurchaseRequestForm({
         company_name: '',
         email: '',
         cnpj: '',
-        phone: 0,
-        address: {
-          state: '',
-          city: '',
-          street: '',
-          number: 0,
-        },
+        phone: 0
       },
       status: 'pending',
     },
@@ -130,19 +124,11 @@ export default function PurchaseRequestForm({
       code: supplier.code || '',
       company_name: supplier.name,
       email: supplier.email || '',
-      cnpj: supplier.cnpj || '',
+      cnpj: supplier.national_register_code || '',
       phone: Number(supplier.phone) || 0,
-      address: {
-        state: supplier.address?.state || '',
-        city: supplier.address?.city || '',
-        street: '',
-        number: 0,
-      },
-    });
 
-    if (supplier.deliveryTime) {
-      setValue('deliveryDate', format(addDays(new Date(), supplier.deliveryTime), 'yyyy-MM-dd'));
-    }
+
+    });
   };
 
   const addProduct = () => {
@@ -227,10 +213,8 @@ export default function PurchaseRequestForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
               <div><strong>Nome:</strong> {selectedSupplier.name}</div>
               <div><strong>Email:</strong> {selectedSupplier.email}</div>
-              <div><strong>CNPJ:</strong> {selectedSupplier.cnpj}</div>
+              <div><strong>CNPJ:</strong> {selectedSupplier.national_register_code}</div>
               <div><strong>Telefone:</strong> {selectedSupplier.phone}</div>
-              <div><strong>Cidade:</strong> {selectedSupplier.address?.city}</div>
-              <div><strong>Estado:</strong> {selectedSupplier.address?.state}</div>
             </div>
           )}
         </section>

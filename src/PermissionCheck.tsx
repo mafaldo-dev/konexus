@@ -11,7 +11,7 @@ const DesignationCheck = ({
   const { user, loading } = useAuth();
 
   if (loading) return <p style={{ padding: 20 }}>Carregando...</p>;
-  if (!user || !allowed.includes(user.designation)) {
+  if (!user || !allowed.includes(user.role)) {
     return (
         <NotFound />
     )

@@ -1,28 +1,70 @@
 export interface OrderItem {
   productId: string;
-  product_name: string;
   quantity: number;
-  product_code: string,
-  unit_price: number
-  total: number
-  location: string
+  unitPrice: number;
+  location?: string
 }
 
-type PaymentMethods = "Pix" | "Boleto" | "Cartão Credito" | "Cartao Debito"
-
 export interface Order {
-  id?: string | any;
-  userId: string
-  order_number: string;
-  customer_name: string;
-  customer_phone?: string;
-  customer_address: string
-  salesperson: string;
-  order_date: string | Date | any;
-  total_amount: number | any;
-  status: "Pendente" | "Liberado" |"Separando" | "Finalizado" | "Enviado";
-  items: OrderItem[];
-  notes: string
-  delivery_date: string
-  payment_methods: PaymentMethods[]
+  id?: string | any
+  orderDate: string;
+  orderStatus: string | any
+  orderNumber: string | any
+  customerName: string
+  customerCode: string
+  customerId: string | number;
+  customerPhone?: string
+  totalAmount: number;
+  currency: string;
+  shippingAddressId?: number
+  billingAddressId?: number
+  salesperson?: string;
+  notes?: string;
+  orderItems: OrderItem[];
+}
+
+
+// -----------<->------------//
+
+// Para RESPOSTA DA API (GET)
+export interface OrderResponse {
+  id: number;
+  orderDate: string;
+  orderStatus: string;
+  orderNumber: string;
+  totalAmount: number;
+  currency: string;
+  salesperson?: string;
+  notes?: string;
+
+  customer: {
+    id: number;
+    name: string;
+    code: string;
+    phone?: string;
+    email?: string;
+  };
+
+  shipping?: Address;
+  billing?: Address;
+
+  orderItems: OrderItemResponse[];
+}
+
+export interface Address {
+  id?: number;
+  street?: string;
+  number?: number;
+  city?: string;
+  zip?: string;
+}
+
+export interface OrderItemResponse {
+  productId: number;
+  productName: string;
+  productCode: string;
+  quantity: number;
+  unitPrice: number;
+  location?: string;
+  subtotal: number;
 }

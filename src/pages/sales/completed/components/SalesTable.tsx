@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Package, Calendar, User, CreditCard, FileText } from "lucide-react";
-import { Order } from "../../../../service/interfaces";
+import { Order, OrderResponse } from "../../../../service/interfaces";
 
 
 interface SalesTableProps {
-  orders: Order[];
+  orders: OrderResponse[];
   loading: boolean;
 }
 
@@ -13,7 +13,7 @@ interface ContextMenuState {
   visible: boolean;
   x: number;
   y: number;
-  selectedOrder: Order | null;
+  selectedOrder: OrderResponse | null;
 }
 
 const SalesTable: React.FC<SalesTableProps> = ({ orders, loading }) => {
@@ -35,7 +35,7 @@ const SalesTable: React.FC<SalesTableProps> = ({ orders, loading }) => {
 
   const handleContextMenu = (
     event: React.MouseEvent<HTMLTableRowElement>,
-    order: Order
+    order: OrderResponse
   ) => {
     event.preventDefault();
     setContextMenu({
@@ -112,34 +112,34 @@ const SalesTable: React.FC<SalesTableProps> = ({ orders, loading }) => {
                           <Package className="w-4 h-4 text-emerald-600" />
                         </div>
                         <span className="font-medium text-slate-900">
-                          #{order.order_number}
+                          #{order.orderNumber}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-slate-900">
                         <User className="w-4 h-4 text-slate-400" />
-                        {order.customer_name}
+                        {order.customer.name}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-slate-700">{order.salesperson}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-slate-700">
                         <Calendar className="w-4 h-4 text-slate-400" />
-                        {formatDate(order.order_date)}
+                        {formatDate(order.orderDate)}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <CreditCard className="w-4 h-4 text-slate-400" />
                         <span className="font-semibold text-emerald-600">
-                          {formatCurrency(order.total_amount)}
+                          {formatCurrency(order.totalAmount)}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        {order.status}
+                        {order.orderStatus}
                       </span>
                     </td>
                   </motion.tr>
@@ -172,7 +172,7 @@ const SalesTable: React.FC<SalesTableProps> = ({ orders, loading }) => {
             className="w-full px-4 py-2 text-left hover:bg-slate-100 flex items-center gap-2"
             onClick={() => {
               // Aqui você pode colocar a lógica de abrir modal ou redirecionar
-              alert(`Visualizar NF do pedido: ${contextMenu.selectedOrder?.order_number}`);
+              alert(`Visualizar NF do pedido: ${contextMenu.selectedOrder?.orderNumber}`);
               setContextMenu(prev => ({ ...prev, visible: false }));
             }}
           >

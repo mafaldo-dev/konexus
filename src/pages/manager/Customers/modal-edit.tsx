@@ -122,25 +122,15 @@ const UpdatedCustomer = ({ customer, onClose }: Props) => {
                                 />
                                 {errors.address?.city && <p className="text-sm text-red-500 mt-1">Cidade é obrigatória</p>}
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Estado</label>
-                                <input
-                                    type="text"
-                                    {...register("address.state", { required: true })}
-                                    className="w-full mt-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Estado"
-                                />
-                                {errors.address?.state && <p className="text-sm text-red-500 mt-1">Estado é obrigatório</p>}
-                            </div>
                             <div className="md:col-span-3">
                                 <label className="block text-sm font-medium text-gray-700">CEP</label>
                                 <input
                                     type="text"
-                                    {...register("address.zip_code", { required: true })}
+                                    {...register("address.zip", { required: true })}
                                     className="w-full mt-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="00000-000"
                                 />
-                                {errors.address?.zip_code && <p className="text-sm text-red-500 mt-1">CEP é obrigatório</p>}
+                                {errors.address?.zip && <p className="text-sm text-red-500 mt-1">CEP é obrigatório</p>}
                             </div>
                         </div>
                     </div>

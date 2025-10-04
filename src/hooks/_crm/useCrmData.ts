@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 
 import { Lead, Opportunity, Campaign } from '../../service/interfaces';
-import { getLeads } from '../../service/api/crm/leads';
-import { getAllOpportunities, getCampaigns } from '../../service/api/crm/crm';
+//import { getLeads } from '../../service/api/crm/leads';
+//import { getAllOpportunities, getCampaigns } from '../../service/api/crm/crm';
 
 export const useCrmData = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -14,14 +14,14 @@ export const useCrmData = () => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [leadsData, opportunitiesData, campaignsData] = await Promise.all([
-          getLeads(),
-          getAllOpportunities(),
-          getCampaigns(),
-        ]);
-        setLeads(leadsData);
-        setOpportunities(opportunitiesData);
-        setCampaigns(campaignsData);
+       // const [leadsData, opportunitiesData, campaignsData] = await Promise.all([
+          //getLeads(),
+          //getAllOpportunities(),
+          //getCampaigns(),
+        //]);
+        //setLeads(leadsData);
+        //setOpportunities(opportunitiesData);
+        //setCampaigns(campaignsData);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
       }

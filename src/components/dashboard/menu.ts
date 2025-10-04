@@ -42,7 +42,7 @@ export const menuItems = [
       access: ['Administrador', 'Vendedor', 'Conferente','Estoquista' ,'Financeiro', 'Comprador', 'Gestor', 'Gerente'],
       submenu: [
         { title: 'Pedidos de Compra', to: '/shopping/purchase-order', icon: Clipboard, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'] },
-        { title: 'Recebimentos', to: '/shopping/invoice-entry', icon: Package, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro']}
+        { title: 'Recebimentos', to: '/shopping/invoice-entry', icon: Package, access: ['Administrador','Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro']}
       ]
     },
     {
@@ -51,7 +51,7 @@ export const menuItems = [
       icon: Warehouse,
       access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'],
       submenu: [
-        { title: 'Inventário', to: '/stock/inventory', icon: Package, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'] },
+        { title: 'Inventário', to: '/stock/inventory', icon: Package ,access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'] }, 
         { title: 'Movimentações', to: '/stock/movements', icon: TrendingUp, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro']},
         { title: 'Alertas de Estoque', to: '/shopping/purchase-order', icon: AlertTriangle, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro']},
       ]
@@ -60,7 +60,7 @@ export const menuItems = [
       key: 'financeiro',
       title: 'Financeiro',
       icon: DollarSign,
-      access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'],
+      access: ['Administrador','Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'],
       submenu: [
         { title: 'Finanças', to: '/financer/financial', icon: CreditCard, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'] }]
     },
@@ -92,7 +92,7 @@ export const menuItems = [
       key: 'config',
       title: 'Configurações',
       icon: Settings,
-      access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'],
+      access: ['Administrador','Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'],
       submenu: [
         { title: 'Usuários e Permissões', to: '/config/users-permissions', icon: Users, access: ['Administrador'] },
         { title: 'Parâmetros do Sistema', to: '/config/system', icon: Database, access: ['Administrador'] },

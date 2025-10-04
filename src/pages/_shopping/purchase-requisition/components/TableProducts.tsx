@@ -141,7 +141,7 @@ export default function ProductsTable({
                     <span className="text-slate-500 text-xs">| Saldo Min = {product.minimum_stock}</span>
                   </div>
                 </td>
-                <td className="p-3 text-slate-600">{product.supplier}</td>
+                <td className="p-3 text-slate-600">{product.supplier_id}</td>
                 <td className="p-3 font-medium text-slate-900">
                   R$ {product.price || '0.00'}
                 </td>
