@@ -8,7 +8,7 @@ import { Supplier } from "../../../interfaces";
  */
 export const insertSupplier = async (supplier: Supplier, token?: string): Promise<string | null> => {
   try {
-    const response = await apiRequest("supplier/create", "POST", supplier, token);
+    const response = await apiRequest("suppliers/create", "POST", supplier, token);
     if (!response || !response.supplier) {
       console.error("Erro ao adicionar fornecedor: resposta inválida");
       return null;
@@ -26,7 +26,7 @@ export const insertSupplier = async (supplier: Supplier, token?: string): Promis
  */
 export const updateSupplier = async (id: string, updateData: any, token?: string): Promise<boolean> => {
   try {
-    await apiRequest(`supplier/${id}`, "PUT", updateData, token);
+    await apiRequest(`suppliers/${id}`, "PUT", updateData, token);
     return true;
   } catch (error: any) {
     console.error("Erro ao atualizar fornecedor:", error.message || error);
@@ -40,7 +40,7 @@ export const updateSupplier = async (id: string, updateData: any, token?: string
  */
 export const handleAllSuppliers = async (token?: string): Promise<Supplier[]> => {
   try {
-    const response = await apiRequest("supplier/all", "GET", undefined, token);
+    const response = await apiRequest("suppliers/all", "GET", undefined, token);
     
     const supplier = response.suppliers
     if(supplier.length === 0){
@@ -60,7 +60,7 @@ export const handleAllSuppliers = async (token?: string): Promise<Supplier[]> =>
  */
 export const handleSupplierWithCode = async (code: string, token?: string): Promise<Supplier | null> => {
   try {
-    const response = await apiRequest(`supplier/code/${code}`, "GET", undefined, token);
+    const response = await apiRequest(`suppliers/code/${code}`, "GET", undefined, token);
     return response?.supplier || null;
   } catch (error: any) {
     console.error("Erro ao buscar fornecedor pelo código:", error.message || error);

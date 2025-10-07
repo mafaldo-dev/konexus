@@ -67,12 +67,12 @@ const ProductRow = ({ product }: { product: Products }) => (
         <td className="px-6 py-4 whitespace-nowrap">
             <span
                 className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    product.quantity <= 5
+                    product.stock <= 5
                         ? "bg-red-100 text-red-800"
                         : "bg-yellow-100 text-yellow-800"
                 }`}
             >
-                {product.quantity}
+                {product.stock}
             </span>
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">
@@ -117,7 +117,7 @@ export default function TableProducts() {
         fetchProducts();
     }, []);
 
-    const productsWithLowStock = products.filter((product) => product.quantity <= 10);
+    const productsWithLowStock = products.filter((product) => product.stock <= 10);
 
     if (loading) return <LoadingSpinner />;
     if (error) return <ErrorMessage error={error} />;

@@ -76,7 +76,7 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Saldo Atual</label>
-                                <p className="text-2xl font-bold text-slate-800">{product.quantity} unidades</p>
+                                <p className="text-2xl font-bold text-slate-800">{product.stock} unidades</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">

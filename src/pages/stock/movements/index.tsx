@@ -1,9 +1,13 @@
 import type React from "react";
 import { useState, useEffect, useMemo } from "react";
-import Dashboard from "../../../components/dashboard/Dashboard";
 import { ContextMenuPosition, FilterState, ReportConfig } from "./movementsType";
 import { handleAllProducts } from "../../../service/api/Administrador/products";
-import { getKardexMovements } from "../../../service/api/Administrador/kardex";
+import { Products } from "../../../service/interfaces/stock/products";
+import { Movement } from "../../../service/interfaces/stock/movements";
+import { handlekardexMoviment } from "../../../service/api/Administrador/kardex";
+
+
+import Dashboard from "../../../components/dashboard/Dashboard";
 import Header from "./components/Header";
 import FilterBar from "./components/FilterBar";
 import ProductTable from "./components/ProductTable";
@@ -11,8 +15,6 @@ import ContextMenu from "./components/ContextMenu";
 import ReportModal from "./components/ReportModal";
 import ReportPreview from "./components/ReportPreview";
 import KardexModal from "./components/KardexModal";
-import { Products } from "../../../service/interfaces/stock/products";
-import { Movement } from "../../../service/interfaces/stock/movements";
 
 export default function ProfessionalProductList() {
     const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
@@ -58,7 +60,6 @@ export default function ProfessionalProductList() {
         try {
             const response = await handleAllProducts();
             setProducts(response);
-            console.log(response)
         } catch (error) {
             console.error("Erro ao recuperar a lista de produtos!", error);
             throw new Error("Erro interno do servidor");
@@ -68,7 +69,7 @@ export default function ProfessionalProductList() {
     const openKardexModal = async (product: Products) => {
         setLoadingKardex(true);
         try {
-            const movements = await getKardexMovements(product.id);
+            const movements = await handlekardexMoviment(product.id);
             setKardexProduct(product);
             setKardexMovements(movements);
             setShowKardexModal(true);

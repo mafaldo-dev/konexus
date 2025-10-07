@@ -62,7 +62,7 @@ const ProductTable: React.FC<Props> = ({ product, setProduct }) => {
                             </div>
                             <div>
                                 <label className="block text-xs text-gray-600 mb-1">Estoque</label>
-                                <p className="text-sm">{addedProduct.quantity}</p>
+                                <p className="text-sm">{addedProduct.stock}</p>
                             </div>
                             <div>
                                 <label className="block text-xs text-gray-600 mb-1">Valor</label>

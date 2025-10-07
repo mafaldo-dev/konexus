@@ -8,7 +8,7 @@ import { Products } from "../../../interfaces";
  */
 export const insertProductComKardex = async (produto: Products, token?: string): Promise<string | null> => {
   try {
-    const response = await apiRequest("product/create", "POST", produto, token);
+    const response = await apiRequest("products/create", "POST", produto, token);
     if (!response || !response.product) {
       console.error("Erro ao criar produto: resposta inválida");
       return null;
@@ -26,7 +26,7 @@ export const insertProductComKardex = async (produto: Products, token?: string):
  */
 export const updateProduct = async (id: string, updatedData: any, token?: string) => {
   try {
-    const response = await apiRequest(`product/${id}`, "PUT", updatedData, token);
+    const response = await apiRequest(`products/${id}`, "PUT", updatedData, token);
     return response;
   } catch (error: any) {
     console.error("Erro ao atualizar produto:", error.message || error);
@@ -36,17 +36,12 @@ export const updateProduct = async (id: string, updatedData: any, token?: string
 };
 
 /**
- * Busca produto pelo código
- */
-// productsApi.ts ou ordersApi.ts
-
-/**
  * Busca todos os produtos e filtra pelo código
  */
 export const handleProductWithCode = async (code: string | number, token?: string): Promise<Products | null> => {
   try {
     // Busca todos os produtos
-    const response = await apiRequest("product/all", "GET", undefined, token);
+    const response = await apiRequest("products/all", "GET", undefined, token);
     
     if (!response || !response.products) {
       throw new Error("Nenhum produto encontrado");
@@ -74,7 +69,7 @@ export const handleProductWithCode = async (code: string | number, token?: strin
 // Versão alternativa que retorna null em vez de erro (se preferir)
 export const handleProductWithCodeSilent = async (code: string | number, token?: string): Promise<Products | null> => {
   try {
-    const response = await apiRequest("product/all", "GET", undefined, token);
+    const response = await apiRequest("products/all", "GET", undefined, token);
     
     if (!response || !response.products) {
       return null;
@@ -97,7 +92,7 @@ export const handleProductWithCodeSilent = async (code: string | number, token?:
  */
 export const handleAllProducts = async (token?: string): Promise<Products[]> => {
   try {
-    const response = await apiRequest("product/all", "GET", undefined, token);
+    const response = await apiRequest("products/all", "GET", undefined, token);
     const product = response.products
 
     if(product.length === 0){
@@ -132,12 +127,150 @@ export const deleteProduct = async (id: string, token?: string): Promise<boolean
   if (!result.isConfirmed) return false;
 
   try {
-    await apiRequest(`product/${id}`, "DELETE", undefined, token);
+    await apiRequest(`products/${id}`, "DELETE", undefined, token);
     Swal.fire("Excluído!", "Produto excluído com sucesso.", "success");
     return true;
   } catch (error: any) {
     console.error("Erro ao deletar produto:", error.message || error);
     Swal.fire("Erro", "Erro ao excluir produto", "error");
     return false;
+  }
+};
+
+// ✅ FUNÇÕES DE KARDEX E ESTOQUE (ADICIONADAS)
+
+// ✅ APENAS CORRIJA ESTAS FUNÇÕES NOVAS:
+
+/**
+ * Atualiza estoque do produto - ✅ CORREÇÃO: Rota correta
+ */
+export const updateProductStock = async (productId: number, quantity: number, token?: string): Promise<any> => {
+  try {
+    const response = await apiRequest(`products/${productId}/stock`, 'PUT', {
+      quantity: quantity
+    }, token);
+    return response;
+  } catch (error: any) {
+    console.error('Erro ao atualizar estoque:', error.message || error);
+    Swal.fire("Erro", "Erro ao atualizar estoque do produto", "error");
+    throw error;
+  }
+};
+
+/**
+ * Cria movimentação no Kardex - ✅ CORREÇÃO: Rota correta
+ */
+export const createKardexMovement = async (kardexData: {
+  productId: number;
+  orderId?: number;
+  movementType: string;
+  quantity: number;
+  unitPrice: number;
+  companyId: number;
+}, token?: string): Promise<any> => {
+  try {
+    const response = await apiRequest('kardex/create', 'POST', kardexData, token); // ✅ CORREÇÃO: /create
+    return response;
+  } catch (error: any) {
+    console.error('Erro ao criar movimentação no Kardex:', error.message || error);
+    Swal.fire("Erro", "Erro ao registrar movimentação no Kardex", "error");
+    throw error;
+  }
+};
+
+/**
+ * Busca movimentações do Kardex por produto - ✅ CORREÇÃO: Rota correta
+ */
+export const getKardexByProduct = async (productId: string, token?: string): Promise<any> => {
+  try {
+    const response = await apiRequest(`kardex/products/${productId}`, 'GET', undefined, token);
+    return response;
+  } catch (error: any) {
+    console.error('Erro ao buscar movimentações do produto:', error.message || error);
+    throw error;
+  }
+};
+
+/**
+ * Busca movimentações do Kardex por pedido - ✅ CORREÇÃO: Rota correta
+ */
+export const getKardexByOrder = async (orderId: string, token?: string): Promise<any> => {
+  try {
+    const response = await apiRequest(`kardex/orders/${orderId}`, 'GET', undefined, token); // ✅ CORREÇÃO: kardex/orders/
+    return response;
+  } catch (error: any) {
+    console.error('Erro ao buscar movimentações do pedido:', error.message || error);
+    throw error;
+  }
+};
+
+/**
+ * Processa atualizações de inventário completo - ✅ CORREÇÃO: Rota correta
+ */
+export const processInventoryUpdates = async (orderData: {
+  orderId: number;
+  orderItems: Array<{
+    productId: number;
+    quantity: number;
+    unitPrice: number;
+  }>;
+  companyId: number;
+}, token?: string): Promise<any> => {
+  try {
+    // Para cada item do pedido, criar movimentação no Kardex
+    const kardexPromises = orderData.orderItems.map(item =>
+      createKardexMovement({
+        productId: item.productId,
+        orderId: orderData.orderId,
+        movementType: 'saida',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        companyId: orderData.companyId
+      }, token)
+    );
+
+    const results = await Promise.all(kardexPromises);
+    return results;
+  } catch (error: any) {
+    console.error('Erro ao processar atualizações de inventário:', error.message || error);
+    Swal.fire("Erro", "Erro ao processar atualizações de estoque", "error");
+    throw error;
+  }
+};
+
+// ✅ CORREÇÃO: Função com rota consistente
+export const handlekardexMoviment = async (productId?: string, token?: string): Promise<any> => { 
+  try {
+    if (!productId) {
+      throw new Error("ID do produto é obrigatório");
+    }
+    
+    const response = await apiRequest(`kardex/products/${productId}`, "GET", undefined, token);
+    return response;
+  } catch (error: any) {
+    console.error("Erro ao recuperar movimentações do produto:", error.message || error);
+    throw error;
+  }
+};
+
+// ✅ CORREÇÃO: Busca produto por ID - rota correta
+export const getProductById = async (productId: string, token?: string): Promise<Products | null> => {
+  try {
+    const response = await apiRequest(`products/${productId}`, "GET", undefined, token); // ✅ CORREÇÃO: products/
+    return response?.product || null;
+  } catch (error: any) {
+    console.error("Erro ao buscar produto por ID:", error.message || error);
+    return null;
+  }
+};
+
+// ✅ CORREÇÃO: Atualiza localização - rota correta
+export const updateProductLocation = async (productId: string, location: string, token?: string): Promise<any> => {
+  try {
+    const response = await apiRequest(`products/${productId}/location`, 'PUT', { location }, token); // ✅ CORREÇÃO: products/
+    return response;
+  } catch (error: any) {
+    console.error('Erro ao atualizar localização do produto:', error.message || error);
+    throw error;
   }
 };

@@ -64,7 +64,7 @@ const ProductTable: React.FC<ProductTableProps> = ({ products, selectedProduct, 
                                         </span>
                                     </td>
                                     <td className="px-4 py-2 font-bold text-sm text-slate-800">R$ {product.price}</td>
-                                    <td className="px-4 py-2 font-semibold text-sm text-gray-900">{product.quantity}</td>
+                                    <td className="px-4 py-2 font-semibold text-sm text-gray-900">{product.stock}</td>
                                     <td className="px-4 py-2">
                                         <div className="flex items-center gap-1 text-gray-600">
                                             <MapPin className="w-3 h-3" />

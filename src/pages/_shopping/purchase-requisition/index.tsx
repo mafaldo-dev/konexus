@@ -53,7 +53,7 @@ export default function PurchaseManagementScreen() {
 
   // Primeiro, filtra os produtos com baixo estoque
   const lowStock = useMemo(() => {
-    return products.filter((product) => product.quantity <= lowStockThreshold);
+    return products.filter((product) => product.stock <= lowStockThreshold);
   }, [products]);
 
   // Depois, aplica o hook de filtro de busca corretamente no topo
@@ -250,7 +250,7 @@ export default function PurchaseManagementScreen() {
               name: p.name,
               price: p.price ?? 0,
               minimum_stock: p.minimum_stock,
-              quantity: p.quantity,
+              quantity: p.stock,
             }))}
             onSubmit={handleCreateRequest}
             isLoading={isLoading}

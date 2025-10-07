@@ -89,9 +89,9 @@ export default function PurchaseRequestForm({
       id: p.id,
       code: p.code || '',
       product_name: p.name,
-      quantity: Math.max(p.minimum_stock - p.quantity, 1),
+      quantity: Math.max(p.minimum_stock - p.stock, 1),
       price: p.price || 0,
-      total_price: Math.max(p.minimum_stock - p.quantity, 1) * (p.price || 0),
+      total_price: Math.max(p.minimum_stock - p.stock, 1) * (p.price || 0),
     })) satisfies ProductsProps[];
 
     setProducts(mapped);
@@ -229,7 +229,7 @@ export default function PurchaseRequestForm({
             <p><strong>Produto:</strong> {addedProduct.name}</p>
             <p><strong>Código:</strong> {addedProduct.code}</p>
             <p><strong>Marca:</strong> {addedProduct.brand}</p>
-            <p><strong>Estoque Atual:</strong> {addedProduct.quantity}</p>
+            <p><strong>Estoque Atual:</strong> {addedProduct.stock}</p>
             <p><strong>Preço Unitário:</strong> R$ {addedProduct.price}</p>
           </div>
         )}

@@ -35,6 +35,7 @@ import ReportsDashboard from '../pages/sales/reports';
 import CustomersContent from '../pages/manager/Customers';
 import FinancialDashboard from '../pages/Financial';
 import Categories from '../pages/manager/categories';
+import EditOrderPage from '../pages/sales/orders/purchase-order/editOrderPage';
 
 
 
@@ -43,9 +44,9 @@ const AppRoutes = () => {
     <Routes>
       {/* AREA DE LOGIN */}
       <Route path="/" element={<LoginPage />} />
-      
-      
-      {/* PAINEL ADMIN */}    
+
+
+      {/* PAINEL ADMIN */}
 
       {/* ROTA ÚNICA PARA PEDIDOS - gerencia internamente list/create */}
       <Route path="/sales/orders" element={<PurchaseOrder />} />
@@ -55,25 +56,33 @@ const AppRoutes = () => {
 
       {/* Private Routes */}
 
-      <Route 
+      <Route
         path='/shopping/purchase-order'
         element={
           <DesignationCheck allowed={['Administrador', 'Financeiro', 'Buyer']}>
             <PurchaseManagementScreen />
           </DesignationCheck>
         }
-        />
+      />
 
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           <DesignationCheck allowed={['Administrador', 'Financeiro']}>
             <AdministrationScreen />
           </DesignationCheck>
-      } />
+        } />
 
-      <Route 
-        path='/sales/goals' 
+
+      <Route path="/sales/orders/edit" element={
+        <DesignationCheck allowed={['Administrador', 'Vendedor', 'Gerente']}>
+          <EditOrderPage />
+        </DesignationCheck>
+      }
+      />
+
+      <Route
+        path='/sales/goals'
         element={
           <DesignationCheck allowed={['Administrador', 'Financeiro']}>
             <Goals />
@@ -110,10 +119,10 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={["Administrador", "Comprador"]}>
             <SearchSuppliers />
-         /</DesignationCheck>
+            /</DesignationCheck>
         }
       />
-       <Route
+      <Route
         path="/shopping/purchase-requisition"
         element={
           <DesignationCheck allowed={["Administrador", "Comprador"]}>
@@ -132,16 +141,16 @@ const AppRoutes = () => {
       <Route
         path="/sales/reports"
         element={
-         // <DesignationCheck allowed={["Administrador", "Financeiro", "Gerente"]}>
-            <ReportsDashboard />
-         // </DesignationCheck>
+          // <DesignationCheck allowed={["Administrador", "Financeiro", "Gerente"]}>
+          <ReportsDashboard />
+          // </DesignationCheck>
         }
       />
-      <Route 
+      <Route
         path='/financer/financial'
         element={
-          <DesignationCheck allowed={['Administrador', 'Financeiro','Gerente']}>
-            <FinancialDashboard/>
+          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Gerente']}>
+            <FinancialDashboard />
           </DesignationCheck>
         }
       />
@@ -158,7 +167,7 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={["Administrador", "Financeiro"]}>
             <PositionsAndSalaries />
-         /</DesignationCheck>
+            /</DesignationCheck>
         }
       />
       <Route
@@ -166,7 +175,7 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={["Administrador", "Conferente", "Estoquista"]}>
             <MovementsOnStock />
-         /</DesignationCheck>
+            /</DesignationCheck>
         }
       />
       <Route
@@ -177,7 +186,7 @@ const AppRoutes = () => {
           </DesignationCheck>
         }
       />
-      
+
       <Route
         path="/manager/categories"
         element={
@@ -186,35 +195,35 @@ const AppRoutes = () => {
           </DesignationCheck>
         }
       />
-    
-      <Route path='not-found' element={ <NotFound />} />
+
+      <Route path='not-found' element={<NotFound />} />
       {/* AREA DE CONFIGURAÇÕES */}
       <Route path="/config">
-      <Route
-        path="/config/users-permissions"
-        element={
-          <DesignationCheck allowed={["Administrador"]}>
-            <UserManagementPage />
-          </DesignationCheck>
-        }
-      />
-        <Route 
-          path="/config/security-area" 
+        <Route
+          path="/config/users-permissions"
           element={
-          <DesignationCheck allowed={['Administrador']}>
-            <SecuritySettingsPage />
-          </DesignationCheck>
-          } 
+            <DesignationCheck allowed={["Administrador"]}>
+              <UserManagementPage />
+            </DesignationCheck>
+          }
         />
-        <Route 
-          path="/config/notifications" 
+        <Route
+          path="/config/security-area"
           element={
-           <DesignationCheck allowed={['Administrador']}>
+            <DesignationCheck allowed={['Administrador']}>
+              <SecuritySettingsPage />
+            </DesignationCheck>
+          }
+        />
+        <Route
+          path="/config/notifications"
+          element={
+            <DesignationCheck allowed={['Administrador']}>
               <NotificationPreferences />
             </DesignationCheck>
-          } 
+          }
         />
-        <Route 
+        <Route
           path="/config/system"
           element={
             <DesignationCheck allowed={['Administrador']}>
@@ -223,31 +232,31 @@ const AppRoutes = () => {
           }
         />
       </Route>
-                {/*AREA OF CRM*/}
+      {/*AREA OF CRM*/}
       <Route path="/crm" element={<Layout />}>
-        <Route 
-          path="/crm/dashboard" 
+        <Route
+          path="/crm/dashboard"
           element={
             <DesignationCheck allowed={["Administrador"]}>
               <Dashboard />
             </DesignationCheck>
           } />
         <Route
-           path="/crm/campains" 
-           element={
+          path="/crm/campains"
+          element={
             <DesignationCheck allowed={["Administrador"]}>
               <Campains />
             </DesignationCheck>
           } />
-        <Route 
-          path='/crm/leads' 
+        <Route
+          path='/crm/leads'
           element={
             <DesignationCheck allowed={["Administrador"]}>
-                <LeadsPage /> 
+              <LeadsPage />
             </DesignationCheck>
           } />
-        <Route 
-          path="/crm/opportunities" 
+        <Route
+          path="/crm/opportunities"
           element={
             <DesignationCheck allowed={["Administrador"]}>
               <Opportunities />

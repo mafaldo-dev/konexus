@@ -22,7 +22,6 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
                 createdAt: new Date(),
             };
             await insertCustomer(payload);
-            console.log(payload)
             reset();
             onCustomerAdded()
         } catch (error) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
-import { Search, Plus, Eye, Package, TrendingUp, Clock } from "lucide-react";
+import { Search, Plus, Eye, Package, TrendingUp, Clock, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import OrderPDF from "../conferency/OrderPDF";
 import { format, isValid } from "date-fns";
@@ -16,6 +16,11 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+
+  // Estados de paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   // Formatação segura de data
   const safeFormatDate = (dateString?: string | null): string => {
@@ -37,8 +42,9 @@ export default function OrdersPage() {
       shipped: "Enviado",
       cancelled: "Cancelado",
       delivered: "Entregue",
+      backout: "Estornado"
     };
-    return statusMap[status?.toLowerCase()] || status || "Pendente";
+    return statusMap[status?.toLowerCase()] || status || "Pendente" || "Estornado";
   };
 
   // Carregar pedidos da API
@@ -46,6 +52,7 @@ export default function OrdersPage() {
     try {
       setIsLoading(true);
       const fetchedOrders = await handleAllOrders();
+      console.log(fetchedOrders)
 
       // Mapeia diretamente para OrderResponse
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
@@ -103,6 +110,7 @@ export default function OrdersPage() {
 
       setOrders(mappedOrders);
       setFilteredOrders(mappedOrders);
+      setCurrentPage(1); // Reset para primeira página quando carregar novos dados
     } catch (error) {
       console.error("Erro ao recuperar orders", error);
       alert("Erro ao recuperar os pedidos de venda!");
@@ -115,20 +123,92 @@ export default function OrdersPage() {
     loadOrders();
   }, []);
 
+  // Fechar menu ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenMenuId(null);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
   // Filtrar pedidos
   useEffect(() => {
     if (searchTerm.trim() !== "") {
       const filtered = orders.filter(
         (order) =>
-          (order.customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.salesperson?.toLowerCase().includes(searchTerm.toLowerCase()))
+        (order.customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.salesperson?.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       setFilteredOrders(filtered);
+      setCurrentPage(1); // Reset para primeira página ao filtrar
     } else {
       setFilteredOrders(orders);
     }
   }, [searchTerm, orders]);
+
+  // Cálculos de paginação
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentOrders = filteredOrders.slice(startIndex, endIndex);
+
+  // Navegação de páginas
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const goToPreviousPage = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  };
+
+  const goToNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  };
+
+  // Gerar array de páginas para exibição
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  };
+
+  // Função para editar pedido
+  const handleEditOrder = (order: OrderResponse) => {
+    if (order.orderStatus === "Pendente" || order.orderStatus === "Estornado") {
+      // Redireciona para a página de edição
+      window.location.href = `/orders/edit/${order.id}`;
+    } else {
+      alert("Este pedido não pode ser editado. Apenas pedidos com status 'Pendente' ou 'Estornado' podem ser modificados.");
+    }
+  };
+
+  // Função para visualizar PDF
+  const handleViewPDF = (order: OrderResponse) => {
+    setSelectedOrder(order);
+  };
+
+  // Toggle menu
+  const toggleMenu = (orderId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenMenuId(openMenuId === orderId ? null : orderId);
+  };
 
   // Cores dos status
   const statusColors: Record<string, string> = {
@@ -155,7 +235,7 @@ export default function OrdersPage() {
         >
           ← Voltar para Lista
         </button>
-        <OrderPDF order={selectedOrder} onDownloadComplete={() => {}} />
+        <OrderPDF order={selectedOrder} onDownloadComplete={() => { }} />
       </div>
     );
   }
@@ -265,7 +345,12 @@ export default function OrdersPage() {
           >
             <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
               <div className="bg-slate-800 text-white px-6 py-4">
-                <h2 className="text-xl font-semibold">Lista de Pedidos</h2>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold">Lista de Pedidos</h2>
+                  <div className="text-sm text-slate-300">
+                    Mostrando {currentOrders.length} de {filteredOrders.length} pedidos
+                  </div>
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-gray-700">
@@ -292,7 +377,7 @@ export default function OrdersPage() {
                           </div>
                         </td>
                       </tr>
-                    ) : filteredOrders.length === 0 ? (
+                    ) : currentOrders.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="text-center py-12 text-gray-500 font-medium">
                           {searchTerm
@@ -301,62 +386,173 @@ export default function OrdersPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredOrders.map((order, idx) => (
-                        <tr
-                          key={order.id || idx}
-                          className="hover:bg-gray-50 transition-colors border-b border-gray-100"
-                        >
-                          <td className="px-6 py-4">
-                            <span className="font-mono text-slate-700 bg-slate-100 px-3 py-1 rounded font-medium">
-                              {order.orderNumber || `ORD-${order.id}`}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div>
-                              <p className="font-semibold text-gray-900">
-                                {order.customer.name || "Cliente não informado"}
-                              </p>
-                              {order.customer.code && (
-                                <p className="text-sm text-gray-500 font-medium">
-                                  {order.customer.code}
+                      currentOrders.map((order, idx) => {
+                        const canEdit = order.orderStatus === "Pendente" || order.orderStatus === "Estornado";
+
+                        return (
+                          <tr
+                            key={order.id || idx}
+                            className="hover:bg-gray-50 transition-colors border-b border-gray-100"
+                          >
+                            <td className="px-6 py-4">
+                              <span className="font-mono text-slate-700 bg-slate-100 px-3 py-1 rounded font-medium">
+                                {order.orderNumber || `ORD-${order.id}`}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {order.customer.name || "Cliente não informado"}
                                 </p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 font-medium text-gray-800">
-                            {order.salesperson || "Não informado"}
-                          </td>
-                          <td className="px-6 py-4 font-medium text-gray-700">
-                            {safeFormatDate(order.orderDate)}
-                          </td>
-                          <td className="px-6 py-4 font-bold text-slate-700">
-                            R$ {(order.totalAmount || 0).toFixed(2)}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${
-                                statusColors[order.orderStatus] || "bg-gray-50 text-gray-800 border-gray-200"
-                              }`}
-                            >
-                              {order.orderStatus}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <button
-                              onClick={() => setSelectedOrder(order)}
-                              className="flex items-center text-sm text-slate-700 hover:text-slate-900 font-medium transition-colors"
-                              type="button"
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              Ver PDF
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                                {order.customer.code && (
+                                  <p className="text-sm text-gray-500 font-medium">
+                                    {order.customer.code}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-medium text-gray-800">
+                              {order.salesperson || "Não informado"}
+                            </td>
+                            <td className="px-6 py-4 font-medium text-gray-700">
+                              {safeFormatDate(order.orderDate)}
+                            </td>
+                            <td className="px-6 py-4 font-bold text-slate-700">
+                              R$ {(order.totalAmount || 0).toFixed(2)}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${statusColors[order.orderStatus] || "bg-gray-50 text-gray-800 border-gray-200"
+                                  }`}
+                              >
+                                {order.orderStatus}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-4">
+                                <button
+                                  onClick={() => handleViewPDF(order)}
+                                  className="flex items-center text-sm text-slate-700 hover:text-slate-900 font-medium transition-colors"
+                                  type="button"
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  PDF
+                                </button>
+
+                                {/* Menu de Ações */}
+                                <div className="relative">
+                                  <button
+                                    onClick={(e) => toggleMenu(order.id!, e)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                    type="button"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+
+                                  {openMenuId === order.id && (
+                                    <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-1">
+                                      <button
+                                        onClick={() => handleViewPDF(order)}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                                        type="button"
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                        Ver PDF
+                                      </button>
+
+                                      {canEdit ? (
+                                        <button
+                                          onClick={() => handleEditOrder(order)}
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                                          type="button"
+                                        >
+                                          <Edit className="w-4 h-4" />
+                                          Editar Pedido
+                                        </button>
+                                      ) : (
+                                        <div
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-400 flex items-center gap-3 cursor-not-allowed"
+                                          title="Apenas pedidos Pendentes ou Estornados podem ser editados"
+                                        >
+                                          <Edit className="w-4 h-4" />
+                                          Editar Pedido
+                                        </div>
+                                      )}
+
+                                      {canEdit && (
+                                        <button
+                                          onClick={() => console.log("Cancelar pedido:", order.id)}
+                                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
+                                          type="button"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                          Cancelar Pedido
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
               </div>
+
+              {/* Paginação */}
+              {totalPages > 1 && (
+                <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-sm text-gray-600">
+                      Mostrando {startIndex + 1} a {Math.min(endIndex, filteredOrders.length)} de {filteredOrders.length} pedidos
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* Botão Anterior */}
+                      <button
+                        onClick={goToPreviousPage}
+                        disabled={currentPage === 1}
+                        className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        type="button"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      {/* Números das páginas */}
+                      {getPageNumbers().map(page => (
+                        <button
+                          key={page}
+                          onClick={() => goToPage(page)}
+                          className={`min-w-10 h-10 rounded-lg border font-medium transition-colors ${currentPage === page
+                              ? 'bg-slate-800 text-white border-slate-800'
+                              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                            }`}
+                          type="button"
+                        >
+                          {page}
+                        </button>
+                      ))}
+
+                      {/* Botão Próximo */}
+                      <button
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                        className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        type="button"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="text-sm text-gray-600">
+                      Página {currentPage} de {totalPages}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>

@@ -13,7 +13,7 @@ import { updateOrderStatus } from "../../../../service/api/Administrador/orders"
 import Swal from "sweetalert2"
 
 // Status compatíveis com o backend
-type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "delivered" | "cancelled"
+type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "delivered" | "cancelled" | "backout"
 
 export const MovimentacoesTab: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState("contas-receber")
@@ -23,7 +23,6 @@ export const MovimentacoesTab: React.FC = () => {
     try {
       const response = await handleOrderSales()
       setOrders(response)
-      console.log("Pedidos carregados:", response)
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error)
       Swal.fire("Erro", "Erro ao carregar pedidos!", "error")
@@ -36,18 +35,19 @@ export const MovimentacoesTab: React.FC = () => {
 
   const toggleUpdateStatusOrder = async (orderId: string | number, currentStatus: string) => {
     try {
-      // Mapeamento dos próximos status
       const nextStatusMap: Record<string, OrderStatus> = {
         'pending': 'approved',
         'approved': 'in_progress', 
         'in_progress': 'shipped',
         'shipped': 'delivered',
-        'delivered': 'delivered', // Mantém o mesmo
-        'cancelled': 'cancelled' // Mantém o mesmo
+        'delivered': 'delivered',
+        'cancelled': 'cancelled',
+        'backout': 'backout'
       }
 
-      const newStatus = nextStatusMap[currentStatus] || 'approved'
-      console.log("Relatorio de newStatus",newStatus)
+        const newStatus = currentStatus === 'backout'
+      ? 'approved'
+      : (nextStatusMap[currentStatus] || 'approved');
       
       // Mostrar confirmação antes de atualizar
       const result = await Swal.fire({
@@ -61,15 +61,15 @@ export const MovimentacoesTab: React.FC = () => {
 
       if (result.isConfirmed) {
         await updateOrderStatus(orderId, newStatus)
-        console.log("Relatorio de results",result)
+
+        
         
         // Atualizar estado local
         const updatedOrders = orders.map((order) => 
           order.id === orderId ? { ...order, orderStatus: newStatus } : order
         )
         setOrders(updatedOrders)
-        console.log('Relatorio de updated orders',updatedOrders)
-        console.log("Relatorio de orders",orders)
+        
         
         Swal.fire("Sucesso", "Status atualizado com sucesso!", "success")
       }
@@ -348,14 +348,24 @@ export const MovimentacoesTab: React.FC = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        onClick={() => toggleUpdateStatusOrder(order.id, order.orderStatus)}
-                        variant="ghost"
-                        size="sm"
-                        //title="Avançar status"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      {order.orderStatus === 'pending' || order.orderStatus === 'backout' ? (
+                        <Button
+                          onClick={() => toggleUpdateStatusOrder(order.id, order.orderStatus)}
+                          variant="ghost"
+                          size="sm"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      ): (
+                         <Button
+                          onClick={() => toggleUpdateStatusOrder(order.id, order.orderStatus)}
+                          variant="ghost"
+                          size="sm"
+                          disabled
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -376,7 +386,8 @@ const getStatusColor = (status: string) => {
     in_progress: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
     shipped: 'bg-purple-100 text-purple-800 hover:bg-purple-100',
     delivered: 'bg-gray-100 text-gray-800 hover:bg-gray-100',
-    cancelled: 'bg-red-100 text-red-800 hover:bg-red-100'
+    cancelled: 'bg-red-100 text-red-800 hover:bg-red-100',
+    backout: "bg-orange-50 text-orange-800 hover:bg-orange-100"
   };
   return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
 };
@@ -389,7 +400,8 @@ const getStatusText = (status: string) => {
     in_progress: 'Em Andamento',
     shipped: 'Enviado',
     delivered: 'Entregue',
-    cancelled: 'Cancelado'
+    cancelled: 'Cancelado',
+    backout: 'Estornado'
   };
   return statusMap[status as keyof typeof statusMap] || status;
 };

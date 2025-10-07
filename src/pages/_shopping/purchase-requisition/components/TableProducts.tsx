@@ -100,7 +100,7 @@ export default function ProductsTable({
         <tbody className="divide-y divide-slate-100">
           {products.map((product) => {
             const isSelected = selectedProducts.some((p) => p.id === product.id);
-            const severityClasses = getSeverityClasses(product.quantity, product.minimum_stock);
+            const severityClasses = getSeverityClasses(product.stock, product.minimum_stock);
 
             return (
               <tr
@@ -136,7 +136,7 @@ export default function ProductsTable({
                     <span
                       className={`px-2 py-1 rounded text-xs font-semibold ${severityClasses}`}
                     >
-                      Saldo = {product.quantity}
+                      Saldo = {product.stock}
                     </span>
                     <span className="text-slate-500 text-xs">| Saldo Min = {product.minimum_stock}</span>
                   </div>

@@ -13,7 +13,7 @@ const AdministrationScreen = () => {
   const [remember, setRemembers] = useState(localStorage.getItem("remember") || "")
   const [rememberTitle, setRememberTitle] = useState(localStorage.getItem("RememberTitle") || "")
 
-  const [products, setProducts] = useState<Products[]>([])
+  const [products, setProducts] = useState<Products[] | any>([])
   const [customer, setCustomer] = useState<Customer[] | any>([])
   const [employee, setEmployee] = useState<Employee[]>([])
   const [role, setRole] = useState<Employee[] | any>([])
@@ -33,13 +33,17 @@ const AdministrationScreen = () => {
   useEffect(() => {
   const handleData = async () => {
     try {
-      const [ employes, designatio ] = await Promise.all([
+      const [ employes, designatio, custome, produc ] = await Promise.all([
         handleAllEmployee(),
+        handleAllProducts(),
+        handleAllCustomers(),
         designation()
       ]);
 
       setEmployee(employes);
       setRole(designatio);
+      setCustomer(custome)
+      setProducts(produc)
       
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
@@ -53,7 +57,7 @@ const AdministrationScreen = () => {
   const LOW_STOCK_THRESHOLD = 10;
 
   const low = useMemo(() => {
-    return products.filter((product) => product.quantity <= LOW_STOCK_THRESHOLD);
+    return products.filter((product: any) => product.quantity <= LOW_STOCK_THRESHOLD);
   }, [products]);
 
   return (
@@ -64,7 +68,7 @@ const AdministrationScreen = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
               <h1 className="text-2xl font-semibold text-gray-700">Dashboard</h1>
             </div>
-            <div className="w-full  px-4 sm:px-6 md:px-8">
+            <div className="w-fullpx-4 sm:px-6 md:px-8">
               <div className="py-4 space-y-6">
                 {/* Cards do topo */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -120,25 +124,6 @@ const AdministrationScreen = () => {
                           <dl>
                             <dt className="text-sm font-medium text-yellow-600 truncate">Active Products</dt>
                             <dd><div className="text-lg font-semibold text-yellow-800">{products.length}</div></dd>
-                          </dl>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Low Stock Items */}
-                  <div className="bg-red-50 overflow-hidden shadow rounded-lg">
-                    <div className="px-4 py-5 sm:p-6">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 bg-red-100 rounded-md p-3">
-                          <svg className="h-6 w-6 text-red-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <div className="ml-5 w-0 flex-1">
-                          <dl>
-                            <dt className="text-sm font-medium text-red-600 truncate">Low Stock Items</dt>
-                            <dd><div className="text-lg font-semibold text-red-800">{low.length}</div></dd>
                           </dl>
                         </div>
                       </div>

@@ -5,8 +5,7 @@ import Swal from "sweetalert2";
 // Criar cliente
 export async function insertCustomer(customer: Customer, token?: string) {
   try {
-    const result = await apiRequest("customer/create", "POST", customer, token);
-    console.log(result)
+    const result = await apiRequest("customers/create", "POST", customer, token);
     
     return result?.id;
 
@@ -19,7 +18,7 @@ export async function insertCustomer(customer: Customer, token?: string) {
 // Atualizar cliente
 export async function updateCustomer(id: string, updatedData: any, token?: string) {
   try {
-    const response = await apiRequest(`customer/${id}`, "PUT", updatedData, token);
+    const response = await apiRequest(`customers/${id}`, "PUT", updatedData, token);
     
     return response
 
@@ -34,7 +33,7 @@ export const handleAllCustomers = async (): Promise<Customer[]> => {
   const tkn = localStorage.getItem("token")
   
   try {
-    const response = await apiRequest("customer/all", "GET", undefined, tkn as string);
+    const response = await apiRequest("customers/all", "GET", undefined, tkn as string);
 
     const customers = response.data || response.customers || [];
     
@@ -67,7 +66,7 @@ export const deleteCustomer = async (id: string, token?: string): Promise<boolea
   if (!result.isConfirmed) return false;
 
   try {
-    await apiRequest(`customer/${id}`, "DELETE", undefined, token);
+    await apiRequest(`customers/${id}`, "DELETE", undefined, token);
     Swal.fire("Excluído!", "Cliente excluído com sucesso.", "success");
     return true;
   } catch (error) {

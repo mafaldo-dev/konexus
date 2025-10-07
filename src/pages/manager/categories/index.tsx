@@ -242,7 +242,7 @@ const Categories = () => {
                           {product.supplier_id}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {product.quantity}
+                          {product.stock}
                         </div>
                       </div>
                     ))

@@ -76,7 +76,7 @@ export default function OrderPDF({ order, onDownloadComplete }: OrderPDFProps) {
         }
       `}</style>
       <div className=' w-[100vw] flex flex-col bg-gray-300 items-center justify-center'>
-        <header className='flex flex-row justify-end w-full h-[4vh] px-2 py-2 bg-slate-800'>
+        <header className='flex flex-row justify-end w-full h-[4vh] px-2 bg-slate-800'>
           <nav>
             <ul className='flex flex-row gap-1'>
               <li>

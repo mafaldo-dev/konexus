@@ -121,7 +121,7 @@ const UpdadtedProduct = ({ product, onClose }: Props) => {
                 <label className="block text-sm font-medium">Estoque</label>
                 <input
                   type="number"
-                  {...register("quantity", { required: true })}
+                  {...register("stock", { required: true })}
                   className="w-full border rounded p-2"
                 />
               </div>

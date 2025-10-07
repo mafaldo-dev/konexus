@@ -2,7 +2,7 @@ import { SubmitHandler, useForm } from "react-hook-form";
 import { Products } from "../../../service/interfaces";
 import { insertProductComKardex } from "../../../service/api/Administrador/products";
 import { PackagePlus, Save } from "lucide-react";
-import clsx from "clsx";
+
 import Swal from "sweetalert2";
 import { handleAllSuppliers } from "../../../service/api/Administrador/suppliers/supplier";
 import { useEffect, useState } from "react";
@@ -26,11 +26,10 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
     try {
       const payload: Products = {
         ...data,
-        createdAt: new Date(),
+        created_at: new Date(),
       };
 
       await insertProductComKardex(payload);
-      console.log(payload)
       reset();
       onProductsAdded()
     } catch (error) {
@@ -43,7 +42,6 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
   useEffect(() => {
     const handleSupplierId = async () => {
       const response = await handleAllSuppliers()
-      console.log(response)
       setSupId(response)
     }
     handleSupplierId()
@@ -150,7 +148,7 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
           </select>
           {errors.supplier_id && (
             <p className="text-red-600 text-sm mt-1">
-              {errors.supplier_id.message}
+              {/*errors.supplier_id.message*/}
             </p>
           )}
         </div>
@@ -185,11 +183,11 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
           <label className="block text-sm font-semibold text-gray-600 mb-1">Quantidade *</label>
           <input
             type="number"
-            {...register("quantity", { required: "Quantidade obrigatória", valueAsNumber: true })}
+            {...register("stock", { required: "Quantidade obrigatória", valueAsNumber: true })}
             className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="Ex: 20"
           />
-          {errors.quantity && <p className="text-red-600 text-sm mt-1">{errors.quantity.message}</p>}
+          {errors.stock && <p className="text-red-600 text-sm mt-1">{errors.stock.message}</p>}
         </div>
       </div>
 

@@ -86,8 +86,7 @@ const ReturnsPage: React.FC = () => {
       return;
     }
 
-    // Process return logic here
-    console.log('Processing return:', selectedReturns);
+
     alert(`Devolução registrada para ${selectedReturns.length} itens`);
   };
 

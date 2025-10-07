@@ -8,8 +8,7 @@ export async function insertEmployee(employee: Employee) {
   const token: any = localStorage.getItem("token")
 
   try {
-    const response = await apiRequest("employee/create", "POST", employee, token)
-    console.log(response)
+    const response = await apiRequest("employees/create", "POST", employee, token)
     if (!response.ok) {
       return null
     }
@@ -23,7 +22,7 @@ export async function insertEmployee(employee: Employee) {
 // Buscar todos os colaboradores (com ou sem termo de pesquisa)
 export async function handleAllEmployee(token?: string): Promise<Employee[] | any> {
   try {
-    const response = await apiRequest(`employee/all`, "GET", undefined, token);
+    const response = await apiRequest(`employees/all`, "GET", undefined, token);
     const employee = response.data
 
     if (typeof employee === 'object' && !Array.isArray(employee.data)) {
@@ -40,7 +39,7 @@ export async function handleAllEmployee(token?: string): Promise<Employee[] | an
 }
 export async function designation(token?: string) {
   try {
-    const response = await apiRequest("employee/all", "GET", undefined, token);
+    const response = await apiRequest("employees/all", "GET", undefined, token);
     const employees = response.data;
 
     const grouped = employees.reduce((acc: any, emp: any) => {
@@ -67,7 +66,7 @@ export async function designation(token?: string) {
 export const updatedEmployee = async (id: string, updatedData: Partial<Employee>) => {
   //const token: any = localStorage.getItem("token")
   //try {
-  // await apiRequest(`employee/${id}`, "PUT", updatedData, token)
+  // await apiRequest(`employees/${id}`, "PUT", updatedData, token)
   //} catch (error) {
   // console.error("Erro ao atualizar os dados do colaborador:", error)
   // alert("Erro ao atualizar informações do colaborador!!!")

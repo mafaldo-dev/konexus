@@ -1,24 +1,26 @@
 import { useForm } from "react-hook-form";
-import { Trash2, Package, User, Calendar, MapPin, RefreshCw } from "lucide-react";
+import { Trash2, Package, User, MapPin, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 
-import { insertOrder, getNextOrderNumber } from "../../../../service/api/Administrador/orders";
-import { Order } from "../../../../service/interfaces/sales/orders";
+import { insertOrder, getNextOrderNumber, updateOrder } from "../../../../service/api/Administrador/orders";
+import { Order, OrderResponse } from "../../../../service/interfaces/sales/orders";
 import { Customer, ProductsProps } from "../../../../service/interfaces";
 import { useProductManagement } from "../../../../hooks/_manager/useProductManagement";
 import { handleAllCustomers } from "../../../../service/api/Administrador/customer/clients";
+
+import { useAuth } from "../../../../AuthContext";
 
 type FormValues = {
   orderDate: string;
   orderStatus: string;
   customerId: string | number;
-  customerName: string
-  customerPhone: string
-  customerCode: string
+  name: string
+  phone: string
+  code: string
   currency: string;
   salesperson: string;
   notes?: string;
@@ -26,7 +28,13 @@ type FormValues = {
   billingAddressId?: string | any;
 };
 
-export default function OrderForm() {
+interface OrderFormProps {
+  editMode?: boolean;
+  initialData?: OrderResponse;
+  orderId?: number;
+}
+
+export default function OrderForm({ editMode = false, initialData, orderId }: OrderFormProps) {
   const [products, setProducts] = useState<ProductsProps[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -37,7 +45,86 @@ export default function OrderForm() {
   const [addressConfirmed, setAddressConfirmed] = useState(false);
   const navigate = useNavigate();
 
-  // Buscar próximo número do pedido
+  const { user } = useAuth();
+  
+  // MOVE useForm para ANTES do useEffect que usa setValue
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormValues>({
+    defaultValues: {
+      orderDate: format(new Date(), "yyyy-MM-dd"),
+      orderStatus: "pending",
+      currency: "BRL",
+      salesperson: "",
+    },
+  });
+
+  const {
+    productCode,
+    setProductCode,
+    addedProduct,
+    count,
+    setCount,
+    price,
+    handleProduct,
+    handleAddProduct,
+    processInventoryUpdates
+  } = useProductManagement(setProducts);
+
+ // CORREÇÃO do useEffect - parte do customerData
+useEffect(() => {
+  if (editMode && initialData) {
+    console.log("📝 [FORM] Preenchendo dados para edição:", initialData);
+    
+    // Preenche os campos do formulário
+    setValue("orderDate", initialData.orderDate.split('T')[0]);
+    setValue("customerId", initialData.customer.id.toString());
+    setValue("currency", initialData.currency);
+    setValue("salesperson", initialData.salesperson || "");
+    setValue("notes", initialData.notes || "");
+    setValue("shippingAddressId", initialData.shipping?.id?.toString() || "");
+    setValue("billingAddressId", initialData.billing?.id?.toString() || "");
+    
+    // Preenche os produtos
+    if (initialData.orderItems && initialData.orderItems.length > 0) {
+      const formattedProducts: ProductsProps[] = initialData.orderItems.map(item => ({
+        id: item.productId.toString(),
+        product_name: item.productName,
+        code: item.productCode,
+        quantity: item.quantity,
+        price: item.unitPrice,
+        location: item.location,
+        stock: 0 
+      }));
+      setProducts(formattedProducts);
+    }
+    
+    // CORREÇÃO: Preenche o cliente selecionado com a interface correta
+    const customerData: Customer = {
+      id: initialData.customer.id,
+      name: initialData.customer.name,
+      phone: initialData.customer.phone || "",
+      email: initialData.customer.email || "",
+      code: initialData.customer.code,
+      address: {
+        id: initialData.shipping?.id || initialData.billing?.id || "",
+        city: initialData.shipping?.city || initialData.billing?.city || "",
+        number: initialData.shipping?.number || initialData.billing?.number || 0,
+        street: initialData.shipping?.street || initialData.billing?.street || "",
+        zip: initialData.shipping?.zip || initialData.billing?.zip || "",
+        type: 'shipping' // ou 'billing' dependendo do que você preferir
+      },
+      createdAt: new Date().toISOString()
+    };
+    setSelectedCustomer(customerData);
+    
+    // Define os endereços como confirmados se existirem
+    if (initialData.shipping?.id && initialData.billing?.id) {
+      setAddressConfirmed(true);
+    }
+    
+    // Usa o orderNumber existente
+    setOrderNumber(initialData.orderNumber);
+  }
+}, [editMode, initialData, setValue]);
   useEffect(() => {
     const loadOrderNumber = async () => {
       try {
@@ -50,8 +137,12 @@ export default function OrderForm() {
         setLoadingOrderNumber(false);
       }
     };
-    loadOrderNumber();
-  }, []);
+    
+    // Só carrega novo número se NÃO for modo edição
+    if (!editMode) {
+      loadOrderNumber();
+    }
+  }, [editMode]);
 
   const refreshOrderNumber = async () => {
     try {
@@ -65,29 +156,6 @@ export default function OrderForm() {
     }
   };
 
-  const {
-    productCode,
-    setProductCode,
-    addedProduct,
-    count,
-    setCount,
-    price,
-    setPrice,
-    handleProduct,
-    handleAddProduct,
-  } = useProductManagement(setProducts);
-
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormValues>({
-    defaultValues: {
-      orderDate: format(new Date(), "yyyy-MM-dd"),
-      orderStatus: "pending",
-      currency: "BRL",
-      salesperson: "",
-    },
-  });
-
-
-  // Carregar clientes
   useEffect(() => {
     const loadCustomers = async () => {
       try {
@@ -120,6 +188,7 @@ export default function OrderForm() {
   const useCustomerAddress = () => {
     if (selectedCustomer && selectedCustomer.address?.id) {
       const addressId = selectedCustomer.address.id.toString();
+
       setValue("shippingAddressId", addressId);
       setValue("billingAddressId", addressId);
       setAddressConfirmed(true);
@@ -149,7 +218,24 @@ export default function OrderForm() {
       return;
     }
 
+    const stockIssues = products.filter(product => {
+      const availableStock = product.quantity || 0;
+      return availableStock < product.quantity;
+    });
+
+    if (stockIssues.length > 0) {
+      const productNames = stockIssues.map(p => p.product_name).join(', ');
+      Swal.fire({
+        title: "Estoque Insuficiente!",
+        html: `Os seguintes produtos não têm estoque suficiente:<br><strong>${productNames}</strong>`,
+        icon: "error",
+        confirmButtonText: "Entendi"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
+
     try {
       const totalAmount = products.reduce((acc, p) => acc + p.quantity * p.price, 0);
 
@@ -158,9 +244,9 @@ export default function OrderForm() {
         orderStatus: "pending",
         orderNumber: orderNumber,
         customerId: data.customerId,
-        customerName: data.customerName,
-        customerPhone: data.customerPhone,
-        customerCode: data.customerCode,
+        customerName: selectedCustomer?.name || "",
+        customerPhone: selectedCustomer?.phone || "",
+        customerCode: selectedCustomer?.code || "",
         totalAmount,
         currency: data.currency,
         salesperson: data.salesperson,
@@ -175,21 +261,92 @@ export default function OrderForm() {
         })),
       };
 
-      const result = await insertOrder(orderData);
-      if (result) {
-        Swal.fire("Sucesso", `Pedido ${orderNumber} criado! Aguardando aprovação do financeiro.`, "success");
-        navigate("/sales/orders");
+      let result;
+      
+      if (editMode && orderId) {
+        console.log("📝 [FORM] Modo edição - Atualizando pedido ID:", orderId);
+        result = await updateOrder(orderId, orderData);
       } else {
-        Swal.fire("Erro", "Erro ao criar pedido. Tente novamente.", "error");
-        refreshOrderNumber();
+        console.log("📝 [FORM] Modo criação - Criando novo pedido");
+        result = await insertOrder(orderData);
+      }
+
+      console.log("📝 [FORM] Resultado da operação:", result);
+
+      if (result && (result.id || result.order?.id)) {
+        const successOrderId = result.id || result.order?.id;
+        const companyId = 1;
+
+        try {
+          await processInventoryUpdates(successOrderId, products, companyId);
+
+          Swal.fire({
+            title: "Sucesso!",
+            html: `
+              <div>
+                <p><strong>Pedido ${orderNumber} ${editMode ? 'atualizado' : 'criado'} com sucesso!</strong></p>
+                <p class="text-sm mt-2">✓ Estoque atualizado</p>
+                <p class="text-sm">✓ Movimentação registrada no Kardex</p>
+                <p class="text-sm">✓ Aguardando aprovação do financeiro</p>
+              </div>
+            `,
+            icon: "success",
+            confirmButtonText: "Ver Pedidos"
+          });
+
+          navigate("/sales/orders");
+
+        } catch (inventoryError) {
+          console.error("Erro no processamento de estoque:", inventoryError);
+          Swal.fire({
+            title: "Pedido Criado com Alerta",
+            html: `
+              <div>
+                <p><strong>Pedido ${orderNumber} ${editMode ? 'atualizado' : 'criado'}!</strong></p>
+                <p class="text-sm mt-2 text-yellow-600">⚠️ Erro ao atualizar estoque</p>
+                <p class="text-sm">Entre em contato com o administrador</p>
+              </div>
+            `,
+            icon: "warning",
+            confirmButtonText: "Entendi"
+          });
+          navigate("/sales/orders");
+        }
+
+      } else {
+        Swal.fire("Erro", `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido. Tente novamente.`, "error");
+        if (!editMode) {
+          refreshOrderNumber();
+        }
       }
     } catch (err) {
-      console.error(err);
-      Swal.fire("Erro", "Erro ao criar pedido. Verifique os dados.", "error");
-      refreshOrderNumber();
+      console.error(`Erro ao ${editMode ? 'atualizar' : 'criar'} pedido:`, err);
+      Swal.fire("Erro", `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido. Verifique os dados.`, "error");
+      if (!editMode) {
+        refreshOrderNumber();
+      }
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleAddProductWithStockCheck = () => {
+    if (!addedProduct) return;
+
+    const existingProduct = products.find(p => p.id === addedProduct.id);
+    const totalQuantity = existingProduct ? existingProduct.quantity + count : count;
+
+    if (totalQuantity > addedProduct.stock) {
+      Swal.fire({
+        title: "Estoque Insuficiente!",
+        html: `Quantidade solicitada: <strong>${totalQuantity}</strong><br>Estoque disponível: <strong>${addedProduct.stock}</strong>`,
+        icon: "warning",
+        confirmButtonText: "Entendi"
+      });
+      return;
+    }
+
+    handleAddProduct();
   };
 
   return (
@@ -206,16 +363,22 @@ export default function OrderForm() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                     Número do Pedido
-                    <button
-                      type="button"
-                      onClick={refreshOrderNumber}
-                      disabled={loadingOrderNumber}
-                      className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
-                    >
-                      <RefreshCw className={`w-4 h-4 ${loadingOrderNumber ? 'animate-spin' : ''}`} />
-                    </button>
+                    {!editMode && (
+                      <button
+                        type="button"
+                        onClick={refreshOrderNumber}
+                        disabled={loadingOrderNumber}
+                        className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${loadingOrderNumber ? 'animate-spin' : ''}`} />
+                      </button>
+                    )}
                   </label>
-                  <input value={orderNumber} readOnly className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 font-mono font-bold" />
+                  <input 
+                    value={orderNumber} 
+                    readOnly 
+                    className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 font-mono font-bold" 
+                  />
                 </div>
 
                 <div>
@@ -229,9 +392,9 @@ export default function OrderForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status Inicial</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
                   <input
-                    value="Pendente - Aguardando Financeiro"
+                    value={editMode ? orderNumber.includes("P-") ? "Pendente" : orderNumber.includes("A-") ? "Aprovado" : orderNumber : "Pendente - Aguardando Financeiro"}
                     readOnly
                     className="w-full border border-gray-300 rounded-lg p-3 bg-yellow-50 text-yellow-700 font-medium"
                   />
@@ -259,6 +422,7 @@ export default function OrderForm() {
               </div>
             </div>
 
+            {/* ... resto do JSX permanece igual ... */}
             {/* Cliente */}
             <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-3 text-gray-900">
@@ -341,10 +505,12 @@ export default function OrderForm() {
                     <div className="flex flex-col">
                       <span className="font-semibold text-green-800">{addedProduct.name}</span>
                       <span className="text-sm text-green-600">Código: {addedProduct.code}</span>
+                      <span className="text-xs text-gray-600">Estoque: {addedProduct.stock}</span>
                     </div>
                     <input
                       type="number"
                       min={1}
+                      max={addedProduct.stock}
                       value={count}
                       onChange={(e) => setCount(Number(e.target.value))}
                       className="border border-gray-300 p-2 rounded-lg w-20"
@@ -358,7 +524,11 @@ export default function OrderForm() {
                       <span className="text-sm font-medium text-gray-700">Total</span>
                       <span className="font-semibold text-blue-700">R$ {(count * Number(price)).toFixed(2)}</span>
                     </div>
-                    <button type="button" onClick={handleAddProduct} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+                    <button
+                      type="button"
+                      onClick={handleAddProductWithStockCheck}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                    >
                       Adicionar à Lista
                     </button>
                   </div>
@@ -382,6 +552,7 @@ export default function OrderForm() {
                     <tr>
                       <th className="p-4 text-left">Produto</th>
                       <th className="p-4 text-left">Qtd</th>
+                      <th className="p-4 text-left">Estoque</th>
                       <th className="p-4 text-left">Preço Unit.</th>
                       <th className="p-4 text-left">Total</th>
                       <th className="p-4 text-left">Ação</th>
@@ -392,6 +563,14 @@ export default function OrderForm() {
                       <tr key={`${item.id}-${index}`} className="border-t border-gray-100 hover:bg-gray-50">
                         <td className="p-4">{item.product_name}</td>
                         <td className="p-4">{item.quantity}</td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded text-xs ${item.quantity >= item.quantity
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                            }`}>
+                            {item.quantity}
+                          </span>
+                        </td>
                         <td className="p-4">R$ {item.price}</td>
                         <td className="p-4">R$ {(item.quantity * item.price).toFixed(2)}</td>
                         <td className="p-4">
@@ -427,7 +606,10 @@ export default function OrderForm() {
                 Cancelar
               </button>
               <button type="submit" disabled={isSubmitting} className="px-6 py-3 bg-slate-800 text-white rounded-lg hover:bg-slate-900 disabled:opacity-50">
-                {isSubmitting ? "Criando Pedido..." : "Criar Pedido (Aguardar Aprovação)"}
+                {isSubmitting 
+                  ? (editMode ? "Atualizando Pedido..." : "Criando Pedido...") 
+                  : (editMode ? "Atualizar Pedido" : "Criar Pedido (Aguardar Aprovação)")
+                }
               </button>
             </div>
           </form>

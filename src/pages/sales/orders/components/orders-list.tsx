@@ -6,11 +6,11 @@ import { OrderResponse } from "../../../../service/interfaces"
 import { handleAllOrders, updateOrderStatus } from "../../../../service/api/Administrador/orders"
 
 import { motion } from "framer-motion"
-import { Truck, Package, CheckCircle, Clock, AlertCircle, Eye, Check } from "lucide-react"
+import { Truck, Package, CheckCircle, Clock, AlertCircle, Eye, Check, Undo2Icon } from "lucide-react"
 import Dashboard from "../../../../components/dashboard/Dashboard"
 import OrderPDF from "../conferency/OrderPDF"
 
-type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "delivered" | "cancelled" | any
+type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "delivered" | "cancelled" | "backout" | any
 
 export default function OrderList() {
   const [selectedTab, setSelectedTab] = useState<OrderStatus>("approved")
@@ -26,9 +26,10 @@ export default function OrderList() {
       'in_progress': 'in_progress',
       'shipped': 'shipped',
       'cancelled': 'cancelled',
-      'delivered': 'delivered'
+      'delivered': 'delivered',
+      'backout': 'backout'
     };
-    return statusMap[status?.toLowerCase()] || status || 'approved';
+    return statusMap[status?.toLowerCase()] || status || 'approved' || 'backout';
   };
 
   const loadOrders = async () => {
@@ -36,7 +37,6 @@ export default function OrderList() {
       setIsLoading(true);
       const fetchedOrders = await handleAllOrders();
 
-      console.log("📦 Dados ORIGINAIS da API:", fetchedOrders[0]?.shipping);
 
       // Mapeia diretamente para OrderResponse
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
@@ -117,40 +117,59 @@ export default function OrderList() {
       alert("Erro ao atualizar o status do pedido!")
     }
   }
-
-  const confirmAndUpdateStatus = async (orderId: string | number, newStatus: OrderStatus, message: string) => {
-    Swal.fire({
+  const confirmAndUpdateStatus = async (
+    orderId: string | number,
+    newStatus: OrderStatus,
+    message: string
+  ) => {
+    const result = await Swal.fire({
       title: "Tem certeza?",
-      text: message,
+      html: message.replace(/\n/g, "<br>"),
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#2563eb",
       cancelButtonColor: "#d33",
       confirmButtonText: "Sim, confirmar",
       cancelButtonText: "Cancelar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
+    });
+
+    if (result.isConfirmed) {
+      const { value: motivo } = await Swal.fire({
+        title: "Motivo do estorno",
+        input: "textarea",
+        inputPlaceholder: "Digite o motivo para o estorno...",
+        inputAttributes: {
+          "aria-label": "Motivo do estorno"
+        },
+        showCancelButton: true,
+        confirmButtonText: "Enviar",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#2563eb",
+      });
+
+      if (motivo) {
         try {
-          await updateOrderStatusInDb(orderId, newStatus)
-          await loadOrders()
+          await updateOrderStatusInDb(orderId, newStatus);
+          await loadOrders();
 
           Swal.fire({
             title: "Sucesso!",
-            text: "Status do pedido atualizado.",
+            text: `Status do pedido atualizado.\nMotivo: ${motivo}`,
             icon: "success",
             confirmButtonColor: "#16a34a",
-          })
+          });
         } catch (error) {
           Swal.fire({
             title: "Erro!",
             text: "Não foi possível atualizar o pedido.",
             icon: "error",
             confirmButtonColor: "#d33",
-          })
+          });
         }
       }
-    })
-  }
+    }
+  };
+
 
   const handleDownloadComplete = () => {
     if (selectedOrder && selectedOrder.orderStatus === "approved") {
@@ -165,7 +184,8 @@ export default function OrderList() {
     in_progress: "bg-slate-50 text-slate-700 border-slate-300",
     shipped: "bg-indigo-50 text-indigo-800 border-indigo-200",
     delivered: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    cancelled: "bg-red-50 text-red-800 border-red-200"
+    cancelled: "bg-red-50 text-red-800 border-red-200",
+    backout: "bg-orange-50 text-white border-orange-200"
   }
 
   const statusLabels: Record<OrderStatus, string> = {
@@ -174,7 +194,8 @@ export default function OrderList() {
     in_progress: "Separando",
     shipped: "Enviado",
     delivered: "Entregue",
-    cancelled: "Cancelado"
+    cancelled: "Cancelado",
+    backout: "Estornado"
   }
 
   const statusIcons: Record<OrderStatus, React.ReactElement> = {
@@ -183,17 +204,15 @@ export default function OrderList() {
     in_progress: <Package className="w-4 h-4" />,
     shipped: <Truck className="w-4 h-4" />,
     delivered: <CheckCircle className="w-4 h-4" />,
-    cancelled: <AlertCircle className="w-4 h-4" />
+    cancelled: <AlertCircle className="w-4 h-4" />,
+    backout: <Undo2Icon className="w-4 h-4" />
   }
 
   const getOrdersByStatus = (status: OrderStatus) =>
     orders.filter((order) => order.orderStatus === status)
 
   if (selectedOrder) {
-    console.log("📄 Order enviado para PDF:", selectedOrder);
-    console.log("📄 Shipping no PDF:", selectedOrder.shipping);
-    console.log("📄 Billing no PDF:", selectedOrder.billing);
-    
+
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <button
@@ -321,18 +340,30 @@ export default function OrderList() {
                             </button>
 
                             {selectedTab === "approved" && (
-                              <button
-                                className="bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-slate-800 text-sm font-medium transition-colors"
-                                onClick={() => {
-                                  // Carregar pedido completo no estado
-                                  setSelectedOrder(order);
-
-                                  // Perguntar confirmação e atualizar status
-                                  confirmAndUpdateStatus(order.id, "in_progress", "Você deseja iniciar a conferência deste pedido?");
-                                }}
-                              >
-                                Iniciar Separação
-                              </button>
+                              <>
+                                <button
+                                  className="bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-slate-800 text-sm font-medium transition-colors"
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    confirmAndUpdateStatus(order.id, "in_progress", "Você deseja iniciar a conferência deste pedido?");
+                                  }}
+                                >
+                                  Iniciar Separação
+                                </button>
+                                <button
+                                  className="bg-orange-500 font-semibold flex rounded-lg items-center px-1 py-1"
+                                  onClick={() => {
+                                    //setSelectedOrder(order)
+                                    confirmAndUpdateStatus(order.id,
+                                      "backout",
+                                      `Deseja estornar o pedido: ${order.orderNumber} 
+                                       Cliente: ${order.customer.name} 
+                                       Quantidade de itens: ${order.orderItems.length} ?`)
+                                  }}
+                                >
+                                  <Undo2Icon className="h-4 w-4" /> Estornar
+                                </button>
+                              </>
                             )}
 
                             {selectedTab === "in_progress" && (
@@ -381,6 +412,8 @@ function statusButtonClass(status: OrderStatus) {
       return "bg-emerald-50 text-emerald-800 border-emerald-200"
     case "cancelled":
       return "bg-red-50 text-red-800 border-red-200"
+    case "backout":
+      return "bg-orange-50 text-white border-orange-200"
     default:
       return "bg-gray-50 text-gray-700 border-gray-200"
   }
@@ -400,6 +433,8 @@ function statusActiveTabClass(status: OrderStatus) {
       return "bg-emerald-50 text-emerald-800 border-b-2 border-emerald-500"
     case "cancelled":
       return "bg-red-50 text-red-800 border-b-2 border-red-500"
+    case "backout":
+      return "bg-orange-50 text-white border-orange-200" 
     default:
       return "bg-gray-50 text-gray-700 border-b-2 border-gray-500"
   }
