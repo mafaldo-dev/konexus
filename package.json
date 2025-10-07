@@ -1,6 +1,6 @@
 {
   "name": "konexus",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "homepage": "./",
   "main": "electron/main.js",
@@ -39,7 +39,7 @@
     "dist": "npm run build && electron-builder --publish always"
   },
   "build": {
-    "appId": "com.guilherme.keppler",
+    "appId": "com.guilherme.konexus",
     "productName": "Konexus",
     "asar": true,
     "extends": null,
@@ -47,7 +47,7 @@
       {
         "provider": "github",
         "owner": "mafaldo-dev",
-        "repo": "keppler",
+        "repo": "konexus",
         "releaseType": "release"
       }
     ],
