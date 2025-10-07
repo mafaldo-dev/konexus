@@ -205,7 +205,7 @@ export const getOrderForEdit = async (orderId: string, token?: string): Promise<
   try {
     console.log("🔍 [API] Buscando pedido para edição ID:", orderId);
     
-    const response = await apiRequest(`orders/${orderId}/edit`, "GET", null, token);
+    const response = await apiRequest(`orders/edit/${orderId}`, "GET", null, token);
     console.log("🔍 [API] Resposta da busca para edição:", response);
     
     if (!response) {

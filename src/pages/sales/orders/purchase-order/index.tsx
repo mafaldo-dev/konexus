@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Search, Plus, Eye, Package, TrendingUp, Clock, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -17,12 +17,13 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  
+  const navigate = useNavigate()
 
-  // Estados de paginação
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
-  // Formatação segura de data
   const safeFormatDate = (dateString?: string | null): string => {
     if (!dateString) return "Data inválida";
     try {
@@ -47,7 +48,6 @@ export default function OrdersPage() {
     return statusMap[status?.toLowerCase()] || status || "Pendente" || "Estornado";
   };
 
-  // Carregar pedidos da API
   const loadOrders = async () => {
     try {
       setIsLoading(true);
@@ -189,15 +189,14 @@ export default function OrdersPage() {
     return pages;
   };
 
-  // Função para editar pedido
-  const handleEditOrder = (order: OrderResponse) => {
-    if (order.orderStatus === "Pendente" || order.orderStatus === "Estornado") {
-      // Redireciona para a página de edição
-      window.location.href = `/orders/edit/${order.id}`;
-    } else {
-      alert("Este pedido não pode ser editado. Apenas pedidos com status 'Pendente' ou 'Estornado' podem ser modificados.");
-    }
-  };
+    const handleEditOrder = (order: OrderResponse) => {
+      if (order.orderStatus === "Pendente" || order.orderStatus === "Estornado") {
+        // Use navigate do react-router-dom em vez de window.location
+        navigate(`/sales/orders/edit/${order.id}`);
+      } else {
+        alert("Este pedido não pode ser editado. Apenas pedidos com status 'Pendente' ou 'Estornado' podem ser modificados.");
+      }
+    };
 
   // Função para visualizar PDF
   const handleViewPDF = (order: OrderResponse) => {

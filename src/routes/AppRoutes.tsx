@@ -54,6 +54,7 @@ const AppRoutes = () => {
       <Route path="/sales/newOrder" element={<NewOrderPage />} />
       <Route path="/sales/completed" element={<CompletedSales />} />
 
+
       {/* Private Routes */}
 
       <Route
@@ -73,12 +74,13 @@ const AppRoutes = () => {
           </DesignationCheck>
         } />
 
-
-      <Route path="/sales/orders/edit" element={
-        <DesignationCheck allowed={['Administrador', 'Vendedor', 'Gerente']}>
-          <EditOrderPage />
-        </DesignationCheck>
-      }
+      <Route
+        path="/sales/orders/edit/:id"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Vendedor', 'Gerente']}>
+            <EditOrderPage />
+          </DesignationCheck>
+        }
       />
 
       <Route

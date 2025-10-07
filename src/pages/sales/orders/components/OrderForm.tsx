@@ -3,7 +3,7 @@ import { Trash2, Package, User, MapPin, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 
 import { insertOrder, getNextOrderNumber, updateOrder } from "../../../../service/api/Administrador/orders";
@@ -69,10 +69,15 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
     processInventoryUpdates
   } = useProductManagement(setProducts);
 
- // CORREÇÃO do useEffect - parte do customerData
+
+const hasPrefilledData = useRef(false);
+
+// useEffect corrigido
 useEffect(() => {
-  if (editMode && initialData) {
+  if (editMode && initialData && !hasPrefilledData.current) {
     console.log("📝 [FORM] Preenchendo dados para edição:", initialData);
+    
+    hasPrefilledData.current = true;
     
     // Preenche os campos do formulário
     setValue("orderDate", initialData.orderDate.split('T')[0]);
@@ -97,7 +102,7 @@ useEffect(() => {
       setProducts(formattedProducts);
     }
     
-    // CORREÇÃO: Preenche o cliente selecionado com a interface correta
+    // Preenche o cliente selecionado
     const customerData: Customer = {
       id: initialData.customer.id,
       name: initialData.customer.name,
@@ -110,7 +115,7 @@ useEffect(() => {
         number: initialData.shipping?.number || initialData.billing?.number || 0,
         street: initialData.shipping?.street || initialData.billing?.street || "",
         zip: initialData.shipping?.zip || initialData.billing?.zip || "",
-        type: 'shipping' // ou 'billing' dependendo do que você preferir
+        type: 'shipping'
       },
       createdAt: new Date().toISOString()
     };
@@ -124,8 +129,10 @@ useEffect(() => {
     // Usa o orderNumber existente
     setOrderNumber(initialData.orderNumber);
   }
-}, [editMode, initialData, setValue]);
-  useEffect(() => {
+}, [editMode, initialData, setValue]); 
+
+
+useEffect(() => {
     const loadOrderNumber = async () => {
       try {
         setLoadingOrderNumber(true);
@@ -138,7 +145,6 @@ useEffect(() => {
       }
     };
     
-    // Só carrega novo número se NÃO for modo edição
     if (!editMode) {
       loadOrderNumber();
     }
