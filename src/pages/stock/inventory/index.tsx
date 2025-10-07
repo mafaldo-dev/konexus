@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { handleAllProducts } from '../../../service/api/Administrador/products';
 import { Products } from '../../../service/interfaces';
 import Dashboard from '../../../components/dashboard/Dashboard';
-import logo from '../../../assets/image/guiman.png'
+import logo from '../../../assets/image/konexus.png'
 
 import {
     DndContext,
@@ -79,7 +79,7 @@ const Inventory: React.FC = () => {
         <Dashboard>
             <div className="p-6 bg-white min-h-screen">
                 <div className="mb-4 text-center">
-                    <h1 className="text-3xl font-extrabold text-gray-900">GUIMAN Technology</h1>
+                    <h1 className="text-3xl font-extrabold text-gray-900">Konéxus Technology</h1>
                     <h2 className="text-xl font-semibold text-gray-700 mt-1">Inventário</h2>
                 </div>
 
@@ -212,9 +212,9 @@ const Inventory: React.FC = () => {
 
                         <div className="text-center mb-4 mt-4 flex-shrink-0">
                         <div className='flex justify-left ml-20'>
-                            <img className='w-35 h-25 rounded -mb-20' src={logo} alt="logo Guiman" />
+                            <img className='w-35 h-25 rounded -mb-20' src={logo} alt="logo Konexus" />
                         </div>
-                            <h1 className="text-xl font-bold text-gray-900">GUIMAN Technology</h1>
+                            <h1 className="text-xl font-bold text-gray-900">Konéxus Technology</h1>
                             <h2 className="text-sm text-gray-700 mt-1">Preview de Inventário</h2>
                             <p className="text-xs text-gray-500 mt-1">Data: {new Date().toLocaleDateString()}</p>
                         </div>

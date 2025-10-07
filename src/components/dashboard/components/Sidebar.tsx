@@ -3,7 +3,7 @@ import { MessageSquare, User } from 'lucide-react';
 import { useAuth } from '../../../AuthContext';
 import { menuItems } from '../menu';
 import MenuItem from './MenuItem';
-import logo from '../../../assets/image/guiman.png';
+import logo from '../../../assets/image/konexus.png';
 
 import { useChat } from '../../../ChatContext';
 import FloatingChat from '../ChatComunication';
@@ -49,7 +49,7 @@ export default function Sidebar({ sidebarCollapsed }: any) {
         <div>
           <div className="p-4 border-b border-slate-700">
             <div className="flex items-center gap-3">
-              <img src={logo || "/placeholder.svg"} alt="Logo Guiman" className="w-8 h-8" />
+              <img src={logo || "/placeholder.svg"} alt="Logo Konexus" className="w-8 h-8" />
               {!sidebarCollapsed && (
                 <div>
                   <h1 className="text-lg font-bold text-white">Konéxus</h1>

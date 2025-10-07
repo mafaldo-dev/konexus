@@ -23,11 +23,11 @@ interface PurchaseRequestFormProps {
 }
 
 const enterpriseDataDefault: EnterpriseData = {
-  company_name: 'GUIMAN',
+  company_name: 'Konéxus',
   phone: '11 9 xxxx-xxxx',
   email: '03.09gui.mafaldo@gmail.com',
   informations: {
-    phantasy_name: 'GUIMAN',
+    phantasy_name: 'Konéxus',
     cnpj: '123.456.13332/12',
   },
   address: {

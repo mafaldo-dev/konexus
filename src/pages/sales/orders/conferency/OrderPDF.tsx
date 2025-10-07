@@ -2,7 +2,7 @@ import { useAuth } from '../../../../AuthContext'
 import { Order, OrderResponse } from "../../../../service/interfaces"
 
 import { CheckSquare, Package, Download, Printer, SidebarClose } from "lucide-react"
-import logo from "../../../../assets/image/guiman.png"
+import logo from "../../../../assets/image/konexus.png"
 import { useNavigate } from 'react-router-dom'
 
 
@@ -151,7 +151,7 @@ export default function OrderPDF({ order, onDownloadComplete }: OrderPDFProps) {
                     rounded-xl shadow-sm">
                 <img
                   src={logo}
-                  alt="Logo Guiman"
+                  alt="Logo Konexus"
                   className="w-14 h-14 object-cover rounded-lg"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none"

@@ -54,7 +54,7 @@ export const ReportPreview = forwardRef<HTMLDivElement, ReportPreviewProps>(
                 <Building2 className="h-5 w-5 text-gray-800" />
               </div>
               <div className="company-info">
-                <h1 className="text-lg font-bold text-gray-900">GUIMAN</h1>
+                <h1 className="text-lg font-bold text-gray-900">Konéxus</h1>
                 <p className="text-xs text-gray-600">Sistema integrado</p>
               </div>
             </div>
@@ -126,7 +126,7 @@ export const ReportPreview = forwardRef<HTMLDivElement, ReportPreviewProps>(
           </div>
         </div>
         <div className="footer border-t border-gray-300 pt-2 mt-2 text-xs text-gray-600 flex justify-between">
-          <div>GUIMAN - Sistema integrado</div>
+          <div>Konéxus - Sistema integrado</div>
           <div>Confidencial - Uso Interno</div>
         </div>
       </div>
