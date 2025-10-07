@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { handleAllProducts } from '../../../service/api/Administrador/products';
 import { Products } from '../../../service/interfaces';
 import Dashboard from '../../../components/dashboard/Dashboard';
-import logo from '../../../assets/image/konexus.png'
+import logo from '../../../assets/image/konexuslogo.png'
 
 import {
     DndContext,

@@ -2,7 +2,7 @@ import { useAuth } from '../../../../AuthContext'
 import { Order, OrderResponse } from "../../../../service/interfaces"
 
 import { CheckSquare, Package, Download, Printer, SidebarClose } from "lucide-react"
-import logo from "../../../../assets/image/konexus.png"
+import logo from "../../../../assets/image/konexuslogo.png"
 import { useNavigate } from 'react-router-dom'
 
 
