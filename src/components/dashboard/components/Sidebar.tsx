@@ -3,7 +3,7 @@ import { MessageSquare, User } from 'lucide-react';
 import { useAuth } from '../../../AuthContext';
 import { menuItems } from '../menu';
 import MenuItem from './MenuItem';
-import logo from '../../../assets/image/konexus.png';
+import logo from '../../../assets/image/konexuslogo.png';
 
 import { useChat } from '../../../ChatContext';
 import FloatingChat from '../ChatComunication';
