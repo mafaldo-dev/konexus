@@ -36,7 +36,7 @@
     "electron:serve": "concurrently -k \"cross-env BROWSER=none npm start\" \"npm run electron:start\"",
     "electron:build": "npm run build && electron-builder",
     "electron:start": "wait-on tcp:3000 && electron .",
-    "dist": "npm run build && electron-builder --publish always"
+    "dist": "npm run build && electron-builder --win --publish always"
   },
   "build": {
     "appId": "com.guilherme.konexus",
