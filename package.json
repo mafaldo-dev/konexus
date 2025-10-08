@@ -72,6 +72,12 @@
       "target": "nsis",
       "icon": "src/assets/image/konexus.ico"
     },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "src/assets/image/konexus.png"
+    },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
