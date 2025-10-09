@@ -7,8 +7,9 @@ import OrderPDF from "../conferency/OrderPDF";
 import { format, isValid } from "date-fns";
 
 import Dashboard from "../../../../components/dashboard/Dashboard";
-import { handleAllOrders } from "../../../../service/api/Administrador/orders";
+import { handleAllOrders, handleCancelOrder } from "../../../../service/api/Administrador/orders";
 import { OrderResponse } from "../../../../service/interfaces";
+import Swal from "sweetalert2";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -209,6 +210,46 @@ export default function OrdersPage() {
     setOpenMenuId(openMenuId === orderId ? null : orderId);
   };
 
+
+const handleCancelOrderClick = async (order: OrderResponse) => {
+  const result = await Swal.fire({
+    title: `Cancelar pedido ${order.orderNumber}?`,
+    text: "Essa ação irá cancelar o pedido e reverter o estoque!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Sim, cancelar",
+    cancelButtonText: "Não"
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    setIsLoading(true);
+    const response = await handleCancelOrder(order.id);
+
+    await Swal.fire({
+      title: "Sucesso!",
+      text: response.message || "Pedido cancelado com sucesso!",
+      icon: "success",
+      confirmButtonText: "OK"
+    });
+
+    await loadOrders(); // recarrega lista
+  } catch (error: any) {
+    await Swal.fire({
+      title: "Erro!",
+      text: error.message || "Erro ao cancelar o pedido!",
+      icon: "error",
+      confirmButtonText: "OK"
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
   // Cores dos status
   const statusColors: Record<string, string> = {
     Pendente: "bg-amber-50 text-amber-800 border-amber-200",
@@ -239,7 +280,6 @@ export default function OrdersPage() {
     );
   }
 
-  // Renderiza lista de pedidos
   return (
     <Dashboard>
       <div className="min-h-screen bg-gray-50 p-6">
@@ -429,15 +469,6 @@ export default function OrdersPage() {
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-4">
-                                <button
-                                  onClick={() => handleViewPDF(order)}
-                                  className="flex items-center text-sm text-slate-700 hover:text-slate-900 font-medium transition-colors"
-                                  type="button"
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  PDF
-                                </button>
-
                                 {/* Menu de Ações */}
                                 <div className="relative">
                                   <button
@@ -480,7 +511,7 @@ export default function OrdersPage() {
 
                                       {canEdit && (
                                         <button
-                                          onClick={() => console.log("Cancelar pedido:", order.id)}
+                                          onClick={() => handleCancelOrderClick(order)}
                                           className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
                                           type="button"
                                         >

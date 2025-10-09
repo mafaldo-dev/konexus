@@ -1,6 +1,6 @@
 export const apiRequest = async <T = any>(
   endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
   body?: any,
   token?: string
 ): Promise<T | null> => {

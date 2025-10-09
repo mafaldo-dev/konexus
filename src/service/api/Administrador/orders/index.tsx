@@ -169,6 +169,24 @@ export const updateOrderStatus = async (
 };
 
 /**
+ * Cancela um pedido e atualiza o estoque automaticamente
+ */
+export const handleCancelOrder = async (orderId: number | string, token?: string): Promise<any> => {
+  try {
+    const tkn = token || localStorage.getItem("token");
+    const response = await apiRequest(`orders/${orderId}/cancel`, "PATCH", undefined, tkn as string);
+    if (response?.message) {
+      console.log("✅ Pedido cancelado com sucesso:", response.message);
+    }
+    return response;
+  } catch (error: any) {
+    console.error("❌ Erro ao cancelar pedido:", error);
+    throw new Error(error.response?.data?.error || "Erro ao cancelar pedido.");
+  }
+};
+
+
+/**
  * Deleta um pedido
  */
 export const deleteOrder = async (orderId: number | string, token?: string): Promise<boolean> => {

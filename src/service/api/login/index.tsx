@@ -16,7 +16,7 @@ export interface LoginResponse {
 
 export const handleLoginAdmin = async (username: string, password: string) => {
     try {
-        const response = await apiRequest("login/auth", "POST", { username, password });
+        const response = await apiRequest("login/auth", "POST", {username, password});
         
         if (!response || !response.user) {
             throw new Error("Credenciais inválidas ou usuário não encontrado");
@@ -43,6 +43,7 @@ export const handleLoginAdmin = async (username: string, password: string) => {
         
     }
 }
+
 export const handleLoginEmployee = async (username: string, password: string) => {
     try {
         const response = await apiRequest("employees/auth-employee", "POST", { username, password });
