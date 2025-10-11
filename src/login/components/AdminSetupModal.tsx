@@ -25,9 +25,8 @@ const AdminSetupModal = ({ onClose }: { onClose: () => void }) => {
     });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // ✅ IMPEDE O COMPORTAMENTO PADRÃO DO FORMULÁRIO
-    e.stopPropagation(); // ✅ PARA A PROPAGAÇÃO DO EVENTO
-
+    e.preventDefault()
+    e.stopPropagation()
     if (!companyName || !adminUsername || !adminPassword) {
       Swal.fire("Atenção", "Preencha todos os campos obrigatórios!", "warning");
       return;
@@ -50,14 +49,12 @@ const AdminSetupModal = ({ onClose }: { onClose: () => void }) => {
       };
 
       const response = await createCompanyAdmin(companyData);
-      console.log(response)
-      console.log(companyData)
 
-      if (response.success) {
-        Swal.fire("Sucesso", response.message || "Admin e empresa criados com sucesso!", "success");
+      if (response?.id) {
+        Swal.fire("Sucesso", "Admin e empresa criados com sucesso!", "success");
         onClose();
       } else {
-        throw new Error(response.message || "Erro ao criar admin!");
+        throw new Error("Erro ao criar admin!");
       }
 
     } catch (err: any) {
@@ -72,27 +69,25 @@ const AdminSetupModal = ({ onClose }: { onClose: () => void }) => {
     navigate("/");
   };
 
-  // ✅ ADICIONE ESTA FUNÇÃO PARA IMPEDIR PROPAGAÇÃO NO MODAL
   const handleModalClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-      onClick={onClose} // Fecha o modal ao clicar fora
+      onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-auto"
-        onClick={handleModalClick} // ✅ IMPEDE PROPAGAÇÃO DENTRO DO MODAL
+        onClick={handleModalClick}
       >
-        {/* ✅ MUDEI PARA FORM E ADICIONEI onSubmit */}
         <form onSubmit={handleSubmit}>
           {/* Header */}
           <div className="flex justify-between items-center p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-gray-800">Configuração Admin do Sistema</h2>
             <button
-              type="button" // ✅ IMPORTANTE: type="button" para não submeter o form
+              type="button"
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
             >

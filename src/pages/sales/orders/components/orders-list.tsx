@@ -1,24 +1,23 @@
-import type React from "react"
-import { useState, useEffect } from "react"
-import Swal from "sweetalert2"
+import { useState, useEffect, Fragment } from "react";
+import Swal from "sweetalert2";
+import { Menu, Transition } from "@headlessui/react";
 
-import { OrderResponse } from "../../../../service/interfaces"
-import { handleAllOrders, updateOrderStatus } from "../../../../service/api/Administrador/orders"
+import { OrderResponse } from "../../../../service/interfaces";
+import { handleAllOrders, updateOrderStatus } from "../../../../service/api/Administrador/orders";
 
-import { motion } from "framer-motion"
-import { Truck, Package, CheckCircle, Clock, AlertCircle, Eye, Check, Undo2Icon } from "lucide-react"
-import Dashboard from "../../../../components/dashboard/Dashboard"
-import OrderPDF from "../conferency/OrderPDF"
+import { motion } from "framer-motion";
+import { Truck, AlertCircle, MoreVertical } from "lucide-react";
+import Dashboard from "../../../../components/dashboard/Dashboard";
+import OrderPDF from "../conferency/OrderPDF";
 
-type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "delivered" | "cancelled" | "backout" | any
+type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "cancelled" | "backout" | any;
 
 export default function OrderList() {
-  const [selectedTab, setSelectedTab] = useState<OrderStatus>("approved")
-  const [orders, setOrders] = useState<OrderResponse[]>([])
-  const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [selectedTab, setSelectedTab] = useState<OrderStatus>("approved");
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Função para mapear os status
   const mapStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
       'pending': 'pending',
@@ -37,8 +36,6 @@ export default function OrderList() {
       setIsLoading(true);
       const fetchedOrders = await handleAllOrders();
 
-
-      // Mapeia diretamente para OrderResponse
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
         id: order.id,
         orderDate: order.orderDate,
@@ -48,6 +45,8 @@ export default function OrderList() {
         currency: order.currency || "BRL",
         salesperson: order.salesperson,
         notes: order.notes || "",
+        totalVolumes: order.totalVolumes || order.total_volume || 0, // Inclui os novos campos
+        totalWeight: order.totalWeight || order.total_weight || 0,   // Inclui os novos campos
         customer: {
           id: order.customer?.id || 0,
           name: order.customer?.name || "",
@@ -101,22 +100,36 @@ export default function OrderList() {
     }
   };
 
+  const tkn = localStorage.getItem("token")
+
   useEffect(() => {
     loadOrders();
   }, []);
 
-  const updateOrderStatusInDb = async (orderId: number | string, newStatus: OrderStatus) => {
+  const updateOrderStatusInDb = async (
+    orderId: number | string,
+    newStatus: OrderStatus,
+    extraData?: { totalVolumes?: number; totalWeight?: number } // Torna opcional
+  ) => {
     try {
-      await updateOrderStatus(orderId, newStatus)
+      await updateOrderStatus(orderId, newStatus, tkn as string, extraData);
       const updatedOrders = orders.map((order) =>
-        order.id === orderId ? { ...order, orderStatus: newStatus } : order
-      )
-      setOrders(updatedOrders)
+        order.id === orderId
+          ? {
+            ...order,
+            orderStatus: newStatus,
+            totalVolumes: extraData?.totalVolumes ?? order.totalVolumes,
+            totalWeight: extraData?.totalWeight ?? order.totalWeight
+          }
+          : order
+      );
+      setOrders(updatedOrders);
     } catch (error) {
-      console.error("Erro ao atualizar status do pedido:", error)
-      alert("Erro ao atualizar o status do pedido!")
+      console.error("Erro ao atualizar status do pedido:", error);
+      alert("Erro ao atualizar o status do pedido!");
     }
-  }
+  };
+
   const confirmAndUpdateStatus = async (
     orderId: string | number,
     newStatus: OrderStatus,
@@ -149,7 +162,7 @@ export default function OrderList() {
 
       if (motivo) {
         try {
-          await updateOrderStatusInDb(orderId, newStatus);
+          await updateOrderStatusInDb(orderId, newStatus); // Sem extraData para estorno
           await loadOrders();
 
           Swal.fire({
@@ -170,49 +183,195 @@ export default function OrderList() {
     }
   };
 
+  const handlePrintLabel = (order: OrderResponse) => {
+    // Use totalVolumes se disponível, senão use o length dos orderItems como fallback
+    const volumes = order.totalVolumes || order.orderItems.length;
 
-  const handleDownloadComplete = () => {
-    if (selectedOrder && selectedOrder.orderStatus === "approved") {
-      updateOrderStatus(selectedOrder.id, "in_progress")
-    }
-    setSelectedOrder(null)
-  }
+    Swal.fire({
+      title: `Etiqueta Pedido ${order.orderNumber}`,
+      html: `
+      <div style="
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 75vh;
+      ">
+        <div style="
+          width: 350px;
+          height: 350px;
+          padding: 4px;
+          box-shadow: 0 0 2px 2px rgba(0,0,0,0.9);
+          border-radius: 2px;
+          border: 1px solid #000;
+          background-color: #f0f4f8;
+          font-family: Arial, sans-serif;
+          color: black;
+          font-size: 12px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-evenly;
+        ">
+          <h4 style="margin: 0; font-size: 30px; font-weight: bold;">Pedido: ${order.orderNumber}</h4>
+          <p style="margin: 0; font-size: 20px; font-weight: bold;">Cliente: ${order.customer.name}</p>
+          <p style="margin: 0; font-size: 12px; font-weight: bold;">Endereço: ${order.shipping?.street}, ${order.shipping?.number} - ${order.shipping?.city}</p>
+          <p style="margin: 0; font-size: 20px; font-weight: bold;">Volumes: ${volumes}</p>
+          <p style="margin: 0; font-size: 20px; font-weight: bold;">NF: ___________</p>
+          <p style="margin: 0; font-size: 20px; font-weight: bold;">Transportadora: ___________</p>
+        </div>
+      </div>
+    `,
+      showCancelButton: true,
+      showConfirmButton: true,
+      confirmButtonText: 'Imprimir',
+      cancelButtonText: 'Fechar',
+      width: '100%',
+      heightAuto: true,
+      background: '#d1d5db',
+      customClass: { popup: 'swal2-fullscreen' },
+      didOpen: () => {
+        const printButton = document.querySelector('.swal2-confirm') as HTMLElement;
+        if (printButton) {
+          printButton.addEventListener('click', () => {
+            const printContent = document.querySelector('.swal2-html-container')?.innerHTML;
+            const printWindow = window.open("", "_blank", "width=200,height=200");
+            if (printWindow && printContent) {
+              printWindow.document.write(`
+              <html>
+                <head><title>Etiqueta Pedido ${order.orderNumber}</title></head>
+                <body>${printContent}</body>
+              </html>
+            `);
+              printWindow.document.close();
+              printWindow.focus();
+              printWindow.print();
+              printWindow.close();
+            }
+          });
+        }
+      }
+    });
+  };
+
+  const getOrdersByStatus = (status: OrderStatus) => orders.filter((order) => order.orderStatus === status);
 
   const statusColors: Record<OrderStatus, string> = {
     pending: "bg-amber-50 text-amber-800 border-amber-200",
     approved: "bg-cyan-100 text-blue-500 border-blue-200",
     in_progress: "bg-slate-50 text-slate-700 border-slate-300",
     shipped: "bg-indigo-50 text-indigo-800 border-indigo-200",
-    delivered: "bg-emerald-50 text-emerald-800 border-emerald-200",
     cancelled: "bg-red-50 text-red-800 border-red-200",
     backout: "bg-orange-50 text-white border-orange-200"
-  }
+  };
 
   const statusLabels: Record<OrderStatus, string> = {
     pending: "Pendente",
     approved: "Aprovada",
     in_progress: "Separando",
     shipped: "Enviado",
-    delivered: "Entregue",
     cancelled: "Cancelado",
     backout: "Estornado"
-  }
+  };
 
-  const statusIcons: Record<OrderStatus, React.ReactElement> = {
-    pending: <Clock className="w-4 h-4" />,
-    approved: <Check className="w-4 h-4" />,
-    in_progress: <Package className="w-4 h-4" />,
-    shipped: <Truck className="w-4 h-4" />,
-    delivered: <CheckCircle className="w-4 h-4" />,
-    cancelled: <AlertCircle className="w-4 h-4" />,
-    backout: <Undo2Icon className="w-4 h-4" />
-  }
+  const handleConferencia = async (order: OrderResponse) => {
+    const { value: formValues } = await Swal.fire({
+      title: "Realizar Conferência",
+      html: `
+        <div class="grid gap-2 text-left">
+          <label>Pedido: <b>${order.orderNumber}</b></label>
+          <label>Cliente: <b>${order.customer.name}</b></label>
+          <input id="separador" class="swal2-input" placeholder="Nome do Separador">
+          <input id="conferente" class="swal2-input" placeholder="Nome do Conferente">
+          <input id="peso" class="swal2-input" placeholder="Peso total (kg)" type="number" step="0.01">
+          <input id="volumes" class="swal2-input" placeholder="Quantidade de volumes" type="number" value="${order.orderItems.length}">
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Realizar Conferência",
+      width: '600px',
+      preConfirm: () => {
+        const separador = (document.getElementById("separador") as HTMLInputElement).value;
+        const conferente = (document.getElementById("conferente") as HTMLInputElement).value;
+        const peso = parseFloat((document.getElementById("peso") as HTMLInputElement).value);
+        const volumes = parseInt((document.getElementById("volumes") as HTMLInputElement).value);
+        if (!separador || !conferente || !peso || !volumes) Swal.showValidationMessage("Preencha todos os campos");
+        return { separador, conferente, peso, volumes };
+      }
+    });
 
-  const getOrdersByStatus = (status: OrderStatus) =>
-    orders.filter((order) => order.orderStatus === status)
+    if (formValues) {
+      // Agora envia os dados de volumes e peso
+      await updateOrderStatusInDb(order.id, "shipped", {
+        totalVolumes: formValues.volumes,
+        totalWeight: formValues.peso
+      });
+      Swal.fire("Sucesso!", "Conferência realizada e status atualizado para Enviado.", "success");
+    }
+  };
+
+  const handleUpdateStatus = async (orderId: string | number, status: OrderStatus, extraData?: any) => {
+    await updateOrderStatusInDb(orderId, status, extraData);
+  };
+
+  // Menu de ação
+  const ActionMenu = ({ order }: { order: OrderResponse }) => {
+    const options = () => {
+      switch (order.orderStatus) {
+        case "approved":
+          return [
+            { label: "Ver PDF", action: () => setSelectedOrder(order) },
+            { label: "Iniciar Separação", action: () => handleUpdateStatus(order.id, "in_progress") },
+            { label: "Estornar", action: () => confirmAndUpdateStatus(order.id, "backout", `Deseja estornar o pedido: ${order.orderNumber} ?`) }
+          ];
+        case "in_progress":
+          return [
+            { label: "Ver PDF", action: () => setSelectedOrder(order) },
+            { label: "Realizar Conferência", action: () => handleConferencia(order) }
+          ];
+        case "shipped":
+          return [
+            { label: "Ver PDF", action: () => setSelectedOrder(order) },
+            { label: "Gerar Etiqueta", action: () => handlePrintLabel(order) }
+          ];
+        default:
+          return [{ label: "Ver PDF", action: () => setSelectedOrder(order) }];
+      }
+    };
+
+    return (
+      <Menu as="div" className="relative inline-block text-left">
+        <Menu.Button className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+          <MoreVertical className="w-5 h-5 text-gray-700" />
+        </Menu.Button>
+
+        <Transition
+          as={Fragment}
+          enter="transition ease-out duration-100"
+          enterFrom="transform opacity-0 scale-95"
+          enterTo="transform opacity-100 scale-100"
+          leave="transition ease-in duration-75"
+          leaveFrom="transform opacity-100 scale-100"
+          leaveTo="transform opacity-0 scale-95"
+        >
+          <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right bg-white border border-gray-200 divide-y divide-gray-100 rounded-md shadow-lg focus:outline-none z-50">
+            {options().map((option, idx) => (
+              <Menu.Item key={idx}>
+                {({ active }: any) => (
+                  <button
+                    onClick={option.action}
+                    className={`${active ? "bg-gray-100" : ""} group flex w-full items-center px-4 py-2 text-sm text-gray-700 transition`}
+                  >
+                    {option.label}
+                  </button>
+                )}
+              </Menu.Item>
+            ))}
+          </Menu.Items>
+        </Transition>
+      </Menu>
+    );
+  };
 
   if (selectedOrder) {
-
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <button
@@ -222,7 +381,7 @@ export default function OrderList() {
         >
           ← Voltar para Expedição
         </button>
-        <OrderPDF order={selectedOrder} onDownloadComplete={handleDownloadComplete} />
+        <OrderPDF order={selectedOrder} onDownloadComplete={() => setSelectedOrder(null)} />
       </div>
     );
   }
@@ -242,30 +401,11 @@ export default function OrderList() {
             <p className="text-gray-600 font-medium">Gerencie a separação e envio dos pedidos</p>
           </motion.div>
 
-          {/* Contadores */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4"
-          >
-            {(["approved", "in_progress", "shipped", "delivered"] as OrderStatus[]).map((status) => (
-              <div
-                key={status}
-                className={`shadow-sm border ${statusButtonClass(status)} rounded-lg p-6 text-center transition-all hover:shadow-md`}
-              >
-                <div className="flex justify-center mb-3">{statusIcons[status]}</div>
-                <p className="text-2xl font-bold mb-1">{getOrdersByStatus(status).length}</p>
-                <p className="text-sm font-medium uppercase tracking-wide">{statusLabels[status]}</p>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Abas e lista */}
+          {/* Abas */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <div className="space-y-6">
-              {/* Abas */}
-              <div className="grid w-full grid-cols-4 bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-                {(["approved", "in_progress", "shipped", "delivered"] as OrderStatus[]).map((status) => (
+              <div className="grid w-full grid-cols-3 bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+                {(["approved", "in_progress", "shipped"] as OrderStatus[]).map((status) => (
                   <button
                     key={status}
                     onClick={() => setSelectedTab(status)}
@@ -275,9 +415,7 @@ export default function OrderList() {
                       }`}
                   >
                     <div className="flex items-center justify-center gap-2">
-                      <span className="uppercase tracking-wide">
-                        {statusLabels[status]}
-                      </span>
+                      <span className="uppercase tracking-wide">{statusLabels[status]}</span>
                       <span className="inline-block bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 text-xs font-medium">
                         {getOrdersByStatus(status).length}
                       </span>
@@ -287,7 +425,7 @@ export default function OrderList() {
               </div>
 
               {/* Lista de pedidos */}
-              <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
+              <div className="bg-white shadow-sm rounded-lg border border-gray-200">
                 {isLoading ? (
                   <div className="text-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mx-auto"></div>
@@ -299,94 +437,68 @@ export default function OrderList() {
                     <p className="text-gray-500 font-medium">Nenhum pedido com status "{statusLabels[selectedTab]}"</p>
                   </div>
                 ) : (
-                  <div className="grid gap-4">
-                    {getOrdersByStatus(selectedTab).map((order) => (
-                      <motion.div
-                        key={order.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-all hover:border-gray-300"
-                      >
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-900 mb-1">Pedido {order.orderNumber}</h3>
-                            <p className="text-gray-700 font-medium">Cliente: {order.customer.name}</p>
-                            <p className="text-gray-500 text-sm font-medium">Vendedor: {order.salesperson}</p>
-                          </div>
-
-                          <div className="text-right">
-                            <span
-                              className={`inline-block rounded-full border px-3 py-1.5 text-sm font-semibold ${statusColors[order.orderStatus]}`}
-                            >
-                              {statusLabels[order.orderStatus]?.toUpperCase()}
-                            </span>
-                            <p className="text-lg font-bold text-slate-700 mt-2">
-                              R$ {order.totalAmount?.toFixed(2) || "0.00"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                          <div className="text-sm text-gray-600 font-medium">
-                            {order.orderItems?.length || 0} itens para separar
-                          </div>
-
-                          <div className="flex gap-3">
-                            <button
-                              className="border border-gray-300 rounded-lg px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 font-medium text-gray-700 transition-colors"
-                              onClick={() => setSelectedOrder(order)}
-                            >
-                              <Eye className="w-4 h-4" /> Ver PDF
-                            </button>
-
-                            {selectedTab === "approved" && (
+                  <div className="overflow-x-auto rounded-t-md">
+                    <table className="w-full rounded-sm">
+                      <thead className="bg-slate-900 text-white">
+                        <tr>
+                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Pedido</th>
+                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Cliente</th>
+                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Vendedor</th>
+                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Itens</th>
+                          {selectedTab === "shipped" && (
+                            <>
+                              <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Volumes</th>
+                              <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Peso</th>
+                            </>
+                          )}
+                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {getOrdersByStatus(selectedTab).map((order) => (
+                          <motion.tr
+                            key={order.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="hover:bg-gray-50 transition-colors"
+                          >
+                            <td className="px-6 py-2 whitespace-nowrap">
+                              <span className="font-semibold text-gray-900">{order.orderNumber}</span>
+                            </td>
+                            <td className="px-6 py-2 whitespace-nowrap">
+                              <span className="text-gray-700">{order.customer.name}</span>
+                            </td>
+                            <td className="px-6 py-2 whitespace-nowrap">
+                              <span className="text-gray-700">{order.salesperson}</span>
+                            </td>
+                            <td className="px-6 py-2 whitespace-nowrap">
+                              <span className="text-gray-700 font-medium">{order.orderItems.length}</span>
+                            </td>
+                            {selectedTab === "shipped" && (
                               <>
-                                <button
-                                  className="bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-slate-800 text-sm font-medium transition-colors"
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    confirmAndUpdateStatus(order.id, "in_progress", "Você deseja iniciar a conferência deste pedido?");
-                                  }}
-                                >
-                                  Iniciar Separação
-                                </button>
-                                <button
-                                  className="bg-orange-500 font-semibold flex rounded-lg items-center px-1 py-1"
-                                  onClick={() => {
-                                    //setSelectedOrder(order)
-                                    confirmAndUpdateStatus(order.id,
-                                      "backout",
-                                      `Deseja estornar o pedido: ${order.orderNumber} 
-                                       Cliente: ${order.customer.name} 
-                                       Quantidade de itens: ${order.orderItems.length} ?`)
-                                  }}
-                                >
-                                  <Undo2Icon className="h-4 w-4" /> Estornar
-                                </button>
+                                <td className="px-6 py-2 whitespace-nowrap">
+                                  <span className="text-gray-700 font-medium">{order.totalVolumes || order.orderItems.length}</span>
+                                </td>
+                                <td className="px-6 py-2 whitespace-nowrap">
+                                  <span className="text-gray-700">
+                                    {order.totalWeight ? `${order.totalWeight} kg` : 'Não informado'}
+                                  </span>
+                                </td>
                               </>
                             )}
-
-                            {selectedTab === "in_progress" && (
-                              <button
-                                className="bg-emerald-700 text-white px-4 py-2 rounded-lg hover:bg-emerald-800 text-sm font-medium transition-colors"
-                                onClick={() => confirmAndUpdateStatus(order.id, "shipped", "Você deseja marcar este pedido como enviado?")}
-                              >
-                                Marcar como Enviado
-                              </button>
-                            )}
-
-                            {selectedTab === "shipped" && (
-                              <button
-                                className="bg-indigo-700 text-white px-4 py-2 rounded-lg hover:bg-indigo-800 text-sm font-medium transition-colors"
-                                onClick={() => confirmAndUpdateStatus(order.id, "delivered", "Você deseja marcar este pedido como entregue?")}
-                              >
-                                Marcar como Entregue
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                            <td className="px-6 py-2 whitespace-nowrap">
+                              <span className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold ${statusColors[order.orderStatus]}`}>
+                                {statusLabels[order.orderStatus]}
+                              </span>
+                            </td>
+                            <td className="px-6 py-2 whitespace-nowrap">
+                              <ActionMenu order={order} />
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
@@ -395,28 +507,7 @@ export default function OrderList() {
         </div>
       </div>
     </Dashboard>
-  )
-}
-
-function statusButtonClass(status: OrderStatus) {
-  switch (status) {
-    case "pending":
-      return "bg-amber-50 text-amber-800 border-amber-200"
-    case "approved":
-      return "bg-cyan-50 text-blue-600 border-blue-200"
-    case "in_progress":
-      return "bg-slate-50 text-slate-700 border-slate-300"
-    case "shipped":
-      return "bg-indigo-50 text-indigo-800 border-indigo-200"
-    case "delivered":
-      return "bg-emerald-50 text-emerald-800 border-emerald-200"
-    case "cancelled":
-      return "bg-red-50 text-red-800 border-red-200"
-    case "backout":
-      return "bg-orange-50 text-white border-orange-200"
-    default:
-      return "bg-gray-50 text-gray-700 border-gray-200"
-  }
+  );
 }
 
 function statusActiveTabClass(status: OrderStatus) {
@@ -429,12 +520,10 @@ function statusActiveTabClass(status: OrderStatus) {
       return "bg-slate-50 text-slate-700 border-b-2 border-slate-500"
     case "shipped":
       return "bg-indigo-50 text-indigo-800 border-b-2 border-indigo-500"
-    case "delivered":
-      return "bg-emerald-50 text-emerald-800 border-b-2 border-emerald-500"
     case "cancelled":
       return "bg-red-50 text-red-800 border-b-2 border-red-500"
     case "backout":
-      return "bg-orange-50 text-white border-orange-200" 
+      return "bg-orange-50 text-white border-orange-200"
     default:
       return "bg-gray-50 text-gray-700 border-b-2 border-gray-500"
   }

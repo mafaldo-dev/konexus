@@ -210,7 +210,7 @@ const SearchProducts = () => {
             </div>
 
             {/* Tabela */}
-            <div className="bg-white w-[1500px] rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 400px)", minHeight: "500px" }}>
+            <div className="bg-white w-[1300px] rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 400px)", minHeight: "500px" }}>
               <div className="overflow-x-auto h-full">
                 <div className="overflow-y-auto h-full">
                   <table className="w-full">

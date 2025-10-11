@@ -42,12 +42,10 @@ export const handleAllSuppliers = async (token?: string): Promise<Supplier[]> =>
   try {
     const response = await apiRequest("suppliers/all", "GET", undefined, token);
     
-    const supplier = response.suppliers
-    if(supplier.length === 0){
-      Array.isArray(supplier.suppliers)
-      return [supplier.suppliers]
-    } 
-    return response?.suppliers || [];
+    const supplier: Supplier[] = Array.isArray(response?.suppliers) ? response.suppliers : []  
+    
+    return supplier
+
   } catch (error: any) {
     console.error("Erro ao recuperar fornecedores:", error.message || error);
     Swal.fire("Erro", "Erro ao recuperar fornecedores", "error");

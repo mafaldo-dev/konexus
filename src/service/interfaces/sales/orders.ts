@@ -49,6 +49,8 @@ export interface OrderResponse {
   billing?: Address;
 
   orderItems: OrderItemResponse[];
+  totalVolumes?: number
+  totalWeight?: number
 }
 
 export interface Address {

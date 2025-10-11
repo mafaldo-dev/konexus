@@ -156,10 +156,11 @@ export const getOrderById = async (orderId: string | number, token?: string): Pr
 export const updateOrderStatus = async (
   orderId: number | string,
   orderStatus: string,
-  token?: string
+  token?: string,
+  extraData?: { totalVolumes?: number; totalWeight?: number }
 ): Promise<any> => {
   try {
-    const body = { orderStatus };
+    const body = { orderStatus, ...extraData }; // inclui totalVolumes e totalWeight se existirem
     const response = await apiRequest(`orders/${orderId}/status`, "PUT", body, token);
     return response;
   } catch (error) {
@@ -167,6 +168,7 @@ export const updateOrderStatus = async (
     return null;
   }
 };
+
 
 /**
  * Cancela um pedido e atualiza o estoque automaticamente

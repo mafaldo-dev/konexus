@@ -47,13 +47,16 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
 
   const { user } = useAuth();
   
+  // Verificação dupla: role E sector
+  const isSalesPerson = user?.role === "Vendedor" && user?.sector === "Comercial";
+  
   // MOVE useForm para ANTES do useEffect que usa setValue
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormValues>({
     defaultValues: {
       orderDate: format(new Date(), "yyyy-MM-dd"),
       orderStatus: "pending",
       currency: "BRL",
-      salesperson: "",
+      salesperson: isSalesPerson ? user.username : "", // Preenche automaticamente se for vendedor
     },
   });
 
@@ -211,6 +214,17 @@ useEffect(() => {
   };
 
   const onSubmit = async (data: FormValues) => {
+    // Verificação adicional no submit
+    if (!isSalesPerson) {
+      Swal.fire({
+        title: "Acesso Restrito",
+        text: "Apenas vendedores do setor comercial podem criar pedidos.",
+        icon: "error",
+        confirmButtonText: "Entendi"
+      });
+      return;
+    }
+
     if (products.length === 0) {
       Swal.fire("Info", "Adicione pelo menos um produto ao pedido!", "info");
       return;
@@ -408,13 +422,28 @@ useEffect(() => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Vendedor *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Vendedor *
+                  </label>
                   <input
-                    {...register("salesperson", { required: "Vendedor é obrigatório" })}
-                    className={`w-full border rounded-lg p-3 ${errors.salesperson ? "border-red-300" : "border-gray-300"}`}
-                    placeholder="Nome do vendedor"
+                    {...register("salesperson", { 
+                      required: "Vendedor é obrigatório",
+                      validate: (value) => {
+                        if (!isSalesPerson) {
+                          return "Apenas vendedores do setor comercial podem criar pedidos";
+                        }
+                        return true;
+                      }
+                    })}
+                    className={`w-full border rounded-lg p-3 ${
+                      errors.salesperson ? "border-red-300" : "border-gray-300"
+                    } ${isSalesPerson ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                    placeholder={isSalesPerson ? "" : "Digite o nome do vendedor"}
+                    readOnly={isSalesPerson}
                   />
-                  {errors.salesperson && <p className="text-red-600 text-sm mt-1">{errors.salesperson.message}</p>}
+                  {errors.salesperson && (
+                    <p className="text-red-600 text-sm mt-1">{errors.salesperson.message}</p>
+                  )}
                 </div>
 
                 <div>
@@ -427,8 +456,6 @@ useEffect(() => {
                 </div>
               </div>
             </div>
-
-            {/* ... resto do JSX permanece igual ... */}
             {/* Cliente */}
             <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-3 text-gray-900">
@@ -611,10 +638,20 @@ useEffect(() => {
               <button type="button" onClick={() => navigate("/sales/orders")} className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
                 Cancelar
               </button>
-              <button type="submit" disabled={isSubmitting} className="px-6 py-3 bg-slate-800 text-white rounded-lg hover:bg-slate-900 disabled:opacity-50">
-                {isSubmitting 
-                  ? (editMode ? "Atualizando Pedido..." : "Criando Pedido...") 
-                  : (editMode ? "Atualizar Pedido" : "Criar Pedido (Aguardar Aprovação)")
+              <button 
+                type="submit" 
+                disabled={isSubmitting || !isSalesPerson} 
+                className={`px-6 py-3 rounded-lg ${
+                  isSalesPerson 
+                    ? "bg-slate-800 text-white hover:bg-slate-900" 
+                    : "bg-gray-400 text-gray-200 cursor-not-allowed"
+                } disabled:opacity-50`}
+              >
+                {!isSalesPerson 
+                  ? "Acesso Restrito" 
+                  : isSubmitting 
+                    ? (editMode ? "Atualizando Pedido..." : "Criando Pedido...") 
+                    : (editMode ? "Atualizar Pedido" : "Criar Pedido (Aguardar Aprovação)")
                 }
               </button>
             </div>

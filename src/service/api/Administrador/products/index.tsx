@@ -93,21 +93,19 @@ export const handleProductWithCodeSilent = async (code: string | number, token?:
 export const handleAllProducts = async (token?: string): Promise<Products[]> => {
   try {
     const response = await apiRequest("products/all", "GET", undefined, token);
-    const product = response.products
+    
+    // Garante que sempre teremos um array
+    const product: Products[] = Array.isArray(response?.products) ? response.products : [];
 
-    if(product.length === 0){
-      Array.isArray(product.products)
-      return [product.products]
-    } 
-   
-    return response?.products || [];
-  
+    return product;
+
   } catch (error: any) {
     console.error("Erro ao recuperar lista de produtos:", error.message || error);
     Swal.fire("Erro", "Erro ao recuperar lista de produtos", "error");
     return [];
   }
 };
+
 
 /**
  * Exclui produto
