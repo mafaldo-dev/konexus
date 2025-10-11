@@ -11,6 +11,7 @@ export interface CompanyData {
 export const createCompanyAdmin = async (data: CompanyData) => {
   try {
     const response = await apiRequest("admin/create-company", "POST", data)
+    console.log(response)
 
     if (!response.ok) {
       throw new Error(response.Info || response.Error || "Erro ao criar empresa");

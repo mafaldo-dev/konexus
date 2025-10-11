@@ -47,7 +47,6 @@ export const handleLoginAdmin = async (username: string, password: string) => {
 export const handleLoginEmployee = async (username: string, password: string) => {
     try {
         const response = await apiRequest("employees/auth-employee", "POST", { username, password });
-        
         if (!response || !response.user) {
             Swal.fire("Alerta","Credenciais inválidas ou usuário não encontrado", "warning");
         }

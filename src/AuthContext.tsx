@@ -1,4 +1,3 @@
-// AuthContext.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiRequest } from "./service/api/api";
@@ -6,6 +5,15 @@ import { handleLoginEmployee, handleLoginAdmin } from "./service/api/login";
 import Swal from "sweetalert2";
 
 export type AccessType = "Full-access" | "Normal";
+
+export interface CompanyInfo {
+  id: number;
+  name: string;
+  logo: string | null;
+  icon: string | null;
+  logoUrl?: string | null;
+  iconUrl?: string | null;
+}
 
 export interface UserInfo {
   id: string;
@@ -15,6 +23,7 @@ export interface UserInfo {
   active: boolean;
   access?: AccessType | string;
   sector?: string;
+  companyId?: number;
 }
 
 export enum EmployeeDesignation {
@@ -25,6 +34,7 @@ export enum EmployeeDesignation {
 interface AuthContextType {
   isAuthenticate: boolean;
   user: UserInfo | null;
+  company: CompanyInfo | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -35,21 +45,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [company, setCompany] = useState<CompanyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const checkAuth = async () => {
       const storedUser = localStorage.getItem("userData");
+      const storedCompany = localStorage.getItem("companyData");
       const token = localStorage.getItem("token");
 
       if (storedUser && token) {
         try {
           const userData = JSON.parse(storedUser);
           setUser(userData);
+          
+          if (storedCompany) {
+            const companyData = JSON.parse(storedCompany);
+            setCompany(companyData);
+          }
         } catch (error) {
-          console.error("Erro ao ler userData:", error);
+          console.error("Erro ao ler dados do localStorage:", error);
           localStorage.removeItem("userData");
+          localStorage.removeItem("companyData");
           localStorage.removeItem("token");
         }
       }
@@ -71,6 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (username: string, password: string) => {
     try {
       let userData: UserInfo | null = null;
+      let companyData: CompanyInfo | null = null;
       let token: string | null = null;
 
       // 🔹 Tenta Admin primeiro - COM TRATAMENTO SILENCIOSO
@@ -85,16 +104,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             access: EmployeeDesignation.ADMIN,
             role: adminResponse.user.role || "Administrador",
             designation: adminResponse.user.sector || "Administrador",
-            sector: adminResponse.user.sector || "Administrador"
+            sector: adminResponse.user.sector || "Administrador",
+            companyId: adminResponse.user.companyId
           };
+          
+          // ✅ EXTRAIR DADOS DA EMPRESA DO RESPONSE
+          if (adminResponse.user.companyName) {
+            companyData = {
+              id: adminResponse.user.companyId,
+              name: adminResponse.user.companyName,
+              logo: adminResponse.user.companyLogo,
+              icon: adminResponse.user.companyIcon,
+              logoUrl: adminResponse.user.companyLogo 
+                ? `data:image/png;base64,${adminResponse.user.companyLogo}` 
+                : null,
+              iconUrl: adminResponse.user.companyIcon 
+                ? `data:image/x-icon;base64,${adminResponse.user.companyIcon}` 
+                : null
+            };
+          }
+          
           token = adminResponse.token;
         }
       } catch (adminError: any) {
-        // ✅ SILENCIA o erro - apenas log para debug se necessário
         if (adminError.message?.includes("404") || adminError.message?.includes("não encontrado")) {
-  
+          // Silencia erro
         } else {
-          
+          // Silencia erro
         }
       }
 
@@ -111,17 +147,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               access: EmployeeDesignation.EMPLOYEE,
               role: employeeResponse.user.role,
               designation: employeeResponse.user.sector || "Geral",
-              sector: employeeResponse.user.sector || "Geral"
+              sector: employeeResponse.user.sector || "Geral",
+              companyId: employeeResponse.user.companyId
             };
-            token = employeeResponse.token;
             
+            // ✅ EXTRAIR DADOS DA EMPRESA DO RESPONSE
+            if (employeeResponse.user.companyName) {
+              companyData = {
+                id: employeeResponse.user.companyId,
+                name: employeeResponse.user.companyName,
+                logo: employeeResponse.user.companyLogo,
+                icon: employeeResponse.user.companyIcon,
+                logoUrl: employeeResponse.user.companyLogo 
+                  ? `data:image/png;base64,${employeeResponse.user.companyLogo}` 
+                  : null,
+                iconUrl: employeeResponse.user.companyIcon 
+                  ? `data:image/x-icon;base64,${employeeResponse.user.companyIcon}` 
+                  : null
+              };
+            }
+            
+            token = employeeResponse.token;
           }
         } catch (employeeError: any) {
-          // ✅ SILENCIA o erro - apenas log para debug
           if (employeeError.message?.includes("404") || employeeError.message?.includes("não encontrado")) {
-            
+            // Silencia erro
           } else {
-            
+            // Silencia erro
           }
         }
       }
@@ -134,7 +186,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // 🔹 Salva no estado e localStorage
       setUser(userData);
+      setCompany(companyData);
       localStorage.setItem("userData", JSON.stringify(userData));
+      localStorage.setItem("companyData", JSON.stringify(companyData));
       localStorage.setItem("token", token);
 
       // 🔹 Navegação baseada no SECTOR
@@ -149,7 +203,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
 
       const route = sectorRouteMap[userSector || ""] || "/";
-     
       navigate(route);
 
     } catch (error: any) {
@@ -157,6 +210,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Limpa dados em caso de erro inesperado
       localStorage.removeItem("userData");
+      localStorage.removeItem("companyData");
       localStorage.removeItem("token");
 
       await Swal.fire("Erro", "Ocorreu um erro inesperado ao realizar login", "error");
@@ -177,7 +231,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setUser(null);
+    setCompany(null);
     localStorage.removeItem("userData");
+    localStorage.removeItem("companyData");
     localStorage.removeItem("token");
     navigate("/");
   };
@@ -187,6 +243,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         isAuthenticate: !!user,
         user,
+        company,
         loading,
         login,
         logout,
