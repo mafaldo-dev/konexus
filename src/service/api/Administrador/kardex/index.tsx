@@ -55,13 +55,18 @@ export const getKardexByOrder = async (orderId: string): Promise<any> => {
 
 // ✅ CORRIGIDA: Sua função original - agora usando a nova rota
 export const handlekardexMoviment = async (productId?: string): Promise<any> => { 
+    const tkn = localStorage.getItem("token")
     try {
         if (!productId) {
             throw new Error("ID do produto é obrigatório");
         }
+        if(!tkn) {
+            throw new Error("Token não disponibilizado!")
+        }
         
-        const response = await apiRequest(`kardex/products/${productId}`, "GET");
-        return response;
+        const response = await apiRequest(`kardex/products/${productId}`, "GET", undefined, tkn as string);   
+        return response?.movements || [];
+    
     } catch (err) {
         console.error("Erro ao recuperar movimentações do produto:", err);
         throw err;

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { handleAllProducts } from '../../../service/api/Administrador/products';
 import { Products } from '../../../service/interfaces';
 import Dashboard from '../../../components/dashboard/Dashboard';
 import logo from '../../../assets/image/konexuslogo.png'
+import { Download, PrinterIcon} from 'lucide-react';
 
 import {
     DndContext,
@@ -19,30 +20,36 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-const handleGeneratePDF = () => alert('Função gerar PDF ainda não implementada');
-const handleDownloadFile = () => alert('Função de download ainda não implementada');
-
 const ALL_FILTERS = [
-    { key: 'name', label: 'Nome' },
     { key: 'code', label: 'Código' },
+    { key: 'name', label: 'Nome' },
+    { key: 'description', label: 'Descrição' },
     { key: 'brand', label: 'Marca' },
+    { key: 'category', label: 'Categoria' },
     { key: 'location', label: 'Localização' },
-    { key: 'quantity', label: 'Quantidade' },
-    { key: 'supplier', label: 'Fornecedor' },
-    { key: 'entryDate', label: 'Data de Entrada' },
+    { key: 'stock', label: 'Estoque Atual' },
+    { key: 'minimum_stock', label: 'Estoque Mínimo' },
 ];
 
+
 const Inventory: React.FC = () => {
-    const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+    const [selectedFilters, setSelectedFilters] = useState<string[]>(['code', 'name', 'location', 'stock']);
     const [searchTerm, setSearchTerm] = useState('');
     const [allProducts, setAllProducts] = useState<Products[]>([]);
     const [filteredProducts, setFilteredProducts] = useState<Products[]>([]);
+    const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
     const sensors = useSensors(useSensor(PointerSensor));
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const printRef = useRef<HTMLDivElement>(null);
 
     const allProductsInventory = async () => {
-        const res = await handleAllProducts();
-        setAllProducts(res);
+        try {
+            const res = await handleAllProducts();
+            setAllProducts(res);
+            setFilteredProducts(res);
+        } catch (error) {
+            console.error('❌ Erro ao carregar produtos:', error);
+        }
     };
 
     useEffect(() => {
@@ -56,6 +63,11 @@ const Inventory: React.FC = () => {
     };
 
     useEffect(() => {
+        if (selectedFilters.length === 0 || searchTerm.trim() === '') {
+            setFilteredProducts(allProducts);
+            return;
+        }
+
         const term = searchTerm.toLowerCase();
         const filtered = allProducts.filter((product) =>
             selectedFilters.some((key) => {
@@ -75,6 +87,94 @@ const Inventory: React.FC = () => {
         }
     };
 
+    const toggleCheck = (productId: number) => {
+        setCheckedItems((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(productId)) {
+                newSet.delete(productId);
+            } else {
+                newSet.add(productId);
+            }
+            return newSet;
+        });
+    };
+
+    const formatValue = (key: string, value: any) => {
+        if (key === 'stock' || key === 'minimum_stock') {
+            return `${value} un`;
+        }
+        return value?.toString() || '-';
+    };
+
+    const handlePrint = async () => {
+    const element = printRef.current;
+    if (!element) return;
+
+    try {
+        const html2pdf = (await import('html2pdf.js')).default;
+
+        const opt = {
+            margin: 10,
+            filename: 'temp.pdf',
+            image: { type: 'jpeg' as any, quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as any }
+        };
+
+        const pdf = html2pdf().set(opt).from(element);
+        // em vez de salvar, gerar blob
+        const blob = await pdf.outputPdf('blob');
+
+        const url = URL.createObjectURL(blob);
+        const printWindow = window.open(url);
+        if (!printWindow) return;
+        printWindow.focus();
+    } catch (error) {
+        console.error('Erro ao imprimir PDF:', error);
+    }
+};
+
+    const handleExport = async (mode: 'print' | 'pdf') => {
+        const element = printRef.current;
+        if (!element) return;
+
+        if (mode === 'print') {
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) return;
+
+            printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Inventário</title>
+                </head>
+                <body>${element.innerHTML}</body>
+            </html>
+        `);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        } else if (mode === 'pdf') {
+            try {
+                const html2pdf = (await import('html2pdf.js')).default;
+
+                const opt = {
+                    margin: 10,
+                    filename: `inventario_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`,
+                    image: { type: 'jpeg' as any, quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as any }
+                };
+
+                await html2pdf().set(opt).from(element).save();
+            } catch (error) {
+                console.error('Erro ao gerar PDF:', error);
+                alert('Erro ao gerar PDF. Tente usar a opção de Imprimir.');
+            }
+        }
+    };
+
+
     return (
         <Dashboard>
             <div className="p-6 bg-white min-h-screen">
@@ -85,10 +185,10 @@ const Inventory: React.FC = () => {
 
                 <div className="mb-4 flex flex-wrap items-center gap-3 justify-center text-sm">
                     {ALL_FILTERS.map(({ key, label }) => (
-                        <label key={key} className="flex items-center space-x-1">
+                        <label key={key} className="flex items-center space-x-1 cursor-pointer">
                             <input
                                 type="checkbox"
-                                className="form-checkbox h-4 w-4 text-gray-600"
+                                className="form-checkbox h-4 w-4 text-gray-600 cursor-pointer"
                                 checked={selectedFilters.includes(key)}
                                 onChange={() => toggleFilter(key)}
                             />
@@ -100,7 +200,7 @@ const Inventory: React.FC = () => {
                 <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <input
                         type="text"
-                        placeholder="Buscar..."
+                        placeholder="Buscar nos campos selecionados..."
                         className="border border-gray-300 rounded px-4 py-2 w-full sm:max-w-md text-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -108,24 +208,10 @@ const Inventory: React.FC = () => {
 
                     <div className="flex gap-2">
                         <button
-                            className="bg-gray-700 text-white px-4 py-2 rounded text-sm hover:bg-gray-800 transition"
+                            className="bg-slate-800 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition flex items-center gap-2"
                             onClick={() => setIsPreviewOpen(true)}
                         >
-                            🔍 Preview
-                        </button>
-
-                        <button
-                            className="bg-gray-500 text-white px-4 py-2 rounded text-sm hover:bg-gray-600 transition"
-                            onClick={handleGeneratePDF}
-                        >
-                            🧾 Gerar PDF
-                        </button>
-
-                        <button
-                            className="bg-gray-400 text-white px-4 py-2 rounded text-sm hover:bg-gray-500 transition"
-                            onClick={handleDownloadFile}
-                        >
-                            ⬇️ Baixar Arquivo
+                            <span>📄</span> Preview
                         </button>
                     </div>
                 </div>
@@ -140,10 +226,10 @@ const Inventory: React.FC = () => {
                                     </th>
                                 ) : (
                                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                        <SortableContext  items={selectedFilters} strategy={horizontalListSortingStrategy}>
+                                        <SortableContext items={selectedFilters} strategy={horizontalListSortingStrategy}>
                                             {selectedFilters.map((key) => {
                                                 const label = ALL_FILTERS.find((f) => f.key === key)?.label ?? key;
-                                                return <SortableHeader  key={key} id={key} label={label} />;
+                                                return <SortableHeader key={key} id={key} label={label} />;
                                             })}
                                             <th className="px-6 py-3 text-center text-gray-700 font-semibold">Conferido</th>
                                         </SortableContext>
@@ -151,23 +237,28 @@ const Inventory: React.FC = () => {
                                 )}
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-100 min-h-[100px]">
+                        <tbody className="bg-white divide-y divide-gray-100">
                             {filteredProducts.length === 0 ? (
                                 <tr>
                                     <td colSpan={selectedFilters.length + 1} className="px-6 py-4 text-center text-gray-500 italic">
-                                        Nenhum dado disponível
+                                        {allProducts.length === 0 ? 'Carregando produtos...' : 'Nenhum produto encontrado'}
                                     </td>
                                 </tr>
                             ) : (
                                 filteredProducts.map((product) => (
-                                    <tr key={product.id}>
+                                    <tr key={product.id} className="hover:bg-gray-50">
                                         {selectedFilters.map((key) => (
                                             <td key={key} className="px-6 py-4 whitespace-nowrap text-gray-800">
-                                                {product[key as keyof Products]?.toString() || '-'}
+                                                {formatValue(key, product[key as keyof Products])}
                                             </td>
                                         ))}
                                         <td className="px-6 py-4 text-center">
-                                            <input type="checkbox" className="h-4 w-4 text-gray-600" />
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4 text-gray-600 cursor-pointer"
+                                                checked={checkedItems.has(product.id)}
+                                                onChange={() => toggleCheck(product.id)}
+                                            />
                                         </td>
                                     </tr>
                                 ))
@@ -178,14 +269,15 @@ const Inventory: React.FC = () => {
                             <tr>
                                 <td colSpan={selectedFilters.length + 1} className="px-6 py-4 text-gray-700">
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                        <span>📅 Data da impressão: {new Date().toLocaleDateString()}</span>
+                                        <span>📅 Data: {new Date().toLocaleDateString('pt-BR')}</span>
                                         <div className="flex flex-col items-start">
                                             <span className="text-xs text-gray-600 mb-1">Conferido por:</span>
                                             <div className="w-48 border-t border-gray-400" />
                                         </div>
                                     </div>
-                                    <div className="mt-4 text-right text-xs text-gray-500">
-                                        Total: {filteredProducts.length} itens
+                                    <div className="mt-4 flex justify-between text-xs text-gray-600">
+                                        <span>Total: {filteredProducts.length} itens</span>
+                                        <span>Conferidos: {checkedItems.size} / {filteredProducts.length}</span>
                                     </div>
                                 </td>
                             </tr>
@@ -193,84 +285,150 @@ const Inventory: React.FC = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Modal de Preview Melhorado */}
             {isPreviewOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div
-                        className="bg-white relative shadow-xl overflow-auto flex flex-col"
-                        style={{
-                            width: '793px',
-                            height: '964px',
-                            fontSize: '11px',
-                        }}
-                    >
-                        <button
-                            onClick={() => setIsPreviewOpen(false)}
-                            className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-sm"
-                        >
-                            ✖
-                        </button>
+                <div className="fixed inset-0 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white relative shadow-2xl rounded-lg overflow-hidden flex flex-col" style={{ width: '900px', maxWidth: '95%', height: '90vh' }}>
 
-                        <div className="text-center mb-4 mt-4 flex-shrink-0">
-                        <div className='flex justify-left ml-20'>
-                            <img className='w-35 h-25 rounded -mb-20' src={logo} alt="logo Konexus" />
-                        </div>
-                            <h1 className="text-xl font-bold text-gray-900">Konéxus Technology</h1>
-                            <h2 className="text-sm text-gray-700 mt-1">Preview de Inventário</h2>
-                            <p className="text-xs text-gray-500 mt-1">Data: {new Date().toLocaleDateString()}</p>
+                        {/* Header do Modal */}
+                        <div className="bg-gradient-to-r from-slate-800 to-slate-700 text-white px-6 py-4 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold">Preview de Impressão</h3>
+                                <p className="text-sm text-slate-300">Visualize antes de imprimir ou baixar</p>
+                            </div>
+                            <button
+                                onClick={() => setIsPreviewOpen(false)}
+                                className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full w-10 h-10 flex items-center justify-center transition"
+                            >
+                                <span className="text-xl">✕</span>
+                            </button>
                         </div>
 
-                        <div style={{ flex: '1 1 auto', overflowY: 'auto', paddingBottom: '80px' }}>
-                            <table className="min-w-full border border-gray-300 text-xs">
-                                <thead className="bg-gray-200">
-                                    <tr>
-                                        {selectedFilters.map((key) => {
-                                            const label = ALL_FILTERS.find((f) => f.key === key)?.label ?? key;
-                                            return (
-                                                <th
-                                                    key={key}
-                                                    className="px-2 py-1 text-left text-gray-700 font-semibold whitespace-nowrap"
-                                                >
-                                                    {label}
-                                                </th>
-                                            );
-                                        })}
-                                        <th className="px-2 py-1 text-center text-gray-700 font-semibold">Conferido</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {filteredProducts.map((product) => (
-                                        <tr key={product.id}>
-                                            {selectedFilters.map((key) => (
-                                                <td
-                                                    key={key}
-                                                    className="px-2 py-1 text-gray-800 break-words max-w-[120px]"
-                                                >
-                                                    {product[key as keyof Products]?.toString() || '-'}
-                                                </td>
-                                            ))}
-                                            <td className="px-2 py-1 text-center">
-                                                <input type="checkbox" className="h-3.5 w-3.5" />
-                                            </td>
+                        {/* Barra de Ações */}
+                        <div className="bg-slate-50 border-b border-slate-200 px-6 py-3 flex gap-3 justify-end">
+                            <button
+                                onClick={handlePrint}
+                                className="bg-slate-200 hover:bg-slate-700 text-white px-2 py-2 h-7 rounded-lg text-sm font-sm flex items-center transition"
+                            >
+                                <span><PrinterIcon className='h-3 w-3 text-black'/></span> 
+                            </button>
+                            <button
+                                onClick={() => handleExport('pdf')}
+                                className="bg-slate-200 hover:bg-blue-700 text-white px-2 py-2 h-7 rounded-lg text-sm font-sm flex items-center transition"
+                            >
+                                <span><Download className='h-3 w-3 text-black' /></span> 
+                            </button>
+                        </div>
+
+                        {/* Conteúdo para Impressão */}
+                        <div className="flex-1 overflow-auto p-6 bg-slate-50">
+                            <div ref={printRef} className="bg-white shadow-lg rounded-lg p-8 max-w-4xl mx-auto">
+
+                                {/* Cabeçalho do Documento */}
+                                <div className="text-center mb-8 border-b-2 border-slate-300 pb-6">
+                                    <div className='flex justify-center mb-4'>
+                                        <img className='w-40 h-auto' src={logo} alt="logo Konexus" />
+                                    </div>
+                                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Konéxus Technology</h1>
+                                    <h2 className="text-xl text-slate-700 font-semibold mb-2">Ficha de Inventário</h2>
+                                    <div className="flex justify-center gap-8 text-sm text-slate-600 mt-4">
+                                        <div>
+                                            <span className="font-semibold">Data de Emissão:</span> {new Date().toLocaleDateString('pt-BR')}
+                                        </div>
+                                        <div>
+                                            <span className="font-semibold">Hora:</span> {new Date().toLocaleTimeString('pt-BR')}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Tabela de Produtos */}
+                                <table className="min-w-full border-collapse border border-slate-300 text-sm mb-6">
+                                    <thead>
+                                        <tr className="bg-slate-200">
+                                            {selectedFilters.map((key) => {
+                                                const label = ALL_FILTERS.find((f) => f.key === key)?.label ?? key;
+                                                return (
+                                                    <th key={key} className="border border-slate-300 px-3 py-2 text-left text-slate-800 font-bold">
+                                                        {label}
+                                                    </th>
+                                                );
+                                            })}
+                                            <th className="border border-slate-300 px-3 py-2 text-center text-slate-800 font-bold w-24">
+                                                Conferido
+                                            </th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {filteredProducts.map((product, index) => (
+                                            <tr key={product.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                                {selectedFilters.map((key) => (
+                                                    <td key={key} className="border border-slate-300 px-3 py-2 text-slate-700">
+                                                        {formatValue(key, product[key as keyof Products])}
+                                                    </td>
+                                                ))}
+                                                <td className="border border-slate-300 px-3 py-2 text-center">
+                                                    <div className="w-5 h-5 border-2 border-slate-400 rounded mx-auto" />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
 
-                        {/* Rodapé fixo */}
-                        <div
-                            className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-300 px-4 py-3 flex justify-between items-center text-xs text-gray-700"
-                            style={{ height: '70px' }}
-                        >
-                            <span>📅 Data da impressão: {new Date().toLocaleDateString()}</span>
-                            <div className="flex flex-col items-start">
-                                <span className="text-[10px] mb-1">Conferido por:</span>
-                                <div className="w-40 border-t border-gray-400" />
+                                {/* Rodapé do Documento */}
+                                <div className="border-t-2 border-slate-300 pt-6 space-y-4">
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div className="bg-slate-50 p-3 rounded">
+                                            <span className="font-semibold text-slate-700">Total de Itens:</span>
+                                            <span className="ml-2 text-lg font-bold text-slate-900">{filteredProducts.length}</span>
+                                        </div>
+                                        <div className="bg-slate-50 p-3 rounded">
+                                            <span className="font-semibold text-slate-700">Itens Conferidos:</span>
+                                            <span className="ml-2 text-lg font-bold text-slate-900">{checkedItems.size} / {filteredProducts.length}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-6 mt-8">
+                                        <div>
+                                            <p className="text-xs text-slate-600 mb-2 font-semibold">RESPONSÁVEL PELA CONTAGEM:</p>
+                                            <div className="border-b-2 border-slate-400 pb-1 mb-1"></div>
+                                            <p className="text-xs text-slate-500">Nome / Assinatura</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-slate-600 mb-2 font-semibold">SUPERVISOR / GERENTE:</p>
+                                            <div className="border-b-2 border-slate-400 pb-1 mb-1"></div>
+                                            <p className="text-xs text-slate-500">Nome / Assinatura</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-center text-xs text-slate-500 mt-6 pt-4 border-t border-slate-200">
+                                        Documento gerado automaticamente pelo sistema Konéxus Technology
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
+
+            <style>{`
+                @media print {
+                    body * {
+                        visibility: hidden;
+                    }
+                    #print-content, #print-content * {
+                        visibility: visible;
+                    }
+                    #print-content {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 210mm;
+                        padding: 10mm;
+                        background: white;
+                    }
+                }
+            `}</style>
         </Dashboard>
     );
 };

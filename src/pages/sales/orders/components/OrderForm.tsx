@@ -96,7 +96,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
           price: item.unitPrice,
           location: item.location,
           stock: 0,
-          total_price: item.quantity * item.unitPrice // ✅ ADICIONADO
+          total_price: item.quantity * item.unitPrice
         }));
         setProducts(formattedProducts);
       }
@@ -253,7 +253,6 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
       return;
     }
 
-    // ✅ CORRIGIDO: Verificação de estoque
     const stockIssues = products.filter(product => {
       const availableStock = product.stock || 0;
       return product.quantity > availableStock;
@@ -535,11 +534,11 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
                     />
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-700">Preço Unit.</span>
-                      <span className="font-semibold text-green-700">R$ {Number(price).toFixed(2)}</span>
+                      <span className="font-semibold text-green-700">R$ {price}</span>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-700">Total</span>
-                      <span className="font-semibold text-blue-700">R$ {(count * Number(price)).toFixed(2)}</span>
+                      <span className="font-semibold text-blue-700">R$ {count * price}</span>
                     </div>
                     <button
                       type="button"
@@ -593,8 +592,8 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
                                 {item.stock || 0}
                               </span>
                             </td>
-                            <td className="p-4 text-right">R$ {item.price.toFixed(2)}</td>
-                            <td className="p-4 text-right font-semibold">R$ {(item.quantity * item.price).toFixed(2)}</td>
+                            <td className="p-4 text-right">R$ {item.price}</td>
+                            <td className="p-4 text-right font-semibold">R$ {(item.quantity * item.price)}</td>
                             <td className="p-4 text-center">
                               <button 
                                 type="button" 
@@ -612,7 +611,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
                   <div className="p-6 bg-gray-50 border-t border-gray-200 text-right">
                     <p className="text-sm text-gray-600 mb-1">Total do Pedido</p>
                     <p className="text-3xl font-bold text-slate-800">
-                      R$ {products.reduce((acc, p) => acc + p.quantity * p.price, 0).toFixed(2)}
+                      R$ {products.reduce((acc, p) => acc + p.quantity * p.price, 0)}
                     </p>
                   </div>
                 </>
