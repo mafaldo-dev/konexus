@@ -15,5 +15,6 @@ export interface Products {
   companyId: number;
   created_at?: string | Date
   updated_at?: string | Date;
+  quantity?: number | any
 }
 

@@ -212,7 +212,7 @@ const SearchSuppliers = () => {
                                                         <td className="px-4 py-2 text-xs text-gray-700 max-w-xs truncate">{supplier.trading_name}</td>
                                                         <td className="px-4 py-2 text-sm text-gray-700">{supplier.phone}</td>
                                                         <td className="px-4 py-2 text-sm text-gray-700">{supplier.email}</td>
-                                                        <td className="px-4 py-2 text-xs bg-gray-100 text-gray-700 rounded font-medium">{supplier.national_register_code}</td>
+                                                        <td className="px-4 py-2 text-xs bg-gray-100 text-gray-700 rounded font-medium">{supplier.cnpj}</td>
                                                         <td className="px-4 py-2">
                                                             <div className="flex items-center gap-1 text-gray-600">
                                                                 <CircleCheck className={`w-3 h-3 ${supplier.active? "text-white bg-green-500" : "bg-red-500 text-white"} rounded-xl text-white `}/>

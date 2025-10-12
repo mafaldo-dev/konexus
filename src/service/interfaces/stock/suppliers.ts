@@ -3,10 +3,10 @@ export interface Supplier {
   code: string
   name: string
   trading_name?: string
-  national_register_code: string
+  cnpj: string
   email: string
   phone: string
-  createdAt: string  | Date
+  createdAt: string | Date
   updatedAt?: string | Date
-  active: boolean 
+  active: boolean
 }

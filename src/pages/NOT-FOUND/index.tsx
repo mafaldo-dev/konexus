@@ -18,7 +18,7 @@ export default function NotFound() {
         } else if(user?.role === "Estoquista") {
             navigate("/stock/movements")
         } else if (user?.role === "Buyer") {
-            navigate("shoppíng/purchase-requisition")
+            navigate("/purchase/order")
         } else {
             navigate("/dashboard")
         }

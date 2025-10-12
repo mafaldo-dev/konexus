@@ -1,18 +1,20 @@
 
 export interface EnterpriseData {
-  company_name: string,
-  phone: string
-  email: string
-  address: {
-    state: string,
-    city: string
-    street: string
-    num: number
+  id?: string
+  name: string,
+  phone?: string
+  email?: string
+  code?: string
+  address?: {
+    state?: string,
+    city?: string
+    street?: string
+    num?: number
   }
   informations: {
-    phantasy_name: string
-    cnpj: string
+    phantasy_name?: string
+    cnpj?: string
   }
-  createdAt: Date | any
-  status: string
+  createdAt?: Date | any
+  status?: string
 }

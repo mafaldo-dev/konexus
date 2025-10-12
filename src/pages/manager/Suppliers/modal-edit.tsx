@@ -66,7 +66,7 @@ const UpdatedSupplierForm = ({ supplier, onClose }: Props) => {
               <label className="block text-sm font-medium text-gray-700">CNPJ</label>
               <input
                 type="text"
-                {...register("national_register_code")}
+                {...register("cnpj")}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm"
               />
             </div>

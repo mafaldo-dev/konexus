@@ -11,16 +11,15 @@ import { Order, OrderResponse } from "../../../../service/interfaces/sales/order
 import { Customer, ProductsProps } from "../../../../service/interfaces";
 import { useProductManagement } from "../../../../hooks/_manager/useProductManagement";
 import { handleAllCustomers } from "../../../../service/api/Administrador/customer/clients";
-
 import { useAuth } from "../../../../AuthContext";
 
 type FormValues = {
   orderDate: string;
   orderStatus: string;
   customerId: string | number;
-  name: string
-  phone: string
-  code: string
+  name: string;
+  phone: string;
+  code: string;
   currency: string;
   salesperson: string;
   notes?: string;
@@ -43,20 +42,19 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   const [orderNumber, setOrderNumber] = useState<string>("Carregando...");
   const [loadingOrderNumber, setLoadingOrderNumber] = useState(true);
   const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const hasPrefilledData = useRef(false);
+  
   const navigate = useNavigate();
-
   const { user } = useAuth();
   
-  // Verificação dupla: role E sector
   const isSalesPerson = user?.role === "Vendedor" && user?.sector === "Comercial";
   
-  // MOVE useForm para ANTES do useEffect que usa setValue
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormValues>({
     defaultValues: {
       orderDate: format(new Date(), "yyyy-MM-dd"),
       orderStatus: "pending",
       currency: "BRL",
-      salesperson: isSalesPerson ? user.username : "", // Preenche automaticamente se for vendedor
+      salesperson: isSalesPerson ? user.username : "",
     },
   });
 
@@ -72,71 +70,69 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
     processInventoryUpdates
   } = useProductManagement(setProducts);
 
-
-const hasPrefilledData = useRef(false);
-
-// useEffect corrigido
-useEffect(() => {
-  if (editMode && initialData && !hasPrefilledData.current) {
-    console.log("📝 [FORM] Preenchendo dados para edição:", initialData);
-    
-    hasPrefilledData.current = true;
-    
-    // Preenche os campos do formulário
-    setValue("orderDate", initialData.orderDate.split('T')[0]);
-    setValue("customerId", initialData.customer.id.toString());
-    setValue("currency", initialData.currency);
-    setValue("salesperson", initialData.salesperson || "");
-    setValue("notes", initialData.notes || "");
-    setValue("shippingAddressId", initialData.shipping?.id?.toString() || "");
-    setValue("billingAddressId", initialData.billing?.id?.toString() || "");
-    
-    // Preenche os produtos
-    if (initialData.orderItems && initialData.orderItems.length > 0) {
-      const formattedProducts: ProductsProps[] = initialData.orderItems.map(item => ({
-        id: item.productId.toString(),
-        product_name: item.productName,
-        code: item.productCode,
-        quantity: item.quantity,
-        price: item.unitPrice,
-        location: item.location,
-        stock: 0 
-      }));
-      setProducts(formattedProducts);
+  // ==================== EFFECTS ==================== //
+  
+  // Carregar dados para edição
+  useEffect(() => {
+    if (editMode && initialData && !hasPrefilledData.current) {
+      console.log("📝 [FORM] Preenchendo dados para edição:", initialData);
+      hasPrefilledData.current = true;
+      
+      setValue("orderDate", initialData.orderDate.split('T')[0]);
+      setValue("customerId", initialData.customer.id.toString());
+      setValue("currency", initialData.currency);
+      setValue("salesperson", initialData.salesperson || "");
+      setValue("notes", initialData.notes || "");
+      setValue("shippingAddressId", initialData.shipping?.id?.toString() || "");
+      setValue("billingAddressId", initialData.billing?.id?.toString() || "");
+      
+      // Preencher produtos ✅ CORRIGIDO: adicionado total_price
+      if (initialData.orderItems?.length > 0) {
+        const formattedProducts: ProductsProps[] = initialData.orderItems.map(item => ({
+          id: item.productId.toString(),
+          product_name: item.productName,
+          code: item.productCode,
+          quantity: item.quantity,
+          price: item.unitPrice,
+          location: item.location,
+          stock: 0,
+          total_price: item.quantity * item.unitPrice // ✅ ADICIONADO
+        }));
+        setProducts(formattedProducts);
+      }
+      
+      // Preencher cliente
+      const customerData: Customer = {
+        id: initialData.customer.id,
+        name: initialData.customer.name,
+        phone: initialData.customer.phone || "",
+        email: initialData.customer.email || "",
+        code: initialData.customer.code,
+        address: {
+          id: initialData.shipping?.id || initialData.billing?.id || "",
+          city: initialData.shipping?.city || initialData.billing?.city || "",
+          number: initialData.shipping?.number || initialData.billing?.number || 0,
+          street: initialData.shipping?.street || initialData.billing?.street || "",
+          zip: initialData.shipping?.zip || initialData.billing?.zip || "",
+          type: 'shipping'
+        },
+        createdAt: new Date().toISOString()
+      };
+      setSelectedCustomer(customerData);
+      
+      if (initialData.shipping?.id && initialData.billing?.id) {
+        setAddressConfirmed(true);
+      }
+      
+      setOrderNumber(initialData.orderNumber);
     }
-    
-    // Preenche o cliente selecionado
-    const customerData: Customer = {
-      id: initialData.customer.id,
-      name: initialData.customer.name,
-      phone: initialData.customer.phone || "",
-      email: initialData.customer.email || "",
-      code: initialData.customer.code,
-      address: {
-        id: initialData.shipping?.id || initialData.billing?.id || "",
-        city: initialData.shipping?.city || initialData.billing?.city || "",
-        number: initialData.shipping?.number || initialData.billing?.number || 0,
-        street: initialData.shipping?.street || initialData.billing?.street || "",
-        zip: initialData.shipping?.zip || initialData.billing?.zip || "",
-        type: 'shipping'
-      },
-      createdAt: new Date().toISOString()
-    };
-    setSelectedCustomer(customerData);
-    
-    // Define os endereços como confirmados se existirem
-    if (initialData.shipping?.id && initialData.billing?.id) {
-      setAddressConfirmed(true);
-    }
-    
-    // Usa o orderNumber existente
-    setOrderNumber(initialData.orderNumber);
-  }
-}, [editMode, initialData, setValue]); 
+  }, [editMode, initialData, setValue]);
 
-
-useEffect(() => {
+  // Gerar número do pedido
+  useEffect(() => {
     const loadOrderNumber = async () => {
+      if (editMode) return;
+      
       try {
         setLoadingOrderNumber(true);
         const newOrderNumber = await getNextOrderNumber();
@@ -147,24 +143,10 @@ useEffect(() => {
         setLoadingOrderNumber(false);
       }
     };
-    
-    if (!editMode) {
-      loadOrderNumber();
-    }
+    loadOrderNumber();
   }, [editMode]);
 
-  const refreshOrderNumber = async () => {
-    try {
-      setLoadingOrderNumber(true);
-      const newOrderNumber = await getNextOrderNumber();
-      setOrderNumber(newOrderNumber);
-    } catch (error) {
-      console.error("Erro ao recarregar número do pedido:", error);
-    } finally {
-      setLoadingOrderNumber(false);
-    }
-  };
-
+  // Carregar clientes
   useEffect(() => {
     const loadCustomers = async () => {
       try {
@@ -179,7 +161,21 @@ useEffect(() => {
     loadCustomers();
   }, []);
 
-  const handleCustomerChange = async (customerId: string) => {
+  // ==================== HANDLERS ==================== //
+
+  const refreshOrderNumber = async () => {
+    try {
+      setLoadingOrderNumber(true);
+      const newOrderNumber = await getNextOrderNumber();
+      setOrderNumber(newOrderNumber);
+    } catch (error) {
+      console.error("Erro ao recarregar número do pedido:", error);
+    } finally {
+      setLoadingOrderNumber(false);
+    }
+  };
+
+  const handleCustomerChange = (customerId: string) => {
     const customerIdNum = parseInt(customerId);
     setValue("customerId", customerIdNum);
     setAddressConfirmed(false);
@@ -195,9 +191,8 @@ useEffect(() => {
   };
 
   const useCustomerAddress = () => {
-    if (selectedCustomer && selectedCustomer.address?.id) {
+    if (selectedCustomer?.address?.id) {
       const addressId = selectedCustomer.address.id.toString();
-
       setValue("shippingAddressId", addressId);
       setValue("billingAddressId", addressId);
       setAddressConfirmed(true);
@@ -209,12 +204,30 @@ useEffect(() => {
 
   const formatAddress = (customer: Customer) => {
     if (!customer.address) return "Endereço não cadastrado";
-    const addr = customer.address;
-    return `${addr.street}, ${addr.number} - ${addr.city} - ${addr.zip}`;
+    const { street, number, city, zip } = customer.address;
+    return `${street}, ${number} - ${city} - ${zip}`;
+  };
+
+  const handleAddProductWithStockCheck = () => {
+    if (!addedProduct) return;
+
+    const existingProduct = products.find(p => p.id === addedProduct.id);
+    const totalQuantity = existingProduct ? existingProduct.quantity + count : count;
+
+    if (totalQuantity > addedProduct.stock) {
+      Swal.fire({
+        title: "Estoque Insuficiente!",
+        html: `Quantidade solicitada: <strong>${totalQuantity}</strong><br>Estoque disponível: <strong>${addedProduct.stock}</strong>`,
+        icon: "warning",
+        confirmButtonText: "Entendi"
+      });
+      return;
+    }
+
+    handleAddProduct();
   };
 
   const onSubmit = async (data: FormValues) => {
-    // Verificação adicional no submit
     if (!isSalesPerson) {
       Swal.fire({
         title: "Acesso Restrito",
@@ -229,18 +242,21 @@ useEffect(() => {
       Swal.fire("Info", "Adicione pelo menos um produto ao pedido!", "info");
       return;
     }
+
     if (!data.customerId) {
       Swal.fire("Info", "Selecione um cliente!", "info");
       return;
     }
+
     if (!data.shippingAddressId || !data.billingAddressId) {
-      Swal.fire("Info", "Defina o endereço para entrega e cobrança usando o botão 'Usar Este Endereço'.", "question");
+      Swal.fire("Info", "Defina o endereço para entrega e cobrança.", "question");
       return;
     }
 
+    // ✅ CORRIGIDO: Verificação de estoque
     const stockIssues = products.filter(product => {
-      const availableStock = product.quantity || 0;
-      return availableStock < product.quantity;
+      const availableStock = product.stock || 0;
+      return product.quantity > availableStock;
     });
 
     if (stockIssues.length > 0) {
@@ -284,14 +300,12 @@ useEffect(() => {
       let result;
       
       if (editMode && orderId) {
-        console.log("📝 [FORM] Modo edição - Atualizando pedido ID:", orderId);
+        console.log("📝 [FORM] Atualizando pedido ID:", orderId);
         result = await updateOrder(orderId, orderData);
       } else {
-        console.log("📝 [FORM] Modo criação - Criando novo pedido");
+        console.log("📝 [FORM] Criando novo pedido");
         result = await insertOrder(orderData);
       }
-
-      console.log("📝 [FORM] Resultado da operação:", result);
 
       if (result && (result.id || result.order?.id)) {
         const successOrderId = result.id || result.order?.id;
@@ -315,7 +329,6 @@ useEffect(() => {
           });
 
           navigate("/sales/orders");
-
         } catch (inventoryError) {
           console.error("Erro no processamento de estoque:", inventoryError);
           Swal.fire({
@@ -332,49 +345,27 @@ useEffect(() => {
           });
           navigate("/sales/orders");
         }
-
       } else {
-        Swal.fire("Erro", `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido. Tente novamente.`, "error");
-        if (!editMode) {
-          refreshOrderNumber();
-        }
+        Swal.fire("Erro", `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido.`, "error");
+        if (!editMode) refreshOrderNumber();
       }
     } catch (err) {
       console.error(`Erro ao ${editMode ? 'atualizar' : 'criar'} pedido:`, err);
-      Swal.fire("Erro", `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido. Verifique os dados.`, "error");
-      if (!editMode) {
-        refreshOrderNumber();
-      }
+      Swal.fire("Erro", `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido.`, "error");
+      if (!editMode) refreshOrderNumber();
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleAddProductWithStockCheck = () => {
-    if (!addedProduct) return;
-
-    const existingProduct = products.find(p => p.id === addedProduct.id);
-    const totalQuantity = existingProduct ? existingProduct.quantity + count : count;
-
-    if (totalQuantity > addedProduct.stock) {
-      Swal.fire({
-        title: "Estoque Insuficiente!",
-        html: `Quantidade solicitada: <strong>${totalQuantity}</strong><br>Estoque disponível: <strong>${addedProduct.stock}</strong>`,
-        icon: "warning",
-        confirmButtonText: "Entendi"
-      });
-      return;
-    }
-
-    handleAddProduct();
-  };
+  // ==================== RENDER ==================== //
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            {/* Cabeçalho do Pedido */}
+            {/* Informações do Pedido */}
             <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-3 text-gray-900">
                 <Package className="w-4 h-4 text-slate-600" /> Informações do Pedido
@@ -414,7 +405,7 @@ useEffect(() => {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
                   <input
-                    value={editMode ? orderNumber.includes("P-") ? "Pendente" : orderNumber.includes("A-") ? "Aprovado" : orderNumber : "Pendente - Aguardando Financeiro"}
+                    value={editMode ? orderNumber.includes("P-") ? "Pendente" : orderNumber.includes("A-") ? "Aprovado" : "Processando" : "Pendente - Aguardando Financeiro"}
                     readOnly
                     className="w-full border border-gray-300 rounded-lg p-3 bg-yellow-50 text-yellow-700 font-medium"
                   />
@@ -422,18 +413,11 @@ useEffect(() => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Vendedor *
-                  </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Vendedor *</label>
                   <input
                     {...register("salesperson", { 
                       required: "Vendedor é obrigatório",
-                      validate: (value) => {
-                        if (!isSalesPerson) {
-                          return "Apenas vendedores do setor comercial podem criar pedidos";
-                        }
-                        return true;
-                      }
+                      validate: () => isSalesPerson || "Apenas vendedores do setor comercial podem criar pedidos"
                     })}
                     className={`w-full border rounded-lg p-3 ${
                       errors.salesperson ? "border-red-300" : "border-gray-300"
@@ -441,9 +425,7 @@ useEffect(() => {
                     placeholder={isSalesPerson ? "" : "Digite o nome do vendedor"}
                     readOnly={isSalesPerson}
                   />
-                  {errors.salesperson && (
-                    <p className="text-red-600 text-sm mt-1">{errors.salesperson.message}</p>
-                  )}
+                  {errors.salesperson && <p className="text-red-600 text-sm mt-1">{errors.salesperson.message}</p>}
                 </div>
 
                 <div>
@@ -456,6 +438,7 @@ useEffect(() => {
                 </div>
               </div>
             </div>
+
             {/* Cliente */}
             <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-3 text-gray-900">
@@ -519,7 +502,7 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Produtos */}
+            {/* Adicionar Produto */}
             <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
               <h2 className="text-xl font-semibold mb-4">Adicionar Produto</h2>
               <div className="flex gap-3 flex-wrap items-center">
@@ -528,6 +511,7 @@ useEffect(() => {
                   placeholder="Código do produto"
                   value={productCode}
                   onChange={(e) => setProductCode(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleProduct()}
                   className="border border-gray-300 p-2 rounded-lg w-48"
                 />
                 <button type="button" onClick={handleProduct} className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800">
@@ -562,65 +546,77 @@ useEffect(() => {
                       onClick={handleAddProductWithStockCheck}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
                     >
-                      Adicionar à Lista
+                      Adicionar
                     </button>
                   </div>
                 )}
-                <div className="text-right w-full">
-                  <p className="text-2xl font-bold text-slate-800">
-                    R$ {products.reduce((acc, p) => acc + p.quantity * Number(p.price), 0).toFixed(2)}
-                  </p>
-                </div>
               </div>
             </div>
 
             {/* Itens do Pedido */}
             <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
               <div className="p-6 bg-slate-800 text-white">
-                <h2 className="text-xl font-semibold">Itens do Pedido</h2>
+                <h2 className="text-xl font-semibold">Itens do Pedido ({products.length})</h2>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="p-4 text-left">Produto</th>
-                      <th className="p-4 text-left">Qtd</th>
-                      <th className="p-4 text-left">Estoque</th>
-                      <th className="p-4 text-left">Preço Unit.</th>
-                      <th className="p-4 text-left">Total</th>
-                      <th className="p-4 text-left">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.map((item, index) => (
-                      <tr key={`${item.id}-${index}`} className="border-t border-gray-100 hover:bg-gray-50">
-                        <td className="p-4">{item.product_name}</td>
-                        <td className="p-4">{item.quantity}</td>
-                        <td className="p-4">
-                          <span className={`px-2 py-1 rounded text-xs ${item.quantity >= item.quantity
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                            }`}>
-                            {item.quantity}
-                          </span>
-                        </td>
-                        <td className="p-4">R$ {item.price}</td>
-                        <td className="p-4">R$ {(item.quantity * item.price).toFixed(2)}</td>
-                        <td className="p-4">
-                          <button type="button" onClick={() => setProducts(products.filter((_, i) => i !== index))} className="text-red-600 hover:text-red-800">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="p-6 bg-gray-50 border-t border-gray-200 text-right">
-                <p className="text-2xl font-bold text-slate-800">
-                  R$ {products.reduce((acc, p) => acc + p.quantity * p.price, 0).toFixed(2)}
-                </p>
-              </div>
+              {products.length === 0 ? (
+                <div className="p-12 text-center text-gray-500">
+                  <Package className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p>Nenhum produto adicionado</p>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="p-4 text-left">Produto</th>
+                          <th className="p-4 text-left">Código</th>
+                          <th className="p-4 text-center">Qtd</th>
+                          <th className="p-4 text-center">Estoque</th>
+                          <th className="p-4 text-right">Preço Unit.</th>
+                          <th className="p-4 text-right">Total</th>
+                          <th className="p-4 text-center">Ação</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {products.map((item, index) => (
+                          <tr key={`${item.id}-${index}`} className="border-t border-gray-100 hover:bg-gray-50">
+                            <td className="p-4 font-medium">{item.product_name}</td>
+                            <td className="p-4 text-gray-600">{item.code}</td>
+                            <td className="p-4 text-center">{item.quantity}</td>
+                            <td className="p-4 text-center">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                (item.stock || 0) >= item.quantity
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {item.stock || 0}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">R$ {item.price.toFixed(2)}</td>
+                            <td className="p-4 text-right font-semibold">R$ {(item.quantity * item.price).toFixed(2)}</td>
+                            <td className="p-4 text-center">
+                              <button 
+                                type="button" 
+                                onClick={() => setProducts(products.filter((_, i) => i !== index))} 
+                                className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="p-6 bg-gray-50 border-t border-gray-200 text-right">
+                    <p className="text-sm text-gray-600 mb-1">Total do Pedido</p>
+                    <p className="text-3xl font-bold text-slate-800">
+                      R$ {products.reduce((acc, p) => acc + p.quantity * p.price, 0).toFixed(2)}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Observações */}
@@ -635,13 +631,17 @@ useEffect(() => {
 
             {/* Ações */}
             <div className="flex justify-end gap-4 pb-8">
-              <button type="button" onClick={() => navigate("/sales/orders")} className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+              <button 
+                type="button" 
+                onClick={() => navigate("/sales/orders")} 
+                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
                 Cancelar
               </button>
               <button 
                 type="submit" 
                 disabled={isSubmitting || !isSalesPerson} 
-                className={`px-6 py-3 rounded-lg ${
+                className={`px-6 py-3 rounded-lg transition-colors ${
                   isSalesPerson 
                     ? "bg-slate-800 text-white hover:bg-slate-900" 
                     : "bg-gray-400 text-gray-200 cursor-not-allowed"
@@ -650,8 +650,8 @@ useEffect(() => {
                 {!isSalesPerson 
                   ? "Acesso Restrito" 
                   : isSubmitting 
-                    ? (editMode ? "Atualizando Pedido..." : "Criando Pedido...") 
-                    : (editMode ? "Atualizar Pedido" : "Criar Pedido (Aguardar Aprovação)")
+                    ? (editMode ? "Atualizando..." : "Criando...") 
+                    : (editMode ? "Atualizar Pedido" : "Criar Pedido")
                 }
               </button>
             </div>

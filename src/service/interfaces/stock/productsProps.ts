@@ -6,5 +6,9 @@ export interface ProductsProps {
   quantity: number;
   price: number;
   location?: string;
-  total_price?: number
+  total_price: number
+  minimum_stock?: number,
+  coast?: number,
+  stock?: number
+
 }

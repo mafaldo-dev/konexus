@@ -106,6 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             designation: adminResponse.user.sector || "Administrador",
             sector: adminResponse.user.sector || "Administrador",
             companyId: adminResponse.user.companyId
+            
           };
           
           // ✅ EXTRAIR DADOS DA EMPRESA DO RESPONSE
@@ -217,14 +218,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = async (status?: boolean) => {
     try {
       if (user?.id) {
         const token = localStorage.getItem("token");
-        await apiRequest(`employee/${user.id}/status`, "PUT", {
-          active: false,
-          status: false
-        }, token || undefined);
+        await apiRequest(`employees/${user.id}/status`, "PUT", { status: 'Inativo' }, 
+          token as string);
       }
     } catch (error) {
       console.warn("Erro ao atualizar status no logout:", error);

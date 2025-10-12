@@ -1,28 +1,39 @@
-
-export interface PurchaseRequest {
-  id: string
-  requestNumber: string;
-  requestDate: string;
-  enterprise_name: string,
-  buyer: string
-  companyData: {
-    id: string
-    code: string
-    company_name: string,
-    email: string
-    cnpj: string
-    phone: number
-  }
-  products: {
-    id: string,
-    code: string,
-    product_name: string,
-    quantity: number,
-    price: number,
-    total_price: number
-  }[]
-  createdAt: Date | any
-  deliveryDate: Date | any
-  status: 'pending' | 'approved' | 'completed';
-  notes: string;
+// No seu arquivo de interfaces
+export interface PurchaseOrder {
+  id?: string;
+  orderNumber: string;
+  supplierId: string; // MUDANÇA CRÍTICA: backend espera supplierId, não supplier object
+  orderDate: string;
+  deliveryDate?: string  | Date | any// Opcional no backend
+  orderStatus: 'pending' | 'approved' | 'in_progress' | 'canceled' | 'received';
+  totalCost: number;
+  currency: string;
+  notes?: string;
+  companyId?: string;
+  orderItems: { // MUDANÇA CRÍTICA: backend espera orderItems, não products
+    productId: string;
+    quantity: number;
+    cost: number;
+  }[];
+  // Campos opcionais para UI
+  supplier?: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    cnpj?: string
+    address?:{
+      street: string
+      city: string
+      number: number
+      state: string
+    }
+  };
+  requestingCompany?: {
+    id: string;
+    name: string;
+    logo?: string;
+    buyer?: string;
+  };
+  createdAt: string | Date
 }

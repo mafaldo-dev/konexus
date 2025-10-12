@@ -16,7 +16,7 @@ export const useSupplierSearch = (setValue: any) => {
             if (supplierData) {
                 setSupplier(supplierData);
                 setValue("dataEnterprise.enterprise", supplierData.name || "");
-                setValue("dataEnterprise.cnpj", supplierData.national_register_code || "");
+                setValue("dataEnterprise.cnpj", supplierData.cnpj|| "");
             } else {
                 alert("Fornecedor não encontrado!");
             }
