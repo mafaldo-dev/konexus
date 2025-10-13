@@ -1,33 +1,71 @@
-import { SubmitHandler, useForm, FormProvider } from 'react-hook-form';
-import { Invoice } from '../../../service/interfaces/financial/invoiceEntries';
-import { ProductsProps } from '../../../service/interfaces/stock/productsProps';
+import { SubmitHandler, useForm } from 'react-hook-form';
 import invoiceEntries from '../../../service/api/Administrador/invoices';
-import ProductTable from './ProductTable';
 import Dashboard from '../../../components/dashboard/Dashboard';
-import { useCnpjMask } from '../../../hooks/utils/useCnpjMask';
 import SupplierSearchForm from './components/SupplierSearchForm';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { PurchaseOrder } from '../../../service/interfaces';
+import { useOrderSearch } from '../../../hooks/_manager/useOrderPurchase';
+import InvoiceProductTable from './components/invoiceTable';
 
 const InvoiceEntries = () => {
-    const methods = useForm<Invoice>();
-    const { register, handleSubmit, formState: { errors }, reset, setValue } = methods;
-    const { cnpj, handleChange: handleCnpjChange } = useCnpjMask();
-    const [products, setProducts] = useState<ProductsProps[]>([]);
+    const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<PurchaseOrder>();
+    
+    // ✅ Agora usa APENAS o formato orderItems do PurchaseOrder
+    const [orderItems, setOrderItems] = useState<PurchaseOrder['orderItems']>([]);
 
-    const onSubmit: SubmitHandler<Invoice> = async (data) => {
+    const formValues = watch();
+    console.log("📝 VALORES ATUAIS DO FORM:", formValues);
+
+    const { fetchedProducts } = useOrderSearch(setValue);
+
+    // ✅ Atualiza orderItems quando buscar pedido
+    useEffect(() => {
+        if (fetchedProducts && fetchedProducts.length > 0) {
+            setOrderItems(fetchedProducts);
+        }
+    }, [fetchedProducts]);
+
+    // Função para aplicar máscara de CNPJ
+    const applyCnpjMask = (value: string) => {
+        return value.replace(/\D/g, '')
+            .replace(/(\d{2})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d)/, '$1/$2')
+            .replace(/(\d{4})(\d{1,2})/, '$1-$2')
+            .slice(0, 18);
+    };
+
+    const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const maskedValue = applyCnpjMask(e.target.value);
+        e.target.value = maskedValue;
+        setValue("supplier.cnpj", maskedValue);
+    };
+
+    const onSubmit: SubmitHandler<PurchaseOrder> = async (data) => {
         try {
-            if (!products || products.length === 0) {
+            if (!orderItems || orderItems.length === 0) {
                 alert("Adicione pelo menos um produto antes de salvar a nota.");
                 return;
             }
-            await invoiceEntries({
-                ...data,
-                products: products,
-                date: new Date()
-            });
+
+            // ✅ Prepara os dados EXATAMENTE no formato PurchaseOrder
+            const purchaseOrderData: PurchaseOrder = {
+                orderNumber: data.orderNumber,
+                supplierId: data.supplierId || data.supplier?.id || "",
+                orderDate: data.orderDate,
+                orderStatus: 'received',
+                totalCost: data.totalCost,
+                currency: data.currency,
+                notes: data.notes,
+                orderItems: orderItems,
+                supplier: data.supplier,
+                createdAt: new Date().toISOString()
+            };
+
+            await invoiceEntries(purchaseOrderData);
 
             reset();
-            setProducts([]);
+            setOrderItems([]);
             alert("Nota fiscal salva com sucesso!");
         } catch (Exception) {
             console.error("Erro ao gerar nota fiscal: ", Exception);
@@ -38,160 +76,164 @@ const InvoiceEntries = () => {
     return (
         <Dashboard>
             <div className="max-w-6xl mx-auto p-6 bg-white shadow-xl rounded-2xl mt-10 space-y-10">
-                <h2 className="text-2xl text-center font-bold mb-12 text-gray-800">Informações da Empresa</h2>
-                <FormProvider {...methods}>
-                    <SupplierSearchForm setValue={setValue} />
-                    <form onSubmit={handleSubmit(onSubmit)} className='space-y-6 w-full'>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">Empresa:</label>
-                                <input
-                                    type="text"
-                                    {...register("dataEnterprise.enterprise", { required: true })}
-                                    placeholder="Ex: Tractor"
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.enterprise && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">CNPJ:</label>
-                                <input
-                                    type="text"
-                                    {...register("dataEnterprise.cnpj", { required: true })}
-                                    placeholder="00.000.000/0000-00"
-                                    maxLength={18}
-                                    value={cnpj}
-                                    onChange={(e) => {
-                                        handleCnpjChange(e);
-                                        setValue("dataEnterprise.cnpj", cnpj);
-                                    }}
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.cnpj && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">UF:</label>
-                                <input
-                                    type="text"
-                                    {...register("dataEnterprise.address.uf", { required: true })}
-                                    placeholder="SP"
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.address?.uf && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
+                <h2 className="text-2xl text-center font-bold mb-12 text-gray-800">
+                    Entrada de Nota Fiscal Baseada em Pedido
+                </h2>
+                
+                <SupplierSearchForm setValue={setValue} />
+                
+                <form onSubmit={handleSubmit(onSubmit)} className='space-y-6 w-full'>
+                    {/* ========== INFORMAÇÕES DO PEDIDO ========== */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700">Nº do Pedido:</label>
+                            <input
+                                type="text"
+                                {...register("orderNumber", { required: true })}
+                                placeholder="Ex: OC-01"
+                                className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            {errors.orderNumber && (
+                                <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
+                            )}
                         </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700">Data do Pedido:</label>
+                            <input
+                                type="date"
+                                {...register("orderDate", { required: true })}
+                                className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            {errors.orderDate && (
+                                <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700">Fornecedor ID:</label>
+                            <input
+                                type="text"
+                                {...register("supplierId", { required: true })}
+                                placeholder="ID do fornecedor"
+                                className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            {errors.supplierId && (
+                                <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
+                            )}
+                        </div>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full mt-4">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">Estado:</label>
-                                <input
-                                    type="text"
-                                    {...register("dataEnterprise.address.state", { required: true })}
-                                    placeholder="Ex: São Paulo"
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.address?.state && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">Cidade:</label>
-                                <input
-                                    type="text"
-                                    {...register("dataEnterprise.address.city", { required: true })}
-                                    placeholder="Ex: São Paulo"
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.address?.city && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">Bairro:</label>
-                                <input
-                                    type="text"
-                                    {...register("dataEnterprise.address.neighborhood", { required: true })}
-                                    placeholder="Ex: Centro"
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.address?.neighborhood && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">Logradouro:</label>
-                                <input
-                                    type="text"
-                                    {...register("dataEnterprise.address.street", { required: true })}
-                                    placeholder="Ex: Av. Paulista"
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.address?.street && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
+                    {/* ========== DADOS DO FORNECEDOR ========== */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700">Empresa Fornecedor:</label>
+                            <input
+                                type="text"
+                                {...register("supplier.name", { required: true })}
+                                placeholder="Ex: Tractor"
+                                className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            {errors.supplier?.name && (
+                                <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
+                            )}
                         </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700">CNPJ:</label>
+                            <input
+                                type="text"
+                                {...register("supplier.cnpj", { required: true })}
+                                placeholder="00.000.000/0000-00"
+                                maxLength={18}
+                                onChange={handleCnpjChange}
+                                className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            {errors.supplier?.cnpj && (
+                                <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700">Valor Total:</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                {...register("totalCost", { 
+                                    required: true,
+                                    valueAsNumber: true 
+                                })}
+                                placeholder="0.00"
+                                className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            {errors.totalCost && (
+                                <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
+                            )}
+                        </div>
+                    </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full mt-4">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">Número:</label>
-                                <input
-                                    type="number"
-                                    {...register("dataEnterprise.address.number", { required: true })}
-                                    placeholder="Ex: 123"
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.address?.number && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">Data Entrada:</label>
-                                <input
-                                    type="date"
-                                    {...register("dataEnterprise.entrieDate", { required: true })}
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.entrieDate && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">Nº Nota Fiscal:</label>
-                                <input
-                                    type="number"
-                                    {...register("dataEnterprise.invoiceNum", { required: true })}
-                                    placeholder="Ex: 000123456"
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.invoiceNum && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700">Recebedor:</label>
-                                <input
-                                    type="text"
-                                    {...register("dataEnterprise.receiver", { required: true })}
-                                    placeholder="Ex: Roger"
-                                    className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.dataEnterprise?.receiver && (
-                                    <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
-                                )}
-                            </div>
+                    {/* ========== INFORMAÇÕES ADICIONAIS ========== */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700">Email:</label>
+                            <input
+                                type="email"
+                                {...register("supplier.email")}
+                                placeholder="email@empresa.com"
+                                className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                            />
                         </div>
-                        <ProductTable product={products} setProduct={setProducts} />
-                    </form>
-                </FormProvider>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700">Telefone:</label>
+                            <input
+                                type="text"
+                                {...register("supplier.phone")}
+                                placeholder="(11) 99999-9999"
+                                className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700">Moeda:</label>
+                            <select
+                                {...register("currency", { required: true })}
+                                className="mt-1 block w-full p-1 h-9 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="BRL">BRL - Real Brasileiro</option>
+                                <option value="USD">USD - Dólar Americano</option>
+                                <option value="EUR">EUR - Euro</option>
+                            </select>
+                            {errors.currency && (
+                                <span className="text-red-500 text-[10px] font-medium">Campo obrigatório</span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ========== OBSERVAÇÕES ========== */}
+                    <div className="w-full">
+                        <label className="block text-xs font-medium text-gray-700">Observações:</label>
+                        <textarea
+                            {...register("notes")}
+                            placeholder="Observações adicionais"
+                            className="mt-1 block w-full p-2 text-sm rounded border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                            rows={3}
+                        />
+                    </div>
+
+                    {/* ========== TABELA DE PRODUTOS ========== */}
+                    <InvoiceProductTable 
+                        orderItems={orderItems} 
+                        setOrderItems={setOrderItems} 
+                    />
+
+                    {/* ========== BOTÃO SUBMIT ========== */}
+                    <div className="flex justify-end pt-6">
+                        <button
+                            type="submit"
+                            className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                        >
+                            Registrar Entrada no Kardex
+                        </button>
+                    </div>
+                </form>
             </div>
-        </Dashboard >
+        </Dashboard>
     );
 };
-export default InvoiceEntries
+
+export default InvoiceEntries;

@@ -1,14 +1,14 @@
 export interface ProductsProps {
-  id: string;
-  code: string;
-  product_name: string;
-  name?: string
-  quantity: number;
-  price: number;
-  location?: string;
+  id: string | any;
+  code: string | any;
+  productname: string | any;
+  name: string | any
+  quantity: number | any;
+  price: number | any;
+  location: string | any;
   total_price: number
   minimum_stock?: number,
-  coast?: number,
+  coast: number,
   stock?: number
 
 }

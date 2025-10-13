@@ -9,7 +9,7 @@ import Swal from "sweetalert2";
 import { insertOrder, getNextOrderNumber, updateOrder } from "../../../../service/api/Administrador/orders";
 import { Order, OrderResponse } from "../../../../service/interfaces/sales/orders";
 import { Customer, ProductsProps } from "../../../../service/interfaces";
-import { useProductManagement } from "../../../../hooks/_manager/useProductManagement";
+import { useInvoiceProductsManagement } from "../../../../hooks/_manager/useProductManagement";
 import { handleAllCustomers } from "../../../../service/api/Administrador/customer/clients";
 import { useAuth } from "../../../../AuthContext";
 
@@ -43,12 +43,12 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   const [loadingOrderNumber, setLoadingOrderNumber] = useState(true);
   const [addressConfirmed, setAddressConfirmed] = useState(false);
   const hasPrefilledData = useRef(false);
-  
+
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const isSalesPerson = user?.role === "Vendedor" && user?.sector === "Comercial";
-  
+
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormValues>({
     defaultValues: {
       orderDate: format(new Date(), "yyyy-MM-dd"),
@@ -61,23 +61,22 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   const {
     productCode,
     setProductCode,
-    addedProduct,
-    count,
-    setCount,
-    price,
-    handleProduct,
-    handleAddProduct,
-    processInventoryUpdates
-  } = useProductManagement(setProducts);
+    selectedProduct,
+    quantity,
+    setQuantity,
+    unitCost,
+    setUnitCost,
+    searchProduct,
+    addProductToInvoice,
+  } = useInvoiceProductsManagement();
 
   // ==================== EFFECTS ==================== //
   
-  // Carregar dados para edição
   useEffect(() => {
     if (editMode && initialData && !hasPrefilledData.current) {
       console.log("📝 [FORM] Preenchendo dados para edição:", initialData);
       hasPrefilledData.current = true;
-      
+
       setValue("orderDate", initialData.orderDate.split('T')[0]);
       setValue("customerId", initialData.customer.id.toString());
       setValue("currency", initialData.currency);
@@ -85,23 +84,23 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
       setValue("notes", initialData.notes || "");
       setValue("shippingAddressId", initialData.shipping?.id?.toString() || "");
       setValue("billingAddressId", initialData.billing?.id?.toString() || "");
-      
-      // Preencher produtos ✅ CORRIGIDO: adicionado total_price
+
       if (initialData.orderItems?.length > 0) {
         const formattedProducts: ProductsProps[] = initialData.orderItems.map(item => ({
           id: item.productId.toString(),
-          product_name: item.productName,
+          productname: item.productName,
+          name: item.productName,
           code: item.productCode,
           quantity: item.quantity,
           price: item.unitPrice,
-          location: item.location,
+          coast: item.unitPrice,
+          location: item.location || "",
           stock: 0,
           total_price: item.quantity * item.unitPrice
         }));
         setProducts(formattedProducts);
       }
-      
-      // Preencher cliente
+
       const customerData: Customer = {
         id: initialData.customer.id,
         name: initialData.customer.name,
@@ -119,20 +118,19 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
         createdAt: new Date().toISOString()
       };
       setSelectedCustomer(customerData);
-      
+
       if (initialData.shipping?.id && initialData.billing?.id) {
         setAddressConfirmed(true);
       }
-      
+
       setOrderNumber(initialData.orderNumber);
     }
   }, [editMode, initialData, setValue]);
 
-  // Gerar número do pedido
   useEffect(() => {
     const loadOrderNumber = async () => {
       if (editMode) return;
-      
+
       try {
         setLoadingOrderNumber(true);
         const newOrderNumber = await getNextOrderNumber();
@@ -146,7 +144,6 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
     loadOrderNumber();
   }, [editMode]);
 
-  // Carregar clientes
   useEffect(() => {
     const loadCustomers = async () => {
       try {
@@ -208,24 +205,55 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
     return `${street}, ${number} - ${city} - ${zip}`;
   };
 
-  const handleAddProductWithStockCheck = () => {
-    if (!addedProduct) return;
+  //Função para adicionar produto convertendo para ProductsProps
+const handleAddProductWithStockCheck = () => {
+  if (!selectedProduct) return;
 
-    const existingProduct = products.find(p => p.id === addedProduct.id);
-    const totalQuantity = existingProduct ? existingProduct.quantity + count : count;
+  const existingProduct = products.find(p => p.id === selectedProduct.id);
+  const totalQuantity = existingProduct ? existingProduct.quantity + quantity : quantity;
+  
+  const availableStock = selectedProduct.stock || 0;
+  
+  if (totalQuantity > availableStock) {
+    Swal.fire({
+      title: "Estoque Insuficiente!",
+      html: `Quantidade solicitada: <strong>${totalQuantity}</strong><br>Estoque disponível: <strong>${availableStock}</strong>`,
+      icon: "warning",
+      confirmButtonText: "Entendi"
+    });
+    return;
+  }
 
-    if (totalQuantity > addedProduct.stock) {
-      Swal.fire({
-        title: "Estoque Insuficiente!",
-        html: `Quantidade solicitada: <strong>${totalQuantity}</strong><br>Estoque disponível: <strong>${addedProduct.stock}</strong>`,
-        icon: "warning",
-        confirmButtonText: "Entendi"
-      });
-      return;
-    }
-
-    handleAddProduct();
+  const newProduct: ProductsProps = {
+    id: selectedProduct.id,
+    productname: selectedProduct.name,
+    name: selectedProduct.name,
+    code: selectedProduct.code,
+    quantity: quantity,
+    price: unitCost,
+    coast: unitCost,
+    location: selectedProduct.location || "",
+    stock: availableStock,
+    total_price: quantity * unitCost
   };
+
+  if (existingProduct) {
+    setProducts(prev => prev.map(p => 
+      p.id === selectedProduct.id 
+        ? { 
+            ...p, 
+            quantity: p.quantity + quantity, 
+            total_price: (p.quantity + quantity) * p.price,
+            stock: availableStock
+          }
+        : p
+    ));
+  } else {
+    setProducts(prev => [...prev, newProduct]);
+  }
+
+  addProductToInvoice();
+};
 
   const onSubmit = async (data: FormValues) => {
     if (!isSalesPerson) {
@@ -259,7 +287,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
     });
 
     if (stockIssues.length > 0) {
-      const productNames = stockIssues.map(p => p.product_name).join(', ');
+      const productNames = stockIssues.map(p => p.productname).join(', ');
       Swal.fire({
         title: "Estoque Insuficiente!",
         html: `Os seguintes produtos não têm estoque suficiente:<br><strong>${productNames}</strong>`,
@@ -295,9 +323,10 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
           location: p.location,
         })),
       };
+      console.log(orderData)
 
       let result;
-      
+
       if (editMode && orderId) {
         console.log("📝 [FORM] Atualizando pedido ID:", orderId);
         result = await updateOrder(orderId, orderData);
@@ -307,43 +336,21 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
       }
 
       if (result && (result.id || result.order?.id)) {
-        const successOrderId = result.id || result.order?.id;
-        const companyId = 1;
+        Swal.fire({
+          title: "Sucesso!",
+          html: `
+            <div>
+              <p><strong>Pedido ${orderNumber} ${editMode ? 'atualizado' : 'criado'} com sucesso!</strong></p>
+              <p class="text-sm mt-2">✓ Aguardando aprovação do financeiro</p>
+            </div>
+          `,
+          icon: "success",
+          confirmButtonText: "Ver Pedidos"
+        });
+        
+        console.log(result)
 
-        try {
-          await processInventoryUpdates(successOrderId, products, companyId);
-
-          Swal.fire({
-            title: "Sucesso!",
-            html: `
-              <div>
-                <p><strong>Pedido ${orderNumber} ${editMode ? 'atualizado' : 'criado'} com sucesso!</strong></p>
-                <p class="text-sm mt-2">✓ Estoque atualizado</p>
-                <p class="text-sm">✓ Movimentação registrada no Kardex</p>
-                <p class="text-sm">✓ Aguardando aprovação do financeiro</p>
-              </div>
-            `,
-            icon: "success",
-            confirmButtonText: "Ver Pedidos"
-          });
-
-          navigate("/sales/orders");
-        } catch (inventoryError) {
-          console.error("Erro no processamento de estoque:", inventoryError);
-          Swal.fire({
-            title: "Pedido Criado com Alerta",
-            html: `
-              <div>
-                <p><strong>Pedido ${orderNumber} ${editMode ? 'atualizado' : 'criado'}!</strong></p>
-                <p class="text-sm mt-2 text-yellow-600">⚠️ Erro ao atualizar estoque</p>
-                <p class="text-sm">Entre em contato com o administrador</p>
-              </div>
-            `,
-            icon: "warning",
-            confirmButtonText: "Entendi"
-          });
-          navigate("/sales/orders");
-        }
+        navigate("/sales/orders");
       } else {
         Swal.fire("Erro", `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido.`, "error");
         if (!editMode) refreshOrderNumber();
@@ -384,10 +391,10 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
                       </button>
                     )}
                   </label>
-                  <input 
-                    value={orderNumber} 
-                    readOnly 
-                    className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 font-mono font-bold" 
+                  <input
+                    value={orderNumber}
+                    readOnly
+                    className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 font-mono font-bold"
                   />
                 </div>
 
@@ -414,13 +421,12 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Vendedor *</label>
                   <input
-                    {...register("salesperson", { 
+                    {...register("salesperson", {
                       required: "Vendedor é obrigatório",
                       validate: () => isSalesPerson || "Apenas vendedores do setor comercial podem criar pedidos"
                     })}
-                    className={`w-full border rounded-lg p-3 ${
-                      errors.salesperson ? "border-red-300" : "border-gray-300"
-                    } ${isSalesPerson ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                    className={`w-full border rounded-lg p-3 ${errors.salesperson ? "border-red-300" : "border-gray-300"
+                      } ${isSalesPerson ? "bg-gray-100 cursor-not-allowed" : ""}`}
                     placeholder={isSalesPerson ? "" : "Digite o nome do vendedor"}
                     readOnly={isSalesPerson}
                   />
@@ -502,7 +508,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
             </div>
 
             {/* Adicionar Produto */}
-            <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+           <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
               <h2 className="text-xl font-semibold mb-4">Adicionar Produto</h2>
               <div className="flex gap-3 flex-wrap items-center">
                 <input
@@ -510,35 +516,39 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
                   placeholder="Código do produto"
                   value={productCode}
                   onChange={(e) => setProductCode(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleProduct()}
+                  onKeyPress={(e) => e.key === 'Enter' && searchProduct()}
                   className="border border-gray-300 p-2 rounded-lg w-48"
                 />
-                <button type="button" onClick={handleProduct} className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800">
+                <button type="button" onClick={searchProduct} className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800">
                   Buscar Produto
                 </button>
-                {addedProduct && (
+                {selectedProduct && (
                   <div className="flex gap-2 items-center ml-4 bg-green-50 p-3 rounded-lg border border-green-200">
                     <div className="flex flex-col">
-                      <span className="font-semibold text-green-800">{addedProduct.name}</span>
-                      <span className="text-sm text-green-600">Código: {addedProduct.code}</span>
-                      <span className="text-xs text-gray-600">Estoque: {addedProduct.stock}</span>
+                      <span className="font-semibold text-green-800">{selectedProduct.name}</span>
+                      <span className="text-sm text-green-600">Código: {selectedProduct.code}</span>
                     </div>
                     <input
                       type="number"
                       min={1}
-                      max={addedProduct.stock}
-                      value={count}
-                      onChange={(e) => setCount(Number(e.target.value))}
+                      value={quantity}
+                      onChange={(e) => setQuantity(Number(e.target.value))}
                       className="border border-gray-300 p-2 rounded-lg w-20"
                       placeholder="Qtd"
                     />
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-700">Preço Unit.</span>
-                      <span className="font-semibold text-green-700">R$ {price}</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={unitCost}
+                        onChange={(e) => setUnitCost(Number(e.target.value))}
+                        className="border border-gray-300 p-2 rounded-lg w-24"
+                      />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-700">Total</span>
-                      <span className="font-semibold text-blue-700">R$ {count * price}</span>
+                      <span className="font-semibold text-blue-700">R$ {(quantity * unitCost).toFixed(2)}</span>
                     </div>
                     <button
                       type="button"
@@ -580,24 +590,23 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
                       <tbody>
                         {products.map((item, index) => (
                           <tr key={`${item.id}-${index}`} className="border-t border-gray-100 hover:bg-gray-50">
-                            <td className="p-4 font-medium">{item.product_name}</td>
+                            <td className="p-4 font-medium">{item.productname}</td>
                             <td className="p-4 text-gray-600">{item.code}</td>
                             <td className="p-4 text-center">{item.quantity}</td>
                             <td className="p-4 text-center">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                (item.stock || 0) >= item.quantity
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${(item.stock || 0) >= item.quantity
                                   ? 'bg-green-100 text-green-800'
                                   : 'bg-red-100 text-red-800'
-                              }`}>
+                                }`}>
                                 {item.stock || 0}
                               </span>
                             </td>
                             <td className="p-4 text-right">R$ {item.price}</td>
                             <td className="p-4 text-right font-semibold">R$ {(item.quantity * item.price)}</td>
                             <td className="p-4 text-center">
-                              <button 
-                                type="button" 
-                                onClick={() => setProducts(products.filter((_, i) => i !== index))} 
+                              <button
+                                type="button"
+                                onClick={() => setProducts(products.filter((_, i) => i !== index))}
                                 className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded transition-colors"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -630,26 +639,25 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
 
             {/* Ações */}
             <div className="flex justify-end gap-4 pb-8">
-              <button 
-                type="button" 
-                onClick={() => navigate("/sales/orders")} 
+              <button
+                type="button"
+                onClick={() => navigate("/sales/orders")}
                 className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Cancelar
               </button>
-              <button 
-                type="submit" 
-                disabled={isSubmitting || !isSalesPerson} 
-                className={`px-6 py-3 rounded-lg transition-colors ${
-                  isSalesPerson 
-                    ? "bg-slate-800 text-white hover:bg-slate-900" 
+              <button
+                type="submit"
+                disabled={isSubmitting || !isSalesPerson}
+                className={`px-6 py-3 rounded-lg transition-colors ${isSalesPerson
+                    ? "bg-slate-800 text-white hover:bg-slate-900"
                     : "bg-gray-400 text-gray-200 cursor-not-allowed"
-                } disabled:opacity-50`}
+                  } disabled:opacity-50`}
               >
-                {!isSalesPerson 
-                  ? "Acesso Restrito" 
-                  : isSubmitting 
-                    ? (editMode ? "Atualizando..." : "Criando...") 
+                {!isSalesPerson
+                  ? "Acesso Restrito"
+                  : isSubmitting
+                    ? (editMode ? "Atualizando..." : "Criando...")
                     : (editMode ? "Atualizar Pedido" : "Criar Pedido")
                 }
               </button>

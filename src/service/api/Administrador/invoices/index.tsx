@@ -1,7 +1,7 @@
 import { apiRequest } from "../../api"
-import { Invoice } from "../../../interfaces"
+import { PurchaseOrder } from "../../../interfaces"
 
-export default async function invoiceEntries(invoice: Invoice) {
+export default async function invoiceEntries(invoice: PurchaseOrder) {
   try {
     // Envia a nota fiscal para o backend
     const response = await apiRequest("/invoices", "POST", {

@@ -43,3 +43,16 @@ export const purchaseAllOrders = async (token?: string): Promise<PurchaseOrder[]
     return [];
   }
 };
+
+export const getOrderById = async (orderNumber: string, token?: string): Promise<PurchaseOrder | null> => {
+  const tkn = localStorage.getItem("token")
+  try {    
+    const response = await apiRequest(`purchase/${orderNumber}`, "GET", undefined, tkn as string);
+    console.log(response)
+    if (!response || !response.order) return null;
+    return response.order;
+  } catch (error) {
+    console.error("Erro ao buscar pedido:", error);
+    return null;
+  }
+};

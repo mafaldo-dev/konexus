@@ -11,9 +11,12 @@ export interface PurchaseOrder {
   notes?: string;
   companyId?: string;
   orderItems: { // MUDANÇA CRÍTICA: backend espera orderItems, não products
-    productId: string;
+    productid: string;
     quantity: number;
     cost: number;
+    productname?: string
+    productcode?: string
+    productlocation?:string
   }[];
   // Campos opcionais para UI
   supplier?: {
