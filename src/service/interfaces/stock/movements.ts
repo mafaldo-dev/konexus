@@ -1,11 +1,12 @@
 export interface Movement {
   id: number;
-  movementtype: 'entrada' | 'saida' | 'previsao'; // ✅ lowercase
+  movementtype: 'entrada' | 'saida' | 'previsao'; 
   quantity: number;
-  unitprice: string; // ✅ vem como string do backend
-  movementdate: string; // ✅ lowercase
+  unitprice: string; 
+  movementdate: string; 
   orderid: number;
-  ordernumber: string; // ✅ lowercase
+  invoicenumber: string
+  purchaseordernumber: string
   productname: string;
   productcode: string;
   movement: number

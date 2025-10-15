@@ -1,6 +1,6 @@
 // No seu arquivo de interfaces
 export interface PurchaseOrder {
-  id?: string;
+  id?: string | any;
   orderNumber: string;
   supplierId: string; // MUDANÇA CRÍTICA: backend espera supplierId, não supplier object
   orderDate: string;
@@ -10,6 +10,7 @@ export interface PurchaseOrder {
   currency: string;
   notes?: string;
   companyId?: string;
+  invoiceNumber?:number
   orderItems: { // MUDANÇA CRÍTICA: backend espera orderItems, não products
     productid: string;
     quantity: number;
@@ -39,4 +40,13 @@ export interface PurchaseOrder {
     buyer?: string;
   };
   createdAt: string | Date
+}
+
+export interface InvoiceDataEntries {
+  order_id: string;
+  invoice_number: string | number;
+  issue_date?: Date;
+  total_value?: number;
+  xml_path?: string | null;
+  status: string
 }

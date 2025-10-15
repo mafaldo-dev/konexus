@@ -77,7 +77,7 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                     </button>
                 </div>
 
-                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div className="p-6 overflow-y-auto max-h-[calc(60vh-120px)]">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div className="space-y-4">
                             <div>
@@ -137,22 +137,26 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                                     <thead className="bg-gray-50">
                                         <tr>
                                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Data</th>
+                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Pedido</th>
                                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Tipo</th>
-                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Quantidade</th>
-                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Preço Unit.</th>
                                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">NF</th>
+                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Quantidade</th>
+                                            {/*<th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Preço</th>*/}
                                             <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Saldo</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {movementsWithBalance.map((entry: any, index: number) => (
-                                            <tr key={entry.id || index} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                                            <tr key={index} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
                                                 <td className="px-4 py-3 text-sm text-gray-700 font-medium">
                                                     {new Date(entry.movementdate).toLocaleDateString('pt-BR', {
                                                         day: '2-digit',
                                                         month: '2-digit',
                                                         year: 'numeric'
                                                     })}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-700">
+                                                    {entry.purchaseordernumber}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-2">
@@ -162,15 +166,16 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                                                         </span>
                                                     </div>
                                                 </td>
+                                                <td className="px-4 py-3 text-sm text-gray-700">
+                                                    {entry.invoicenumber || '-'}
+                                                </td>
                                                 <td className="px-4 py-3 text-sm font-semibold text-gray-900">
                                                     {entry.movementtype === 'entrada' ? '+' : '-'}{entry.quantity}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-700">
+                                               {/*<td className="px-4 py-3 text-sm text-gray-700">
                                                     R$ {parseFloat(entry.unitprice || 0).toFixed(2)}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-700">
-                                                    {entry.ordernumber || '-'}
-                                                </td>
+                                                */} 
                                                 <td className="px-4 py-3 text-sm font-bold text-slate-800">
                                                     {entry.balance}
                                                 </td>

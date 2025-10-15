@@ -45,14 +45,26 @@ export const purchaseAllOrders = async (token?: string): Promise<PurchaseOrder[]
 };
 
 export const getOrderById = async (orderNumber: string, token?: string): Promise<PurchaseOrder | null> => {
-  const tkn = localStorage.getItem("token")
-  try {    
+  const tkn = localStorage.getItem("token");
+  
+  try {
     const response = await apiRequest(`purchase/${orderNumber}`, "GET", undefined, tkn as string);
-    console.log(response)
-    if (!response || !response.order) return null;
-    return response.order;
+    
+    console.log("📦 [API] Response completo:", response);
+    
+    // ✅ A API retorna o objeto DIRETO, não dentro de .order
+    if (!response || !response.id) {
+      console.warn("⚠️ [API] Resposta inválida - sem ID");
+      return null;
+    }
+    
+    console.log("✅ [API] Pedido encontrado:", response.orderNumber);
+    
+    // ✅ Retorna response direto (ele JÁ É o PurchaseOrder)
+    return response;
+    
   } catch (error) {
-    console.error("Erro ao buscar pedido:", error);
+    console.error("❌ [API] Erro ao buscar pedido:", error);
     return null;
   }
 };

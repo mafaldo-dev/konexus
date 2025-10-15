@@ -63,19 +63,19 @@ const InvoiceProductTable: React.FC<Props> = ({ orderItems, setOrderItems }) => 
             return;
         }
 
-        // Verificar se produto já existe na nota
+        // ✅ Verificar se produto já existe na nota (corrigido bug do index 0)
         const existingIndex = orderItems.findIndex(
             item => item.productid === searchedProduct.id
         );
 
-        if (existingIndex >= 0) {
+        if (existingIndex !== -1) {
             // Atualizar quantidade se já existir
             setOrderItems(prev => prev.map((item, index) => 
                 index === existingIndex
                     ? {
                         ...item,
                         quantity: item.quantity + quantity,
-                        cost: unitCost // Atualiza o custo também
+                        cost: unitCost
                     }
                     : item
             ));
@@ -101,8 +101,12 @@ const InvoiceProductTable: React.FC<Props> = ({ orderItems, setOrderItems }) => 
         setUnitCost(0);
     };
 
-    const handleRemoveProduct = (index: number) => {
-        setOrderItems(prev => prev.filter((_, i) => i !== index));
+    const handleRemoveProduct = (productid: string) => {
+        setOrderItems(prev => prev.filter(item => item.productid !== productid));
+    };
+
+    const calculateTotal = () => {
+        return orderItems.reduce((sum, item) => sum + (Number(item.cost) * item.quantity), 0);
     };
 
     return (
@@ -113,7 +117,7 @@ const InvoiceProductTable: React.FC<Props> = ({ orderItems, setOrderItems }) => 
 
             {/* Formulário de busca e adição */}
             <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-4">
-                <h3 className="text-sm font-semibold mb-3 text-gray-700">Adicionar produto</h3>
+                <h3 className="text-sm font-semibold mb-3 text-gray-700">Adicionar produto manualmente</h3>
 
                 <div className="grid grid-cols-1 gap-4">
                     {/* Busca de produto */}
@@ -188,8 +192,8 @@ const InvoiceProductTable: React.FC<Props> = ({ orderItems, setOrderItems }) => 
                 </div>
             </div>
 
-            {/* Tabela de produtos adicionados */}
-            <div className="overflow-x-auto rounded-md border border-gray-300">
+            {/* Tabela de produtos */}
+            <div className="overflow-x-auto rounded-md border border-gray-300 mb-4">
                 <table className="min-w-full text-sm text-left">
                     <thead className="bg-gray-100">
                         <tr>
@@ -205,26 +209,37 @@ const InvoiceProductTable: React.FC<Props> = ({ orderItems, setOrderItems }) => 
                     <tbody>
                         {orderItems.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="text-center py-4 text-gray-400 italic">
-                                    Nenhum produto adicionado
+                                <td colSpan={7} className="text-center py-8 text-gray-400">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                        </svg>
+                                        <p className="text-sm italic">Busque um pedido ou adicione produtos manualmente</p>
+                                    </div>
                                 </td>
                             </tr>
                         ) : (
                             orderItems.map((item, index) => (
-                                <tr key={index} className="border-t hover:bg-gray-50">
-                                    <td className="px-4 py-2">{item.productcode}</td>
-                                    <td className="px-4 py-2">{item.productname}</td>
-                                    <td className="px-4 py-2">{item.productlocation}</td>
-                                    <td className="px-4 py-2">{item.quantity}</td>
-                                    <td className="px-4 py-2">R$ {item.cost.toFixed(2)}</td>
-                                    <td className="px-4 py-2 font-semibold">
-                                        R$ {(item.cost * item.quantity).toFixed(2)}
+                                <tr key={`${item.productid}-${index}`} className="border-t hover:bg-gray-50 transition-colors">
+                                    <td className="px-4 py-3 font-mono text-xs">{item.productcode}</td>
+                                    <td className="px-4 py-3 font-medium">{item.productname}</td>
+                                    <td className="px-4 py-3 text-gray-600">{item.productlocation || 'N/A'}</td>
+                                    <td className="px-4 py-3 text-center">
+                                        <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-semibold text-xs">
+                                            {item.quantity}
+                                        </span>
                                     </td>
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3 text-right font-mono">
+                                        R$ {Number(item.cost).toFixed(2)}
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-semibold text-green-700">
+                                        R$ {(Number(item.cost) * item.quantity).toFixed(2)}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
                                         <button
                                             type="button"
-                                            onClick={() => handleRemoveProduct(index)}
-                                            className="text-red-600 hover:text-red-800 text-xs font-medium"
+                                            onClick={() => handleRemoveProduct(item.productid)}
+                                            className="text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1 rounded text-xs font-medium transition-colors"
                                         >
                                             Remover
                                         </button>
@@ -238,12 +253,14 @@ const InvoiceProductTable: React.FC<Props> = ({ orderItems, setOrderItems }) => 
 
             {/* Total */}
             {orderItems.length > 0 && (
-                <div className="mt-4 flex justify-end">
-                    <div className="bg-gray-100 px-6 py-3 rounded-md">
-                        <span className="text-sm font-semibold">Total da Nota: </span>
-                        <span className="text-lg font-bold text-slate-800">
-                            R$ {orderItems.reduce((sum, item) => sum + (item.cost * item.quantity), 0).toFixed(2)}
-                        </span>
+                <div className="flex justify-end">
+                    <div className="bg-slate-800 text-white px-8 py-4 rounded-lg shadow-md">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium opacity-90">Total da Nota:</span>
+                            <span className="text-2xl font-bold">
+                                R$ {calculateTotal().toFixed(2)}
+                            </span>
+                        </div>
                     </div>
                 </div>
             )}

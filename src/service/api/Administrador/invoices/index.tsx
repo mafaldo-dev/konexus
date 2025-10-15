@@ -1,13 +1,14 @@
 import { apiRequest } from "../../api"
-import { PurchaseOrder } from "../../../interfaces"
+import { InvoiceDataEntries } from "../../../interfaces"
 
-export default async function invoiceEntries(invoice: PurchaseOrder) {
+export default async function invoiceEntries(invoice: InvoiceDataEntries) {
   try {
     // Envia a nota fiscal para o backend
-    const response = await apiRequest("/invoices", "POST", {
+    const response = await apiRequest("invoice/create", "POST", {
       ...invoice,
       date: new Date(),
     })
+    console.log(response)
 
     return response
   } catch (error: any) {

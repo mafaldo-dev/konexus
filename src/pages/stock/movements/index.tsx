@@ -60,7 +60,6 @@ export default function ProfessionalProductList() {
         try {
             const response = await handleAllProducts();
             setProducts(response);
-            console.log("response aqui =>",response)
         } catch (error) {
             console.error("Erro ao recuperar a lista de produtos!", error);
             throw new Error("Erro interno do servidor");
