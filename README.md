@@ -1,6 +1,6 @@
-# Keppler - Sistema de Gestão Empresarial
+# Konéxus - Sistema de Gestão Empresarial
 
-Keppler é um sistema de gestão empresarial (ERP) desktop, desenvolvido com React e Electron, projetado para otimizar e centralizar diversas operações de negócios. Ele oferece módulos para gerenciamento de vendas, estoque, RH, finanças e muito mais, com controle de acesso baseado em funções.
+Konéxus é um sistema de gestão empresarial (ERP) desktop, desenvolvido com React e Electron, projetado para otimizar e centralizar diversas operações de negócios. Ele oferece módulos para gerenciamento de vendas, estoque, RH, finanças e muito mais, com controle de acesso baseado em funções.
 
 ## Funcionalidades Principais
 
@@ -32,11 +32,7 @@ Keppler é um sistema de gestão empresarial (ERP) desktop, desenvolvido com Rea
 - **Desktop Framework:** Electron
 - **Linguagem:** TypeScript
 - **Estilização:** Tailwind CSS
-- **Autenticação e Banco de Dados (provável):** Firebase
-- **Geração de PDFs:** jspdf, jspdf-autotable
-- **Roteamento:** React Router DOM
-- **Gerenciamento de Formulários:** React Hook Form
-- **Outros:** date-fns, lucide-react, sweetalert2
+- **Autenticação e Banco de Dados (provável):** Postgresql
 
 ## Como Rodar o Projeto
 
@@ -55,7 +51,7 @@ Certifique-se de ter as seguintes ferramentas instaladas:
 
    ```bash
    git clone <URL_DO_REPOSITORIO>
-   cd keppler
+   cd konexus
    ```
 
 2. Instale as dependências:
@@ -90,7 +86,7 @@ Os artefatos de build serão gerados na pasta `dist` (ou similar, configurada no
 ## Estrutura do Projeto
 
 ```
-keppler/
+konexus/
 ├── public/                 # Arquivos públicos e script principal do Electron
 ├── src/
 │   ├── assets/             # Imagens e outros recursos estáticos
@@ -115,10 +111,6 @@ keppler/
 ├── tsconfig.json
 └── ... (outros arquivos de configuração e módulos)
 ```
-
-## Contribuição
-
-Instruções sobre como contribuir para o projeto (se aplicável).
 
 ## Licença
 
