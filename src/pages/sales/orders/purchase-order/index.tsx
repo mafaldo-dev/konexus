@@ -53,8 +53,7 @@ export default function OrdersPage() {
     try {
       setIsLoading(true);
       const fetchedOrders = await handleAllOrders();
-      console.log(fetchedOrders)
-
+      
       // Mapeia diretamente para OrderResponse
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
         id: order.id,

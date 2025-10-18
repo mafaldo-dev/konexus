@@ -74,7 +74,6 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   
   useEffect(() => {
     if (editMode && initialData && !hasPrefilledData.current) {
-      console.log("📝 [FORM] Preenchendo dados para edição:", initialData);
       hasPrefilledData.current = true;
 
       setValue("orderDate", initialData.orderDate.split('T')[0]);
@@ -323,15 +322,12 @@ const handleAddProductWithStockCheck = () => {
           location: p.location,
         })),
       };
-      console.log(orderData)
 
       let result;
 
       if (editMode && orderId) {
-        console.log("📝 [FORM] Atualizando pedido ID:", orderId);
         result = await updateOrder(orderId, orderData);
       } else {
-        console.log("📝 [FORM] Criando novo pedido");
         result = await insertOrder(orderData);
       }
 
@@ -348,7 +344,6 @@ const handleAddProductWithStockCheck = () => {
           confirmButtonText: "Ver Pedidos"
         });
         
-        console.log(result)
 
         navigate("/sales/orders");
       } else {
@@ -523,7 +518,7 @@ const handleAddProductWithStockCheck = () => {
                   Buscar Produto
                 </button>
                 {selectedProduct && (
-                  <div className="flex gap-2 items-center ml-4 bg-green-50 p-3 rounded-lg border border-green-200">
+                  <div className="flex justify-between gap-2 items-center ml-4 bg-green-50 p-3 rounded-lg border border-green-200">
                     <div className="flex flex-col">
                       <span className="font-semibold text-green-800">{selectedProduct.name}</span>
                       <span className="text-sm text-green-600">Código: {selectedProduct.code}</span>
@@ -536,8 +531,8 @@ const handleAddProductWithStockCheck = () => {
                       className="border border-gray-300 p-2 rounded-lg w-20"
                       placeholder="Qtd"
                     />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-gray-700">Preço Unit.</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700">Preço Unit:</span>
                       <input
                         type="number"
                         step="0.01"

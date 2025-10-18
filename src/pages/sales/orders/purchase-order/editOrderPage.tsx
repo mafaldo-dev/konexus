@@ -19,15 +19,12 @@ export default function EditOrderPage() {
         const loadOrder = async () => {
             try {
                 setLoading(true);
-                console.log("🔍 [EDIT] Carregando pedido para edição ID:", id);
 
                 const orderData = await getOrderForEdit(id!);
-                console.log("✅ [EDIT] Pedido carregado:", orderData);
 
                 if (orderData && orderData.order) {
                     setOrder(orderData.order);
                 } else {
-                    console.log("❌ [EDIT] Pedido não encontrado ou não pode ser editado");
                     setError("Pedido não encontrado ou não pode ser editado");
                 }
             } catch (error: any) {
@@ -35,14 +32,12 @@ export default function EditOrderPage() {
                 setError(error.message || "Erro ao carregar pedido");
             } finally {
                 setLoading(false);
-                console.log("✅ [EDIT] Loading finalizado");
             }
         };
 
         if (id) {
             loadOrder();
         } else {
-            console.log("❌ [EDIT] ID não encontrado nos parâmetros");
             setError("ID do pedido não especificado");
             setLoading(false);
         }

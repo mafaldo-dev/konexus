@@ -10,9 +10,9 @@ export interface CompanyInfo {
   id: number;
   name: string;
   logo: string | null;
-  icon: string | null;
   logoUrl?: string | null;
-  iconUrl?: string | null;
+  cnpj?: string
+  email?: string
 }
 
 export interface UserInfo {
@@ -115,13 +115,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               id: adminResponse.user.companyId,
               name: adminResponse.user.companyName,
               logo: adminResponse.user.companyLogo,
-              icon: adminResponse.user.companyIcon,
+        
               logoUrl: adminResponse.user.companyLogo 
                 ? `data:image/png;base64,${adminResponse.user.companyLogo}` 
                 : null,
-              iconUrl: adminResponse.user.companyIcon 
-                ? `data:image/x-icon;base64,${adminResponse.user.companyIcon}` 
-                : null
             };
           }
           
@@ -158,13 +155,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 id: employeeResponse.user.companyId,
                 name: employeeResponse.user.companyName,
                 logo: employeeResponse.user.companyLogo,
-                icon: employeeResponse.user.companyIcon,
                 logoUrl: employeeResponse.user.companyLogo 
                   ? `data:image/png;base64,${employeeResponse.user.companyLogo}` 
                   : null,
-                iconUrl: employeeResponse.user.companyIcon 
-                  ? `data:image/x-icon;base64,${employeeResponse.user.companyIcon}` 
-                  : null
               };
             }
             

@@ -2,6 +2,8 @@ import { useState, useEffect, Fragment } from "react";
 import Swal from "sweetalert2";
 import { Menu, Transition } from "@headlessui/react";
 
+import { useAuth } from "../../../../AuthContext";
+
 import { OrderResponse } from "../../../../service/interfaces";
 import { handleAllOrders, updateOrderStatus } from "../../../../service/api/Administrador/orders";
 
@@ -9,6 +11,7 @@ import { motion } from "framer-motion";
 import { Truck, AlertCircle, MoreVertical } from "lucide-react";
 import Dashboard from "../../../../components/dashboard/Dashboard";
 import OrderPDF from "../conferency/OrderPDF";
+import DocumentViewer from "../../../../utils/screenOptions";
 
 type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "cancelled" | "backout" | any;
 
@@ -17,6 +20,12 @@ export default function OrderList() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { user } = useAuth();
+
+  // Estados para controlar o DocumentViewer
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+  const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100">("purchase_order");
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const mapStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
@@ -45,8 +54,8 @@ export default function OrderList() {
         currency: order.currency || "BRL",
         salesperson: order.salesperson,
         notes: order.notes || "",
-        totalVolumes: order.totalVolumes || order.total_volume || 0, // Inclui os novos campos
-        totalWeight: order.totalWeight || order.total_weight || 0,   // Inclui os novos campos
+        totalVolumes: order.totalVolumes || order.total_volume || 0,
+        totalWeight: order.totalWeight || order.total_weight || 0,
         customer: {
           id: order.customer?.id || 0,
           name: order.customer?.name || "",
@@ -84,13 +93,13 @@ export default function OrderList() {
           productId: item.productId || item.productid,
           productName: item.productName || item.productname,
           productCode: item.productCode || item.productcode,
+          productBrand: item.productBrand || item.productbrand,
           quantity: item.quantity,
           unitPrice: parseFloat(item.unitPrice || item.unitprice),
           location: item.location,
           subtotal: parseFloat(item.subtotal || item.subTotal),
         })) || [],
       }));
-
       setOrders(mappedOrders);
     } catch (error) {
       console.error("Erro ao recuperar orders", error);
@@ -109,7 +118,7 @@ export default function OrderList() {
   const updateOrderStatusInDb = async (
     orderId: number | string,
     newStatus: OrderStatus,
-    extraData?: { totalVolumes?: number; totalWeight?: number } // Torna opcional
+    extraData?: { totalVolumes?: number; totalWeight?: number }
   ) => {
     try {
       await updateOrderStatus(orderId, newStatus, tkn as string, extraData);
@@ -162,7 +171,7 @@ export default function OrderList() {
 
       if (motivo) {
         try {
-          await updateOrderStatusInDb(orderId, newStatus); // Sem extraData para estorno
+          await updateOrderStatusInDb(orderId, newStatus);
           await loadOrders();
 
           Swal.fire({
@@ -182,9 +191,8 @@ export default function OrderList() {
       }
     }
   };
-
+{/*
   const handlePrintLabel = (order: OrderResponse) => {
-    // Use totalVolumes se disponível, senão use o length dos orderItems como fallback
     const volumes = order.totalVolumes || order.orderItems.length;
 
     Swal.fire({
@@ -251,6 +259,7 @@ export default function OrderList() {
       }
     });
   };
+  */}
 
   const getOrdersByStatus = (status: OrderStatus) => orders.filter((order) => order.orderStatus === status);
 
@@ -299,7 +308,6 @@ export default function OrderList() {
     });
 
     if (formValues) {
-      // Agora envia os dados de volumes e peso
       await updateOrderStatusInDb(order.id, "shipped", {
         totalVolumes: formValues.volumes,
         totalWeight: formValues.peso
@@ -310,6 +318,73 @@ export default function OrderList() {
 
   const handleUpdateStatus = async (orderId: string | number, status: OrderStatus, extraData?: any) => {
     await updateOrderStatusInDb(orderId, status, extraData);
+  };
+
+  // Função para imprimir etiquetas 70x30 (para produtos individuais)
+  const handlePrintProductLabels = (order: OrderResponse) => {
+    if (order.orderItems.length === 1) {
+      const item = order.orderItems[0];
+      console.log("log do order que ta sendo recebido",order)
+      setSelectedProduct({
+        productcode: item.productCode,
+        productname: item.productName,
+        productbrand: item.productBrand,
+        productlocation: item.location,
+        quantity: item.quantity,
+      });
+      setDocumentType("label_70x30");
+      setShowDocumentViewer(true);
+      //console.log("log de order dentro do component => ",order)
+      return;
+    }
+    Swal.fire({
+      title: "Selecione o produto",
+      html: `
+        <select id="product-select" class="swal2-input">
+          ${order.orderItems.map((item, idx) => 
+            `<option value="${idx}">${item.productCode} - ${item.productName} (${item.quantity}x)</option>`
+          ).join('')}
+        </select>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Imprimir Etiqueta",
+      preConfirm: () => {
+        const select = document.getElementById("product-select") as HTMLSelectElement;
+        return parseInt(select.value);
+      }
+    }).then((result) => {
+      if (result.isConfirmed && result.value !== undefined) {
+        const item = order.orderItems[result.value];
+        console.log("log de recebimento",item)
+        setSelectedProduct({
+          productcode: item.productCode,
+          productname: item.productName,
+          productbrand: item.productBrand,
+          productlocation: item.location,
+          quantity: item.quantity,
+        });
+        console.log(item)
+        setDocumentType("label_70x30");
+        setShowDocumentViewer(true);
+      }
+    });
+  };
+
+  const handlePrintOrderLabel = (order: OrderResponse) => {
+    setSelectedProduct({
+      orderNumber: order.orderNumber,
+      customerName: order.customer.name,
+      customerPhone: order.customer.phone,
+      shippingAddress: `${order.shipping?.street}, ${order.shipping?.number}`,
+      shippingCity: order.shipping?.city,
+      shippingZip: order.shipping?.zip,
+      totalItems: order.orderItems.length,
+      totalVolumes: order.totalVolumes || order.orderItems.length,
+      totalWeight: order.totalWeight,
+      orderDate: order.orderDate,
+    });
+    setDocumentType("label_100x100");
+    setShowDocumentViewer(true);
   };
 
   // Menu de ação
@@ -325,12 +400,13 @@ export default function OrderList() {
         case "in_progress":
           return [
             { label: "Ver PDF", action: () => setSelectedOrder(order) },
+            { label: "Imprimir Etiquetas", action: () => handlePrintProductLabels(order) },
             { label: "Realizar Conferência", action: () => handleConferencia(order) }
           ];
         case "shipped":
           return [
             { label: "Ver PDF", action: () => setSelectedOrder(order) },
-            { label: "Gerar Etiqueta", action: () => handlePrintLabel(order) }
+            { label: "Gerar Etiqueta", action: () => handlePrintOrderLabel(order) }
           ];
         default:
           return [{ label: "Ver PDF", action: () => setSelectedOrder(order) }];
@@ -353,18 +429,24 @@ export default function OrderList() {
           leaveTo="transform opacity-0 scale-95"
         >
           <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right bg-white border border-gray-200 divide-y divide-gray-100 rounded-md shadow-lg focus:outline-none z-50">
-            {options().map((option, idx) => (
-              <Menu.Item key={idx}>
-                {({ active }: any) => (
-                  <button
-                    onClick={option.action}
-                    className={`${active ? "bg-gray-100" : ""} group flex w-full items-center px-4 py-2 text-sm text-gray-700 transition`}
-                  >
-                    {option.label}
-                  </button>
-                )}
-              </Menu.Item>
-            ))}
+            {options()
+              .filter(
+                (option) =>
+                  !["Iniciar Separação", "Gerar Etiqueta", "Realizar Conferência"].includes(option.label) ||
+                  (user?.role !== "Vendedor" && user?.sector !== "Comercial")
+              )
+              .map((option, idx) => (
+                <Menu.Item key={idx}>
+                  {({ active }: any) => (
+                    <button
+                      onClick={option.action}
+                      className={`${active ? "bg-gray-100" : ""} group flex w-full items-center px-4 py-2 text-sm text-gray-700 transition`}
+                    >
+                      {option.label}
+                    </button>
+                  )}
+                </Menu.Item>
+              ))}
           </Menu.Items>
         </Transition>
       </Menu>
@@ -383,6 +465,20 @@ export default function OrderList() {
         </button>
         <OrderPDF order={selectedOrder} onDownloadComplete={() => setSelectedOrder(null)} />
       </div>
+    );
+  }
+
+  // Renderiza o DocumentViewer para etiquetas
+  if (showDocumentViewer) {
+    return (
+      <DocumentViewer
+        product={selectedProduct}
+        documentType={documentType}
+        onClose={() => {
+          setShowDocumentViewer(false);
+          setSelectedProduct(null);
+        }}
+      />
     );
   }
 

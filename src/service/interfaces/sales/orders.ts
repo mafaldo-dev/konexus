@@ -65,6 +65,7 @@ export interface OrderItemResponse {
   productId: number;
   productName: string;
   productCode: string;
+  productBrand: string
   quantity: number;
   unitPrice: number;
   location?: string;

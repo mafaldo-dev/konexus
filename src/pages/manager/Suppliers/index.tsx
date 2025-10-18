@@ -212,7 +212,7 @@ const SearchSuppliers = () => {
                                                         <td className="px-4 py-2 text-xs text-gray-700 max-w-xs truncate">{supplier.trading_name}</td>
                                                         <td className="px-4 py-2 text-sm text-gray-700">{supplier.phone}</td>
                                                         <td className="px-4 py-2 text-sm text-gray-700">{supplier.email}</td>
-                                                        <td className="px-4 py-2 text-xs bg-gray-100 text-gray-700 rounded font-medium">{supplier.cnpj}</td>
+                                                        <td className="px-4 py-2 text-xs bg-gray-100 text-gray-700 rounded font-medium">{supplier.national_register_code}</td>
                                                         <td className="px-4 py-2">
                                                             <div className="flex items-center gap-1 text-gray-600">
                                                                 <CircleCheck className={`w-3 h-3 ${supplier.active? "text-white bg-green-500" : "bg-red-500 text-white"} rounded-xl text-white `}/>
@@ -279,10 +279,10 @@ const SearchSuppliers = () => {
             {openEdit && (
                 <>
                     <div className="fixed inset-0 bg-black/50 z-40" />
-                    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-lg w-full max-w-[90vw] z-50 max-h-[90vh] overflow-y-auto">
+                    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-transparent rounded-lg shadow-lg w-full max-w-[100vw] z-50 h-full h-[100vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="relative mb-6">
-                                <h2 className="text-2xl font-semibold mb-2">Editar Fornecedor</h2>
+                                <h2 className="text-2xl font-semibold mb-2"></h2>
                                 <button
                                     onClick={handleCloseEditModal}
                                     className="cursor-pointer absolute top-0 right-0 text-gray-500 hover:text-gray-700 text-2xl"

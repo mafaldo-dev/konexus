@@ -1,17 +1,17 @@
-// No seu arquivo de interfaces
+
 export interface PurchaseOrder {
   id?: string | any;
   orderNumber: string;
-  supplierId: string; // MUDANÇA CRÍTICA: backend espera supplierId, não supplier object
+  supplierId: string; 
   orderDate: string;
-  deliveryDate?: string  | Date | any// Opcional no backend
+  deliveryDate?: string  | Date | any
   orderStatus: 'pending' | 'approved' | 'in_progress' | 'canceled' | 'received';
   totalCost: number;
   currency: string;
   notes?: string;
   companyId?: string;
   invoiceNumber?:number
-  orderItems: { // MUDANÇA CRÍTICA: backend espera orderItems, não products
+  orderItems: {
     productid: string;
     quantity: number;
     cost: number;
@@ -19,7 +19,6 @@ export interface PurchaseOrder {
     productcode?: string
     productlocation?:string
   }[];
-  // Campos opcionais para UI
   supplier?: {
     id: string;
     name: string;

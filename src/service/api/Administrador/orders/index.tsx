@@ -88,20 +88,16 @@ export const insertOrder = async (order: Order, token?: string): Promise<any> =>
       ...order,
       orderStatus: order.orderStatus || 'pending'
     };
-    console.log("Order data que ta na chamada da api =>", orderData);
+
 
     const response = await apiRequest("orders/create", "POST", orderData, token);
-    console.log("Response da API completa => ", response);
-    
-    // CORREÇÃO: Verificar a estrutura correta da resposta
+
     if (!response) {
       console.error("Erro ao criar pedido: resposta inválida");
       return null;
     }
     
-    // A resposta vem como { Info: "...", order: { ... } }
     if (response.order && response.order.id) {
-      console.log("✅ Pedido criado com ID:", response.order.id);
       return response;
     } else {
       console.warn("⚠️ API retornou sucesso mas order está incompleta:", response);
@@ -142,6 +138,7 @@ export const handleAllOrders = async (token?: string): Promise<OrderResponse[]> 
 export const getOrderById = async (orderId: string | number, token?: string): Promise<Order | null> => {
   try {
     const response = await apiRequest(`orders/${orderId}`, "GET", undefined, token);
+    console.log("response direto",response)
     if (!response || !response.order) return null;
     return response.order;
   } catch (error) {

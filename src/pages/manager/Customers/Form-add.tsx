@@ -47,7 +47,7 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
     return (
         <form
             onSubmit={handleSubmit(onSubmit)}
-            className="w-[900px] mx-auto p-8 bg-white shadow-lg rounded-lg space-y-6"
+            className="w-full mx-auto p-8 bg-white shadow-lg rounded-lg space-y-6"
         >
             <h2 className="text-3xl font-bold text-gray-700 flex items-center gap-3 mb-6">
                 <PackagePlus size={30} /> Cadastro de Clientes

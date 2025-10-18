@@ -1,7 +1,12 @@
-// purchaseApi.ts
+
 import Swal from "sweetalert2";
 import { apiRequest } from "../../api";
 import { PurchaseOrder } from "../../../interfaces/sales/purchaseRequest";
+
+export interface UpdateOrderStatusPayload {
+  orderStatus: string;
+  notes?: string | null;
+}
 
 
 /**
@@ -44,27 +49,47 @@ export const purchaseAllOrders = async (token?: string): Promise<PurchaseOrder[]
   }
 };
 
-export const getOrderById = async (orderNumber: string, token?: string): Promise<PurchaseOrder | null> => {
+export const updatePurchaseOrder = async (
+  orderId: number, 
+  payload: UpdateOrderStatusPayload
+): Promise<{ message: string; order: PurchaseOrder }> => {
   const tkn = localStorage.getItem("token");
   
+  console.log('📡 updatePurchaseOrder chamada:', { orderId, payload });
+  
+  const response = await apiRequest<{ message: string; order: PurchaseOrder }>(
+    `purchase/${orderId}`,
+    'PUT',                   
+    payload,                 
+    tkn as string                
+  );
+  
+  console.log('✅ Resposta recebida:', response);
+  return response!;
+};
+
+export const getOrderById = async (orderNumber: any): Promise<PurchaseOrder | null> => {
+  const tkn = localStorage.getItem("token");
+
   try {
     const response = await apiRequest(`purchase/${orderNumber}`, "GET", undefined, tkn as string);
     
-    console.log("📦 [API] Response completo:", response);
-    
-    // ✅ A API retorna o objeto DIRETO, não dentro de .order
     if (!response || !response.id) {
       console.warn("⚠️ [API] Resposta inválida - sem ID");
       return null;
     }
-    
-    console.log("✅ [API] Pedido encontrado:", response.orderNumber);
-    
-    // ✅ Retorna response direto (ele JÁ É o PurchaseOrder)
+
     return response;
-    
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ [API] Erro ao buscar pedido:", error);
+    
+    Swal.fire({
+      title: "Pedido não encontrado",
+      text: "O pedido solicitado não existe ou foi removido.",
+      icon: "warning",
+      confirmButtonColor: "#1e293b"
+    });
+
     return null;
   }
 };
