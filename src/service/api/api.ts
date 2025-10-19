@@ -30,7 +30,7 @@ export const apiRequest = async <T = any>(
       headers,
     };
 
-    if (body && (method === 'POST' || method === 'PUT')) {
+    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
       options.body = JSON.stringify(body);
     }
 

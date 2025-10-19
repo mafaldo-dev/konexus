@@ -132,6 +132,31 @@ const UpdatedCustomer = ({ customer, onClose }: Props) => {
                                 />
                                 {errors.address?.zip && <p className="text-sm text-red-500 mt-1">CEP é obrigatório</p>}
                             </div>
+                            <div>
+                                <div>
+                                    <label>
+                                        <input
+                                            {...register("status")}
+                                            className="accent-blue-600 mr-2"
+                                            type="radio"
+                                            value="Ativo"
+                                        />
+                                        Ativo
+                                    </label>
+                                </div>
+
+                                <div>
+                                    <label>
+                                        <input
+                                            {...register("status")}
+                                            className="accent-blue-600 mr-2"
+                                            type="radio"
+                                            value="Inativo"
+                                        />
+                                        Inativo
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

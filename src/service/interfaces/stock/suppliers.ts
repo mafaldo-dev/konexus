@@ -8,5 +8,5 @@ export interface Supplier {
   phone: string
   createdAt: string | Date
   updatedAt?: string | Date
-  active: boolean
+  active: boolean | string
 }

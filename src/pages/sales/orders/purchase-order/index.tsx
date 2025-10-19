@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../../../AuthContext";
 
 import { Search, Plus, Eye, Package, TrendingUp, Clock, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-import OrderPDF from "../conferency/OrderPDF";
+
 import { format, isValid } from "date-fns";
 
 import Dashboard from "../../../../components/dashboard/Dashboard";
 import { handleAllOrders, handleCancelOrder } from "../../../../service/api/Administrador/orders";
 import { OrderResponse } from "../../../../service/interfaces";
 import Swal from "sweetalert2";
+import DocumentViewer from "../../../../utils/screenOptions";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -18,9 +20,11 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-  
-  const navigate = useNavigate()
+  const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
 
+  const { company } = useAuth()
+
+  const navigate = useNavigate()
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
@@ -35,7 +39,6 @@ export default function OrdersPage() {
     }
   };
 
-  // Mapear status da API para legível
   const mapStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
       pending: "Pendente",
@@ -53,8 +56,7 @@ export default function OrdersPage() {
     try {
       setIsLoading(true);
       const fetchedOrders = await handleAllOrders();
-      
-      // Mapeia diretamente para OrderResponse
+      console.log("log fetched",fetchedOrders)
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
         id: order.id,
         orderDate: order.orderDate,
@@ -64,6 +66,8 @@ export default function OrdersPage() {
         currency: order.currency || "BRL",
         salesperson: order.salesperson,
         notes: order.notes || "",
+        carrier: order.carrier,
+        companyCnpj: company?.cnpj ||order.companyCnpj,
         customer: {
           id: order.customer?.id || 0,
           name: order.customer?.name || "",
@@ -110,7 +114,7 @@ export default function OrdersPage() {
 
       setOrders(mappedOrders);
       setFilteredOrders(mappedOrders);
-      setCurrentPage(1); // Reset para primeira página quando carregar novos dados
+      setCurrentPage(1);
     } catch (error) {
       console.error("Erro ao recuperar orders", error);
       alert("Erro ao recuperar os pedidos de venda!");
@@ -189,14 +193,14 @@ export default function OrdersPage() {
     return pages;
   };
 
-    const handleEditOrder = (order: OrderResponse) => {
-      if (order.orderStatus === "Pendente" || order.orderStatus === "Estornado") {
-        // Use navigate do react-router-dom em vez de window.location
-        navigate(`/sales/orders/edit/${order.id}`);
-      } else {
-        alert("Este pedido não pode ser editado. Apenas pedidos com status 'Pendente' ou 'Estornado' podem ser modificados.");
-      }
-    };
+  const handleEditOrder = (order: OrderResponse) => {
+    if (order.orderStatus === "Pendente" || order.orderStatus === "Estornado") {
+      // Use navigate do react-router-dom em vez de window.location
+      navigate(`/sales/orders/edit/${order.id}`);
+    } else {
+      alert("Este pedido não pode ser editado. Apenas pedidos com status 'Pendente' ou 'Estornado' podem ser modificados.");
+    }
+  };
 
   // Função para visualizar PDF
   const handleViewPDF = (order: OrderResponse) => {
@@ -210,43 +214,43 @@ export default function OrdersPage() {
   };
 
 
-const handleCancelOrderClick = async (order: OrderResponse) => {
-  const result = await Swal.fire({
-    title: `Cancelar pedido ${order.orderNumber}?`,
-    text: "Essa ação irá cancelar o pedido e reverter o estoque!",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    confirmButtonText: "Sim, cancelar",
-    cancelButtonText: "Não"
-  });
-
-  if (!result.isConfirmed) return;
-
-  try {
-    setIsLoading(true);
-    const response = await handleCancelOrder(order.id);
-
-    await Swal.fire({
-      title: "Sucesso!",
-      text: response.message || "Pedido cancelado com sucesso!",
-      icon: "success",
-      confirmButtonText: "OK"
+  const handleCancelOrderClick = async (order: OrderResponse) => {
+    const result = await Swal.fire({
+      title: `Cancelar pedido ${order.orderNumber}?`,
+      text: "Essa ação irá cancelar o pedido e reverter o estoque!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sim, cancelar",
+      cancelButtonText: "Não"
     });
 
-    await loadOrders(); // recarrega lista
-  } catch (error: any) {
-    await Swal.fire({
-      title: "Erro!",
-      text: error.message || "Erro ao cancelar o pedido!",
-      icon: "error",
-      confirmButtonText: "OK"
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+    if (!result.isConfirmed) return;
+
+    try {
+      setIsLoading(true);
+      const response = await handleCancelOrder(order.id);
+
+      await Swal.fire({
+        title: "Sucesso!",
+        text: response.message || "Pedido cancelado com sucesso!",
+        icon: "success",
+        confirmButtonText: "OK"
+      });
+
+      await loadOrders(); // recarrega lista
+    } catch (error: any) {
+      await Swal.fire({
+        title: "Erro!",
+        text: error.message || "Erro ao cancelar o pedido!",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   // Cores dos status
@@ -263,19 +267,16 @@ const handleCancelOrderClick = async (order: OrderResponse) => {
   const totalValue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
   const pendingOrders = orders.filter((order) => order.orderStatus === "Pendente").length;
 
-  // Renderiza PDF
-  if (selectedOrder) {
+  if (selectedOrder && documentType === "separation_list") {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <button
-          onClick={() => setSelectedOrder(null)}
-          className="text-slate-700 hover:text-slate-900 mb-4 font-medium transition-colors"
-          type="button"
-        >
-          ← Voltar para Lista
-        </button>
-        <OrderPDF order={selectedOrder} onDownloadComplete={() => { }} />
-      </div>
+      <DocumentViewer
+        order={selectedOrder}
+        documentType="separation_list"
+        onClose={() => {
+          setSelectedOrder(null);
+          setDocumentType("separation_list");
+        }}
+      />
     );
   }
 
@@ -556,8 +557,8 @@ const handleCancelOrderClick = async (order: OrderResponse) => {
                           key={page}
                           onClick={() => goToPage(page)}
                           className={`min-w-10 h-10 rounded-lg border font-medium transition-colors ${currentPage === page
-                              ? 'bg-slate-800 text-white border-slate-800'
-                              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                            ? 'bg-slate-800 text-white border-slate-800'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-100'
                             }`}
                           type="button"
                         >

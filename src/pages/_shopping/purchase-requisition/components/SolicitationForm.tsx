@@ -11,15 +11,13 @@ interface Props {
 }
 
 export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoading }: Props) {
-  // Estados do pedido
   const [supplierId, setSupplierId] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
   const [currency, setCurrency] = useState("BRL");
   const [notes, setNotes] = useState("");
-  const [buyer, setBuyer] = useState(""); // ✅ Adicionei o campo buyer
+  const [buyer, setBuyer] = useState("");
 
-  // Hook de gerenciamento de produtos
   const {
     orderItems,
     productCode,
@@ -38,28 +36,26 @@ export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoa
     clearOrder,
   } = usePurchaseOrder();
 
-  // ======== Enviar pedido =========
   const handleSubmit = async () => {
     if (!supplierId || orderItems.length === 0 || !buyer) {
       Swal.fire("Atenção!", "Preencha fornecedor, produtos e comprador.", "info");
       return;
     }
 
-    // ✅ Estrutura EXATA que o backend espera
     const payload = {
       orderNumber,
       supplierId,
       orderItems: orderItems.map(item => ({
-        productId: item.productId,     // ✅ ID do produto (número)
-        quantity: item.quantity,       // ✅ Quantidade (número)
-        coast: item.coast              // ✅ Custo unitário (número)
+        productId: item.productId,    
+        quantity: item.quantity,       
+        coast: item.coast              
       })),
-      totalCost: calculateTotal(),     // ✅ Total calculado
-      currency,                        // ✅ Moeda
-      notes,                           // ✅ Observações
-      orderDate: `${orderDate} 00:00:00`, // ✅ Data no formato esperado
-      orderStatus: "pending",          // ✅ Status padrão
-      buyer                            // ✅ Nome do comprador
+      totalCost: calculateTotal(),     
+      currency,                        
+      notes,                           
+      orderDate: `${orderDate} 00:00:00`,
+      orderStatus: "pending",          
+      buyer                            
     };
 
     console.log("📤 Payload enviado:", payload);
@@ -69,12 +65,11 @@ export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoa
       console.log("Log do result",result)
       Swal.fire("Sucesso!", "Pedido criado com sucesso!", "success");
       
-      // Limpar formulário
       clearOrder();
       setOrderNumber("");
       setNotes("");
       setSupplierId("");
-      setBuyer(""); // ✅ Limpar buyer também
+      setBuyer(""); 
     } catch (err) {
       console.error("❌ Erro ao criar pedido:", err);
       Swal.fire("Erro!", "Falha ao criar pedido.", "error");

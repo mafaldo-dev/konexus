@@ -2,6 +2,7 @@
 import Swal from "sweetalert2";
 import { apiRequest } from "../../api";
 import { PurchaseOrder } from "../../../interfaces/sales/purchaseRequest";
+import { OrderResponse } from "../../../interfaces";
 
 export interface UpdateOrderStatusPayload {
   orderStatus: string;
@@ -55,31 +56,27 @@ export const updatePurchaseOrder = async (
 ): Promise<{ message: string; order: PurchaseOrder }> => {
   const tkn = localStorage.getItem("token");
   
-  console.log('📡 updatePurchaseOrder chamada:', { orderId, payload });
-  
   const response = await apiRequest<{ message: string; order: PurchaseOrder }>(
     `purchase/${orderId}`,
     'PUT',                   
     payload,                 
     tkn as string                
   );
-  
-  console.log('✅ Resposta recebida:', response);
+
   return response!;
 };
 
-export const getOrderById = async (orderNumber: any): Promise<PurchaseOrder | null> => {
+export const getOrderById = async (orderNumber: any): Promise<OrderResponse | any> => {
   const tkn = localStorage.getItem("token");
 
   try {
     const response = await apiRequest(`purchase/${orderNumber}`, "GET", undefined, tkn as string);
-    
     if (!response || !response.id) {
       console.warn("⚠️ [API] Resposta inválida - sem ID");
       return null;
     }
 
-    return response;
+    return response
   } catch (error: any) {
     console.error("❌ [API] Erro ao buscar pedido:", error);
     

@@ -9,10 +9,16 @@ export type AccessType = "Full-access" | "Normal";
 export interface CompanyInfo {
   id: number;
   name: string;
-  logo: string | null;
-  logoUrl?: string | null;
   cnpj?: string
+  address?: {
+    state: string
+    city: string
+    number: number
+  }
   email?: string
+  phone?: string
+  companyIcon: string | null;
+  logoUrl?: string | null;
 }
 
 export interface UserInfo {
@@ -59,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const userData = JSON.parse(storedUser);
           setUser(userData);
-          
+
           if (storedCompany) {
             const companyData = JSON.parse(storedCompany);
             setCompany(companyData);
@@ -106,33 +112,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             designation: adminResponse.user.sector || "Administrador",
             sector: adminResponse.user.sector || "Administrador",
             companyId: adminResponse.user.companyId
-            
+
           };
-          
-          // ✅ EXTRAIR DADOS DA EMPRESA DO RESPONSE
+
           if (adminResponse.user.companyName) {
             companyData = {
               id: adminResponse.user.companyId,
               name: adminResponse.user.companyName,
-              logo: adminResponse.user.companyLogo,
-        
-              logoUrl: adminResponse.user.companyLogo 
-                ? `data:image/png;base64,${adminResponse.user.companyLogo}` 
-                : null,
+              email: adminResponse.user.companyEmail,
+              phone: adminResponse.user.companyPhone,
+              companyIcon: adminResponse.user.companyIcon || "S/L",
+              cnpj: adminResponse.user.companyCnpj || ""
             };
           }
-          
+
           token = adminResponse.token;
         }
       } catch (adminError: any) {
         if (adminError.message?.includes("404") || adminError.message?.includes("não encontrado")) {
-          // Silencia erro
+
         } else {
-          // Silencia erro
+
         }
       }
 
-      // 🔹 Se não for admin, tenta Employee - COM TRATAMENTO SILENCIOSO
       if (!userData) {
         try {
           const employeeResponse = await handleLoginEmployee(username, password);
@@ -148,44 +151,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               sector: employeeResponse.user.sector || "Geral",
               companyId: employeeResponse.user.companyId
             };
-            
-            // ✅ EXTRAIR DADOS DA EMPRESA DO RESPONSE
+
             if (employeeResponse.user.companyName) {
               companyData = {
                 id: employeeResponse.user.companyId,
                 name: employeeResponse.user.companyName,
-                logo: employeeResponse.user.companyLogo,
-                logoUrl: employeeResponse.user.companyLogo 
-                  ? `data:image/png;base64,${employeeResponse.user.companyLogo}` 
-                  : null,
+                email: employeeResponse.user.companyEmail,
+                phone: employeeResponse.user.companyPhone,
+                companyIcon: employeeResponse.user.companyIcon || "S/L",
+                cnpj: employeeResponse.user.companyCnpj
               };
             }
-            
+
             token = employeeResponse.token;
           }
         } catch (employeeError: any) {
           if (employeeError.message?.includes("404") || employeeError.message?.includes("não encontrado")) {
-            // Silencia erro
+
           } else {
-            // Silencia erro
+
           }
         }
       }
-
-      // 🔹 Se não conseguiu logar em nenhum
       if (!userData || !token) {
         await Swal.fire("Erro", "Usuário ou senha inválidos", "error");
         return;
       }
 
-      // 🔹 Salva no estado e localStorage
       setUser(userData);
       setCompany(companyData);
       localStorage.setItem("userData", JSON.stringify(userData));
       localStorage.setItem("companyData", JSON.stringify(companyData));
       localStorage.setItem("token", token);
 
-      // 🔹 Navegação baseada no SECTOR
       const userSector = userData.sector;
       const sectorRouteMap: Record<string, string> = {
         "Administrador": "/dashboard",
@@ -202,7 +200,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       console.error("❌ Erro inesperado no login:", error);
 
-      // Limpa dados em caso de erro inesperado
       localStorage.removeItem("userData");
       localStorage.removeItem("companyData");
       localStorage.removeItem("token");
@@ -215,7 +212,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (user?.id) {
         const token = localStorage.getItem("token");
-        await apiRequest(`employees/${user.id}/status`, "PUT", { status: 'Inativo' }, 
+        await apiRequest(`employees/${user.id}/status`, "PUT", { status: 'Inativo' },
           token as string);
       }
     } catch (error) {

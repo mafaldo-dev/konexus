@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
 import { deleteSupplier, handleAllSuppliers } from '../../../service/api/Administrador/suppliers/supplier'
 import { Supplier } from '../../../service/interfaces'
-
 import Dashboard from '../../../components/dashboard/Dashboard'
 import FormAdd from './Form-add'
-
 import EditModal from './modal-edit'
-import { DeleteIcon, Edit, Filter, CircleCheck, Search } from 'lucide-react'
-
+import { DynamicTable } from '../Table/DynamicTable' // Ajuste o caminho
+import { DeleteIcon, Edit, Filter, DotIcon} from 'lucide-react'
 import { useAuth } from '../../../AuthContext'
 import Swal from 'sweetalert2'
 
@@ -34,12 +32,12 @@ const SearchSuppliers = () => {
     }
 
     const filteredSupplier = suppliers.filter(sup => {
-        const nameMatch = !filters.name || 
+        const nameMatch = !filters.name ||
             sup.name.toLowerCase().includes(filters.name.toLowerCase())
-        
-        const codeMatch = !filters.code || 
+
+        const codeMatch = !filters.code ||
             String(sup.code || "").toLowerCase().includes(filters.code.toLowerCase())
-        
+
         return nameMatch && codeMatch
     })
 
@@ -85,6 +83,89 @@ const SearchSuppliers = () => {
 
     const hasActiveFilters = filters.name !== "" || filters.code !== ""
 
+    // ============================================
+    // DEFINIÇÃO DAS COLUNAS DA TABELA
+    // ============================================
+    const columns = [
+        {
+            key: 'code',
+            header: 'Código',
+            render: (supplier: Supplier) => (
+                <span className="font-mono text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">
+                    {supplier.code}
+                </span>
+            ),
+        },
+        {
+            key: 'name',
+            header: 'Nome',
+            className: "px-4 py-2 font-semibold text-sm text-gray-900",
+        },
+        {
+            key: 'trading_name',
+            header: 'Nome fantasia',
+            className: "px-4 py-2 text-xs text-gray-700 max-w-xs truncate",
+        },
+        {
+            key: 'phone',
+            header: 'Telefone',
+            className: "px-4 py-2 text-sm text-gray-700",
+        },
+        {
+            key: 'email',
+            header: 'E-mail',
+            className: "px-4 py-2 text-sm text-gray-700",
+        },
+        {
+            key: 'national_register_code',
+            header: 'CNPJ',
+            className: "px-4 py-2 text-xs bg-gray-100 text-gray-700 rounded font-medium",
+        },
+        {
+              key: 'active',
+              header: 'Status',
+              render: (supplier: Supplier) => (
+                <span className="text-sm text-gray-600 flex items-center">
+                  <DotIcon
+                    className={`h-10 w-10 ${supplier.active === false ? "text-red-600" : "text-green-600"
+                      }`}
+                  />
+                  {supplier.active ? "Ativo" : "Inativo"}
+                </span>
+              )
+            },
+        {
+            key: 'actions',
+            header: 'Ações',
+            render: (supplier: any) => (
+                user?.role === "Administrador" ? (
+                    <div className="flex gap-2">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation(); 
+                                handleEditSupplier(supplier);
+                            }}
+                            className="p-1 hover:scale-110 transition-transform"
+                        >
+                            <Edit className="h-4 text-green-500" />
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                //handleDeleteSupplier(supplier.id);
+                            }}
+                            className="p-1 hover:scale-110 transition-transform"
+                            disabled
+                            title='Desativado'
+                        >
+                            <DeleteIcon className="h-4 text-gray-500 hover:text-black" />
+                        </button>
+                    </div>
+                ) : null
+            ),
+        },
+    ]
+
     return (
         <Dashboard>
             <div className="w-full flex flex-col items-center m-auto p-4">
@@ -95,21 +176,20 @@ const SearchSuppliers = () => {
                         <div className="mb-8 flex justify-between items-center">
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestão de Fornecedores</h1>
                         </div>
-                        
+
                         {/* Filtros */}
                         <div className="bg-white rounded-lg w-full shadow-sm border border-gray-200 p-6 mb-6">
                             <div className="flex flex-wrap items-center justify-between gap-4">
                                 <div className="flex items-center gap-4">
                                     <button
                                         onClick={() => setShowFilters(!showFilters)}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                                            showFilters ? "bg-slate-800 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                        }`}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${showFilters ? "bg-slate-800 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                            }`}
                                     >
                                         <Filter className="w-4 h-4" />
                                         Filtros
                                     </button>
-                                    
+
                                     {(user?.role === "Administrador" || user?.role === "Gestor" || user?.role === "Gerente") && (
                                         <button
                                             onClick={() => setOpenRegister(true)}
@@ -118,7 +198,7 @@ const SearchSuppliers = () => {
                                             +
                                         </button>
                                     )}
-                                    
+
                                     {hasActiveFilters && (
                                         <button
                                             onClick={clearFilters}
@@ -128,7 +208,7 @@ const SearchSuppliers = () => {
                                         </button>
                                     )}
                                 </div>
-                                
+
                                 <div className="flex items-center gap-4">
                                     <div className="text-sm text-gray-600">
                                         <span className="font-medium">{filteredSupplier.length}</span> de{" "}
@@ -167,84 +247,14 @@ const SearchSuppliers = () => {
                             )}
                         </div>
 
-                        {/* Tabela */}
-                        <div className="bg-white w-[1300px] rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 400px)", minHeight: "500px" }}>
-                            <div className="overflow-x-auto h-full">
-                                <div className='overflow-y-auto h-full'>
-                                    <table className="w-full">
-                                        <thead className="bg-slate-800 text-white sticky top-0">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Código</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Nome</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Nome fantasia</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Telefone</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">E-mail</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">CNPJ</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Status</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"></th>
-                                            </tr>
-                                        </thead>
-                                        
-                                        <tbody>
-                                            {filteredSupplier.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
-                                                        <div className="flex flex-col items-center gap-2">
-                                                            <Search className="w-8 h-8 text-gray-400" />
-                                                            <p className="font-medium">Nenhum Fornecedor encontrado</p>
-                                                            <p className="text-sm">Tente ajustar os filtros de busca</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ) : (
-                                                filteredSupplier.map(supplier => (
-                                                    <tr
-                                                        key={supplier.id}
-                                                        className="border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50"
-                                                        style={{ userSelect: "none" }}
-                                                    >
-                                                        <td className="px-4 py-2">
-                                                            <span className="font-mono text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">
-                                                                {supplier.code}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-2 font-semibold text-sm text-gray-900">{supplier.name}</td>
-                                                        <td className="px-4 py-2 text-xs text-gray-700 max-w-xs truncate">{supplier.trading_name}</td>
-                                                        <td className="px-4 py-2 text-sm text-gray-700">{supplier.phone}</td>
-                                                        <td className="px-4 py-2 text-sm text-gray-700">{supplier.email}</td>
-                                                        <td className="px-4 py-2 text-xs bg-gray-100 text-gray-700 rounded font-medium">{supplier.national_register_code}</td>
-                                                        <td className="px-4 py-2">
-                                                            <div className="flex items-center gap-1 text-gray-600">
-                                                                <CircleCheck className={`w-3 h-3 ${supplier.active? "text-white bg-green-500" : "bg-red-500 text-white"} rounded-xl text-white `}/>
-                                                                <span className={`text-xs ${supplier.active ? "text-blue-500" : "text-black" }`}>{supplier.active ? "Ativo" : "Desativado"}</span>
-                                                            </div>
-                                                        </td>
-                                                        <td>
-                                                            {user?.designation === "Administrador" && (
-                                                                <div className="flex gap-2">
-                                                                    <button 
-                                                                        onClick={() => handleEditSupplier(supplier)}
-                                                                        className="p-1 hover:scale-110 transition-transform"
-                                                                    >
-                                                                        <Edit className="h-4 text-green-500" />
-                                                                    </button>
-                                                                    <button 
-                                                                        onClick={() => handleDeleteSupplier(supplier.id)}
-                                                                        className="p-1 hover:scale-110 transition-transform"
-                                                                    >
-                                                                        <DeleteIcon className="h-4 text-red-500" />
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                        {/* TABELA DINÂMICA - SUBSTITUI TODO O HTML ANTIGO */}
+                        <DynamicTable
+                            data={filteredSupplier}
+                            columns={columns}
+                            loading={loading}
+                            emptyMessage="Nenhum Fornecedor encontrado"
+                            emptyDescription="Tente ajustar os filtros de busca"
+                        />
                     </div>
                 )}
             </div>

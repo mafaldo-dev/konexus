@@ -3,10 +3,11 @@ import invoiceEntries from '../../../service/api/Administrador/invoices';
 import Dashboard from '../../../components/dashboard/Dashboard';
 import SupplierSearchForm from './components/SupplierSearchForm';
 import { useEffect, useState } from 'react';
-import { InvoiceDataEntries, PurchaseOrder } from '../../../service/interfaces';
+import { InvoiceDataEntries, OrderResponse, PurchaseOrder } from '../../../service/interfaces';
 import { useOrderSearch } from '../../../hooks/_manager/useOrderPurchase';
 import InvoiceProductTable from './components/invoiceTable';
 import Swal from 'sweetalert2';
+import DocumentViewer from '../../../utils/screenOptions';
 
 
 const InvoiceEntries = () => {
@@ -15,6 +16,7 @@ const InvoiceEntries = () => {
 
     const [orderItems, setOrderItems] = useState<PurchaseOrder['orderItems']>([]);
 
+
     useEffect(() => {
         if (fetchedProducts && fetchedProducts.length > 0) {
             setOrderItems(fetchedProducts);
@@ -22,21 +24,6 @@ const InvoiceEntries = () => {
             console.warn("⚠️ [INVOICE] fetchedProducts está vazio ou null");
         }
     }, [fetchedProducts]);
-
-    const applyCnpjMask = (value: string) => {
-        return value.replace(/\D/g, '')
-            .replace(/(\d{2})(\d)/, '$1.$2')
-            .replace(/(\d{3})(\d)/, '$1.$2')
-            .replace(/(\d{3})(\d)/, '$1/$2')
-            .replace(/(\d{4})(\d{1,2})/, '$1-$2')
-            .slice(0, 18);
-    };
-
-    const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const maskedValue = applyCnpjMask(e.target.value);
-        e.target.value = maskedValue;
-        setValue("supplier.cnpj", maskedValue);
-    };
 
     const onSubmit: SubmitHandler<PurchaseOrder> = async (data) => {
         try {
@@ -48,7 +35,6 @@ const InvoiceEntries = () => {
                 Swal.fire("Erro", "ID do pedido não encontrado. Busque o pedido primeiro.", "error");
                 return;
             }
-            console.log("console log do data aqui =>", data)
 
             const invoiceData: InvoiceDataEntries = {
                 order_id: order?.id,
@@ -59,8 +45,7 @@ const InvoiceEntries = () => {
                 status: 'Pendente'
             };
 
-            await invoiceEntries(invoiceData);
-            console.log(invoiceData)
+            await invoiceEntries(invoiceData)
 
             Swal.fire("Sucesso!", "Nota fiscal salva com sucesso!", "success");
             reset()
@@ -74,8 +59,9 @@ const InvoiceEntries = () => {
         <Dashboard>
             <div className="max-w-6xl mx-auto p-6 bg-white shadow-xl rounded-2xl mt-10 space-y-10">
                 <h2 className="text-2xl text-center font-bold mb-12 text-gray-800">
-                    Entrada de Nota Fiscal Baseada em Pedido
+                    Lançamento de Notas fiscais
                 </h2>
+
                 <SupplierSearchForm
                     setValue={setValue}
                     orderByCode={orderByCode}

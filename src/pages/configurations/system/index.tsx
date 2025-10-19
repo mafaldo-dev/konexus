@@ -11,17 +11,11 @@ import Dashboard from '../../../components/dashboard/Dashboard';
 import { useSystemStatus, StatusMessageType } from '../../../SystemStatusContext';
 
 
-
-
-
 export default function SystemStatusDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const { messages, removeMessage } = useSystemStatus();
 
-
-
   useEffect(() => {
-    // Simula carregamento do painel
     setTimeout(() => setIsLoading(false), 1000);
   }, []);
 

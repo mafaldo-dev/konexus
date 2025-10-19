@@ -11,7 +11,7 @@ import ReportProblemChat from './ChatReport';
 import { version } from '../../../version';
 
 export default function Sidebar({ sidebarCollapsed }: any) {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const designation = user?.role || "";
   const username = user?.username || "Usuário";
   const userSector = designation;

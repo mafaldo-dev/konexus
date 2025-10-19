@@ -4,6 +4,7 @@ export interface Customer {
     phone: string;
     email: string;
     code: string
+    status?: string
     address: {
         id?:  string | number
         city: string;

@@ -15,7 +15,7 @@ const AdministrationScreen = () => {
 
   const [products, setProducts] = useState<Products[] | any>([])
   const [customer, setCustomer] = useState<Customer[] | any>([])
-  const [employee, setEmployee] = useState<Employee[]>([])
+  const [employee, setEmployee] = useState<Employee[] | any>([])
   const [role, setRole] = useState<Employee[] | any>([])
 
   const handleChangeRemembers = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,15 +33,15 @@ const AdministrationScreen = () => {
   useEffect(() => {
   const handleData = async () => {
     try {
-      const [ employes, designatio, custome, produc ] = await Promise.all([
+      const [ employes, designa, custome, produc ] = await Promise.all([
+        designation(),
         handleAllEmployee(),
-        handleAllProducts(),
         handleAllCustomers(),
-        designation()
+        handleAllProducts()
       ]);
-
+      
+      setRole(designa);
       setEmployee(employes);
-      setRole(designatio);
       setCustomer(custome)
       setProducts(produc)
       
@@ -49,7 +49,6 @@ const AdministrationScreen = () => {
       console.error("Erro ao carregar dados:", err);
     }
   };
-
   handleData();
 }, []);
 

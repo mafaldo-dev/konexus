@@ -20,6 +20,7 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
             const payload: Customer = {
                 ...data,
                 createdAt: new Date(),
+                status: 'Ativo'
             };
             await insertCustomer(payload);
             reset();

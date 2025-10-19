@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { Products } from "../../../service/interfaces";
 import { deleteProduct, handleAllProducts } from "../../../service/api/Administrador/products";
-
 import Dashboard from "../../../components/dashboard/Dashboard";
 import UpdadtedProduct from "./modal-edit";
 import FormAdd from "./Form-add";
-
+import { DynamicTable } from "../Table/DynamicTable";
 import { useAuth } from '../../../AuthContext'
-import { Filter, MapPin, Search, Edit, DeleteIcon } from "lucide-react";
+import { Filter, MapPin, Edit, DeleteIcon } from "lucide-react";
 import { handleAllSuppliers } from "../../../service/api/Administrador/suppliers/supplier";
 
 const SearchProducts = () => {
@@ -56,11 +55,6 @@ const SearchProducts = () => {
     return codeMatch && nameMatch && brandMatch && locationMatch;
   });
 
-  const handleSupplierId = async () => {
-    const response = await handleAllSuppliers()
-    setSupId(response)
-  }
-
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -75,9 +69,9 @@ const SearchProducts = () => {
       }
     };
     fetchProducts();
-    handleSupplierId()
   }, []);
 
+{/*
   const handleDeleteProduct = async (id: string) => {
     const confirmed = await deleteProduct(id)
 
@@ -86,6 +80,7 @@ const SearchProducts = () => {
       setItem(reload)
     }
   }
+*/}
 
   const handleEditProduct = (product: Products) => {
     setCurrentData(product)
@@ -98,8 +93,108 @@ const SearchProducts = () => {
     setItem(reload)
   }
 
-
   const hasActiveFilters = filters.code !== "" || filters.name !== "" || filters.brand !== "" || filters.location !== "";
+
+  // ============================================
+  // DEFINIÇÃO DAS COLUNAS DA TABELA
+  // ============================================
+  const columns = [
+    {
+      key: 'code',
+      header: 'Código',
+      render: (product: Products) => (
+        <span className="font-mono text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">
+          {product.code}
+        </span>
+      ),
+    },
+    {
+      key: 'name',
+      header: 'Nome',
+      className: "px-4 py-2 font-semibold text-sm text-gray-900",
+    },
+    {
+      key: 'description',
+      header: 'Descrição',
+      className: "px-4 py-2 text-xs text-gray-700 max-w-xs truncate",
+    },
+    {
+      key: 'brand',
+      header: 'Marca',
+      className: "px-4 py-2 text-sm text-gray-700",
+    },
+    {
+      key: 'supplier_id',
+      header: 'Fornecedor',
+      render: (product: any) => {
+        const supplier = supId?.find((sup: any) => sup.id === product.supplier_id);
+        return (
+          <span className="text-sm text-gray-700">
+            {supplier ? supplier.name : "Fornecedor não encontrado"}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'category',
+      header: 'Categoria',
+      className: "px-4 py-2 text-xs bg-gray-100 text-gray-700 rounded font-medium",
+    },
+    {
+      key: 'price',
+      header: 'Preço',
+      render: (product: Products) => (
+        <span className="font-bold text-sm text-slate-800">
+          R$ {product.price}
+        </span>
+      ),
+    },
+    {
+      key: 'stock',
+      header: 'Estoque',
+      className: "px-4 py-2 font-semibold text-sm text-gray-900",
+    },
+    {
+      key: 'location',
+      header: 'Localização',
+      render: (product: Products) => (
+        <div className="flex items-center gap-1 text-gray-600">
+          <MapPin className="w-3 h-3" />
+          <span className="text-xs">{product.location}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      render: (product: any) => (
+        user?.role === "Administrador" ? (
+          <div className="flex gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Previne o click da linha
+                handleEditProduct(product);
+              }}
+              className="p-1 hover:scale-110 transition-transform"
+            >
+              <Edit className="h-4 text-green-500" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+               // handleDeleteProduct(product.id);
+              }}
+              className="p-1 hover:scale-110 transition-transform"
+              disabled
+              title="Desativado"
+            >
+              <DeleteIcon className="h-4 text-gray-800" />
+            </button>
+          </div>
+        ) : null
+      ),
+    },
+  ];
 
   return (
     <Dashboard>
@@ -209,98 +304,14 @@ const SearchProducts = () => {
               )}
             </div>
 
-            {/* Tabela */}
-            <div className="bg-white w-[1300px] rounded-lg shadow-sm border border-gray-200 overflow-hidden" style={{ height: "calc(100vh - 400px)", minHeight: "500px" }}>
-              <div className="overflow-x-auto h-full">
-                <div className="overflow-y-auto h-full">
-                  <table className="w-full">
-                    <thead className="bg-slate-800 text-white sticky top-0">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Código</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Nome</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Descrição</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Marca</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Fornecedor</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Categoria</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Preço</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Estoque</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Localização</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Ações</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {filteredProducts.length === 0 ? (
-                        <tr>
-                          <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
-                            <div className="flex flex-col items-center gap-2">
-                              <Search className="w-8 h-8 text-gray-400" />
-                              <p className="font-medium">Nenhum produto encontrado</p>
-                              <p className="text-sm">Tente ajustar os filtros de busca</p>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredProducts.map((product: any) => {
-                          const supplier = supId?.find((sup: any) => sup.id === product.supplier_id);
-
-                          return (
-                            <tr
-                              key={product.id}
-                              className="border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50"
-                              style={{ userSelect: "none" }}
-                            >
-                              <td className="px-4 py-2">
-                                <span className="font-mono text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">
-                                  {product.code}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2 font-semibold text-sm text-gray-900">{product.name}</td>
-                              <td className="px-4 py-2 text-xs text-gray-700 max-w-xs truncate">{product.description}</td>
-                              <td className="px-4 py-2 text-sm text-gray-700">{product.brand}</td>
-
-                              {/* Fornecedor */}
-                              <td className="px-4 py-2 text-sm text-gray-700">
-                                {supplier ? supplier.name : "Fornecedor não encontrado"}
-                              </td>
-
-                              <td className="px-4 py-2 text-xs bg-gray-100 text-gray-700 rounded font-medium">{product.category}</td>
-                              <td className="px-4 py-2 font-bold text-sm text-slate-800">R$ {product.price}</td>
-                              <td className="px-4 py-2 font-semibold text-sm text-gray-900">{product.stock}</td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-1 text-gray-600">
-                                  <MapPin className="w-3 h-3" />
-                                  <span className="text-xs">{product.location}</span>
-                                </div>
-                              </td>
-                              <td>
-                                {user?.role === "Administrador" && (
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => handleEditProduct(product)}
-                                      className="p-1 hover:scale-110 transition-transform"
-                                    >
-                                      <Edit className="h-4 text-green-500" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteProduct(product.id)}
-                                      className="p-1 hover:scale-110 transition-transform"
-                                    >
-                                      <DeleteIcon className="h-4 text-red-500" />
-                                    </button>
-                                  </div>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-
-                  </table>
-                </div>
-              </div>
-            </div>
+            {/* TABELA DINÂMICA - SUBSTITUI TODO O HTML ANTIGO */}
+            <DynamicTable
+              data={filteredProducts}
+              columns={columns}
+              loading={loading}
+              emptyMessage="Nenhum produto encontrado"
+              emptyDescription="Tente ajustar os filtros de busca"
+            />
           </div>
         )}
       </div>

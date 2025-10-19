@@ -21,6 +21,7 @@ export interface Order {
   salesperson?: string;
   notes?: string;
   orderItems: OrderItem[];
+  carrier: string
 }
 
 
@@ -28,7 +29,7 @@ export interface Order {
 
 // Para RESPOSTA DA API (GET)
 export interface OrderResponse {
-  id: number;
+  id: number | any;
   orderDate: string;
   orderStatus: string;
   orderNumber: string;
@@ -36,13 +37,16 @@ export interface OrderResponse {
   currency: string;
   salesperson?: string;
   notes?: string;
+  carrier: string
+  companyCnpj: string
 
   customer: {
-    id: number;
+    id: number | any;
     name: string;
     code: string;
     phone?: string;
     email?: string;
+    status?: string
   };
 
   shipping?: Address;
@@ -52,15 +56,6 @@ export interface OrderResponse {
   totalVolumes?: number
   totalWeight?: number
 }
-
-export interface Address {
-  id?: number;
-  street?: string;
-  number?: number;
-  city?: string;
-  zip?: string;
-}
-
 export interface OrderItemResponse {
   productId: number;
   productName: string;
@@ -71,3 +66,13 @@ export interface OrderItemResponse {
   location?: string;
   subtotal: number;
 }
+
+export interface Address {
+  id?: number;
+  street?: string;
+  number?: number;
+  city?: string;
+  zip?: string;
+}
+
+

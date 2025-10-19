@@ -8,9 +8,8 @@ import { OrderResponse } from "../../../../service/interfaces";
 import { handleAllOrders, updateOrderStatus } from "../../../../service/api/Administrador/orders";
 
 import { motion } from "framer-motion";
-import { Truck, AlertCircle, MoreVertical } from "lucide-react";
+import { Truck, AlertCircle, MoreVertical, Package } from "lucide-react";
 import Dashboard from "../../../../components/dashboard/Dashboard";
-import OrderPDF from "../conferency/OrderPDF";
 import DocumentViewer from "../../../../utils/screenOptions";
 
 type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "cancelled" | "backout" | any;
@@ -20,11 +19,11 @@ export default function OrderList() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { user } = useAuth();
+  const { user, company } = useAuth();
 
   // Estados para controlar o DocumentViewer
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
-  const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100">("purchase_order");
+  const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const mapStatus = (status: string): string => {
@@ -54,6 +53,8 @@ export default function OrderList() {
         currency: order.currency || "BRL",
         salesperson: order.salesperson,
         notes: order.notes || "",
+        carrier: order.carrier,
+        companyCnpj: company?.cnpj || order.companyCnpj,
         totalVolumes: order.totalVolumes || order.total_volume || 0,
         totalWeight: order.totalWeight || order.total_weight || 0,
         customer: {
@@ -191,75 +192,6 @@ export default function OrderList() {
       }
     }
   };
-{/*
-  const handlePrintLabel = (order: OrderResponse) => {
-    const volumes = order.totalVolumes || order.orderItems.length;
-
-    Swal.fire({
-      title: `Etiqueta Pedido ${order.orderNumber}`,
-      html: `
-      <div style="
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 75vh;
-      ">
-        <div style="
-          width: 350px;
-          height: 350px;
-          padding: 4px;
-          box-shadow: 0 0 2px 2px rgba(0,0,0,0.9);
-          border-radius: 2px;
-          border: 1px solid #000;
-          background-color: #f0f4f8;
-          font-family: Arial, sans-serif;
-          color: black;
-          font-size: 12px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-evenly;
-        ">
-          <h4 style="margin: 0; font-size: 30px; font-weight: bold;">Pedido: ${order.orderNumber}</h4>
-          <p style="margin: 0; font-size: 20px; font-weight: bold;">Cliente: ${order.customer.name}</p>
-          <p style="margin: 0; font-size: 12px; font-weight: bold;">Endereço: ${order.shipping?.street}, ${order.shipping?.number} - ${order.shipping?.city}</p>
-          <p style="margin: 0; font-size: 20px; font-weight: bold;">Volumes: ${volumes}</p>
-          <p style="margin: 0; font-size: 20px; font-weight: bold;">NF: ___________</p>
-          <p style="margin: 0; font-size: 20px; font-weight: bold;">Transportadora: ___________</p>
-        </div>
-      </div>
-    `,
-      showCancelButton: true,
-      showConfirmButton: true,
-      confirmButtonText: 'Imprimir',
-      cancelButtonText: 'Fechar',
-      width: '100%',
-      heightAuto: true,
-      background: '#d1d5db',
-      customClass: { popup: 'swal2-fullscreen' },
-      didOpen: () => {
-        const printButton = document.querySelector('.swal2-confirm') as HTMLElement;
-        if (printButton) {
-          printButton.addEventListener('click', () => {
-            const printContent = document.querySelector('.swal2-html-container')?.innerHTML;
-            const printWindow = window.open("", "_blank", "width=200,height=200");
-            if (printWindow && printContent) {
-              printWindow.document.write(`
-              <html>
-                <head><title>Etiqueta Pedido ${order.orderNumber}</title></head>
-                <body>${printContent}</body>
-              </html>
-            `);
-              printWindow.document.close();
-              printWindow.focus();
-              printWindow.print();
-              printWindow.close();
-            }
-          });
-        }
-      }
-    });
-  };
-  */}
 
   const getOrdersByStatus = (status: OrderStatus) => orders.filter((order) => order.orderStatus === status);
 
@@ -320,61 +252,32 @@ export default function OrderList() {
     await updateOrderStatusInDb(orderId, status, extraData);
   };
 
-  // Função para imprimir etiquetas 70x30 (para produtos individuais)
-  const handlePrintProductLabels = (order: OrderResponse) => {
-    if (order.orderItems.length === 1) {
-      const item = order.orderItems[0];
-      console.log("log do order que ta sendo recebido",order)
-      setSelectedProduct({
-        productcode: item.productCode,
-        productname: item.productName,
-        productbrand: item.productBrand,
-        productlocation: item.location,
-        quantity: item.quantity,
-      });
-      setDocumentType("label_70x30");
-      setShowDocumentViewer(true);
-      //console.log("log de order dentro do component => ",order)
-      return;
-    }
-    Swal.fire({
-      title: "Selecione o produto",
-      html: `
-        <select id="product-select" class="swal2-input">
-          ${order.orderItems.map((item, idx) => 
-            `<option value="${idx}">${item.productCode} - ${item.productName} (${item.quantity}x)</option>`
-          ).join('')}
-        </select>
-      `,
-      showCancelButton: true,
-      confirmButtonText: "Imprimir Etiqueta",
-      preConfirm: () => {
-        const select = document.getElementById("product-select") as HTMLSelectElement;
-        return parseInt(select.value);
-      }
-    }).then((result) => {
-      if (result.isConfirmed && result.value !== undefined) {
-        const item = order.orderItems[result.value];
-        console.log("log de recebimento",item)
-        setSelectedProduct({
-          productcode: item.productCode,
-          productname: item.productName,
-          productbrand: item.productBrand,
-          productlocation: item.location,
-          quantity: item.quantity,
-        });
-        console.log(item)
-        setDocumentType("label_70x30");
-        setShowDocumentViewer(true);
-      }
-    });
+  // Função para imprimir etiquetas 70x30 
+ const handlePrintProductLabels = (order: OrderResponse) => {
+  console.log("log do order que ta sendo recebido", order);
+
+  const orderWithLowercase = {
+    ...order,
+    orderItems: order.orderItems.map(item => ({
+      productcode: item.productCode,
+      productname: item.productName,
+      productbrand: item.productBrand,
+      productlocation: item.location,
+      quantity: item.quantity,
+    }))
   };
+  
+  setSelectedProduct(orderWithLowercase);
+  setDocumentType("label_70x30");
+  setShowDocumentViewer(true);
+};
 
   const handlePrintOrderLabel = (order: OrderResponse) => {
     setSelectedProduct({
       orderNumber: order.orderNumber,
       customerName: order.customer.name,
       customerPhone: order.customer.phone,
+      companyCnpj: company?.cnpj,
       shippingAddress: `${order.shipping?.street}, ${order.shipping?.number}`,
       shippingCity: order.shipping?.city,
       shippingZip: order.shipping?.zip,
@@ -382,6 +285,7 @@ export default function OrderList() {
       totalVolumes: order.totalVolumes || order.orderItems.length,
       totalWeight: order.totalWeight,
       orderDate: order.orderDate,
+      carrier:order.carrier
     });
     setDocumentType("label_100x100");
     setShowDocumentViewer(true);
@@ -393,23 +297,47 @@ export default function OrderList() {
       switch (order.orderStatus) {
         case "approved":
           return [
-            { label: "Ver PDF", action: () => setSelectedOrder(order) },
+            { 
+              label: "PDF", 
+              action: () => {
+                setSelectedOrder(order);
+                setDocumentType("separation_list");
+              } 
+            },
             { label: "Iniciar Separação", action: () => handleUpdateStatus(order.id, "in_progress") },
             { label: "Estornar", action: () => confirmAndUpdateStatus(order.id, "backout", `Deseja estornar o pedido: ${order.orderNumber} ?`) }
           ];
         case "in_progress":
           return [
-            { label: "Ver PDF", action: () => setSelectedOrder(order) },
+            { 
+              label: "PDF", 
+              action: () => {
+                setSelectedOrder(order);
+                setDocumentType("separation_list");
+              } 
+            },
             { label: "Imprimir Etiquetas", action: () => handlePrintProductLabels(order) },
             { label: "Realizar Conferência", action: () => handleConferencia(order) }
           ];
         case "shipped":
           return [
-            { label: "Ver PDF", action: () => setSelectedOrder(order) },
+            { 
+              label: "PDF", 
+              action: () => {
+                setSelectedOrder(order);
+                setDocumentType("separation_list");
+              } 
+            },
             { label: "Gerar Etiqueta", action: () => handlePrintOrderLabel(order) }
           ];
         default:
-          return [{ label: "Ver PDF", action: () => setSelectedOrder(order) }];
+          return [{ 
+            label: "Lista de Separação", 
+            action: () => {
+              setSelectedOrder(order);
+              setDocumentType("separation_list");
+            } 
+          }];
       }
     };
 
@@ -453,18 +381,17 @@ export default function OrderList() {
     );
   };
 
-  if (selectedOrder) {
+  // Renderiza o DocumentViewer para Lista de Separação
+  if (selectedOrder && documentType === "separation_list") {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <button
-          onClick={() => setSelectedOrder(null)}
-          className="text-slate-700 hover:text-slate-900 mb-4 font-medium transition-colors"
-          type="button"
-        >
-          ← Voltar para Expedição
-        </button>
-        <OrderPDF order={selectedOrder} onDownloadComplete={() => setSelectedOrder(null)} />
-      </div>
+      <DocumentViewer
+        order={selectedOrder}
+        documentType="separation_list"
+        onClose={() => {
+          setSelectedOrder(null);
+          setDocumentType("purchase_order");
+        }}
+      />
     );
   }
 

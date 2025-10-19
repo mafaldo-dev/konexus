@@ -2,6 +2,8 @@ import { Bell, Search, LogOut, Clock, Package } from 'lucide-react';
 import { useAuth } from '../../../AuthContext';
 import { useDateTime } from '../../../utils/dateTime';
 import { useChat } from '../../../ChatContext';
+import Swal from "sweetalert2";
+
 
 export default function Header({ sidebarCollapsed, setSidebarCollapsed }: any) {
     const { user, logout } = useAuth();
@@ -9,8 +11,6 @@ export default function Header({ sidebarCollapsed, setSidebarCollapsed }: any) {
     const username = user?.username;
     const designation = user?.role || "";
     const getNowHour = useDateTime();
-
- 
 
     const countStoredMessages = (): number => {
         const stored = localStorage.getItem('sector_messages');
@@ -21,9 +21,32 @@ export default function Header({ sidebarCollapsed, setSidebarCollapsed }: any) {
     const totalMsg = countStoredMessages();
 
     const handleLogout = async () => {
-        setUserInactive();                  
-        logout();                           
+        const result = await Swal.fire({
+            title: "Tem certeza que deseja sair?",
+            text: "Você será desconectado da sua conta.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Sim, sair",
+            cancelButtonText: "Cancelar",
+            reverseButtons: true,
+        });
+
+        if (result.isConfirmed) {
+            setUserInactive();
+            logout();
+
+            await Swal.fire({
+                title: "Sessão encerrada!",
+                text: "Você saiu da conta com sucesso.",
+                icon: "success",
+                timer: 1500,
+                showConfirmButton: false,
+            });
+        }
     };
+
 
     return (
         <header className="bg-white border-b border-slate-200 px-6 py-4">

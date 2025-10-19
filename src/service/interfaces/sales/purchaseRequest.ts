@@ -1,6 +1,6 @@
 
 export interface PurchaseOrder {
-  id?: string | any;
+  id: string | any;
   orderNumber: string;
   supplierId: string; 
   orderDate: string;
@@ -18,6 +18,7 @@ export interface PurchaseOrder {
     productname?: string
     productcode?: string
     productlocation?:string
+    productbrand?: string
   }[];
   supplier?: {
     id: string;
@@ -33,8 +34,8 @@ export interface PurchaseOrder {
     }
   };
   requestingCompany?: {
-    id: string;
-    name: string;
+    id: string | any;
+    name: string | any;
     logo?: string;
     buyer?: string;
   };

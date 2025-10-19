@@ -182,7 +182,7 @@ export default function PurchaseManagementScreen() {
         )}
 
         {activeTab === 'returns' && (
-          <ReturnsPage />
+          <ReturnsPage  />
         )}
 
         {activeTab === 'quote' && (

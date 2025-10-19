@@ -148,7 +148,7 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
           </select>
           {errors.supplier_id && (
             <p className="text-red-600 text-sm mt-1">
-              {/*errors.supplier_id.message*/}
+              {errors.supplier_id.message && <p className="text-red-600">Nenhum fornecedor selecionado!</p>}
             </p>
           )}
         </div>

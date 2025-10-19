@@ -2,8 +2,6 @@ import { apiRequest } from "../../api"
 import { Employee } from "../../../interfaces"
 import Swal from "sweetalert2"
 
-
-// Inserir novo colaborador
 export async function insertEmployee(employee: Employee) {
   const token: any = localStorage.getItem("token")
 
@@ -19,17 +17,14 @@ export async function insertEmployee(employee: Employee) {
   }
 }
 
-// Buscar todos os colaboradores (com ou sem termo de pesquisa)
 export async function handleAllEmployee(token?: string): Promise<Employee[] | any> {
   try {
     const response = await apiRequest(`employees/all`, "GET", undefined, token);
     const employee = response.data
-
+  
     if (typeof employee === 'object' && !Array.isArray(employee.data)) {
       return [employee]
     }
-
-
 
   } catch (err) {
     console.error("Erro ao recuperar a lista de Funcionários!", err);
@@ -37,6 +32,7 @@ export async function handleAllEmployee(token?: string): Promise<Employee[] | an
   }
   return []
 }
+
 export async function designation(token?: string) {
   try {
     const response = await apiRequest("employees/all", "GET", undefined, token);
@@ -62,7 +58,7 @@ export async function designation(token?: string) {
   }
 }
 
-// Atualizar colaborador
+
 export const updatedEmployee = async (id: string, updatedData: Partial<Employee>) => {
   //const token: any = localStorage.getItem("token")
   //try {

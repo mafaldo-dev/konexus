@@ -8,6 +8,7 @@ import {
   getOrderById
 } from '../../../service/api/Administrador/purchaseRequests';
 import DocumentViewer from '../../../utils/screenOptions';
+import { OrderResponse } from '../../../service/interfaces';
 
 interface QuotationsListProps {
   quotations: any[];
@@ -49,11 +50,14 @@ const getStatusLabel = (status: string): string => {
   return statusLabels[status as OrderStatus] || status || 'Desconhecido';
 };
 
-export default function QuotationsList({ quotations = [], onPreview, onUpdate }: QuotationsListProps) {
+export default function QuotationsList({ quotations = [], onUpdate }: QuotationsListProps) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [showViewer, setShowViewer] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+  const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     try {
@@ -68,73 +72,73 @@ export default function QuotationsList({ quotations = [], onPreview, onUpdate }:
   };
 
   const handlePreview = async (order: any) => {
-  try {
-    setOpenMenuId(null);
-    Swal.fire({
-      title: 'Carregando...',
-      text: 'Buscando informações completas do pedido',
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
+    try {
+      setOpenMenuId(null);
+      Swal.fire({
+        title: 'Carregando...',
+        text: 'Buscando informações completas do pedido',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
 
 
-    const fullOrder = await getOrderById(order.ordernumber);
+      const fullOrder = await getOrderById(order.ordernumber);
 
-    if (!fullOrder) throw new Error('Pedido não encontrado');
+      if (!fullOrder) throw new Error('Pedido não encontrado');
 
-    const normalizedOrder = {
-      id: fullOrder.id,
-      ordernumber: fullOrder.orderNumber,
-      suppliername: fullOrder.supplier?.name || '---',
-      supplierid: fullOrder.supplierId,
-      orderdate: fullOrder.orderDate,
-      orderstatus: fullOrder.orderStatus,
-      totalcost: fullOrder.totalCost,
-      currency: fullOrder.currency || 'BRL',
-      notes: fullOrder.notes || 'Nenhuma observação',
-      companyid: fullOrder.companyId,
-      createdat: fullOrder.createdAt,
-      
-      items: fullOrder.orderItems?.map((item: any) => ({
-        productid: item.productid,
-        productname: item.productname,
-        productcode: item.productcode,
-        productbrand: item.productbrand,
-        productlocation: item.productlocation,
-        quantity: item.quantity,
-        cost: item.cost,
-        subtotal: item.quantity * item.cost
-      })) || [],
+      const normalizedOrder = {
+        id: fullOrder.id,
+        ordernumber: fullOrder.orderNumber,
+        suppliername: fullOrder.supplier?.name || '---',
+        supplierid: fullOrder.supplierId,
+        orderdate: fullOrder.orderDate,
+        orderstatus: fullOrder.orderStatus,
+        totalcost: fullOrder.totalCost,
+        currency: fullOrder.currency || 'BRL',
+        notes: fullOrder.notes || 'Nenhuma observação',
+        companyid: fullOrder.companyId,
+        createdat: fullOrder.createdAt,
 
-      orderitems: fullOrder.orderItems || [],
-      supplier: {
-        id: fullOrder.supplier?.id,
-        name: fullOrder.supplier?.name || '---',
-        email: fullOrder.supplier?.email || '---',
-        phone: fullOrder.supplier?.phone || '---'
-      },
-      company: {
-        id: fullOrder.requestingCompany?.id,
-        name: fullOrder.requestingCompany?.name || '---',
-        buyer: fullOrder.requestingCompany?.buyer || '---'
-      },
-      requestingCompany: fullOrder.requestingCompany
-    };
-    
-    setSelectedOrder(normalizedOrder);
-    setShowViewer(true);
+        items: fullOrder.orderItems?.map((item: any) => ({
+          productid: item.productid,
+          productname: item.productname,
+          productcode: item.productcode,
+          productbrand: item.productbrand,
+          productlocation: item.productlocation,
+          quantity: item.quantity,
+          cost: item.cost,
+          subtotal: item.quantity * item.cost
+        })) || [],
 
-    Swal.close();
-  } catch (error: any) {
-    console.error('Erro ao buscar pedido:', error);
-    Swal.fire({
-      title: 'Erro!',
-      text: 'Não foi possível carregar os detalhes do pedido.',
-      icon: 'error',
-      confirmButtonColor: '#1e293b',
-    });
-  }
-};
+        orderitems: fullOrder.orderItems || [],
+        supplier: {
+          id: fullOrder.supplier?.id,
+          name: fullOrder.supplier?.name || '---',
+          email: fullOrder.supplier?.email || '---',
+          phone: fullOrder.supplier?.phone || '---'
+        },
+        company: {
+          id: fullOrder.requestingCompany?.id,
+          name: fullOrder.requestingCompany?.name || '---',
+          buyer: fullOrder.requestingCompany?.buyer || '---'
+        },
+        requestingCompany: fullOrder.requestingCompany
+      };
+
+      setSelectedOrder(normalizedOrder);
+      setShowViewer(true);
+
+      Swal.close();
+    } catch (error: any) {
+      console.error('Erro ao buscar pedido:', error);
+      Swal.fire({
+        title: 'Erro!',
+        text: 'Não foi possível carregar os detalhes do pedido.',
+        icon: 'error',
+        confirmButtonColor: '#1e293b',
+      });
+    }
+  };
 
   const handleCloseViewer = () => {
     setShowViewer(false);
@@ -231,46 +235,56 @@ export default function QuotationsList({ quotations = [], onPreview, onUpdate }:
     }
   };
 
-  const handleDownload = async (order: any) => {
-    setOpenMenuId(null);
-
+  const handlePrintProductLabels = async (order: any) => {
     try {
       Swal.fire({
-        title: 'Gerando PDF...',
-        text: 'Por favor, aguarde',
+        title: 'Carregando...',
+        text: 'Buscando informações completas do pedido',
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading(),
       });
 
-      const response = await getOrderById(order.id);
-      const orderDetails = response || response;
+      // Busca o pedido completo
+      const fullOrder = await getOrderById(order.orderNumber || order.ordernumber);
+      if (!fullOrder || !Array.isArray(fullOrder.orderItems)) {
+        throw new Error('O pedido não possui itens válidos.');
+      }
+      console.log(fullOrder)
+      const orderWithLowercase = {
+        ...fullOrder,
+        orderItems: fullOrder.orderItems.map((item: any) => ({
+          productcode: item.productcode,
+          productname: item.productname,
+          productbrand: item.productbrand,
+          productlocation: item.productlocation,
+          quantity: item.quantity,
+        }))
+      };
 
-      generatePDF(orderDetails);
-
-      Swal.fire({
-        title: 'Sucesso!',
-        text: 'PDF gerado com sucesso!',
-        icon: 'success',
-        confirmButtonColor: '#1e293b',
-        timer: 2000,
-        timerProgressBar: true
-      });
-
-    } catch (error: any) {
-      console.error('Erro ao gerar PDF:', error);
-      Swal.fire({
-        title: 'Erro!',
-        text: 'Não foi possível gerar o PDF. Tente novamente.',
-        icon: 'error',
-        confirmButtonColor: '#1e293b'
-      });
+      setSelectedProduct(orderWithLowercase);
+      setDocumentType("label_70x30");
+      setShowDocumentViewer(true);
+      Swal.close();
+    } catch (error) {
+      Swal.close();
+      console.error('Erro ao buscar pedido:', error);
+      Swal.fire('Erro', 'Não foi possível carregar os detalhes do pedido.', 'error');
     }
   };
 
+  if (showDocumentViewer) {
+    return (
+      <DocumentViewer
+        product={selectedProduct}
+        documentType={documentType}
+        onClose={() => {
+          setShowDocumentViewer(false);
+          setSelectedProduct(null);
+        }}
+      />
+    );
+  }
 
-  const generatePDF = (order: any) => {
-    // ... [mantém o conteúdo completo do PDF como no seu código acima]
-  };
 
   return (
     <>
@@ -341,11 +355,11 @@ export default function QuotationsList({ quotations = [], onPreview, onUpdate }:
                                 Atualizar Status
                               </button>
                               <button
-                                onClick={() => handleDownload(order)}
+                                onClick={() => handlePrintProductLabels(order)}
                                 className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition"
                               >
                                 <Download size={16} className="text-green-600" />
-                                Download
+                                Etiquetas
                               </button>
                             </div>
                           </>
@@ -363,6 +377,7 @@ export default function QuotationsList({ quotations = [], onPreview, onUpdate }:
       {showViewer && (
         <DocumentViewer order={selectedOrder} onClose={handleCloseViewer} />
       )}
+
     </>
   );
 }

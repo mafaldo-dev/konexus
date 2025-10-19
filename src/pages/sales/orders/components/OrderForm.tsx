@@ -23,6 +23,7 @@ type FormValues = {
   currency: string;
   salesperson: string;
   notes?: string;
+  carrier: string
   shippingAddressId?: string | any;
   billingAddressId?: string | any;
 };
@@ -106,6 +107,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
         phone: initialData.customer.phone || "",
         email: initialData.customer.email || "",
         code: initialData.customer.code,
+        status: initialData.customer.status || "",
         address: {
           id: initialData.shipping?.id || initialData.billing?.id || "",
           city: initialData.shipping?.city || initialData.billing?.city || "",
@@ -313,6 +315,7 @@ const handleAddProductWithStockCheck = () => {
         currency: data.currency,
         salesperson: data.salesperson,
         notes: data.notes,
+        carrier: data.carrier,
         shippingAddressId: data.shippingAddressId,
         billingAddressId: data.billingAddressId,
         orderItems: products.map((p) => ({
@@ -426,6 +429,17 @@ const handleAddProductWithStockCheck = () => {
                     readOnly={isSalesPerson}
                   />
                   {errors.salesperson && <p className="text-red-600 text-sm mt-1">{errors.salesperson.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Transporte</label>
+                  <input type="text"
+                    {...register("carrier", {
+                      required: "Transporte requerido"
+                    })}
+                    className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 text-gray-700 font-medium"
+                    placeholder="Transporte"
+                  />
+                  {errors.carrier && <p className="text-red-600 text-sm mt-1">{errors.carrier.message}</p>}
                 </div>
 
                 <div>
