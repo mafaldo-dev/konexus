@@ -9,26 +9,26 @@ import { handleLoginAdmin } from "../service/api/login";
 
 
 function useAutoUpdater() {
-    // useEffect(() => {
-    //     const { ipcRenderer } = window.require("electron");
+     useEffect(() => {
+         const { ipcRenderer } = window.require("electron");
 
-    //     ipcRenderer.on('update_available', () => {
-    //         Swal.fire("Atualização!","Nova atualização disponivel", "info")
-    //     });
+         ipcRenderer.on('update_available', () => {
+             Swal.fire("Atualização!","Nova atualização disponivel", "info")
+         });
 
-    //     ipcRenderer.on('update_downloaded', () => {
-    //         Swal.fire("Download finalizado", "Atualização sera aplicada após a confirmação", "info")
-    //         const wantsRestart = window.confirm('Confirme para instalar a nova versão');
-    //         if (wantsRestart) {
-    //             ipcRenderer.send('restart_app');
-    //         }
-    //     });
+         ipcRenderer.on('update_downloaded', () => {
+             Swal.fire("Download finalizado", "Atualização sera aplicada após a confirmação", "info")
+             const wantsRestart = window.confirm('Confirme para instalar a nova versão');
+             if (wantsRestart) {
+                 ipcRenderer.send('restart_app');
+             }
+         });
 
-    //     return () => {
-    //         ipcRenderer.removeAllListeners('update_available');
-    //         ipcRenderer.removeAllListeners('update_downloaded');
-    //     };
-    // }, []);
+         return () => {
+             ipcRenderer.removeAllListeners('update_available');
+             ipcRenderer.removeAllListeners('update_downloaded');
+         };
+     }, []);
 }
 
 const LoginPage: React.FC = () => {
@@ -37,12 +37,14 @@ const LoginPage: React.FC = () => {
   const [showAdminSetup, setShowAdminSetup] = useState(false); // modal de criação da empresa
   const { loading, error, handleLogin } = useAuthService();
 
+  useAutoUpdater()
+
   // Captura atalho secreto Ctrl + Shift + F1
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "F1") {
         e.preventDefault();
-        setShowAdminLogin(true); // mostra apenas o login admin do sistema
+        setShowAdminLogin(true);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -65,14 +67,12 @@ const handleAdminLg = async (e: React.FormEvent) => {
   }
 
   try {
-    // Passa os argumentos separados como esperado
     const response = await handleLoginAdmin(credentials.user, credentials.pass);
-    console.log(response)
 
     if (response.user) {
       Swal.fire("Sucesso", "Login de administrador do sistema realizado!", "success");
       setShowAdminLogin(false);
-      setShowAdminSetup(true); // abre o formulário de cadastro de empresa
+      setShowAdminSetup(true); 
     } else {
       Swal.fire("Erro", "Credenciais inválidas!", "error");
     }
