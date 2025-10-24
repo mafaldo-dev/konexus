@@ -9,7 +9,9 @@ autoUpdater.logger.transports.file.level = 'info';
 function createWindow() {
   const win = new BrowserWindow({
     width: 1360,
-    height: 935,
+    height: 768,
+    minWidth: 1360, // largura mínima
+    minHeight: 768,
     webPreferences: {
       nodeIntegration: true,
       webSecurity: false,

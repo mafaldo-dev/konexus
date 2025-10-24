@@ -1,5 +1,5 @@
-import React from "react";
-import { Download, FileText, X, Printer, CheckSquare, Package } from "lucide-react";
+import React, { useState } from "react";
+import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share } from "lucide-react";
 import { useAuth } from "../AuthContext";
 
 declare global {
@@ -23,6 +23,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   onClose
 }) => {
   const { company } = useAuth()
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
 
 
   const handlePrint = () => {
@@ -40,77 +45,87 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     }
 
     const element = document.getElementById('printable-content');
+    const wrapper = element?.parentElement;
+    const main = wrapper?.parentElement;
     if (!element) return;
 
+    const originalElementClass = element.className;
+    const originalWrapperClass = wrapper?.className || '';
+    const originalMainClass = main?.className || '';
+
     try {
-      if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-        await loadLibraries();
+      const html2pdf = (await import('html2pdf.js')).default;
+
+      // Simplifica completamente a estrutura para captura
+      if (documentType === "separation_list" || documentType === "purchase_order") {
+        element.className = 'bg-white w-[210mm] min-h-[297mm] mt-32';
+      } else if (documentType.includes('label')) {
+        element.className = '';
       }
 
-      const canvas = await window.html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const { jsPDF } = window.jspdf;
-
-      let pdf;
-      if (documentType === "label_70x30") {
-        pdf = new jsPDF({
-          orientation: 'landscape',
-          unit: 'mm',
-          format: [30, 70]
-        });
-      } else if (documentType === "label_100x100") {
-        pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: [100, 100]
-        });
-      } else {
-        pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
-        });
+      if (wrapper) {
+        wrapper.className = '';
+        wrapper.style.cssText = 'display: block; width: 210mm; margin: 0; padding: 0;';
       }
 
-      const imgWidth = documentType === "label_70x30" ? 70 :
-        documentType === "label_100x100" ? 100 : 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      if (main) {
+        main.className = '';
+        main.style.cssText = 'display: block; width: 220mm; margin: 0; padding: 0; overflow: visible;';
+      }
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      // Aguarda dois frames para garantir que todos os estilos sejam aplicados
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
 
-      const fileName = documentType.includes('label')
-        ? `etiqueta_${product?.productcode || 'produto'}.pdf`
-        : documentType === "separation_list"
-          ? `lista_separacao_${order?.orderNumber || order?.id}.pdf`
-          : `pedido_${order?.ordernumber || order?.id}.pdf`;
+      const opt = {
+        margin: [0, 0, 0, 0] as [number, number, number, number],
+        filename: documentType.includes("label")
+          ? `etiqueta_${product?.productcode || "produto"}.pdf`
+          : documentType === "separation_list"
+            ? `lista_separacao_${order?.orderNumber || order?.id}.pdf`
+            : `pedido_${order?.ordernumber || order?.id}.pdf`,
+        image: { type: "jpeg" as const, quality: 0.99 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          x: 0,
+          y: 0,
+          scrollX: 0,
+          scrollY: 0
+        },
+        jsPDF: {
+          unit: "mm",
+          format: "a4",
+          orientation: "portrait" as const,
+        },
+      };
 
-      pdf.save(fileName);
+      await html2pdf().set(opt).from(element).save();
+
+      element.className = originalElementClass;
+      if (wrapper) {
+        wrapper.className = originalWrapperClass;
+        wrapper.style.cssText = '';
+      }
+      if (main) {
+        main.className = originalMainClass;
+        main.style.cssText = '';
+      }
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       alert('Erro ao gerar PDF. Tente usar a função de impressão.');
+      element.className = originalElementClass;
+      if (wrapper) {
+        wrapper.className = originalWrapperClass;
+        wrapper.style.cssText = '';
+      }
+      if (main) {
+        main.className = originalMainClass;
+        main.style.cssText = '';
+      }
     }
-  };
-
-  const loadLibraries = () => {
-    return new Promise<void>((resolve, reject) => {
-      const html2canvasScript = document.createElement('script');
-      html2canvasScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-      html2canvasScript.onload = () => {
-        const jspdfScript = document.createElement('script');
-        jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-        jspdfScript.onload = () => resolve();
-        jspdfScript.onerror = () => reject(new Error('Erro ao carregar jsPDF'));
-        document.head.appendChild(jspdfScript);
-      };
-      html2canvasScript.onerror = () => reject(new Error('Erro ao carregar html2canvas'));
-      document.head.appendChild(html2canvasScript);
-    });
   };
 
   const handleDownload = () => {
@@ -140,8 +155,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   };
 
   const generateBarcode = (code: string) => {
-    const barcodeWidth = 2;
-    const barcodeHeight = 40;
+    const barcodeWidth = 4;
+    const barcodeHeight = 60;
     const bars = code.split('').map((char, i) => {
       const isBlack = i % 2 === 0;
       return `<rect x="${i * barcodeWidth}" y="0" width="${barcodeWidth}" height="${barcodeHeight}" fill="${isBlack ? 'black' : 'white'}"/>`;
@@ -159,33 +174,33 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
       return (
         <div
-          className="flex flex-wrap gap-3 justify-center"
+          className="flex flex-wrap gap-2 justify-center"
           style={{ pageBreakAfter: "always" }}
         >
           {Array.from({ length: product?.quantity || 1 }, (_, idx) => {
             const barcodeValue = `${(product?.productname || 'Produto')
               .replace(/\s+/g, '')
-              .toUpperCase()}-${(product?.productcode || 'PROD001')
+              .toLowerCase()}-${(product?.productcode || 'PROD001')
                 .replace(/\s+/g, '')
-                .toUpperCase()}-${(product?.productbrand || 'Marca')
+                .toLowerCase()}-${(product?.productbrand || 'Marca')
                   .replace(/\s+/g, '')
-                  .toUpperCase()}-${(product?.productlocation || 'A01')
+                  .toLowerCase()}-${(product?.productlocation || 'A01')
                     .replace(/\s+/g, '')
-                    .toUpperCase()}`;
+                    .toLowerCase()}`;
 
             return (
               <div
                 key={idx}
                 className="bg-white border-2 border-black"
                 style={{
-                  width: '70mm',
-                  height: '30mm',
-                  padding: '2mm',
+                  width: '76mm',
+                  height: '35,1mm',
+                  padding: '3mm',
                   boxShadow: "2px 2px 1px 3px"
                 }}
               >
-                <div className="flex flex-col h-full justify-between">
-                  <div className="text-center font-bold text-md truncate">
+                <div className="flex flex-col h-[20px] justify-between">
+                  <div className="text-center font-bold text-sm truncate">
                     {product?.productcode}
                   </div>
 
@@ -206,9 +221,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                       <img
                         src={generateBarcode(barcodeValue)}
                         alt="Código de barras"
-                        className="h-full"
+                        className="h-[9vh]"
                         style={{
-                          width: '55%',
+                          width: '50%',
                           objectFit: 'cover',
                         }}
                       />
@@ -232,29 +247,30 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     return (
       <div
-        className="flex flex-wrap gap-3 justify-center"
+        className="flex flex-wrap gap-2 justify-center"
         style={{ pageBreakAfter: "always" }}
       >
         {items.flatMap((item: any, itemIdx: any) => {
           const barcodeValue = `${(item?.productname || 'Produto')
             .replace(/\s+/g, '')
-            .toUpperCase()}-${(item?.productcode || 'PROD001')
+            .toLowerCase()}-${(item?.productcode || 'PROD001')
               .replace(/\s+/g, '')
-              .toUpperCase()}-${(item?.productbrand || 'Marca')
+              .toLowerCase()}-${(item?.productbrand || 'Marca')
                 .replace(/\s+/g, '')
-                .toUpperCase()}-${(item?.productlocation || 'A01')
+                .toLowerCase()}-${(item?.productlocation || 'A01')
                   .replace(/\s+/g, '')
-                  .toUpperCase()}`;
+                  .toLowerCase()}`;
 
           return Array.from({ length: item.quantity || 1 }, (_, qtyIdx) => (
             <div
               key={`${itemIdx}-${qtyIdx}`}
               className="bg-white border-2 border-black"
               style={{
-                width: '70mm',
-                height: '30mm',
-                padding: '2mm',
-                boxShadow: "1px 1px"
+                width: '76mm',
+                height: '35mm',
+                padding: '3mm',
+                boxShadow: "1px 1px",
+                borderRadius: "12px"
               }}
             >
               <div className="flex flex-col h-full justify-between">
@@ -262,7 +278,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   {item?.productcode}
                 </div>
 
-                <div className="text-center text-sm font-semibold py-1 truncate">
+                <div className=" flex gap-2 justify-around text-center text-sm font-semibold py-1 truncate">
                   <p className="text-sm">I: {item?.productname}</p>
                   <span className="text-sm">M: {item?.productbrand}</span>
                 </div>
@@ -272,16 +288,16 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                     className="flex justify-start ml-2 items-center"
                     style={{
                       width: '100%',
-                      height: '7mm',
+                      height: '10mm',
                       overflow: 'hidden',
                     }}
                   >
                     <img
                       src={generateBarcode(barcodeValue)}
                       alt="Código de barras"
-                      className="h-full"
                       style={{
-                        width: '55%',
+                        width: '45%',
+                        height: "35px",
                         objectFit: 'cover',
                       }}
                     />
@@ -318,21 +334,21 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 width: "100mm",
                 height: "100mm",
                 padding: "4mm",
-                boxShadow: "1px 1px 1px 1px"
+                boxShadow: "1px 1px 2px 1px",
+                borderRadius: "12px"
               }}
             >
               <div className="flex flex-col h-full">
 
                 {/* Cabeçalho */}
-                <div className="text-center pb-2 mt-4 mb-1">
+                <div className="text-center pb-2 mt-10 mb-1">
                   <div className="font-bold text-1xl">
-                    PEDIDO {product.orderNumber} | NF {"1204"}
+                    PEDIDO {product.orderNumber}
                   </div>
                 </div>
 
                 {/* Cliente */}
                 <div className="text-center pb-1 mb-1">
-                  <div className="font-bold text-sm text-gray-600">CLIENTE:</div>
                   <div className="font-semibold text-base">{product.customerName}</div>
                 </div>
 
@@ -349,7 +365,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 <div className="flex-1 flex flex-col space-y-2 text-sm">
                   <div className="flex gap-4 self-center p-1">
                     <span className="font-bold">TRANSP: </span>
-                      {product.carrier.toUpperCase()}
+                    {product.carrier.toUpperCase()}
                     <span className="inline-block flex-1 ml-2" style={{ width: "50%" }}>
                       &nbsp;
                     </span>
@@ -364,21 +380,20 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                       {idx + 1}/{product.totalVolumes}
                     </div>
                   </div>
-                  <span>-</span>
                   <div className="text-center p-1">
                     <div className="font-bold text-gray-600">PESO</div>
                     <div className="text-lg font-bold">
-                      {product.totalWeight ? `${product.totalWeight}kg` : "N/A"}                  
+                      {product.totalWeight ? `${product.totalWeight}kg` : "N/A"}
                     </div>
                   </div>
                 </div>
 
                 {/* Rodapé da etiqueta */}
                 <div className="text-center mb-8 -mt-5">
-                  <p className="text-sm" style={{fontSize: "12px"}}>
+                  <p className="text-sm" style={{ fontSize: "12px" }}>
                     {company?.name} - {company?.cnpj || "------"}
                   </p>
-                  <p className="text-sm" style={{fontSize: "12px"}}>{company?.email}</p>
+                  <p className="text-sm" style={{ fontSize: "12px" }}>{company?.email}</p>
                 </div>
               </div>
             </div>
@@ -390,7 +405,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   const renderPurchaseOrder = () => (
     <div
-      className="flex flex-col print-area print-area bg-white w-[210mm] h-[297mm] scale-[0.8] p-8 print:p-8 print:m-0 rounded-sm border border-gray-200">
+      className="flex flex-col print-area print-area print:scale-1  scale-[0.8]  bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
       {order ? (
         <>
           <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
@@ -524,7 +539,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   );
 
   const renderSeparationList = () => (
-    <div className="flex flex-col print-area print-area bg-white w-[210mm] h-[297mm] scale-[0.8] p-8 print:p-8 print:m-0 rounded-sm border border-gray-200">
+    <div className="flex flex-col print-area print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
       {/* Cabeçalho Compacto */}
       <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
         <div className="flex items-start gap-2">
@@ -545,7 +560,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </div>
 
-        <div className="text-center w-[12vw]">
+        <div className="text-center w-[8vw]">
           <div className="bg-gray-50 h-[6vh] p-2 rounded border border-gray-200">
             <p className="text-xs text-gray-500 uppercase">Pedido Nº</p>
             <p className="text-xs font-bold text-gray-900 mt-0.5">{order?.orderNumber}</p>
@@ -554,7 +569,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       </div>
 
       {/* Informações principais compactas */}
-      <div className="flex flex-row justify-between border border-gray-200 rounded px-3 py-2 gap-4 mb-4 text-xs">
+      <div className="flex flex-row justify-between border border-gray-200 rounded px-2 py-2 gap-4 mb-4 text-xs">
         <div className="flex-1">
           <h3 className="font-bold mb-1 text-black">Dados do cliente</h3>
           <p className="font-medium text-black mb-1">{order?.customer?.name}</p>
@@ -583,7 +598,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       </div>
 
       {/* Tabela de Produtos Compacta */}
-      <div className="border border-gray-200 rounded overflow-hidden mb-4 print-break">
+      <div className="border border-gray-200 rounded mb-4 print-break">
         <div className="bg-gray-800 px-3 py-2">
           <h3 className="text-white font-semibold text-xs flex items-center gap-1">
             <CheckSquare className="w-3 h-3" />
@@ -658,7 +673,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     </div>
   );
 
-  // Define o tamanho da página para impressão
   const getPageSize = () => {
     if (documentType === "label_70x30") return "size: 70mm 30mm;";
     if (documentType === "label_100x100") return "size: 100mm 100mm;";
@@ -669,75 +683,237 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   return (
     <>
       <style>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #printable-content,
-          #printable-content * {
-            visibility: visible;
-          }
-          #printable-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            background: white;
-          }
-          .no-print {
-            display: none !important;
-          }
-          @page {
-            ${getPageSize()}
-            margin: 0;
-          }
-        }
-      `}</style>
+          @media print {
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
 
-      <div className="fixed inset-0 z-50 bg-slate-300 flex flex-col">
-        <header className="no-print flex justify-end self-center h-3 w-[60vw] rounded-b-xl items-center px-2 py-4 bg-slate-800 shadow-sm">
-          <div className="flex items-center gap-4">
+            body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+            }
+
+            body * {
+              visibility: hidden !important;
+            }
+
+            #printable-content,
+            #printable-content * {
+              visibility: visible !important;
+            }
+
+            #printable-content {
+              display: block !important;
+              position: absolute !important;
+              top: 0 !important;
+              left: 0 !important;
+              width: 210mm !important;
+              height: 270mm !important;
+              margin: 0 auto !important;
+              background: white !important;
+              z-index: 9999 !important;
+              transform: none !important;
+              scale: 1 !important;
+            }
+
+            .print-area {
+              transform: none !important;
+              scale: 1 !important;
+            }
+
+            .no-print,
+            header,
+            button,
+            nav,
+            aside {
+              display: none !important;
+            }
+
+            .fixed {
+              position: static !important;
+              background: white !important;
+            }
+
+            main {
+              display: block !important;
+              overflow: visible !important;
+              height: auto !important;
+            }
+
+            @page {
+              ${getPageSize()}
+              margin: 0;
+            }
+          }
+        `}</style>
+
+
+      <div className="fixed inset-0  z-50 bg-gray-300 flex h-full flex-col">
+        {/* Header moderno com engrenagem à direita */}
+        <header className="no-print flex justify-between items-center h-12 w-full px-7 bg-slate-800 shadow-lg">
+          {/* Lado esquerdo - Título do documento */}
+          <div className="flex items-center gap-3 ">
+            <div className="w-6 h-6 bg-slate-700 rounded-lg flex items-center justify-center">
+              {documentType === "purchase_order" && <FileText className="text-white" size={14} />}
+              {documentType.includes("label") && <Package className="text-white" size={14} />}
+              {documentType === "separation_list" && <CheckSquare className="text-white" size={14} />}
+            </div>
+            <div>
+              <h1 className="text-white font-semibold text-lg">
+                {documentType === "purchase_order" && "Pedido de Compra"}
+                {documentType === "separation_list" && "Lista de Separação"}
+                {documentType.includes("label") && "Etiquetas"}
+              </h1>
+              <p className="text-slate-300 text-sm">
+                {documentType.includes("label")
+                  ? product?.productcode
+                  : order?.orderNumber || order?.ordernumber}
+              </p>
+            </div>
+          </div>
+
+          {/* Lado direito - Botão de engrenagem */}
+          <div className="relative">
             <button
-              onClick={handlePrint}
-              className="p-2 rounded-md hover:bg-slate-700 text-white transition flex items-center gap-2"
-              title="Imprimir"
+              onClick={toggleMenu}
+              className="p-1 w-6 h-6 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-all duration-200 hover:rotate-90"
+              title="Opções"
             >
-              <Printer size={18} />
-              <span className="text-sm">Imprimir</span>
+              <Settings size={14} />
             </button>
 
-            <button
-              onClick={handleGeneratePDF}
-              className="p-2 rounded-md hover:bg-slate-700 text-white transition flex items-center gap-2"
-              title="Gerar PDF"
-            >
-              <FileText size={18} />
-              <span className="text-sm">PDF</span>
-            </button>
+            {/* Menu deslizante */}
+            <div className={`
+              fixed top-0 right-0 h-full bg-slate-800 shadow-2xl transition-transform duration-300 z-50
+              ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}
+            `} style={{ width: '280px' }}>
 
-            <button
-              onClick={handleDownload}
-              className="p-2 rounded-md hover:bg-slate-700 text-white transition"
-              title="Download JSON"
-            >
-              <Download size={18} />
-            </button>
+              {/* Cabeçalho do menu */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-700">
+                <h2 className="text-white font-semibold text-lg">Opções</h2>
+                <button
+                  onClick={toggleMenu}
+                  className="p-2 rounded-lg hover:bg-slate-700 text-white transition"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+              </div>
 
-            <button
-              onClick={onClose}
-              className="p-2 rounded-md hover:bg-slate-700 text-white transition"
-              title="Fechar"
-            >
-              <X size={18} />
-            </button>
+              {/* Conteúdo do menu */}
+              <div className="p-6 space-y-4">
+                {/* Grupo - Ações do Documento */}
+                <div>
+                  <h3 className="text-slate-400 text-sm font-medium mb-3 uppercase tracking-wider">
+                    Ações do Documento
+                  </h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={handlePrint}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                    >
+                      <Printer size={14} />
+                      <span>Imprimir Documento</span>
+                    </button>
+
+                    <button
+                      onClick={handleGeneratePDF}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                    >
+                      <FileText size={14} />
+                      <span>Gerar PDF</span>
+                    </button>
+
+                    <button
+                      onClick={handleDownload}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                    >
+                      <Download size={14} />
+                      <span>Exportar JSON</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grupo - Configurações */}
+                <div>
+                  <h3 className="text-slate-400 text-sm font-medium mb-3 uppercase tracking-wider">
+                    Configurações
+                  </h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        // Função para duplicar documento
+                        console.log('Duplicar documento');
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                    >
+                      <FileText size={14} />
+                      <span>Duplicar Documento</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        // Função para compartilhar
+                        console.log('Compartilhar documento');
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                    >
+                      <Share size={14} />
+                      <span>Compartilhar</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grupo - Sistema */}
+                <div>
+                  <h3 className="text-slate-400 text-sm font-medium mb-3 uppercase tracking-wider">
+                    Sistema
+                  </h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        // Função para ajuda
+                        console.log('Abrir ajuda');
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                    >
+                      <HelpCircle size={14} />
+                      <span>Ajuda & Suporte</span>
+                    </button>
+
+                    <button
+                      onClick={onClose}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg bg-red-600 hover:bg-red-500 text-white transition"
+                    >
+                      <X size={14} />
+                      <span>Fechar Visualizador</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Overlay quando menu está aberto */}
+            {isMenuOpen && (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                onClick={toggleMenu}
+              />
+            )}
           </div>
         </header>
 
-        <main className="flex-1 flex justify-center items-center overflow-auto py-8">
+        {/* Conteúdo principal (mantém igual) */}
+        <main className="flex justify-center m-auto items-center overflow-hidden">
           <div
             id="printable-content"
             className={
               documentType.includes('label') ? '' :
-                documentType === "separation_list" ? 'w-[210mm] h-full' : 'scale-[0.8] origin-top mt-32'
+                documentType === "separation_list" ? 'w-[210mm] min-h-[297mm]' : 'origin-top'
             }
           >
             {documentType === "label_70x30" && renderLabel70x30()}

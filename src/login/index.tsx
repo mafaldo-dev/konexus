@@ -7,39 +7,76 @@ import Swal from "sweetalert2";
 import AdminSetupModal from "./components/AdminSetupModal";
 import { handleLoginAdmin } from "../service/api/login";
 
-
+{/*
 function useAutoUpdater() {
-     useEffect(() => {
-         const { ipcRenderer } = window.require("electron");
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-         ipcRenderer.on('update_available', () => {
-             Swal.fire("Atualização!","Nova atualização disponivel", "info")
-         });
+  useEffect(() => {
+    const { ipcRenderer } = window.require("electron");
 
-         ipcRenderer.on('update_downloaded', () => {
-             Swal.fire("Download finalizado", "Atualização sera aplicada após a confirmação", "info")
-             const wantsRestart = window.confirm('Confirme para instalar a nova versão');
-             if (wantsRestart) {
-                 ipcRenderer.send('restart_app');
-             }
-         });
+    ipcRenderer.on("update_available", () => {
+      Swal.fire({
+        title: "Atualização disponível!",
+        text: "Uma nova versão está sendo baixada...",
+        icon: "info",
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        didOpen: () => {
+          setDownloading(true);
+        },
+      });
+    });
 
-         return () => {
-             ipcRenderer.removeAllListeners('update_available');
-             ipcRenderer.removeAllListeners('update_downloaded');
-         };
-     }, []);
+    ipcRenderer.on("download_progress", (_, progressObj) => {
+      setProgress(progressObj.percent);
+
+      if (Swal.isVisible() && downloading) {
+        Swal.update({
+          html: `
+            <div style="width:100%;background:#eee;border-radius:10px;overflow:hidden;height:20px;margin-top:10px;">
+              <div style="width:${progressObj.percent}%;background:#4CAF50;height:100%;transition:width .3s;"></div>
+            </div>
+            <p style="margin-top:10px;">Baixando: ${progressObj.percent.toFixed(2)}%</p>
+          `,
+        });
+      }
+    });
+
+    ipcRenderer.on("update_downloaded", () => {
+      setDownloading(false);
+      Swal.fire({
+        title: "Download concluído!",
+        text: "A atualização será aplicada após o reinício.",
+        icon: "success",
+        showCancelButton: true,
+        confirmButtonText: "Reiniciar agora",
+        cancelButtonText: "Mais tarde",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          ipcRenderer.send("restart_app");
+        }
+      });
+    });
+
+    return () => {
+      ipcRenderer.removeAllListeners("update_available");
+      ipcRenderer.removeAllListeners("download_progress");
+      ipcRenderer.removeAllListeners("update_downloaded");
+    };
+  }, []);
 }
+
+*/}
 
 const LoginPage: React.FC = () => {
   const [credentials, setCredentials] = useState({ user: "", pass: "" });
-  const [showAdminLogin, setShowAdminLogin] = useState(false); // tela secreta login admin do sistema
-  const [showAdminSetup, setShowAdminSetup] = useState(false); // modal de criação da empresa
+  const [showAdminLogin, setShowAdminLogin] = useState(false); 
+  const [showAdminSetup, setShowAdminSetup] = useState(false); 
   const { loading, error, handleLogin } = useAuthService();
 
-  useAutoUpdater()
+  //useAutoUpdater()
 
-  // Captura atalho secreto Ctrl + Shift + F1
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "F1") {
@@ -51,13 +88,11 @@ const LoginPage: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Login normal
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleLogin(credentials.user, credentials.pass);
   };
 
-  // Login secreto do sistema
 const handleAdminLg = async (e: React.FormEvent) => {
   e.preventDefault();
 

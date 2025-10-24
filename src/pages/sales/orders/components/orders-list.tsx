@@ -21,7 +21,6 @@ export default function OrderList() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { user, company } = useAuth();
 
-  // Estados para controlar o DocumentViewer
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
   const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -254,7 +253,6 @@ export default function OrderList() {
 
   // Função para imprimir etiquetas 70x30 
  const handlePrintProductLabels = (order: OrderResponse) => {
-  console.log("log do order que ta sendo recebido", order);
 
   const orderWithLowercase = {
     ...order,

@@ -30,7 +30,7 @@ export function DynamicTable<T extends Record<string, any>>({
   emptyDescription = "Tente ajustar os filtros de busca",
   containerHeight = "calc(100vh - 400px)",
   minHeight = "500px",
-  width = "76vw",
+  width = "70vw",
   onRowClick,
   rowClassName = "border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50",
   loading = false,
@@ -98,7 +98,7 @@ export function DynamicTable<T extends Record<string, any>>({
                     {columns.map((column) => (
                       <td
                         key={column.key}
-                        className={column.className || "px-4 py-2"}
+                        className={column.className || "px-2 py-1"}
                       >
                         {column.render 
                           ? column.render(item, index)
