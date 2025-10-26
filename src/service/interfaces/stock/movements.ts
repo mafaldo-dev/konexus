@@ -10,4 +10,6 @@ export interface Movement {
   productname: string;
   productcode: string;
   movement: number
+  stockAfter: number
+  stockBefore: number
 }

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Users, Truck, DollarSign, Warehouse, ShoppingCart, ShoppingBag, UserCheck, Settings, Package2, Target, Award, Calculator, FileText, TrendingUp, BarChart3, Clipboard, AlertTriangle, CreditCard, Building, FileBarChart, Clock, Calendar, Bell, Shield, Database, Printer } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Truck, DollarSign, Warehouse, ShoppingCart, Archive, ShoppingBag, UserCheck, Settings, Package2, Target, Award, Calculator, FileText, TrendingUp, BarChart3, Clipboard, AlertTriangle, CreditCard, Building, FileBarChart, Clock, Calendar, Bell, Shield, Database, Printer } from 'lucide-react';
 
 export const menuItems = [
     {
@@ -18,7 +18,8 @@ export const menuItems = [
         { title: 'Produtos', to: '/manager/products', icon: Package2, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'] },
         { title: 'Clientes', to: '/manager/customer', icon: Users, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'] },
         { title: 'Fornecedores', to: '/manager/suppliers', icon: Truck, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro']},
-        { title: 'Categorias', to: '/manager/categories', icon: Target, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'] }
+        { title: 'Categorias', to: '/manager/categories', icon: Target, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro'] },
+        { title: 'Orders de serviço', to: '/manager/services', icon: Archive, access: ['Administrador', 'Vendedor', 'Gestor', 'Comprador', 'Gerente', 'Financeiro']}
       ]
     },
     {

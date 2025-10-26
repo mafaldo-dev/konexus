@@ -56,7 +56,7 @@ export default function OrdersPage() {
     try {
       setIsLoading(true);
       const fetchedOrders = await handleAllOrders();
-      console.log("log fetched",fetchedOrders)
+      console.log("log fetched", fetchedOrders)
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
         id: order.id,
         orderDate: order.orderDate,
@@ -67,7 +67,7 @@ export default function OrdersPage() {
         salesperson: order.salesperson,
         notes: order.notes || "",
         carrier: order.carrier,
-        companyCnpj: company?.cnpj ||order.companyCnpj,
+        companyCnpj: company?.cnpj || order.companyCnpj,
         customer: {
           id: order.customer?.id || 0,
           name: order.customer?.name || "",
@@ -205,6 +205,7 @@ export default function OrdersPage() {
   // Função para visualizar PDF
   const handleViewPDF = (order: OrderResponse) => {
     setSelectedOrder(order);
+    setDocumentType("separation_list");
   };
 
   // Toggle menu

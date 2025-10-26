@@ -55,6 +55,7 @@ export const getKardexByProduct = async (productId?: string): Promise<any> => {
 export const getKardexByOrder = async (orderId: string): Promise<any> => {
     try {
         const response = await apiRequest(`orders/${orderId}/kardex`, 'GET');
+        console.log(response)
         return response;
     } catch (error) {
         console.error('Erro ao buscar movimentações do pedido:', error);
@@ -74,6 +75,7 @@ export const handlekardexMoviment = async (productId?: string): Promise<any> => 
         }
         
         const response = await apiRequest(`kardex/products/${productId}`, "GET", undefined, tkn as string);   
+        console.log(response)
         return response?.movements || [];
     
     } catch (err) {

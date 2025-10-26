@@ -58,6 +58,7 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
   const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     try {
@@ -249,7 +250,6 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
       if (!fullOrder || !Array.isArray(fullOrder.orderItems)) {
         throw new Error('O pedido não possui itens válidos.');
       }
-      console.log(fullOrder)
       const orderWithLowercase = {
         ...fullOrder,
         orderItems: fullOrder.orderItems.map((item: any) => ({

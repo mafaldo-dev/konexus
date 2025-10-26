@@ -14,9 +14,7 @@ interface KardexModalProps {
 const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, movements, loading }) => {
     if (!show || !product) return null;
 
-    const safeMovements = Array.isArray(movements) 
-        ? movements 
-        : [];
+    const safeMovements = Array.isArray(movements) ? movements : [];
 
     const getKardexIcon = (type: string) => {
         switch (type) {
@@ -44,22 +42,10 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
         }
     };
 
-    // ✅ USAR LOWERCASE (como vem do backend)
-    const totalMovsEntrada = safeMovements.filter((e: any) => e.movementtype === 'entrada').length;
-    const totalMovsSaida = safeMovements.filter((e: any) => e.movementtype === 'saida').length;
-    const totalMovsPrev = safeMovements.filter((e: any) => e.movementtype === 'previsao').length;
-
-    // ✅ CALCULAR SALDO ACUMULADO
-    let saldoAtual = product.stock || 0;
-    const movementsWithBalance = [...safeMovements].reverse().map((mov: any) => {
-        const movBalance = saldoAtual;
-        if (mov.movementtype === 'entrada') {
-            saldoAtual -= mov.quantity;
-        } else if (mov.movementtype === 'saida') {
-            saldoAtual += mov.quantity;
-        }
-        return { ...mov, balance: movBalance };
-    }).reverse();
+    // Contagem de tipos
+    const totalMovsEntrada = safeMovements.filter((e) => e.movementtype === 'entrada').length;
+    const totalMovsSaida = safeMovements.filter((e) => e.movementtype === 'saida').length;
+    const totalMovsPrev = safeMovements.filter((e) => e.movementtype === 'previsao').length;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -78,6 +64,7 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                 </div>
 
                 <div className="p-6 overflow-y-auto max-h-[calc(60vh-120px)]">
+                    {/* === Informações gerais === */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div className="space-y-4">
                             <div>
@@ -103,29 +90,25 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Entradas</label>
-                                    <p className="text-lg font-semibold text-emerald-600">
-                                        {totalMovsEntrada}
-                                    </p>
+                                    <p className="text-lg font-semibold text-emerald-600">{totalMovsEntrada}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Saídas</label>
-                                    <p className="text-lg font-semibold text-red-600">
-                                        {totalMovsSaida}
-                                    </p>
+                                    <p className="text-lg font-semibold text-red-600">{totalMovsSaida}</p>
                                 </div>
                             </div>
 
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Previsões</label>
-                                <p className="text-lg font-semibold text-amber-600">
-                                    {totalMovsPrev}
-                                </p>
+                                <p className="text-lg font-semibold text-amber-600">{totalMovsPrev}</p>
                             </div>
                         </div>
                     </div>
 
+                    {/* === Histórico === */}
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Histórico de Movimentações</h3>
+
                         {loading ? (
                             <div className="flex justify-center items-center h-32">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-800"></div>
@@ -136,48 +119,46 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                                 <table className="w-full border border-gray-200 border-collapse rounded-lg overflow-hidden">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Data</th>
-                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Pedido</th>
-                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Tipo</th>
-                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">NF</th>
-                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Quantidade</th>
-                                            {/*<th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Preço</th>*/}
-                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">Saldo</th>
+                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase">Date</th>
+                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase">Order</th>
+                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase">Type</th>
+                                            <th className="px-2 py-3 text-left text-sm font-semibold text-gray-700 uppercase">DOC.(NF)</th>
+                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase">Movement</th>
+                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase">Prev</th>
+                                            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 uppercase">Current</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {movementsWithBalance.map((entry: any, index: number) => (
+                                        {safeMovements.map((entry, index) => (
                                             <tr key={index} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                                                <td className="px-4 py-3 text-sm text-gray-700 font-medium">
-                                                    {new Date(entry.movementdate).toLocaleDateString('pt-BR', {
-                                                        day: '2-digit',
-                                                        month: '2-digit',
-                                                        year: 'numeric'
-                                                    })}
+                                                <td className="px-2 py-3 text-sm text-gray-700 font-medium">
+                                                    {new Date(entry.movementdate).toLocaleDateString('pt-BR')}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-700">
-                                                    {entry.purchaseordernumber}
+                                                    {entry.purchaseordernumber || '-'}
                                                 </td>
-                                                <td className="px-4 py-3">
+                                                <td className="px-1 py-3">
                                                     <div className="flex items-center gap-2">
                                                         {getKardexIcon(entry.movementtype)}
-                                                        <span className={`text-xs px-2 py-1 rounded-full border font-semibold uppercase ${getKardexTypeColor(entry.movementtype)}`}>
+                                                        <span
+                                                            className={`text-xs px-2 py-1 rounded-full border font-semibold uppercase ${getKardexTypeColor(entry.movementtype)}`}
+                                                        >
                                                             {entry.movementtype}
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-700">
-                                                    {entry.invoicenumber || '-'}
+                                                <td className="px-2 py-3 text-sm font-semibold text-gray-900">
+                                                    {entry.invoicenumber}
                                                 </td>
-                                                <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                                                    {entry.movementtype === 'entrada' ? '+' : '-'}{entry.quantity}
+                                                <td className="px-10 py-3 text-sm font-semibold text-gray-900">
+                                                    {entry.movementtype === 'entrada' ? '+' : '-'}
+                                                    {entry.quantity}
                                                 </td>
-                                               {/*<td className="px-4 py-3 text-sm text-gray-700">
-                                                    R$ {parseFloat(entry.unitprice || 0).toFixed(2)}
+                                                <td className="px-5 py-3 text-sm text-gray-700">
+                                                    {entry.stockBefore ?? '-'}
                                                 </td>
-                                                */} 
-                                                <td className="px-4 py-3 text-sm font-bold text-slate-800">
-                                                    {entry.balance}
+                                                <td className="px-7 py-3 text-sm text-gray-700 font-bold">
+                                                    {entry.stockAfter ?? '-'}
                                                 </td>
                                             </tr>
                                         ))}

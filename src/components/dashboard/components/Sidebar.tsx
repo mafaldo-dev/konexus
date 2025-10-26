@@ -11,7 +11,7 @@ import ReportProblemChat from './ChatReport';
 import { version } from '../../../version';
 
 export default function Sidebar({ sidebarCollapsed }: any) {
-  const { user, company } = useAuth();
+  const { user } = useAuth();
   const designation = user?.role || "";
   const username = user?.username || "Usuário";
   const userSector = designation;
@@ -29,11 +29,6 @@ export default function Sidebar({ sidebarCollapsed }: any) {
     const result = allowed.includes(designation);
     return result;
   }
-
-  // 🔁 DEBUG: Verifique quais itens serão renderizados
-  const accessibleItems = menuItems.filter(item => 
-    canAccess(item.access || [])
-  );
   
   // Salvar mensagens no localStorage
   const handleSendMessage = (msg: any) => {

@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { Products } from "../../../service/interfaces";
-import { deleteProduct, handleAllProducts } from "../../../service/api/Administrador/products";
+import { handleAllProducts } from "../../../service/api/Administrador/products";
 import Dashboard from "../../../components/dashboard/Dashboard";
 import UpdadtedProduct from "./modal-edit";
 import FormAdd from "./Form-add";
 import { DynamicTable } from "../Table/DynamicTable";
 import { useAuth } from '../../../AuthContext'
-import { Filter, MapPin, Edit, DeleteIcon } from "lucide-react";
-import { handleAllSuppliers } from "../../../service/api/Administrador/suppliers/supplier";
+import { Filter, MapPin, EyeIcon} from "lucide-react";
 
 const SearchProducts = () => {
   const [openRegister, setOpenRegister] = useState<boolean>(false);
@@ -17,7 +16,6 @@ const SearchProducts = () => {
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [currentData, setCurrentData] = useState<Products | null>(null)
   const { user } = useAuth()
-  const [supId, setSupId] = useState<any>()
 
   const [filters, setFilters] = useState({
     code: "",
@@ -71,17 +69,6 @@ const SearchProducts = () => {
     fetchProducts();
   }, []);
 
-{/*
-  const handleDeleteProduct = async (id: string) => {
-    const confirmed = await deleteProduct(id)
-
-    if (confirmed) {
-      const reload = await handleAllProducts()
-      setItem(reload)
-    }
-  }
-*/}
-
   const handleEditProduct = (product: Products) => {
     setCurrentData(product)
     setOpenEdit(true)
@@ -90,6 +77,7 @@ const SearchProducts = () => {
   const handleCloseEditModal = async () => {
     setOpenEdit(false)
     const reload = await handleAllProducts()
+    console.log("console do reload do component pai =>",reload)
     setItem(reload)
   }
 
@@ -103,7 +91,7 @@ const SearchProducts = () => {
       key: 'code',
       header: 'Código',
       render: (product: Products) => (
-        <span className="font-mono text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded font-medium">
+        <span className="font-mono text-[13px] bg-gray-100 text-gray-800 px-3 py-1 rounded font-medium">
           {product.code}
         </span>
       ),
@@ -111,7 +99,7 @@ const SearchProducts = () => {
     {
       key: 'name',
       header: 'Nome',
-      className: "px-4 py-2 font-semibold text-sm text-gray-900",
+      className: "px-4 py-2 font-semibold text-[12px] text-gray-900",
     },
     {
       key: 'description',
@@ -121,19 +109,17 @@ const SearchProducts = () => {
     {
       key: 'brand',
       header: 'Marca',
-      className: "px-4 py-2 text-sm text-gray-700",
+      className: "px-4 py-2 text-[12px] text-gray-700",
     },
+
     {
-      key: 'supplier_id',
+      key: 'supplier_name',
       header: 'Fornecedor',
-      render: (product: any) => {
-        const supplier = supId?.find((sup: any) => sup.id === product.supplier_id);
-        return (
-          <span className="text-sm text-gray-700">
-            {supplier ? supplier.name : "Fornecedor não encontrado"}
-          </span>
-        );
-      },
+      render: (product: any) => (
+        <span className="text-[12px] text-gray-700">
+          {product.supplier_name || "Fornecedor não informado"}
+        </span>
+      ),
     },
     {
       key: 'category',
@@ -144,7 +130,7 @@ const SearchProducts = () => {
       key: 'price',
       header: 'Preço',
       render: (product: Products) => (
-        <span className="font-bold text-sm text-slate-800">
+        <span className="font-bold text-[12px] text-slate-800">
           R$ {product.price}
         </span>
       ),
@@ -152,13 +138,13 @@ const SearchProducts = () => {
     {
       key: 'stock',
       header: 'Estoque',
-      className: "px-4 py-2 font-semibold text-sm text-gray-900",
+      className: "px-7 py-2 font-semibold text-[12px] text-gray-900",
     },
     {
       key: 'location',
       header: 'Localização',
       render: (product: Products) => (
-        <div className="flex items-center gap-1 text-gray-600">
+        <div className="flex items-center px-3 gap-1 text-gray-600">
           <MapPin className="w-3 h-3" />
           <span className="text-xs">{product.location}</span>
         </div>
@@ -167,31 +153,19 @@ const SearchProducts = () => {
     {
       key: 'actions',
       header: 'Ações',
-      render: (product: any) => (
-        user?.role === "Administrador" ? (
+      render: (product: any) => (      
           <div className="flex gap-2">
             <button
               onClick={(e) => {
                 e.stopPropagation(); // Previne o click da linha
                 handleEditProduct(product);
               }}
-              className="p-1 hover:scale-110 transition-transform"
+              title="Ver informações"
+              className="p-1 px-4 hover:scale-110 transition-transform"
             >
-              <Edit className="h-4 text-green-500" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-               // handleDeleteProduct(product.id);
-              }}
-              className="p-1 hover:scale-110 transition-transform"
-              disabled
-              title="Desativado"
-            >
-              <DeleteIcon className="h-4 text-gray-800" />
+              <EyeIcon className="h-4 text-green-500" />
             </button>
           </div>
-        ) : null
       ),
     },
   ];
@@ -319,15 +293,14 @@ const SearchProducts = () => {
       {/* Modal de Registro */}
       {openRegister && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-40" />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-lg w-full max-w-[90vw] z-50 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/80 z-40" />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center  rounded-lg shadow-sm w-full max-w-[100vw] z-50  h-[100vh] overflow-y-auto">
             <div className="p-6">
               <div className="relative mb-6">
-                <h2 className="text-2xl font-semibold mb-2">Cadastrar Produto</h2>
-                <p className="text-gray-600">Preencha os campos abaixo para cadastrar um novo produto.</p>
                 <button
                   onClick={() => setOpenRegister(false)}
-                  className="cursor-pointer absolute top-0 right-0 text-gray-500 hover:text-gray-700 text-2xl"
+                  className="cursor-pointer absolute top-5 right-2 text-gray-500 hover:text-red-500 text-2xl transition-transform duration-200 hover:scale-110"
+
                 >
                   &times;
                 </button>

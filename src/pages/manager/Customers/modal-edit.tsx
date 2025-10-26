@@ -36,7 +36,7 @@ const UpdatedCustomer = ({ customer, onClose }: Props) => {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-8 overflow-y-auto max-h-[90vh] animate-fadeIn">
                 {/* Cabeçalho */}
                 <div className="flex justify-between items-center mb-6">

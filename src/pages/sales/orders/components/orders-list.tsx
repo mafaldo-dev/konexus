@@ -387,7 +387,7 @@ export default function OrderList() {
         documentType="separation_list"
         onClose={() => {
           setSelectedOrder(null);
-          setDocumentType("purchase_order");
+          setDocumentType("separation_list");
         }}
       />
     );

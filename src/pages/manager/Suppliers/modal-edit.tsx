@@ -55,7 +55,7 @@ const UpdatedSupplierForm = ({ supplier, onClose }: Props) => {
     return value;
   };
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl p-12 overflow-y-auto max-h-[90vh] border border-slate-200">
 
         {/* Cabeçalho */}

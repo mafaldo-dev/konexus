@@ -36,6 +36,7 @@ import CustomersContent from '../pages/manager/Customers';
 import FinancialDashboard from '../pages/Financial';
 import Categories from '../pages/manager/categories';
 import EditOrderPage from '../pages/sales/orders/purchase-order/editOrderPage';
+import OSSystem from '../pages/ServiceOrder';
 
 
 
@@ -53,6 +54,7 @@ const AppRoutes = () => {
       <Route path="/sales/order-list" element={<OrdersList />} />
       <Route path="/sales/newOrder" element={<NewOrderPage />} />
       <Route path="/sales/completed" element={<CompletedSales />} />
+      <Route path='/manager/services' element={<OSSystem />} />
 
 
       {/* Private Routes */}

@@ -1,7 +1,7 @@
 // components/dashboard/components/MenuItem.tsx
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 interface MenuItemProps {
   item: {

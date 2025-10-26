@@ -611,7 +611,7 @@ const handleAddProductWithStockCheck = () => {
                               </span>
                             </td>
                             <td className="p-4 text-right">R$ {item.price}</td>
-                            <td className="p-4 text-right font-semibold">R$ {(item.quantity * item.price)}</td>
+                            <td className="p-4 text-right font-semibold">R$ {(item.quantity * item.price).toFixed(2)}</td>
                             <td className="p-4 text-center">
                               <button
                                 type="button"
@@ -629,7 +629,7 @@ const handleAddProductWithStockCheck = () => {
                   <div className="p-6 bg-gray-50 border-t border-gray-200 text-right">
                     <p className="text-sm text-gray-600 mb-1">Total do Pedido</p>
                     <p className="text-3xl font-bold text-slate-800">
-                      R$ {products.reduce((acc, p) => acc + p.quantity * p.price, 0)}
+                      R$ {products.reduce((acc, p) => acc + p.quantity * p.price, 0).toFixed(2)}
                     </p>
                   </div>
                 </>
