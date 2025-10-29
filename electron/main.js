@@ -40,6 +40,13 @@ let mainWindow;
 app.whenReady().then(() => {
   mainWindow = createWindow();
 
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F4') {
+      event.preventDefault();
+      mainWindow.webContents.send('shortcut:f4');
+    }
+  });
+
   // Só roda o autoUpdater em produção, pra evitar problema no dev
   if (process.env.NODE_ENV !== 'development') {
     autoUpdater.checkForUpdatesAndNotify();

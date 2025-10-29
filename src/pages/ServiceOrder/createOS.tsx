@@ -29,6 +29,8 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showProductSearch, setShowProductSearch] = useState<number | null>(null);
   const [selectedSector, setSelectedSector] = useState('');
+  const [loadingEmployees, setLoadingEmployees] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   const { user } = useAuth();
 
@@ -36,24 +38,17 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
+        setLoadingEmployees(true);
         const response = await handleAllEmployee();
-        console.log('Response employees:', response);
-        
-        // Tratamento para extrair o array correto
-        let employeeData = response;
-        
-        // Se for array de arrays, pega o primeiro
-        if (Array.isArray(response) && Array.isArray(response[0])) {
-          employeeData = response[0];
-        }
-        
-        console.log('Employee data processado:', employeeData);
-        console.log('Exemplo de funcionário:', employeeData[0]);
-        
-        setEmployees(Array.isArray(employeeData) ? employeeData : []);
+        const employeesData = Array.isArray(response) && Array.isArray(response[0]) 
+          ? response[0] 
+          : response;
+        setEmployees(employeesData);
       } catch (err) {
         console.error('Erro ao carregar funcionários:', err);
         setEmployees([]);
+      } finally {
+        setLoadingEmployees(false);
       }
     };
     fetchEmployees();
@@ -63,13 +58,17 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        setLoadingProducts(true);
         const response = await handleAllProducts();
-        const productData = Array.isArray(response) ? response : 
-                          Array.isArray(response[0]) ? response[0] : [];
-        setProducts(productData);
+        const productsData = Array.isArray(response) && Array.isArray(response[0]) 
+          ? response[0] 
+          : response;
+        setProducts(productsData);
       } catch (err) {
         console.error('Erro ao carregar produtos:', err);
         setProducts([]);
+      } finally {
+        setLoadingProducts(false);
       }
     };
     fetchProducts();
@@ -77,8 +76,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
 
   // Setores únicos ordenados alfabeticamente
   const uniqueSectors = useMemo(() => {
-    if (!Array.isArray(employees) || employees.length === 0) {
-      console.log('No employees data');
+    if (employees.length === 0) {
       return [];
     }
     
@@ -86,30 +84,39 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
       .map(emp => emp.sector)
       .filter(sector => sector && typeof sector === 'string' && sector.trim() !== '');
     
-    console.log('Sectors found:', sectors);
+    console.log("Setores encontrados:", sectors);
     
     // Remove duplicatas e ordena
     const uniqueSet = new Set(sectors);
     const result = Array.from(uniqueSet).sort((a, b) => 
       a.toLowerCase().localeCompare(b.toLowerCase())
     );
-    
-    console.log('Unique sectors:', result);
+
+    console.log("Setores únicos:", result);
     return result;
   }, [employees]);
 
   // Funcionários filtrados por setor e status ativo
   const filteredUsers = useMemo(() => {
-    if (!selectedSector || !watchedSector) return [];
-
-    return employees
-      .filter(emp => 
-        emp.sector === (selectedSector || watchedSector) && 
-        emp.status?.toLowerCase() === 'ativo'
-      )
-      .sort((a, b) => 
-        a.name?.toLowerCase().localeCompare(b.name?.toLowerCase())
-      );
+    const currentSector = selectedSector || watchedSector;
+    
+    if (!currentSector) {
+      console.log("Nenhum setor selecionado");
+      return [];
+    }
+    
+    const filtered = employees.filter(emp => {
+      const sectorMatch = emp.sector === currentSector;
+      const statusMatch = emp.status?.toLowerCase() === 'ativo';
+      
+      return sectorMatch && statusMatch;
+    });
+    
+    console.log("Funcionários filtrados:", filtered);
+    
+    return filtered.sort((a, b) => 
+      (a.username || a.name)?.toLowerCase().localeCompare((b.username || b.name)?.toLowerCase())
+    );
   }, [selectedSector, watchedSector, employees]);
 
   // Reseta funcionário ao mudar setor
@@ -135,7 +142,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
         
         return matchCode || matchId || matchName || matchDescription;
       })
-      .slice(0, 50); // Limita resultados para performance
+      .slice(0, 50);
   }, [searchTerm, products]);
 
   const removeOrderItem = (index: number) => {
@@ -169,7 +176,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/80  flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden animate-fadeIn">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
@@ -243,8 +250,11 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                     setValue('sector', e.target.value);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  disabled={loadingEmployees}
                 >
-                  <option value="">Selecione um setor</option>
+                  <option value="">
+                    {loadingEmployees ? 'Carregando setores...' : 'Selecione um setor'}
+                  </option>
                   {uniqueSectors.map((sector) => (
                     <option key={sector} value={sector}>
                       {sector}
@@ -253,6 +263,11 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                 </select>
                 {errors.sector && (
                   <p className="text-red-500 text-xs mt-1">{errors.sector.message}</p>
+                )}
+                {!loadingEmployees && uniqueSectors.length === 0 && (
+                  <p className="text-amber-600 text-xs mt-1">
+                    Nenhum setor encontrado
+                  </p>
                 )}
               </div>
 
@@ -270,7 +285,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                   </option>
                   {filteredUsers.map((emp) => (
                     <option key={emp.id} value={emp.id}>
-                      {emp.name}
+                      {emp.username || emp.name}
                     </option>
                   ))}
                 </select>
@@ -322,14 +337,16 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                         {...register(`orderItems.${index}.productCode` as const, {
                           required: 'Produto é obrigatório'
                         })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                        className="w-full px-3 py-2 bg-gray-200 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                         placeholder="Código do produto"
                         readOnly
+                        disabled
                       />
                       <button
                         type="button"
                         onClick={() => openProductSearch(index)}
                         className="px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition flex items-center gap-2 flex-shrink-0"
+                        disabled={loadingProducts}
                       >
                         <Search className="w-4 h-4" />
                       </button>
@@ -343,13 +360,11 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                     {/* Modal de busca de produtos */}
                     {showProductSearch === index && (
                       <>
-                        {/* Backdrop */}
                         <div 
                           className="fixed inset-0 z-40" 
                           onClick={closeProductSearch}
                         />
                         
-                        {/* Modal */}
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-xl z-50 max-h-80 overflow-hidden flex flex-col">
                           <div className="p-3 border-b bg-gray-50">
                             <div className="flex gap-2">

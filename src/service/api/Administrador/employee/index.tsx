@@ -20,6 +20,7 @@ export async function insertEmployee(employee: Employee) {
 export async function handleAllEmployee(token?: string): Promise<Employee[] | any> {
   try {
     const response = await apiRequest(`employees/all`, "GET", undefined, token);
+  
     const employee = response.data
   
     if (typeof employee === 'object' && !Array.isArray(employee.data)) {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share } from "lucide-react";
+import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share, Wrench } from "lucide-react";
 import { useAuth } from "../AuthContext";
 
 declare global {
@@ -12,7 +12,7 @@ declare global {
 interface DocumentViewerProps {
   order?: any;
   product?: any;
-  documentType?: "purchase_order" | "label_70x30" | "label_100x100" | "separation_list";
+  documentType?: "purchase_order" | "label_70x30" | "label_100x100" | "separation_list" | "render_os_print_sheet";
   onClose: () => void;
 }
 
@@ -57,7 +57,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       const html2pdf = (await import('html2pdf.js')).default;
 
       // Simplifica completamente a estrutura para captura
-      if (documentType === "separation_list" || documentType === "purchase_order") {
+      if (documentType === "separation_list" || documentType === "purchase_order" || documentType === "render_os_print_sheet") {
         element.className = 'bg-white w-[210mm] min-h-[297mm] mt-32';
       } else if (documentType.includes('label')) {
         element.className = '';
@@ -672,11 +672,161 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       </div>
     </div>
   );
+  const renderOSPrintSheet = () => (
+    <div className="flex flex-col print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
+      {/* Cabeçalho */}
+      <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
+        <div className="flex items-start gap-2">
+          <div className="w-12 h-12 flex items-center justify-center">
+            <img
+              src={company?.companyIcon || "logo"}
+              alt="Logo"
+              className="w-10 h-10 object-contain"
+            />
+          </div>
+          <div>
+            <h1 className="text-sm font-bold text-gray-900">
+              {company?.name || "Empresa"} - Ordens de Serviço
+            </h1>
+            <p className="text-xs text-gray-600 font-medium">
+              Ficha de Execução de OS
+            </p>
+            <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              {company?.email || "konexuserp@comercial.com"}
+            </p>
+          </div>
+        </div>
+
+        <div className="text-center w-[8vw]">
+          <div className="bg-gray-50 h-[6vh] p-2 rounded border border-gray-200">
+            <p className="text-xs text-gray-500 uppercase">OS Nº</p>
+            <p className="text-xs font-bold text-gray-900 mt-0.5">
+              {order?.orderNumber}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Informações principais */}
+      <div className="flex flex-row justify-between border border-gray-200 rounded px-2 py-2 gap-4 mb-4 text-xs">
+        <div className="flex-1">
+          <h3 className="font-bold mb-1 text-black">Cliente / Setor</h3>
+          <p className="font-medium text-black mb-1">
+            {order.username || "Não informado"}
+          </p>
+          <p className="text-black">
+            {order?.sector || "Setor não definido"}
+          </p>
+        </div>
+
+        <div className="text-center">
+          <h3 className="font-bold mb-1 text-black">Criada em</h3>
+          <p className="text-black font-medium">
+            {order?.orderDate
+              ? new Date(order.orderDate).toLocaleDateString()
+              : "—"}
+          </p>
+        </div>
+
+        <div className="text-center">
+          <h3 className="font-bold mb-1 text-black">Responsável</h3>
+          <p className="text-black font-medium">
+            {order?.userReceiv || "—"}
+          </p>
+        </div>
+
+        <div className="text-center">
+          <h3 className="font-bold mb-1 text-black">Status</h3>
+          <p className="text-black font-medium capitalize">
+            {getStatusLabel(order?.orderStatus) || "—"}
+          </p>
+        </div>
+      </div>
+
+      {/* Itens da OS */}
+      <div className="border border-gray-200 rounded mb-4 print-break">
+        <div className="bg-gray-800 px-3 py-2">
+          <h3 className="text-white font-semibold text-xs flex items-center gap-1">
+            <Wrench className="w-3 h-3" />
+            Itens da OS
+          </h3>
+        </div>
+
+        <table className="w-full print-table text-xs">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="p-2 text-left font-semibold text-gray-700 w-8">✓</th>
+              <th className="p-2 text-left font-semibold text-gray-700">Descrição</th>
+              <th className="p-2 text-center font-semibold text-gray-700 w-24">Quantidade</th>
+              <th className="p-2 text-center font-semibold text-gray-700 w-32">Observações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {order?.orderItems?.map((item: any, i: number) => (
+              <tr
+                key={i}
+                className={`border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  }`}
+              >
+                <td className="p-2">
+                  <div className="w-4 h-4 border border-gray-400 rounded-sm flex items-center justify-center">
+                    <div className="w-2 h-2 bg-transparent rounded-sm"></div>
+                  </div>
+                </td>
+                <td className="p-2 text-gray-800">{item.description || "—"}</td>
+                <td className="p-2 text-center">
+                  <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                    {item.quantity || 1}
+                  </span>
+                </td>
+                <td className="p-2 text-center text-gray-700">
+                  {item.notes || "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Observações gerais */}
+      {order?.notes && (
+        <div className="border border-amber-200 rounded p-3 mb-4 bg-amber-50 text-xs">
+          <p className="text-amber-700 font-semibold mb-1">Observações</p>
+          <p className="text-amber-800">{order.notes}</p>
+        </div>
+      )}
+
+      {/* Assinaturas */}
+      <div className="flex flex-row justify-between print-signatures mb-4 pt-3 border-t border-gray-200 text-xs mt-auto">
+        {["Executado por", "Conferido por"].map((label, i) => (
+          <div key={i} className="text-center w-full">
+            <p className="text-gray-600 mb-2 font-medium">{label}</p>
+            <div className="border-b border-gray-400 h-6 mb-1 mx-2"></div>
+            <p className="text-gray-500 text-xs">Assinatura</p>
+            <p className="text-gray-400 text-xs mt-0.5">Data: __/__/____</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Rodapé */}
+      <div className="text-center text-xs text-gray-500 border-t border-gray-200 pt-2">
+        <p>
+          {company?.name} • {company?.email}
+        </p>
+        <p className="text-xs">
+          Documento gerado em {new Date().toLocaleDateString()} • Konéxus
+        </p>
+      </div>
+    </div>
+  );
+
 
   const getPageSize = () => {
     if (documentType === "label_70x30") return "size: 70mm 30mm;";
     if (documentType === "label_100x100") return "size: 100mm 100mm;";
     if (documentType === "separation_list") return "size: A4; margin: 25mm;";
+    if(documentType === "render_os_print_sheet") return "size A4; margin: 25mm;"
     return "size: A4;";
   };
 
@@ -920,6 +1070,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             {documentType === "label_100x100" && renderLabel100x100()}
             {documentType === "purchase_order" && renderPurchaseOrder()}
             {documentType === "separation_list" && renderSeparationList()}
+            {documentType === "render_os_print_sheet" && renderOSPrintSheet()}
           </div>
         </main>
       </div>

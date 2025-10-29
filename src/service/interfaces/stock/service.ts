@@ -1,9 +1,9 @@
 export interface OrderService {
-    id: string | number
+    id: number | any
     orderNumber: string | number
     userCreate: string
     userReceiv: string
-    orderStatus?: string
+    orderStatus: string
     notes?: string
     message: string
     orderDate?: string | Date | any

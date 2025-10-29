@@ -1,5 +1,4 @@
 import { Clock, AlertCircle, CheckCircle2, User, Calendar } from "lucide-react";
-import { OSStatus, StatusConfig } from ".";
 import { OrderService } from "../../service/interfaces/stock/service";
 import { handleAllOrderServices } from "../../service/api/Administrador/orderService/service";
 import { useEffect } from "react";
@@ -7,7 +6,7 @@ import { useEffect } from "react";
 export interface OSCardProps {
   os: OrderService;
   currentUser: any;
-  onUpdateStatus: (osId: string | number, newStatus: OSStatus) => void;
+  onUpdateStatus: (osId: string | number, newStatus: any) => void;
 }
 
 export const OSCard: React.FC<OSCardProps> = ({ os, onUpdateStatus }) => {
@@ -26,11 +25,11 @@ export const OSCard: React.FC<OSCardProps> = ({ os, onUpdateStatus }) => {
     handleOrderService();
   }, []); // Dependências vazias para executar apenas na montagem
 
-  const statusConfig: Record<OSStatus, StatusConfig> = {
+  const statusConfig: any = {
     initialized: { 
       color: 'bg-yellow-100 text-yellow-800 border-yellow-200', 
       icon: Clock, 
-      label: 'initialized' 
+      label: 'Iniciada' 
     },
     in_progress: { 
       color: 'bg-blue-100 text-blue-800 border-blue-200', 
@@ -44,7 +43,7 @@ export const OSCard: React.FC<OSCardProps> = ({ os, onUpdateStatus }) => {
     }
   };
 
-  const config = statusConfig[os.orderStatus as OSStatus];
+  const config = statusConfig[os.orderStatus as any];
   const Icon = config?.icon || Clock;
 
   // Permissões de ações

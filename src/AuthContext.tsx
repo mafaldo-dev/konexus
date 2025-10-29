@@ -139,7 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!userData) {
         try {
           const employeeResponse = await handleLoginEmployee(username, password);
-
+  
           if (employeeResponse?.user && employeeResponse?.token) {
             userData = {
               id: employeeResponse.user.id,

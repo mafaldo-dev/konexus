@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Bell, Plus, Clock, AlertCircle, CheckCircle2, Package, X, LucideIcon, Loader2 } from 'lucide-react';
+import { Plus, Clock, AlertCircle, CheckCircle2, Package, X, LucideIcon, Loader2 } from 'lucide-react';
 import { CreateOSModal } from './createOS';
-import { OSCard } from './cardsOS';
+import { NotificationBadge } from './NotificationBagde';
 import Dashboard from '../../components/dashboard/Dashboard';
 import { useAuth } from '../../AuthContext';
 import { OrderService } from '../../service/interfaces/stock/service';
 import { insertOrderOfService, handleAllOrderServices } from '../../service/api/Administrador/orderService/service';
 import { format } from 'date-fns';
 import { normalizeOrderService, normalizeOrderServices, prepareOrderServiceForSubmit } from './parseItensOrder';
+import { DynamicTable } from '../manager/Table/DynamicTable';
+import DocumentViewer from '../../utils/screenOptions';
+
 
 // ============= TIPOS =============
-export type OSStatus = 'initialized' | 'in_progress' | 'finished';
 
 export type OSPriority = 'baixa' | 'media' | 'alta';
 
@@ -31,30 +33,23 @@ export interface CreateOSFormData {
   }>;
 }
 
-export interface StatusConfig {
-  color: string;
-  icon: LucideIcon;
-  label: string;
-}
-
 interface TabConfig {
-  key: OSStatus | 'todas';
+  key: any
   label: string;
   icon: LucideIcon;
 }
-
-// ============= COMPONENTE PRINCIPAL =============
 
 const OSSystem: React.FC = () => {
   const { user } = useAuth();
   const [ordens, setOrdens] = useState<OrderService[]>([]);
-  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<OSStatus | 'todas'>('todas');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [loadingOrders, setLoadingOrders] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<'todas'>('todas');
+  const [loading, setLoading] = useState(false);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list" | "render_os_print_sheet">("purchase_order");
+  const [selectedOrder, setSelectedOrder] = useState<OrderService | null>(null);
 
-  // Form methods
   const formMethods = useForm<CreateOSFormData>({
     defaultValues: {
       createdAt: new Date(),
@@ -64,198 +59,116 @@ const OSSystem: React.FC = () => {
     }
   });
 
-  // Busca todas as ordens ao montar o componente
   useEffect(() => {
     fetchAllOrders();
   }, []);
 
- const fetchAllOrders = async () => {
-  try {
-    setLoadingOrders(true);
-    const response = await handleAllOrderServices();
-    console.log('Response orders:', response);
-
-    // Trata a resposta - pode vir como array direto ou array dentro de array
-    let data: any[] = [];
-
-    if (Array.isArray(response)) {
-      if (Array.isArray(response[0])) {
-        data = response[0];
-      } else {
-        data = response;
-      }
-    }
-
-    console.log('Orders processadas:', data);
-    
-    // NORMALIZA TODAS AS ORDENS
-    const normalizedOrders = normalizeOrderServices(data);
-    
-    // Ordena por data de criação (mais recentes primeiro)
-    const sortedOrders = normalizedOrders.sort((a, b) => {
-      const dateA = new Date(a.createdAt || a.orderDate).getTime();
-      const dateB = new Date(b.createdAt || b.orderDate).getTime();
-      return dateB - dateA;
-    });
-
-    setOrdens(sortedOrders);
-  } catch (error) {
-    console.error('Erro ao buscar ordens:', error);
-    addNotification({
-      id: Date.now(),
-      type: 'error',
-      message: 'Erro ao carregar ordens de serviço',
-      priority: 'alta',
-      read: false
-    });
-  } finally {
-    setLoadingOrders(false);
-  }
-};
- const handleCreateOS = async (data: CreateOSFormData) => {
-  if (!user) {
-    addNotification({
-      id: Date.now(),
-      type: 'error',
-      message: 'Usuário não autenticado',
-      priority: 'alta',
-      read: false
-    });
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    // Validação dos itens
-    const validItems = data.orderItems.filter(
-      item => item.productCode && item.quantity > 0
-    );
-
-    if (validItems.length === 0) {
-      addNotification({
-        id: Date.now(),
-        type: 'error',
-        message: 'Adicione pelo menos um produto válido',
-        priority: 'alta',
-        read: false
-      });
-      setLoading(false);
-      return;
-    }
-
-    const orderServiceData: OrderService = {
-      id: 0,
-      orderNumber: data.orderNumber,
-      userCreate: user.username,
-      userReceiv: data.userReceiv || '',
-      orderStatus: data.orderStatus ?? 'initialized',
-      sector: data.sector,
-      notes: data.notes || '',
-      message: data.message || '',
-      orderItems: validItems,
-      createdAt: data.createdAt ?? new Date(),
-      orderDate: data.orderDate,
-    };
-
-    console.log('Criando OS:', orderServiceData);
-    console.log('Items:', validItems);
-
-    // PREPARA OS DADOS PARA ENVIO USANDO A FUNÇÃO CORRIGIDA
-    const preparedData = prepareOrderServiceForSubmit(orderServiceData);
-    console.log('Dados preparados para envio:', preparedData);
-
-    const response = await insertOrderOfService(preparedData);
-    console.log('Response create:', response);
-
-    if (response?.order || response) {
-      const newOrder = response?.order || response;
-      
-      // NORMALIZA A RESPOSTA DO BACKEND
-      const normalizedOrder = normalizeOrderService(newOrder);
-      
-      setOrdens(prev => [normalizedOrder, ...prev]);
-      
-      setShowCreateModal(false);
-      formMethods.reset({
-        createdAt: new Date(),
-        orderDate: format(new Date(), "yyyy-MM-dd"),
-        orderStatus: 'initialized',
-        orderItems: [{ productCode: '', quantity: 1 }]
-      });
-
-      addNotification({
-        id: Date.now(),
-        type: 'success',
-        osId: normalizedOrder.id,
-        message: `Nova OS #${data.orderNumber} criada com sucesso`,
-        priority: 'media',
-        read: false
-      });
-
-      // Recarrega a lista para garantir sincronização
-      setTimeout(() => {
-        fetchAllOrders();
-      }, 1000);
-    } else {
-      throw new Error('Erro ao criar ordem de serviço');
-    }
-  } catch (error) {
-    console.error('Erro ao criar OS:', error);
-    addNotification({
-      id: Date.now(),
-      type: 'error',
-      message: 'Erro ao criar ordem de serviço. Tente novamente.',
-      priority: 'alta',
-      read: false
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-  const handleUpdateStatus = async (osId: string | number, newStatus: OSStatus) => {
+  const fetchAllOrders = async () => {
     try {
-      console.log(`Atualizando OS ${osId} para status ${newStatus}`);
-      
-      // Aqui você deve chamar a API de atualização
-      // await updateOrderServiceStatus(osId, { orderStatus: newStatus });
+      setLoadingOrders(true);
+      const response = await handleAllOrderServices();
+      let data: any[] = [];
 
-      // Atualiza localmente
-      setOrdens(prev =>
-        prev.map(os =>
-          os.id === osId
-            ? { ...os, orderStatus: newStatus }
-            : os
-        )
-      );
+      if (Array.isArray(response)) {
+        data = Array.isArray(response[0]) ? response[0] : response;
+      }
 
-      addNotification({
-        id: Date.now(),
-        type: 'success',
-        message: `Status da OS atualizado para ${getStatusLabel(newStatus)}`,
-        priority: 'media',
-        read: false
+      const normalized = normalizeOrderServices(data);
+      const sorted = normalized.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.orderDate).getTime();
+        const dateB = new Date(b.createdAt || b.orderDate).getTime();
+        return dateB - dateA;
       });
 
-      // Recarrega após atualização
-      setTimeout(() => {
-        fetchAllOrders();
-      }, 500);
-
+      setOrdens(sorted);
     } catch (error) {
-      console.error('Erro ao atualizar status:', error);
+      console.error('Erro ao buscar ordens:', error);
       addNotification({
         id: Date.now(),
         type: 'error',
-        message: 'Erro ao atualizar status da ordem',
+        message: 'Erro ao carregar ordens de serviço',
         priority: 'alta',
         read: false
       });
+    } finally {
+      setLoadingOrders(false);
     }
   };
 
-  const getStatusLabel = (status: OSStatus): string => {
-    const labels = {
+  const handleCreateOS = async (data: CreateOSFormData) => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const validItems = data.orderItems.filter(i => i.productCode && i.quantity > 0);
+      if (validItems.length === 0) {
+        addNotification({
+          id: Date.now(),
+          type: 'error',
+          message: 'Adicione pelo menos um produto válido',
+          priority: 'alta',
+          read: false
+        });
+        setLoading(false);
+        return;
+      }
+
+      const orderServiceData: OrderService = {
+        id: 0,
+        orderNumber: data.orderNumber,
+        userCreate: user.username,
+        userReceiv: data.userReceiv || '',
+        orderStatus: data.orderStatus ?? 'initialized',
+        sector: data.sector,
+        notes: data.notes || '',
+        message: data.message || '',
+        orderItems: validItems,
+        createdAt: data.createdAt ?? new Date(),
+        orderDate: data.orderDate,
+      };
+
+      const prepared = prepareOrderServiceForSubmit(orderServiceData);
+      const response = await insertOrderOfService(prepared);
+
+      if (response?.order || response) {
+        const normalized = normalizeOrderService(response?.order || response);
+        setOrdens(prev => [normalized, ...prev]);
+        setShowCreateModal(false);
+        formMethods.reset();
+
+        addNotification({
+          id: Date.now(),
+          type: 'success',
+          message: `Nova OS #${data.orderNumber} criada com sucesso`,
+          priority: 'media',
+          read: false
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = (osId: string | number, newStatus: string) => {
+    setOrdens(prev =>
+      prev.map(os =>
+        os.id === osId ? { ...os, orderStatus: newStatus } : os
+      )
+    );
+
+    addNotification({
+      id: Date.now(),
+      type: 'success',
+      message: `Status da OS atualizado para ${getStatusLabel(newStatus)}`,
+      priority: 'media',
+      read: false
+    });
+  };
+
+  const getStatusLabel = (status: any): string => {
+    const labels: any = {
       initialized: 'Iniciada',
       in_progress: 'Em Progresso',
       finished: 'Finalizada'
@@ -263,20 +176,29 @@ const OSSystem: React.FC = () => {
     return labels[status] || status;
   };
 
-  const addNotification = (notification: any): void => {
-    setNotifications(prev => [...prev, notification]);
+  const addNotification = (n: any) => {
+    setNotifications(prev => [...prev, n]);
     setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
-    }, 5000);
+      setNotifications(prev => prev.filter(x => x.id !== n.id));
+    }, 4000);
   };
 
-  const markNotificationAsRead = (notifId: number): void => {
-    setNotifications(prev => prev.filter(n => n.id !== notifId));
-  };
 
-  const filteredOrdens = activeTab === 'todas'
-    ? ordens
-    : ordens.filter(os => os.orderStatus === activeTab);
+    const handleViewPDF = (order: OrderService) => {
+      setSelectedOrder(order);
+      setDocumentType("render_os_print_sheet");
+    };
+
+  const filteredOrdens = () => {
+    let filtered = ordens;
+    if (user?.access !== 'Full-access' && user?.role !== 'Administrador') {
+      filtered = filtered.filter(os => os.sector === user?.sector);
+    }
+    if (activeTab !== 'todas') {
+      filtered = filtered.filter(os => os.orderStatus === activeTab);
+    }
+    return filtered;
+  };
 
   const tabs: TabConfig[] = [
     { key: 'todas', label: 'Todas', icon: Package },
@@ -285,93 +207,117 @@ const OSSystem: React.FC = () => {
     { key: 'finished', label: 'Finalizadas', icon: CheckCircle2 }
   ];
 
-  const getTabCount = (tabKey: OSStatus | 'todas') => {
-    if (tabKey === 'todas') return ordens.length;
-    return ordens.filter(os => os.orderStatus === tabKey).length;
-  };
+  const columns = [
+    {
+      key: 'orderNumber',
+      header: 'N° OS',
+      render: (os: OrderService) => (
+        <span className="font-mono text-[13px] bg-gray-100 text-gray-800 px-3 py-1 rounded font-medium">
+          {os.orderNumber}
+        </span>
+      ),
+    },
+    {
+      key: 'sector',
+      header: 'Setor',
+      render: (os: OrderService) => <span>{os.sector || '—'}</span>,
+    },
+    {
+      key: 'userCreate',
+      header: 'Criado por',
+      render: (os: OrderService) => <span>{os.userCreate}</span>,
+    },
+    {
+      key: 'userReceiv',
+      header: 'Responsável',
+      render: (os: OrderService) => <span>{os.userReceiv || '—'}</span>,
+    },
+    {
+      key: 'orderStatus',
+      header: 'Status',
+      render: (os: OrderService) => {
+        const statusColors: any = {
+          initialized: "bg-yellow-100 text-yellow-800",
+          in_progress: "bg-blue-100 text-blue-800",
+          finished: "bg-green-100 text-green-800",
+        };
+        return (
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColors[os.orderStatus]}`}>
+            {getStatusLabel(os.orderStatus)}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'orderDate',
+      header: 'Data',
+      render: (os: OrderService) => (
+        <span>{os.orderDate ? format(new Date(os.orderDate), 'dd/MM/yyyy') : '—'}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      render: (os: OrderService) => (
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleUpdateStatus(os.id, 'in_progress')}
+            className="p-1 px-3 text-blue-600 hover:scale-110 transition-transform"
+          >
+            <Clock className="h-4" />
+          </button>
+          <button
+            onClick={() => handleUpdateStatus(os.id, 'finished')}
+            className="p-1 px-3 text-green-600 hover:scale-110 transition-transform"
+          >
+            <CheckCircle2 className="h-4" />
+          </button>
+          <button onClick={() => handleViewPDF(os)}>
+            pdf
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  if (selectedOrder && documentType === "render_os_print_sheet") {
+    return (
+      <DocumentViewer
+        order={selectedOrder}
+        documentType="render_os_print_sheet"
+        onClose={() => {
+          setSelectedOrder(null);
+          setDocumentType("render_os_print_sheet");
+        }}
+      />
+    );
+  }
 
   return (
     <Dashboard>
       <div className="min-h-screen bg-gray-50 p-6">
         {/* Header */}
-        <div className="max-w-7xl mx-auto mb-6">
-          <div className="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Sistema de Ordem de Serviço</h1>
-              <p className="text-sm text-gray-600">
-                Usuário: {user?.username || 'N/A'} | Setor: {user?.sector || 'N/A'}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Notificações */}
-              <div className="relative">
-                <Bell className="w-6 h-6 text-gray-600 cursor-pointer hover:text-gray-800 transition" />
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                    {notifications.length}
-                  </span>
-                )}
-              </div>
-
-              {/* Botão criar OS */}
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading}
-              >
-                <Plus className="w-5 h-5" />
-                {loading ? 'Criando...' : 'Nova OS'}
-              </button>
-            </div>
+        <div className="max-w-7xl mx-auto mb-6 flex justify-between items-center bg-white shadow-sm p-4 rounded-lg">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Sistema de Ordem de Serviço</h1>
+            <p className="text-sm text-gray-600">
+              Usuário: {user?.username || 'N/A'} | Setor: {user?.sector || 'N/A'}
+            </p>
           </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition disabled:opacity-50"
+          >
+            <Plus className="w-5 h-5" />
+            {loading ? 'Criando...' : 'Nova OS'}
+          </button>
         </div>
 
-        {/* Notificações Popup */}
-        <div className="fixed top-20 right-6 z-50 space-y-2 max-w-sm">
-          {notifications.map(notif => (
-            <div
-              key={notif.id}
-              className={`bg-white rounded-lg shadow-lg p-4 border-l-4 ${
-                notif.type === 'success'
-                  ? 'border-green-500'
-                  : notif.type === 'error'
-                  ? 'border-red-500'
-                  : 'border-blue-500'
-              } animate-fadeIn`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Bell className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm font-semibold text-gray-900">
-                      {notif.type === 'success' 
-                        ? 'Sucesso' 
-                        : notif.type === 'error' 
-                        ? 'Erro' 
-                        : 'Notificação'}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-700">{notif.message}</p>
-                </div>
-                <button
-                  onClick={() => markNotificationAsRead(notif.id)}
-                  className="text-gray-400 hover:text-gray-600 transition"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Tabs de filtro */}
+        {/* Tabs */}
         <div className="max-w-7xl mx-auto mb-6">
           <div className="bg-white rounded-lg shadow-sm p-1 flex gap-1">
             {tabs.map(tab => {
               const Icon = tab.icon;
-              const count = getTabCount(tab.key);
-
               return (
                 <button
                   key={tab.key}
@@ -384,71 +330,35 @@ const OSSystem: React.FC = () => {
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    activeTab === tab.key 
-                      ? 'bg-white text-slate-800' 
-                      : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {count}
-                  </span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Lista de Ordens */}
+        {/* Tabela dinâmica */}
         <div className="max-w-7xl mx-auto">
-          {loadingOrders ? (
-            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-lg">
-              <Loader2 className="w-12 h-12 text-slate-800 animate-spin mb-4" />
-              <p className="text-gray-600">Carregando ordens de serviço...</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredOrdens.length === 0 ? (
-                <div className="col-span-full text-center py-16 bg-white rounded-lg">
-                  <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 font-medium mb-1">
-                    Nenhuma ordem de serviço encontrada
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {activeTab === 'todas' 
-                      ? 'Crie uma nova OS para começar' 
-                      : `Não há ordens com status "${getStatusLabel(activeTab as OSStatus)}"`}
-                  </p>
-                </div>
-              ) : (
-                filteredOrdens.map(os => (
-                  <OSCard
-                    key={os.id}
-                    os={os}
-                    currentUser={user}
-                    onUpdateStatus={handleUpdateStatus}
-                  />
-                ))
-              )}
-            </div>
-          )}
+          <DynamicTable
+            data={filteredOrdens()}
+            columns={columns}
+            loading={loadingOrders}
+            emptyMessage="Nenhuma OS encontrada"
+            emptyDescription="Tente ajustar os filtros acima ou crie uma nova OS"
+          />
         </div>
 
         {/* Modal Criar OS */}
         {showCreateModal && (
           <CreateOSModal
-            onClose={() => {
-              setShowCreateModal(false);
-              formMethods.reset({
-                createdAt: new Date(),
-                orderDate: format(new Date(), "yyyy-MM-dd"),
-                orderStatus: 'initialized',
-                orderItems: [{ productCode: '', quantity: 1 }]
-              });
-            }}
+            onClose={() => setShowCreateModal(false)}
             onCreate={handleCreateOS}
             formMethods={formMethods}
             loading={loading}
           />
         )}
+
+        {/* Notificações */}
+        <NotificationBadge onOrderStart={() => {}} />
       </div>
     </Dashboard>
   );
