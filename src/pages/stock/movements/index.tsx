@@ -69,6 +69,7 @@ export default function ProfessionalProductList() {
 
     const openKardexModal = async (product: Products) => {
         setLoadingKardex(true);
+        console.log(product)
         try {
             const movements = await handlekardexMoviment(product.id);
             setKardexProduct(product);
@@ -81,36 +82,25 @@ export default function ProfessionalProductList() {
         }
     };
 
-    // Logo no início do componente, antes de qualquer coisa
-
 
   useEffect(() => {
     const isElectron = typeof (window as any).require !== 'undefined';
-    console.log('🔍 isElectron:', isElectron);
     
     if (isElectron) {
         const { ipcRenderer } = (window as any).require('electron');
-        console.log('✅ ipcRenderer importado:', !!ipcRenderer);
         
         const handleShortcut = () => {
-            console.log('🔥🔥🔥 F4 RECEBIDO NO REACT! 🔥🔥🔥');
-            console.log('selectedProduct:', selectedProduct);
             if (selectedProduct) {
-                console.log('Chamando openKardexModal...');
                 openKardexModal(selectedProduct);
-            } else {
-                console.log('⚠️ Produto não selecionado');
             }
         };
         
         ipcRenderer.on('shortcut:f4', handleShortcut);
-        console.log('✅ Listener F4 REGISTRADO');
         
         return () => {
             ipcRenderer.removeListener('shortcut:f4', handleShortcut);
         };
     } else {
-        console.log('⚠️ Não está no Electron, usando fallback web');
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "F4" && selectedProduct) {
                 e.preventDefault();
