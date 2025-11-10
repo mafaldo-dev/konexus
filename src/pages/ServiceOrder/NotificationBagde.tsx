@@ -60,10 +60,10 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ onOrderSta
 
     return allOrders.filter(os => {
       // Se foi especificado um funcionário receptor
-      if (os.userReceiv && os.userReceiv.trim() !== '') {
+      if (os.receiver_name && os.receiver_name.trim() !== '') {
         // Compara com ID ou username
-        return os.userReceiv === user.id?.toString() || 
-               os.userReceiv === user.username;
+        return os.receiver_name === user.id?.toString() || 
+               os.receiver_name === user.username;
       }
       
       // Se não foi especificado, mostra para todos do setor
@@ -106,7 +106,7 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ onOrderSta
   // Visualiza PDF
   const handleViewPDF = () => {
     if (!selectedOS) return;
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+    const apiUrl = process.env.REACT_APP_API_URL;
     window.open(`${apiUrl}/orders/${selectedOS.id}/pdf`, '_blank');
   };
 
@@ -217,7 +217,7 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ onOrderSta
                           
                           <div className="flex items-center gap-4 text-xs text-gray-500 pl-12">
                             <span className="flex items-center gap-1">
-                              <span className="font-medium">Por:</span> {os.userCreate}
+                              <span className="font-medium">Por:</span> {os.username}
                             </span>
                             <span>•</span>
                             <span>{formatDate(os.orderDate)}</span>
@@ -291,7 +291,7 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ onOrderSta
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Criado por
                   </label>
-                  <p className="text-gray-900 font-medium mt-1">{selectedOS.userCreate}</p>
+                  <p className="text-gray-900 font-medium mt-1">{selectedOS.username}</p>
                 </div>
                 
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -301,12 +301,12 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ onOrderSta
                   <p className="text-gray-900 font-medium mt-1">{selectedOS.sector}</p>
                 </div>
 
-                {selectedOS.userReceiv && (
+                {selectedOS.receiver_name && (
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 sm:col-span-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                       Funcionário Designado
                     </label>
-                    <p className="text-gray-900 font-medium mt-1">{selectedOS.userReceiv}</p>
+                    <p className="text-gray-900 font-medium mt-1">{selectedOS.receiver_name}</p>
                   </div>
                 )}
               </div>
@@ -344,7 +344,7 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ onOrderSta
                           <div>
                             <p className="text-xs text-gray-500">Código do Produto</p>
                             <p className="font-mono font-semibold text-gray-900">
-                              {typeof item === 'object' ? item.productCode : item}
+                              {typeof item === 'object' ? item.productId : item}
                             </p>
                           </div>
                         </div>

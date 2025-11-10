@@ -34,7 +34,6 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
 
   const { user } = useAuth();
 
-  // Carrega funcionários
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
@@ -84,15 +83,12 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
       .map(emp => emp.sector)
       .filter(sector => sector && typeof sector === 'string' && sector.trim() !== '');
     
-    console.log("Setores encontrados:", sectors);
-    
     // Remove duplicatas e ordena
     const uniqueSet = new Set(sectors);
     const result = Array.from(uniqueSet).sort((a, b) => 
       a.toLowerCase().localeCompare(b.toLowerCase())
     );
 
-    console.log("Setores únicos:", result);
     return result;
   }, [employees]);
 
@@ -101,7 +97,6 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
     const currentSector = selectedSector || watchedSector;
     
     if (!currentSector) {
-      console.log("Nenhum setor selecionado");
       return [];
     }
     
@@ -112,8 +107,6 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
       return sectorMatch && statusMatch;
     });
     
-    console.log("Funcionários filtrados:", filtered);
-    
     return filtered.sort((a, b) => 
       (a.username || a.name)?.toLowerCase().localeCompare((b.username || b.name)?.toLowerCase())
     );
@@ -123,7 +116,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
   useEffect(() => {
     const currentSector = selectedSector || watchedSector;
     if (currentSector) {
-      setValue('userReceiv', '');
+      setValue('receiver_name', '');
     }
   }, [selectedSector, watchedSector, setValue]);
 
@@ -156,7 +149,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
     const currentItems = orderItems || [];
     setValue('orderItems', [
       ...currentItems,
-      { productCode: '', quantity: 1 }
+      { productId: '', quantity: 1 }
     ]);
   };
 
@@ -171,7 +164,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
   };
 
   const selectProduct = (index: number, product: any) => {
-    setValue(`orderItems.${index}.productCode`, product.code || product.id);
+    setValue(`orderItems.${index}.productId`, product.id);
     closeProductSearch();
   };
 
@@ -276,7 +269,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                   Funcionário Responsável
                 </label>
                 <select
-                  {...register('userReceiv')}
+                  {...register('receiver_name')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                   disabled={!selectedSector && !watchedSector}
                 >
@@ -334,7 +327,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        {...register(`orderItems.${index}.productCode` as const, {
+                        {...register(`orderItems.${index}.productId` as const, {
                           required: 'Produto é obrigatório'
                         })}
                         className="w-full px-3 py-2 bg-gray-200 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
@@ -351,9 +344,9 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                         <Search className="w-4 h-4" />
                       </button>
                     </div>
-                    {errors.orderItems?.[index]?.productCode && (
+                    {errors.orderItems?.[index]?.productId && (
                       <p className="text-red-500 text-xs mt-1">
-                        {errors.orderItems[index]?.productCode?.message}
+                        {errors.orderItems[index]?.productId?.message}
                       </p>
                     )}
 

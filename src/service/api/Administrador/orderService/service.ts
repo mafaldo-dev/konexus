@@ -9,7 +9,6 @@ export const insertOrderOfService = async (order: OrderService, token?: string):
       orderStatus: order.orderStatus || 'initialized'
     };
 
-
     const response = await apiRequest("service/create", "POST", orderData, token || tkn as string);
 
     if (!response) {
@@ -32,10 +31,37 @@ export const insertOrderOfService = async (order: OrderService, token?: string):
 export const handleAllOrderServices = async(token?: string) => {
   try {
     const response = await apiRequest("service/all", "GET", undefined, token)
-    console.log(response)
     return response
   }catch(err){
     console.error("Erro ao recuperar lista de orders", err)
     throw new Error("Erro interno do servidor!")
   }
 }
+
+export const handleOrderServiceById = async (id?: string, token?: string,) => {
+  const storedToken = localStorage.getItem("token");
+  const authToken = token || storedToken;
+
+  if (!authToken) {
+    console.error("Token não encontrado!");
+    throw new Error("Token de autenticação ausente");
+  }
+
+  if (!id) {
+    console.error("ID da ordem não fornecido!");
+    throw new Error("ID da ordem é obrigatório");
+  }
+
+  try {
+    const response = await apiRequest(
+      `service/${id}/order`,
+      "GET",
+      undefined,
+      authToken
+    );
+    return response;
+  } catch (err) {
+    console.error("Erro ao recuperar ordem de serviço:", err);
+    throw new Error("Erro interno do servidor!");
+  }
+};

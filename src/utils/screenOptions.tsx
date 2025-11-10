@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share, Wrench } from "lucide-react";
 import { useAuth } from "../AuthContext";
+import Swal from 'sweetalert2';
 
 declare global {
   interface Window {
@@ -29,13 +30,66 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     setIsMenuOpen(!isMenuOpen);
   };
 
-
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!order && !product) {
       alert("Nenhum documento disponível para imprimir.");
       return;
     }
+
+    // Se for etiqueta 70x30, processa confirmações antes
+    if (documentType === "label_70x30") {
+      await handlePrepareLabels();
+      return;
+    }
+
+    // Para outros tipos, imprime direto
     window.print();
+  };
+
+  const handlePrepareLabels = async () => {
+    if (!product?.orderItems) {
+      // Produto único
+      const quantity = await confirmQuantity(product, product?.quantity || 1);
+
+      if (quantity === 0) {
+        Swal.fire('Cancelado', 'Impressão cancelada', 'info');
+        return;
+      }
+
+      // Atualiza a quantidade no produto antes de imprimir
+      product.quantity = quantity;
+      window.print();
+      return;
+    }
+
+    // Múltiplos itens
+    const items = product.orderItems || [];
+    const confirmedItems = [];
+
+    for (const item of items) {
+      const originalQuantity = item.quantity || 1;
+      const confirmedQuantity = await confirmQuantity(item, originalQuantity);
+
+      if (confirmedQuantity > 0) {
+        confirmedItems.push({
+          ...item,
+          quantity: confirmedQuantity
+        });
+      }
+    }
+
+    if (confirmedItems.length === 0) {
+      Swal.fire('Cancelado', 'Nenhuma etiqueta selecionada', 'info');
+      return;
+    }
+
+    // Atualiza os itens do produto antes de imprimir
+    product.orderItems = confirmedItems;
+
+    // Pequeno delay para o React renderizar
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
   const handleGeneratePDF = async () => {
@@ -169,149 +223,162 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     `)}`;
   };
 
+  //CONFIRME QUANTIDADE
+  const confirmQuantity = async (item: any, originalQuantity: number): Promise<number> => {
+    // Se for 10 ou menos, imprime direto sem perguntar
+    if (originalQuantity <= 10) {
+      return originalQuantity;
+    }
+
+    // Confirmação inicial
+    const result = await Swal.fire({
+      title: '⚠️ Atenção!',
+      html: `
+      O item <strong>${item.productname || item.productName}</strong> possui <strong>${originalQuantity}</strong> unidades.<br><br>
+      Deseja imprimir todas as etiquetas?
+    `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sim, imprimir todas',
+      cancelButtonText: 'Não, escolher quantidade',
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#6c757d',
+    });
+
+    if (result.isConfirmed) {
+      return originalQuantity;
+    }
+
+    if (result.dismiss === Swal.DismissReason.cancel) {
+      const customResult = await Swal.fire({
+        title: 'Quantas etiquetas imprimir?',
+        html: `
+        <p>Produto: <strong>${item.productname || item.productName}</strong></p>
+        <p>Total disponível: <strong>${originalQuantity}</strong> unidades</p>
+      `,
+        input: 'number',
+        inputValue: Math.min(originalQuantity, 10),
+        inputAttributes: {
+          min: '1',
+          max: originalQuantity.toString(),
+          step: '1'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Confirmar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3085d6',
+        inputValidator: (value) => {
+          const num = parseInt(value);
+          if (!value || isNaN(num)) {
+            return 'Digite um número válido!';
+          }
+          if (num < 1) {
+            return 'A quantidade deve ser no mínimo 1!';
+          }
+          if (num > originalQuantity) {
+            return `A quantidade máxima é ${originalQuantity}!`;
+          }
+          return null;
+        }
+      });
+
+      if (customResult.isConfirmed) {
+        return parseInt(customResult.value);
+      }
+    }
+
+    return 0;
+  };
+
   const renderLabel70x30 = () => {
-    if (!product?.orderItems) {
-
-      return (
-        <div
-          className="flex flex-wrap gap-2 justify-center"
-          style={{ pageBreakAfter: "always" }}
-        >
-          {Array.from({ length: product?.quantity || 1 }, (_, idx) => {
-            const barcodeValue = `${(product?.productname || 'Produto')
+    const renderLabels = (item: any, quantity: number) => {
+      const barcodeValue = `${(item?.productname || 'Produto')
+        .replace(/\s+/g, '')
+        .toLowerCase()}-${(item?.productcode || 'PROD001')
+          .replace(/\s+/g, '')
+          .toLowerCase()}-${(item?.productbrand || 'Marca')
+            .replace(/\s+/g, '')
+            .toLowerCase()}-${(item?.productlocation || 'A01')
               .replace(/\s+/g, '')
-              .toLowerCase()}-${(product?.productcode || 'PROD001')
-                .replace(/\s+/g, '')
-                .toLowerCase()}-${(product?.productbrand || 'Marca')
-                  .replace(/\s+/g, '')
-                  .toLowerCase()}-${(product?.productlocation || 'A01')
-                    .replace(/\s+/g, '')
-                    .toLowerCase()}`;
+              .toLowerCase()}`;
 
-            return (
+      return Array.from({ length: quantity }, (_, idx) => (
+        <div
+          key={`${item.productcode}-${idx}`}
+          className="bg-white border-2 border-black"
+          style={{
+            width: '76mm',
+            height: '35mm',
+            padding: '3mm',
+            boxShadow: "1px 1px",
+            borderRadius: "12px",
+          }}
+        >
+          <div className="flex flex-col h-full justify-between">
+            <div className="text-center font-bold text-md truncate">
+              {item?.productcode}
+            </div>
+
+            <div className="flex gap-2 justify-around text-center text-sm font-semibold py-1 truncate">
+              <p className="text-sm">I: {item?.productname}</p>
+              <span className="text-sm">M: {item?.productbrand}</span>
+            </div>
+
+            <div className="flex items-center justify-between">
               <div
-                key={idx}
-                className="bg-white border-2 border-black"
+                className="flex justify-start ml-2 items-center"
                 style={{
-                  width: '76mm',
-                  height: '35,1mm',
-                  padding: '3mm',
-                  boxShadow: "2px 2px 1px 3px"
+                  width: '100%',
+                  height: '10mm',
+                  overflow: 'hidden',
                 }}
               >
-                <div className="flex flex-col h-[20px] justify-between">
-                  <div className="text-center font-bold text-sm truncate">
-                    {product?.productcode}
-                  </div>
+                <img
+                  src={generateBarcode(barcodeValue)}
+                  alt="Código de barras"
+                  style={{
+                    width: '45%',
+                    height: "35px",
+                    objectFit: 'cover',
+                  }}
+                />
+              </div>
 
-                  <div className="text-center text-sm font-semibold py-1 truncate">
-                    <p className="text-sm">I: {product?.productname}</p>
-                    <span className="text-sm">M: {product?.productbrand}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div
-                      className="flex justify-start ml-2 items-center"
-                      style={{
-                        width: '100%',
-                        height: '7mm',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <img
-                        src={generateBarcode(barcodeValue)}
-                        alt="Código de barras"
-                        className="h-[9vh]"
-                        style={{
-                          width: '50%',
-                          objectFit: 'cover',
-                        }}
-                      />
-                    </div>
-
-                    <div className="ml-2 text-right">
-                      <div className="text-sm font-bold px-2 py-1 bg-gray-100">
-                        {product?.productlocation || 'A-01'}
-                      </div>
-                    </div>
-                  </div>
+              <div className="ml-2 text-right">
+                <div className="text-sm font-bold px-2 py-1 bg-gray-100">
+                  {item?.productlocation || 'A-01'}
                 </div>
               </div>
-            );
-          })}
+            </div>
+          </div>
+        </div>
+      ));
+    };
+
+    // 🔹 Caso não exista lista de itens (exibição direta)
+    if (!product?.orderItems) {
+      return (
+        <div className="flex flex-wrap gap-2 justify-center" style={{ pageBreakAfter: "always" }}>
+          {renderLabels(product, product?.quantity || 1)}
         </div>
       );
     }
 
+    // 🔹 Caso existam vários itens - renderiza TODOS por padrão
     const items = product.orderItems || [];
 
     return (
-      <div
-        className="flex flex-wrap gap-2 justify-center"
-        style={{ pageBreakAfter: "always" }}
-      >
-        {items.flatMap((item: any, itemIdx: any) => {
-          const barcodeValue = `${(item?.productname || 'Produto')
-            .replace(/\s+/g, '')
-            .toLowerCase()}-${(item?.productcode || 'PROD001')
-              .replace(/\s+/g, '')
-              .toLowerCase()}-${(item?.productbrand || 'Marca')
-                .replace(/\s+/g, '')
-                .toLowerCase()}-${(item?.productlocation || 'A01')
-                  .replace(/\s+/g, '')
-                  .toLowerCase()}`;
+      <div className="flex flex-col gap-6">
+        {items.map((item: any) => {
+          const quantity = item.quantity || 1;
 
-          return Array.from({ length: item.quantity || 1 }, (_, qtyIdx) => (
-            <div
-              key={`${itemIdx}-${qtyIdx}`}
-              className="bg-white border-2 border-black"
-              style={{
-                width: '76mm',
-                height: '35mm',
-                padding: '3mm',
-                boxShadow: "1px 1px",
-                borderRadius: "12px"
-              }}
-            >
-              <div className="flex flex-col h-full justify-between">
-                <div className="text-center font-bold text-md truncate">
-                  {item?.productcode}
-                </div>
-
-                <div className=" flex gap-2 justify-around text-center text-sm font-semibold py-1 truncate">
-                  <p className="text-sm">I: {item?.productname}</p>
-                  <span className="text-sm">M: {item?.productbrand}</span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div
-                    className="flex justify-start ml-2 items-center"
-                    style={{
-                      width: '100%',
-                      height: '10mm',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <img
-                      src={generateBarcode(barcodeValue)}
-                      alt="Código de barras"
-                      style={{
-                        width: '45%',
-                        height: "35px",
-                        objectFit: 'cover',
-                      }}
-                    />
-                  </div>
-
-                  <div className="ml-2 text-right">
-                    <div className="text-sm font-bold px-2 py-1 bg-gray-100">
-                      {item?.productlocation || 'A-01'}
-                    </div>
-                  </div>
-                </div>
+          return (
+            <div key={item.productcode} className="flex flex-col items-center">
+              <div className="flex flex-wrap gap-2 justify-center" style={{ pageBreakAfter: "always" }}>
+                {renderLabels(item, quantity)}
               </div>
             </div>
-          ));
+          );
         })}
       </div>
     );
@@ -402,7 +469,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       );
     }
   };
-
   const renderPurchaseOrder = () => (
     <div
       className="flex flex-col print-area print-area print:scale-1  scale-[0.8]  bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
@@ -537,7 +603,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       )}
     </div>
   );
-
   const renderSeparationList = () => (
     <div className="flex flex-col print-area print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
       {/* Cabeçalho Compacto */}
@@ -702,7 +767,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           <div className="bg-gray-50 h-[6vh] p-2 rounded border border-gray-200">
             <p className="text-xs text-gray-500 uppercase">OS Nº</p>
             <p className="text-xs font-bold text-gray-900 mt-0.5">
-              {order?.orderNumber}
+              {order?.ordernumber}
             </p>
           </div>
         </div>
@@ -711,7 +776,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       {/* Informações principais */}
       <div className="flex flex-row justify-between border border-gray-200 rounded px-2 py-2 gap-4 mb-4 text-xs">
         <div className="flex-1">
-          <h3 className="font-bold mb-1 text-black">Cliente / Setor</h3>
+          <h3 className="font-bold mb-1 text-black">Solicitante</h3>
           <p className="font-medium text-black mb-1">
             {order.username || "Não informado"}
           </p>
@@ -723,8 +788,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         <div className="text-center">
           <h3 className="font-bold mb-1 text-black">Criada em</h3>
           <p className="text-black font-medium">
-            {order?.orderDate
-              ? new Date(order.orderDate).toLocaleDateString()
+            {order?.orderdate
+              ? new Date(order.orderdate).toLocaleDateString()
               : "—"}
           </p>
         </div>
@@ -732,14 +797,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         <div className="text-center">
           <h3 className="font-bold mb-1 text-black">Responsável</h3>
           <p className="text-black font-medium">
-            {order?.userReceiv || "—"}
+            {order?.receiver_name || "—"}
           </p>
         </div>
 
         <div className="text-center">
           <h3 className="font-bold mb-1 text-black">Status</h3>
           <p className="text-black font-medium capitalize">
-            {getStatusLabel(order?.orderStatus) || "—"}
+            {getStatusLabel(order?.orderstatus) || "—"}
           </p>
         </div>
       </div>
@@ -757,13 +822,14 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="p-2 text-left font-semibold text-gray-700 w-8">✓</th>
-              <th className="p-2 text-left font-semibold text-gray-700">Descrição</th>
+              <th className="p-2 text-left font-semibold text-gray-700">Produto</th>
+              <th className="p-2 text-left font-semibold text-gray-700">Marca</th>
               <th className="p-2 text-center font-semibold text-gray-700 w-24">Quantidade</th>
-              <th className="p-2 text-center font-semibold text-gray-700 w-32">Observações</th>
+              <th className="p-2 text-center font-semibold text-gray-700 w-32">Localização</th>
             </tr>
           </thead>
           <tbody>
-            {order?.orderItems?.map((item: any, i: number) => (
+            {order?.orderitems?.map((item: any, i: number) => (
               <tr
                 key={i}
                 className={`border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"
@@ -774,14 +840,15 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                     <div className="w-2 h-2 bg-transparent rounded-sm"></div>
                   </div>
                 </td>
-                <td className="p-2 text-gray-800">{item.description || "—"}</td>
+                <td className="p-2 text-gray-800">{item.productName || "—"}</td>
+                <td className="p-2 text-gray-800">{item.brand}</td>
                 <td className="p-2 text-center">
                   <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
                     {item.quantity || 1}
                   </span>
                 </td>
                 <td className="p-2 text-center text-gray-700">
-                  {item.notes || "—"}
+                  {item.location || "—"}
                 </td>
               </tr>
             ))}
@@ -826,7 +893,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     if (documentType === "label_70x30") return "size: 70mm 30mm;";
     if (documentType === "label_100x100") return "size: 100mm 100mm;";
     if (documentType === "separation_list") return "size: A4; margin: 25mm;";
-    if(documentType === "render_os_print_sheet") return "size A4; margin: 25mm;"
+    if (documentType === "render_os_print_sheet") return "size A4; margin: 25mm;"
     return "size: A4;";
   };
 

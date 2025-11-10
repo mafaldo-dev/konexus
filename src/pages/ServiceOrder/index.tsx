@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Plus, Clock, AlertCircle, CheckCircle2, Package, X, LucideIcon, Loader2 } from 'lucide-react';
+import { Plus, Clock, AlertCircle, CheckCircle2, Package, LucideIcon } from 'lucide-react';
 import { CreateOSModal } from './createOS';
 import { NotificationBadge } from './NotificationBagde';
 import Dashboard from '../../components/dashboard/Dashboard';
 import { useAuth } from '../../AuthContext';
 import { OrderService } from '../../service/interfaces/stock/service';
-import { insertOrderOfService, handleAllOrderServices } from '../../service/api/Administrador/orderService/service';
+import { insertOrderOfService, handleAllOrderServices, handleOrderServiceById } from '../../service/api/Administrador/orderService/service';
 import { format } from 'date-fns';
 import { normalizeOrderService, normalizeOrderServices, prepareOrderServiceForSubmit } from './parseItensOrder';
 import { DynamicTable } from '../manager/Table/DynamicTable';
 import DocumentViewer from '../../utils/screenOptions';
-
 
 // ============= TIPOS =============
 
@@ -21,14 +20,14 @@ export interface CreateOSFormData {
   orderNumber: string;
   orderDate: string;
   userCreate: string;
-  userReceiv: string;
+  receiver_name: string;
   message: string;
   createdAt: string | Date;
   orderStatus: string;
   sector: string;
   notes: string;
   orderItems: Array<{
-    productCode: string | number;
+    productId: string | number;
     quantity: number;
   }>;
 }
@@ -37,6 +36,12 @@ interface TabConfig {
   key: any
   label: string;
   icon: LucideIcon;
+}
+
+interface ActionMenuProps {
+  os: OrderService;
+  handleUpdateStatus: (id: number, status: string) => void;
+  handleViewPDF: (os: OrderService) => void;
 }
 
 const OSSystem: React.FC = () => {
@@ -55,9 +60,79 @@ const OSSystem: React.FC = () => {
       createdAt: new Date(),
       orderDate: format(new Date(), "yyyy-MM-dd"),
       orderStatus: 'initialized',
-      orderItems: [{ productCode: '', quantity: 1 }]
+      orderItems: [{ productId: '', quantity: 1 }]
     }
   });
+
+
+  const ActionMenu: React.FC<ActionMenuProps> = ({ os, handleUpdateStatus, handleViewPDF }) => {
+    const [openMenu, setOpenMenu] = React.useState(false);
+    const toggleMenu = () => setOpenMenu(!openMenu);
+    const closeMenu = () => setOpenMenu(false);
+
+    React.useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        const menu = document.getElementById(`menu-${os.id}`);
+        if (menu && !menu.contains(e.target as Node)) {
+          closeMenu();
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [os.id]);
+
+    return (
+      <div id={`menu-${os.id}`} className="relative inline-block text-left">
+        <button
+          onClick={toggleMenu}
+          className="p-2 rounded-full hover:bg-gray-100 text-gray-600"
+        >
+          ⋮
+        </button>
+
+        {openMenu && (
+          <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-md z-10">
+            {/* Quando o status for 'initialized', mostra 'Iniciar' */}
+            {os.orderStatus === 'initialized' && (
+              <button
+                onClick={() => {
+                  handleUpdateStatus(os.id, 'in_progress');
+                  closeMenu();
+                }}
+                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+              >
+                Iniciar
+              </button>
+            )}
+
+            {/* Botão Ver PDF sempre aparece */}
+            <button
+              onClick={() => {
+                handleViewPDF(os);
+                closeMenu();
+              }}
+              className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+            >
+              Ver PDF
+            </button>
+
+            {/* Quando o status for 'in_progress', mostra 'Finalizar' */}
+            {os.orderStatus === 'in_progress' && (
+              <button
+                onClick={() => {
+                  handleUpdateStatus(os.id, 'finished');
+                  closeMenu();
+                }}
+                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+              >
+                Finalizar
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   useEffect(() => {
     fetchAllOrders();
@@ -100,7 +175,7 @@ const OSSystem: React.FC = () => {
 
     setLoading(true);
     try {
-      const validItems = data.orderItems.filter(i => i.productCode && i.quantity > 0);
+      const validItems = data.orderItems.filter(i => i.productId && i.quantity > 0);
       if (validItems.length === 0) {
         addNotification({
           id: Date.now(),
@@ -116,9 +191,9 @@ const OSSystem: React.FC = () => {
       const orderServiceData: OrderService = {
         id: 0,
         orderNumber: data.orderNumber,
-        userCreate: user.username,
-        userReceiv: data.userReceiv || '',
-        orderStatus: data.orderStatus ?? 'initialized',
+        username: user.username,
+        receiver_name: data.receiver_name || '',
+        orderStatus: data.orderStatus ?? 'Iniciada',
         sector: data.sector,
         notes: data.notes || '',
         message: data.message || '',
@@ -184,10 +259,43 @@ const OSSystem: React.FC = () => {
   };
 
 
-    const handleViewPDF = (order: OrderService) => {
-      setSelectedOrder(order);
+  const handleViewPDF = async (order: OrderService) => {
+  if (!user || !order?.id) return;
+
+  try {
+    setLoading(true);
+
+    const response = await handleOrderServiceById(order.id.toString());
+    console.log(response)
+
+    if (response) {
+      setSelectedOrder(response);
       setDocumentType("render_os_print_sheet");
-    };
+    } else {
+      console.error("Nenhuma OS encontrada para o ID:", order.id);
+      addNotification({
+        id: Date.now(),
+        type: "error",
+        message: `Erro ao carregar detalhes da OS #${order.orderNumber}`,
+        priority: "alta",
+        read: false
+      });
+    }
+
+  } catch (error) {
+    console.error("Erro ao buscar OS:", error);
+    addNotification({
+      id: Date.now(),
+      type: "error",
+      message: "Erro ao carregar detalhes da OS",
+      priority: "alta",
+      read: false
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const filteredOrdens = () => {
     let filtered = ordens;
@@ -212,7 +320,7 @@ const OSSystem: React.FC = () => {
       key: 'orderNumber',
       header: 'N° OS',
       render: (os: OrderService) => (
-        <span className="font-mono text-[13px] bg-gray-100 text-gray-800 px-3 py-1 rounded font-medium">
+        <span className="font-mono text-[13px] bg-gray-100 text-gray-800 px-5 py-1 rounded font-medium">
           {os.orderNumber}
         </span>
       ),
@@ -220,17 +328,17 @@ const OSSystem: React.FC = () => {
     {
       key: 'sector',
       header: 'Setor',
-      render: (os: OrderService) => <span>{os.sector || '—'}</span>,
+      render: (os: OrderService) => <span className='px-1'>{os.sector || '—'}</span>,
     },
     {
       key: 'userCreate',
       header: 'Criado por',
-      render: (os: OrderService) => <span>{os.userCreate}</span>,
+      render: (os: OrderService) => <span className='px-2'>{os.username}</span>,
     },
     {
-      key: 'userReceiv',
+      key: 'receiver_name',
       header: 'Responsável',
-      render: (os: OrderService) => <span>{os.userReceiv || '—'}</span>,
+      render: (os: OrderService) => <span className='px-3'>{os.receiver_name || '—'}</span>,
     },
     {
       key: 'orderStatus',
@@ -259,25 +367,14 @@ const OSSystem: React.FC = () => {
       key: 'actions',
       header: 'Ações',
       render: (os: OrderService) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleUpdateStatus(os.id, 'in_progress')}
-            className="p-1 px-3 text-blue-600 hover:scale-110 transition-transform"
-          >
-            <Clock className="h-4" />
-          </button>
-          <button
-            onClick={() => handleUpdateStatus(os.id, 'finished')}
-            className="p-1 px-3 text-green-600 hover:scale-110 transition-transform"
-          >
-            <CheckCircle2 className="h-4" />
-          </button>
-          <button onClick={() => handleViewPDF(os)}>
-            pdf
-          </button>
-        </div>
+        <ActionMenu
+          os={os}
+          handleUpdateStatus={handleUpdateStatus}
+          handleViewPDF={handleViewPDF}
+        />
       ),
     },
+
   ];
 
   if (selectedOrder && documentType === "render_os_print_sheet") {
@@ -322,11 +419,10 @@ const OSSystem: React.FC = () => {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition ${
-                    activeTab === tab.key
-                      ? 'bg-slate-800 text-white'
-                      : 'text-slate-800 hover:bg-slate-100'
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition ${activeTab === tab.key
+                    ? 'bg-slate-800 text-white'
+                    : 'text-slate-800 hover:bg-slate-100'
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
@@ -358,7 +454,7 @@ const OSSystem: React.FC = () => {
         )}
 
         {/* Notificações */}
-        <NotificationBadge onOrderStart={() => {}} />
+        <NotificationBadge onOrderStart={() => { }} />
       </div>
     </Dashboard>
   );
