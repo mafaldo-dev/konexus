@@ -9,6 +9,8 @@ export interface OrderService {
     message: string
     orderDate?: string | Date | any
     sector: string
+    stock_movement: boolean
+    movement_type?: string
     orderItems: Array<{
         productId: string | number
         quantity: number

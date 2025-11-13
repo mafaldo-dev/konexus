@@ -139,7 +139,7 @@ export default function PurchaseManagementScreen() {
             )}
           </button>
 
-          <button onClick={() => setActiveTab('returns')} className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'returns' ? 'border-slate-600 text-slate-700' : 'border-transparent text-slate-400'}`}>
+          <button disabled title='"Contate-nos" para mais informações' onClick={() => setActiveTab('returns')} className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'returns' ? 'border-slate-600 text-slate-700' : 'border-transparent text-slate-400'}`}>
             Devoluções
           </button>
         </div>

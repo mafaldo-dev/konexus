@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share, Wrench } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import Swal from 'sweetalert2';
@@ -7,6 +7,8 @@ declare global {
   interface Window {
     html2canvas: any;
     jspdf: any;
+    labelQuantities: { [key: string]: number };
+    labelProcessingDone: boolean;
   }
 }
 
@@ -25,6 +27,64 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 }) => {
   const { company } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [processedItems, setProcessedItems] = useState<any[]>([]);
+
+  // Adicione este useEffect logo após os outros useEffects no componente
+  useEffect(() => {
+    const processLabelsOnMount = async () => {
+      if (documentType !== "label_70x30" || processedItems.length > 0) {
+        return;
+      }
+
+      if (!product?.orderItems) {
+        // Produto único
+        const originalQuantity = product?.quantity || 1;
+
+        if (originalQuantity > 10) {
+          const confirmedQuantity = await confirmQuantity(product, originalQuantity);
+
+          if (confirmedQuantity > 0) {
+            setProcessedItems([{ ...product, finalQuantity: confirmedQuantity }]);
+          } else {
+            setProcessedItems([{ ...product, finalQuantity: originalQuantity }]);
+          }
+        } else {
+          setProcessedItems([{ ...product, finalQuantity: originalQuantity }]);
+        }
+        return;
+      }
+
+      // Múltiplos itens
+      const items = product.orderItems || [];
+      const confirmedItems = [];
+
+      for (const item of items) {
+        const originalQuantity = item.quantity || 1;
+
+        if (originalQuantity > 10) {
+          const confirmedQuantity = await confirmQuantity(item, originalQuantity);
+
+          if (confirmedQuantity > 0) {
+            confirmedItems.push({
+              ...item,
+              finalQuantity: confirmedQuantity
+            });
+          }
+        } else {
+          confirmedItems.push({
+            ...item,
+            finalQuantity: originalQuantity
+          });
+        }
+      }
+
+      if (confirmedItems.length > 0) {
+        setProcessedItems(confirmedItems);
+      }
+    };
+
+    processLabelsOnMount();
+  }, [documentType, product]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -47,22 +107,24 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   };
 
   const handlePrepareLabels = async () => {
-    if (!product?.orderItems) {
-      // Produto único
-      const quantity = await confirmQuantity(product, product?.quantity || 1);
+    // Se já processou, apenas imprime
+    if (processedItems.length > 0) {
+      window.print();
+      return;
+    }
 
+    // Caso contrário, processa novamente (fallback)
+    if (!product?.orderItems) {
+      const quantity = await confirmQuantity(product, product?.quantity || 1);
       if (quantity === 0) {
         Swal.fire('Cancelado', 'Impressão cancelada', 'info');
         return;
       }
-
-      // Atualiza a quantidade no produto antes de imprimir
       product.quantity = quantity;
       window.print();
       return;
     }
 
-    // Múltiplos itens
     const items = product.orderItems || [];
     const confirmedItems = [];
 
@@ -73,7 +135,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       if (confirmedQuantity > 0) {
         confirmedItems.push({
           ...item,
-          quantity: confirmedQuantity
+          finalQuantity: confirmedQuantity
         });
       }
     }
@@ -83,13 +145,10 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       return;
     }
 
-    // Atualiza os itens do produto antes de imprimir
-    product.orderItems = confirmedItems;
-
-    // Pequeno delay para o React renderizar
+    setProcessedItems(confirmedItems);
     setTimeout(() => {
       window.print();
-    }, 100);
+    }, 200);
   };
 
   const handleGeneratePDF = async () => {
@@ -307,23 +366,21 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           key={`${item.productcode}-${idx}`}
           className="bg-white border-2 border-black"
           style={{
-            width: '76mm',
-            height: '35mm',
-            padding: '3mm',
-            boxShadow: "1px 1px",
-            borderRadius: "12px",
+            width: '78mm',
+            height: '36mm',
+            padding: '4mm',
+            boxShadow: "0 0",
+            borderRadius: "4px",
           }}
         >
           <div className="flex flex-col h-full justify-between">
             <div className="text-center font-bold text-md truncate">
               {item?.productcode}
             </div>
-
             <div className="flex gap-2 justify-around text-center text-sm font-semibold py-1 truncate">
               <p className="text-sm">I: {item?.productname}</p>
               <span className="text-sm">M: {item?.productbrand}</span>
             </div>
-
             <div className="flex items-center justify-between">
               <div
                 className="flex justify-start ml-2 items-center"
@@ -343,7 +400,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   }}
                 />
               </div>
-
               <div className="ml-2 text-right">
                 <div className="text-sm font-bold px-2 py-1 bg-gray-100">
                   {item?.productlocation || 'A-01'}
@@ -355,25 +411,26 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       ));
     };
 
-    // 🔹 Caso não exista lista de itens (exibição direta)
-    if (!product?.orderItems) {
+    // Mostra loading enquanto processa
+    if (processedItems.length === 0) {
       return (
-        <div className="flex flex-wrap gap-2 justify-center" style={{ pageBreakAfter: "always" }}>
-          {renderLabels(product, product?.quantity || 1)}
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Processando etiquetas...</p>
+          </div>
         </div>
       );
     }
 
-    // 🔹 Caso existam vários itens - renderiza TODOS por padrão
-    const items = product.orderItems || [];
-
+    // 🔹 Renderiza as etiquetas processadas
     return (
       <div className="flex flex-col gap-6">
-        {items.map((item: any) => {
-          const quantity = item.quantity || 1;
+        {processedItems.map((item: any) => {
+          const quantity = item.finalQuantity || item.quantity || 1;
 
           return (
-            <div key={item.productcode} className="flex flex-col items-center">
+            <div key={item.productcode || 'single'} className="flex flex-col items-center">
               <div className="flex flex-wrap gap-2 justify-center" style={{ pageBreakAfter: "always" }}>
                 {renderLabels(item, quantity)}
               </div>
@@ -383,7 +440,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       </div>
     );
   };
-
   const renderLabel100x100 = () => {
     if (product?.orderNumber) {
       return (
@@ -763,7 +819,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </div>
 
-        <div className="text-center w-[8vw]">
+        <div className="text-center w-[6vw]">
           <div className="bg-gray-50 h-[6vh] p-2 rounded border border-gray-200">
             <p className="text-xs text-gray-500 uppercase">OS Nº</p>
             <p className="text-xs font-bold text-gray-900 mt-0.5">
@@ -807,6 +863,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             {getStatusLabel(order?.orderstatus) || "—"}
           </p>
         </div>
+      </div>
+      <div className="flex self-left px-2 py-1 bg-gray-50 mb-2">
+          <h2 className="text-lg font-medium">OBS: {order.stock_movement === true ? "Movimentação de Estoque" : "Não Movimenta Estoque"}, Tipo: {order.movement_type}</h2>
       </div>
 
       {/* Itens da OS */}
@@ -887,7 +946,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       </div>
     </div>
   );
-
 
   const getPageSize = () => {
     if (documentType === "label_70x30") return "size: 70mm 30mm;";

@@ -6,10 +6,11 @@ export const insertOrderOfService = async (order: OrderService, token?: string):
     try {
     const orderData = {
       ...order,
-      orderStatus: order.orderStatus || 'initialized'
+      orderStatus: order.orderStatus || 'iniciada'
     };
 
     const response = await apiRequest("service/create", "POST", orderData, token || tkn as string);
+    console.log("response do service api =>",response)
 
     if (!response) {
       console.error("Erro ao criar pedido: resposta inválida");
@@ -31,7 +32,7 @@ export const insertOrderOfService = async (order: OrderService, token?: string):
 export const handleAllOrderServices = async(token?: string) => {
   try {
     const response = await apiRequest("service/all", "GET", undefined, token)
-    return response
+    return response.data
   }catch(err){
     console.error("Erro ao recuperar lista de orders", err)
     throw new Error("Erro interno do servidor!")

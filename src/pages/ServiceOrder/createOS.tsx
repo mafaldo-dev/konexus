@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { UseFormReturn, Controller } from 'react-hook-form';
 import { X, Plus, Trash2, Search } from 'lucide-react';
 import { CreateOSFormData } from '.';
 import { handleAllEmployee } from '../../service/api/Administrador/employee';
@@ -8,7 +8,7 @@ import { handleAllProducts } from '../../service/api/Administrador/products';
 
 interface CreateOSModalProps {
   onClose: () => void;
-  onCreate: (data: CreateOSFormData) => void;
+  onCreate: (data: CreateOSFormData) => void
   formMethods: UseFormReturn<CreateOSFormData>;
   loading: boolean;
 }
@@ -23,7 +23,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
 
   const orderItems = watch('orderItems');
   const watchedSector = watch('sector');
-  
+
   const [employees, setEmployees] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,8 +39,8 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
       try {
         setLoadingEmployees(true);
         const response = await handleAllEmployee();
-        const employeesData = Array.isArray(response) && Array.isArray(response[0]) 
-          ? response[0] 
+        const employeesData = Array.isArray(response) && Array.isArray(response[0])
+          ? response[0]
           : response;
         setEmployees(employeesData);
       } catch (err) {
@@ -53,14 +53,13 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
     fetchEmployees();
   }, []);
 
-  // Carrega produtos
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoadingProducts(true);
         const response = await handleAllProducts();
-        const productsData = Array.isArray(response) && Array.isArray(response[0]) 
-          ? response[0] 
+        const productsData = Array.isArray(response) && Array.isArray(response[0])
+          ? response[0]
           : response;
         setProducts(productsData);
       } catch (err) {
@@ -73,46 +72,42 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
     fetchProducts();
   }, []);
 
-  // Setores únicos ordenados alfabeticamente
   const uniqueSectors = useMemo(() => {
     if (employees.length === 0) {
       return [];
     }
-    
+
     const sectors = employees
       .map(emp => emp.sector)
       .filter(sector => sector && typeof sector === 'string' && sector.trim() !== '');
-    
-    // Remove duplicatas e ordena
+
     const uniqueSet = new Set(sectors);
-    const result = Array.from(uniqueSet).sort((a, b) => 
+    const result = Array.from(uniqueSet).sort((a, b) =>
       a.toLowerCase().localeCompare(b.toLowerCase())
     );
 
     return result;
   }, [employees]);
 
-  // Funcionários filtrados por setor e status ativo
   const filteredUsers = useMemo(() => {
     const currentSector = selectedSector || watchedSector;
-    
+
     if (!currentSector) {
       return [];
     }
-    
+
     const filtered = employees.filter(emp => {
       const sectorMatch = emp.sector === currentSector;
       const statusMatch = emp.status?.toLowerCase() === 'ativo';
-      
+
       return sectorMatch && statusMatch;
     });
-    
-    return filtered.sort((a, b) => 
+
+    return filtered.sort((a, b) =>
       (a.username || a.name)?.toLowerCase().localeCompare((b.username || b.name)?.toLowerCase())
     );
   }, [selectedSector, watchedSector, employees]);
 
-  // Reseta funcionário ao mudar setor
   useEffect(() => {
     const currentSector = selectedSector || watchedSector;
     if (currentSector) {
@@ -120,19 +115,18 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
     }
   }, [selectedSector, watchedSector, setValue]);
 
-  // Busca de produtos melhorada
   const searchResults = useMemo(() => {
     if (!searchTerm.trim()) return [];
 
     const term = searchTerm.toLowerCase().trim();
-    
+
     return products
       .filter(product => {
         const matchCode = product.code?.toLowerCase().includes(term);
         const matchId = product.id?.toString().includes(term);
         const matchName = product.name?.toLowerCase().includes(term);
         const matchDescription = product.description?.toLowerCase().includes(term);
-        
+
         return matchCode || matchId || matchName || matchDescription;
       })
       .slice(0, 50);
@@ -169,13 +163,13 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80  flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden animate-fadeIn">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-800">Nova Ordem de Serviço</h2>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
             type="button"
           >
@@ -185,7 +179,16 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
 
         {/* Form - Scrollable */}
         <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
-          <form onSubmit={handleSubmit(onCreate)} className="p-6 space-y-8">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              // força sincronização dos últimos valores antes do submit
+              formMethods.trigger(["stock_movement", "movement_type"]).then(() => {
+                handleSubmit(onCreate)(e);
+              });
+            }}
+            className="p-6 space-y-8"
+          >
             {/* Info básica */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
@@ -257,11 +260,6 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                 {errors.sector && (
                   <p className="text-red-500 text-xs mt-1">{errors.sector.message}</p>
                 )}
-                {!loadingEmployees && uniqueSectors.length === 0 && (
-                  <p className="text-amber-600 text-xs mt-1">
-                    Nenhum setor encontrado
-                  </p>
-                )}
               </div>
 
               <div>
@@ -282,12 +280,84 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                     </option>
                   ))}
                 </select>
-                {(selectedSector || watchedSector) && filteredUsers.length === 0 && (
-                  <p className="text-amber-600 text-xs mt-1">
-                    Nenhum funcionário ativo neste setor
-                  </p>
-                )}
               </div>
+            </div>
+
+            <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
+              <h3 className="text-sm font-medium text-gray-700">Movimentação de Estoque</h3>
+
+              {/* --- CHECKBOX: Habilitar movimentação --- */}
+              <Controller
+                name="stock_movement"
+                control={formMethods.control}
+                render={({ field }) => (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="stock_movement"
+                      checked={!!field.value}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        field.onChange(checked);
+
+                        if (checked) {
+                          formMethods.setValue("movement_type", formMethods.getValues("movement_type") || "saida");
+                        } else {
+                          formMethods.setValue("stock_movement", false)
+                          formMethods.setValue("movement_type", "");
+                        }
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <label htmlFor="stock_movement" className="text-sm text-gray-700">
+                      Habilitar movimentação de estoque
+                    </label>
+                  </div>
+                )}
+              />
+
+
+              {/* --- RADIO BUTTONS: Tipo de movimento --- */}
+              <Controller
+                name="movement_type"
+                control={formMethods.control}
+                render={({ field }) => (
+                  <div className="flex gap-6 mt-3">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        value="saida"
+                        checked={field.value === "saida"}
+                        onChange={() => field.onChange("saida")}
+                        disabled={!formMethods.watch("stock_movement")}
+                      />
+                      <span className="text-sm">Saída</span>
+                    </label>
+
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        value="entrada"
+                        checked={field.value === "entrada"}
+                        onChange={() => field.onChange("entrada")}
+                        disabled={!formMethods.watch("stock_movement")}
+                      />
+                      <span className="text-sm">Entrada</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        value="produçao"
+                        checked={field.value === "produçao"}
+                        onChange={() => field.onChange("produçao")}
+                        disabled={!formMethods.watch("stock_movement")}
+                      />
+                      <span className="text-sm">Produção</span>
+                    </label>
+                  </div>
+                )}
+              />
+
             </div>
 
             {/* Mensagem */}
@@ -353,11 +423,11 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                     {/* Modal de busca de produtos */}
                     {showProductSearch === index && (
                       <>
-                        <div 
-                          className="fixed inset-0 z-40" 
+                        <div
+                          className="fixed inset-0 z-40"
                           onClick={closeProductSearch}
                         />
-                        
+
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-xl z-50 max-h-80 overflow-hidden flex flex-col">
                           <div className="p-3 border-b bg-gray-50">
                             <div className="flex gap-2">
@@ -382,7 +452,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                               </button>
                             </div>
                           </div>
-                          
+
                           <div className="flex-1 overflow-y-auto">
                             {searchResults.length > 0 ? (
                               searchResults.map((product) => (
@@ -419,7 +489,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                               </div>
                             )}
                           </div>
-                          
+
                           {searchResults.length > 0 && (
                             <div className="px-3 py-2 border-t bg-gray-50 text-xs text-gray-600 text-center">
                               {searchResults.length} produto(s) encontrado(s)

@@ -26,6 +26,8 @@ export interface CreateOSFormData {
   orderStatus: string;
   sector: string;
   notes: string;
+  stock_movement: boolean
+  movement_type: string
   orderItems: Array<{
     productId: string | number;
     quantity: number;
@@ -60,10 +62,12 @@ const OSSystem: React.FC = () => {
       createdAt: new Date(),
       orderDate: format(new Date(), "yyyy-MM-dd"),
       orderStatus: 'initialized',
-      orderItems: [{ productId: '', quantity: 1 }]
+      orderItems: [{ productId: '', quantity: 1 }],
+      stock_movement: false,
+      movement_type: '',
+
     }
   });
-
 
   const ActionMenu: React.FC<ActionMenuProps> = ({ os, handleUpdateStatus, handleViewPDF }) => {
     const [openMenu, setOpenMenu] = React.useState(false);
@@ -200,11 +204,13 @@ const OSSystem: React.FC = () => {
         orderItems: validItems,
         createdAt: data.createdAt ?? new Date(),
         orderDate: data.orderDate,
+        stock_movement: data.stock_movement,
+        movement_type: data.movement_type
       };
-
-      const prepared = prepareOrderServiceForSubmit(orderServiceData);
+     
+      const prepared = prepareOrderServiceForSubmit(orderServiceData);   
       const response = await insertOrderOfService(prepared);
-
+ 
       if (response?.order || response) {
         const normalized = normalizeOrderService(response?.order || response);
         setOrdens(prev => [normalized, ...prev]);
@@ -258,44 +264,42 @@ const OSSystem: React.FC = () => {
     }, 4000);
   };
 
-
   const handleViewPDF = async (order: OrderService) => {
-  if (!user || !order?.id) return;
+    if (!user || !order?.id) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const response = await handleOrderServiceById(order.id.toString());
-    console.log(response)
+      const response = await handleOrderServiceById(order.id.toString());
+      console.log(response)
 
-    if (response) {
-      setSelectedOrder(response);
-      setDocumentType("render_os_print_sheet");
-    } else {
-      console.error("Nenhuma OS encontrada para o ID:", order.id);
+      if (response) {
+        setSelectedOrder(response);
+        setDocumentType("render_os_print_sheet");
+      } else {
+        console.error("Nenhuma OS encontrada para o ID:", order.id);
+        addNotification({
+          id: Date.now(),
+          type: "error",
+          message: `Erro ao carregar detalhes da OS #${order.orderNumber}`,
+          priority: "alta",
+          read: false
+        });
+      }
+
+    } catch (error) {
+      console.error("Erro ao buscar OS:", error);
       addNotification({
         id: Date.now(),
         type: "error",
-        message: `Erro ao carregar detalhes da OS #${order.orderNumber}`,
+        message: "Erro ao carregar detalhes da OS",
         priority: "alta",
         read: false
       });
+    } finally {
+      setLoading(false);
     }
-
-  } catch (error) {
-    console.error("Erro ao buscar OS:", error);
-    addNotification({
-      id: Date.now(),
-      type: "error",
-      message: "Erro ao carregar detalhes da OS",
-      priority: "alta",
-      read: false
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const filteredOrdens = () => {
     let filtered = ordens;
