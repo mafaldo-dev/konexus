@@ -14,40 +14,12 @@ function createWindow() {
     minHeight: 768,
     webPreferences: {
       nodeIntegration: true,
-      webSecurity: false, // ✅ Importante: desabilita webSecurity para CORS
+      webSecurity: false,
       contextIsolation: false,
-      allowRunningInsecureContent: true,
-      experimentalFeatures: true,
     },
   });
 
-  const session = win.webContents.session;
-  
-  // ✅ INTERCEPTA REQUISIÇÕES PARA ADICIONAR HEADERS CORS
-  session.webRequest.onBeforeSendHeaders((details, callback) => {
-    callback({
-      requestHeaders: {
-        ...details.requestHeaders,
-        'Origin': 'electron://app',
-      }
-    });
-  });
-
-  // ✅ HEADERS SIMPLIFICADOS - Remove CSP problemático
-  session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        // ✅ CSP mínimo e permissivo
-        'Content-Security-Policy': ["default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"],
-        // ✅ Headers CORS essenciais
-        'Access-Control-Allow-Origin': ['*'],
-        'Access-Control-Allow-Methods': ['*'],
-        'Access-Control-Allow-Headers': ['*'],
-      }
-    });
-  });
-
+  // 👇 ADICIONA LISTENER PARA ERROS DE REDE
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     log.error('Failed to load:', errorCode, errorDescription);
   });
@@ -57,6 +29,11 @@ function createWindow() {
     win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, '../build/index.html'));
+    win.webContents.on('did-finish-load', () => {
+      win.webContents.insertCSS(`
+        body { background-color: #fff !important; }
+      `);
+    });
   }
 
   return win;
@@ -65,15 +42,13 @@ function createWindow() {
 let mainWindow;
 
 app.whenReady().then(() => {
-  // 👇 DESABILITA LIMITAÇÕES DE SEGURANÇA PARA DESENVOLVIMENTO
+  // 👇 DESABILITA LIMITAÇÃO DE REQUISIÇÕES HTTP
   app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
   app.commandLine.appendSwitch('disable-site-isolation-trials');
-  app.commandLine.appendSwitch('ignore-certificate-errors'); // ✅ Para HTTPS do render.com
   
   mainWindow = createWindow();
 
-  // ✅ REGISTRAR ATALHOS GLOBAIS F4 E F1
-  const registerShortcuts = () => {
+ const registerShortcuts = () => {
     globalShortcut.register('F4', () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('global-shortcut-f4');
@@ -89,7 +64,7 @@ app.whenReady().then(() => {
 
   registerShortcuts();
 
-  // Auto-updater apenas em produção
+  // Só roda o autoUpdater em produção
   if (process.env.NODE_ENV !== 'development') {
     autoUpdater.checkForUpdatesAndNotify();
   }
@@ -100,20 +75,21 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    mainWindow = createWindow();
-  }
+  if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow();
 });
 
-// ✅ DESREGISTRAR ATALHOS
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
 
-// ✅ ACEITA CERTIFICADOS SSL
-app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
-  event.preventDefault();
-  callback(true); // ✅ Aceita todos os certificados
+// 👇 ADICIONA HANDLER PARA CERTIFICADOS SSL (caso o Render tenha problema)
+app.on('certificate-error', (event, url, callback) => {
+  if (url.startsWith('https://backend-oi68.onrender.com')) {
+    event.preventDefault();
+    callback(true); // Aceita o certificado
+  } else {
+    callback(false);
+  }
 });
 
 // Eventos do autoUpdater
