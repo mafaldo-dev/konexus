@@ -474,8 +474,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   }}
                 />
               </div>
-              <div className="ml-2 text-right">
-                <div className="text-sm font-bold px-2 py-1 bg-gray-100">
+              <div className="inline-flex items-center w-[60px] justify-end">
+                <div className="text-sm font-bold px-2 w-full py-1 bg-gray-100 whitespace-nowrap">
                   {item?.productlocation || 'A-01'}
                 </div>
               </div>
@@ -924,7 +924,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </p>
         </div>
       </div>
-      
+
       <div className="flex self-left px-2 py-1 bg-gray-50 mb-2">
         <h2 className="text-lg font-medium">OBS: {order.stock_movement === true ? "Movimentação de Estoque" : "Não Movimenta Estoque"}{order.movement_type ? `, Tipo: ${order.movement_type}` : ""}</h2>
       </div>
@@ -1104,8 +1104,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 {documentType.includes("label")
                   ? product?.productcode
                   : documentType === "nfe_pdf"
-                  ? `NF-e ID: ${product?.nfeId || "---"}`
-                  : order?.orderNumber || order?.ordernumber}
+                    ? `NF-e ID: ${product?.nfeId || "---"}`
+                    : order?.orderNumber || order?.ordernumber}
               </p>
             </div>
           </div>

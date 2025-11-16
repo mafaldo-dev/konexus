@@ -10,54 +10,79 @@ export const updateDataCompany = async (companyId: any, payload: any): Promise<v
   try {
     console.log("🚀 ENVIANDO PATCH - Payload:", payload);
 
-    // ✅ VERIFICA SE TEM IMAGEM PARA UPLOAD
     const hasImage = payload.icon instanceof File || payload.logo instanceof File;
     
-    let response;
-
     if (hasImage) {
-      // ✅ ENVIA COMO FORM DATA (com imagem)
       console.log("📸 Detectado arquivo de imagem - enviando como FormData");
       
       const formData = new FormData();
       
-      // Adiciona todos os campos ao FormData
       Object.keys(payload).forEach(key => {
         if (payload[key] instanceof File) {
-          formData.append('logo', payload[key]); // campo 'logo' para o multer
+          if (key === 'icon' || key === 'logo') {
+            formData.append('logo', payload[key]);
+          }
         } else if (payload[key] !== undefined && payload[key] !== null) {
           formData.append(key, payload[key]);
         }
       });
 
-      response = await fetch(`http://localhost:3010/admin/companie/${companyId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${tkn}`,
-          // ❌ NÃO incluir 'Content-Type' - o browser define automaticamente com boundary
-        },
-        body: formData,
-      });
+      // ✅ Endpoints com fallback
+      const endpoints = [
+        `https://backend-oi68.onrender.com/admin/companie/${companyId}`,
+        `http://localhost:3010/admin/companie/${companyId}`
+      ];
+
+      for (const url of endpoints) {
+        try {
+          console.log(`🔄 Tentando endpoint: ${url}`);
+          
+          // ✅ Adiciona timeout de 10 segundos
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          
+          const response = await fetch(url, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${tkn}`,
+            },
+            body: formData,
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log("✅ RESPOSTA RECEBIDA (com imagem):", result);
+            return result;
+          }
+          
+          // Se não foi bem-sucedido, continua para o próximo
+          console.warn(`❌ Endpoint ${url} falhou com status: ${response.status}`);
+          
+        } catch (err: any) {
+          console.warn(`❌ Erro no endpoint ${url}:`, err.message);
+          // Continua para o próximo endpoint
+        }
+      }
+
+      // ✅ Se chegou aqui, todos os endpoints falharam
+      throw new Error("Não foi possível conectar com nenhum servidor");
 
     } else {
-      // ✅ ENVIA COMO JSON (comportamento normal)
+      // ✅ Comportamento normal sem imagem
       console.log("📄 Sem arquivos - enviando como JSON");
-      response = await apiRequest(
+      const response = await apiRequest(
         `admin/companie/${companyId}`,
         "PATCH",
         payload,
         tkn
       );
-    }
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData)}`);
+      console.log("✅ RESPOSTA RECEBIDA (sem imagem):", response);
+      return response;
     }
-
-    const result = await response.json();
-    console.log("✅ RESPOSTA RECEBIDA:", result);
-    return result;
 
   } catch (err) {
     console.error("❌ ERRO NO SERVICE:", err);

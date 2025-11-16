@@ -4,8 +4,8 @@ export const apiRequest = async <T = any>(
   body?: any,
   token?: string
 ): Promise<T | null> => {
-   // const url = `http://localhost:3010/${endpoint}`;
-    const url = `https://backend-oi68.onrender.com/${endpoint}`;
+   const url = `http://localhost:3010/${endpoint}`;
+    //const url = `https://backend-oi68.onrender.com/${endpoint}`;
   
   try {
     const headers: Record<string, string> = {
@@ -62,8 +62,8 @@ export const apiRequestBlob = async (
   body?: any,
   token?: string
 ): Promise<Blob | null> => {
-  //const url = `http://localhost:3010/${endpoint}`;
-  const url = `https://backend-oi68.onrender.com/${endpoint}`;
+  const url = `http://localhost:3010/${endpoint}`;
+  //const url = `https://backend-oi68.onrender.com/${endpoint}`;
   
   try {
     const headers: Record<string, string> = {};

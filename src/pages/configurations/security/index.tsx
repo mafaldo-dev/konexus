@@ -34,7 +34,7 @@ export default function AdminSettingsPage() {
     requireSpecialChars: false,
   });
 
-  const [ipBlockList, setIpBlockList] = useState('203.0.113.1\n198.51.100.2');
+  //const [ipBlockList, setIpBlockList] = useState('203.0.113.1\n198.51.100.2');
   const [isLoading, setIsLoading] = useState(false);
   const [showSnackbar, setShowSnackbar] = useState(false);
 
