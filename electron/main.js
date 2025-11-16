@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron'); // 👈 ADICIONE globalShortcut
+const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
@@ -14,7 +14,7 @@ function createWindow() {
     minHeight: 768,
     webPreferences: {
       nodeIntegration: true,
-      webSecurity: false,
+      webSecurity: false, // ✅ Importante: desabilita webSecurity para CORS
       contextIsolation: false,
       allowRunningInsecureContent: true,
       experimentalFeatures: true,
@@ -23,25 +23,27 @@ function createWindow() {
 
   const session = win.webContents.session;
   
-  session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://backend-oi68.onrender.com http://localhost:3010 data: blob: ws: wss:"
-        ],
-        'Access-Control-Allow-Origin': ['*'],
-        'Access-Control-Allow-Methods': ['GET, POST, PUT, DELETE, PATCH, OPTIONS'],
-        'Access-Control-Allow-Headers': ['Content-Type, Authorization'],
-      }
-    });
-  });
-
+  // ✅ INTERCEPTA REQUISIÇÕES PARA ADICIONAR HEADERS CORS
   session.webRequest.onBeforeSendHeaders((details, callback) => {
     callback({
       requestHeaders: {
         ...details.requestHeaders,
         'Origin': 'electron://app',
+      }
+    });
+  });
+
+  // ✅ HEADERS SIMPLIFICADOS - Remove CSP problemático
+  session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        // ✅ CSP mínimo e permissivo
+        'Content-Security-Policy': ["default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"],
+        // ✅ Headers CORS essenciais
+        'Access-Control-Allow-Origin': ['*'],
+        'Access-Control-Allow-Methods': ['*'],
+        'Access-Control-Allow-Headers': ['*'],
       }
     });
   });
@@ -55,11 +57,6 @@ function createWindow() {
     win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, '../build/index.html'));
-    win.webContents.on('did-finish-load', () => {
-      win.webContents.insertCSS(`
-        body { background-color: #fff !important; }
-      `);
-    });
   }
 
   return win;
@@ -68,36 +65,31 @@ function createWindow() {
 let mainWindow;
 
 app.whenReady().then(() => {
+  // 👇 DESABILITA LIMITAÇÕES DE SEGURANÇA PARA DESENVOLVIMENTO
   app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
   app.commandLine.appendSwitch('disable-site-isolation-trials');
+  app.commandLine.appendSwitch('ignore-certificate-errors'); // ✅ Para HTTPS do render.com
   
   mainWindow = createWindow();
 
   // ✅ REGISTRAR ATALHOS GLOBAIS F4 E F1
   const registerShortcuts = () => {
-    // Registra F4 para Kardex
-    const f4Registered = globalShortcut.register('F4', () => {
-      console.log('🔔 Atalho F4 pressionado - Kardex');
+    globalShortcut.register('F4', () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('global-shortcut-f4');
       }
     });
 
-    // Registra F1 para Ajuda
-    const f1Registered = globalShortcut.register('F1', () => {
-      console.log('🔔 Atalho F1 pressionado - Ajuda');
+    globalShortcut.register('F1', () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('global-shortcut-f1');
       }
     });
-
-    // Verifica se os atalhos foram registrados com sucesso
-    console.log('F4 registered:', f4Registered);
-    console.log('F1 registered:', f1Registered);
   };
-  
+
   registerShortcuts();
 
+  // Auto-updater apenas em produção
   if (process.env.NODE_ENV !== 'development') {
     autoUpdater.checkForUpdatesAndNotify();
   }
@@ -110,40 +102,18 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     mainWindow = createWindow();
-    
-    // ✅ RE-REGISTRAR ATALHOS QUANDO NOVA JANELA FOR CRIADA
-    setTimeout(() => {
-      const registerShortcuts = () => {
-        globalShortcut.register('F4', () => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('global-shortcut-f4');
-          }
-        });
-
-        globalShortcut.register('F1', () => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('global-shortcut-f1');
-          }
-        });
-      };
-      registerShortcuts();
-    }, 1000);
   }
 });
 
-// ✅ DESREGISTRAR ATALHOS QUANDO A APP FECHAR
+// ✅ DESREGISTRAR ATALHOS
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
-  console.log('🔔 Atalhos globais desregistrados');
 });
 
+// ✅ ACEITA CERTIFICADOS SSL
 app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
-  if (url.startsWith('https://backend-oi68.onrender.com')) {
-    event.preventDefault();
-    callback(true);
-  } else {
-    callback(false);
-  }
+  event.preventDefault();
+  callback(true); // ✅ Aceita todos os certificados
 });
 
 // Eventos do autoUpdater
