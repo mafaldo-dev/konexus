@@ -7,7 +7,8 @@ import Swal from "sweetalert2";
 import AdminSetupModal from "./components/AdminSetupModal";
 import { handleLoginAdmin } from "../service/api/login";
 
-{/*
+{/**/}
+
 function useAutoUpdater() {
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -66,7 +67,6 @@ function useAutoUpdater() {
     };
   }, []);
 }
-*/}
 
 
 
@@ -76,7 +76,7 @@ const LoginPage: React.FC = () => {
   const [showAdminSetup, setShowAdminSetup] = useState(false); 
   const { loading, error, handleLogin } = useAuthService();
 
-  //useAutoUpdater()
+  useAutoUpdater()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

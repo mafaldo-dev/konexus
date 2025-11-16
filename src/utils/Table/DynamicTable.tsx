@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 
 interface Column<T> {
@@ -28,21 +28,39 @@ export function DynamicTable<T extends Record<string, any>>({
   columns,
   emptyMessage = "Nenhum registro encontrado",
   emptyDescription = "Tente ajustar os filtros de busca",
-  containerHeight = "calc(100vh - 400px)",
-  minHeight = "500px",
+  containerHeight = "auto",
+  minHeight = "auto",
   width = "70vw",
   onRowClick,
   rowClassName = "border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50",
   loading = false,
   loadingMessage = "Carregando...",
 }: DynamicTableProps<T>) {
-  
+
   const getRowClassName = (item: T, index: number): string => {
     if (typeof rowClassName === 'function') {
       return rowClassName(item, index);
     }
     return rowClassName;
   };
+
+  // -------------------------
+  // PAGINAÇÃO (25 por página)
+  // -------------------------
+  const ITEMS_PER_PAGE = 25;
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+
+  const paginatedData = useMemo(() => {
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return data.slice(start, end);
+  }, [data, page]);
+
+  const nextPage = () => setPage(p => Math.min(p + 1, totalPages));
+  const prevPage = () => setPage(p => Math.max(p - 1, 1));
+  // -------------------------
 
   return (
     <div 
@@ -88,7 +106,7 @@ export function DynamicTable<T extends Record<string, any>>({
                   </td>
                 </tr>
               ) : (
-                data.map((item, index) => (
+                paginatedData.map((item, index) => (
                   <tr
                     key={item.id || index}
                     className={getRowClassName(item, index)}
@@ -113,6 +131,33 @@ export function DynamicTable<T extends Record<string, any>>({
           </table>
         </div>
       </div>
+
+      {/* -------------------------
+         PAGINAÇÃO FOOTER
+      ------------------------- */}
+      {data.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
+          <button
+            onClick={prevPage}
+            disabled={page === 1}
+            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          >
+            Anterior
+          </button>
+
+          <span className="text-sm">
+            Página {page} de {totalPages}
+          </span>
+
+          <button
+            onClick={nextPage}
+            disabled={page === totalPages}
+            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          >
+            Próxima
+          </button>
+        </div>
+      )}
     </div>
   );
 }

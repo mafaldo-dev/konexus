@@ -6,10 +6,10 @@ import { NotificationBadge } from './NotificationBagde';
 import Dashboard from '../../components/dashboard/Dashboard';
 import { useAuth } from '../../AuthContext';
 import { OrderService } from '../../service/interfaces/stock/service';
-import { insertOrderOfService, handleAllOrderServices, handleOrderServiceById } from '../../service/api/Administrador/orderService/service';
+import { insertOrderOfService, handleAllOrderServices, handleOrderServiceById, handleUpdateOrderServiceStatus } from '../../service/api/Administrador/orderService/service';
 import { format } from 'date-fns';
 import { normalizeOrderService, normalizeOrderServices, prepareOrderServiceForSubmit } from './parseItensOrder';
-import { DynamicTable } from '../manager/Table/DynamicTable';
+import { DynamicTable } from '../../utils/Table/DynamicTable';
 import DocumentViewer from '../../utils/screenOptions';
 
 // ============= TIPOS =============
@@ -232,21 +232,45 @@ const OSSystem: React.FC = () => {
     }
   };
 
-  const handleUpdateStatus = (osId: string | number, newStatus: string) => {
-    setOrdens(prev =>
-      prev.map(os =>
-        os.id === osId ? { ...os, orderStatus: newStatus } : os
-      )
-    );
+ const handleUpdateStatus = async (osId: string | number, newStatus: string) => {
+  const prevState = ordens; // backup para rollback
+
+  // 1. OPTIMISTIC UI: atualiza a UI imediatamente
+  setOrdens(prev =>
+    prev.map(os =>
+      os.id === osId ? { ...os, orderStatus: newStatus } : os
+    )
+  );
+
+  try {
+    // 2. Chamada para o backend
+    await handleUpdateOrderServiceStatus(osId.toString(), newStatus);
+
+    // 3. Notificação de sucesso
+    addNotification({
+      id: Date.now(),
+      type: "success",
+      message: `Status da OS atualizado para ${getStatusLabel(newStatus)}`,
+      priority: "media",
+      read: false
+    });
+
+  } catch (error) {
+    console.error("Erro ao atualizar o status:", error);
+
+    // 4. ROLLBACK se a API falhar
+    setOrdens(prevState);
 
     addNotification({
       id: Date.now(),
-      type: 'success',
-      message: `Status da OS atualizado para ${getStatusLabel(newStatus)}`,
-      priority: 'media',
+      type: "error",
+      message: `Falha ao atualizar o status da OS.`,
+      priority: "alta",
       read: false
     });
-  };
+  }
+};
+
 
   const getStatusLabel = (status: any): string => {
     const labels: any = {
@@ -269,9 +293,7 @@ const OSSystem: React.FC = () => {
 
     try {
       setLoading(true);
-
       const response = await handleOrderServiceById(order.id.toString());
-      console.log(response)
 
       if (response) {
         setSelectedOrder(response);

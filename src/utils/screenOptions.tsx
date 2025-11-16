@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share, Wrench } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import Swal from 'sweetalert2';
+import { handleNfeById } from "../service/api/Administrador/financial";
+
 
 declare global {
   interface Window {
@@ -15,7 +17,7 @@ declare global {
 interface DocumentViewerProps {
   order?: any;
   product?: any;
-  documentType?: "purchase_order" | "label_70x30" | "label_100x100" | "separation_list" | "render_os_print_sheet";
+  documentType?: "purchase_order" | "label_70x30" | "label_100x100" | "separation_list" | "render_os_print_sheet" | "nfe_pdf";
   onClose: () => void;
 }
 
@@ -28,8 +30,45 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const { company } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [processedItems, setProcessedItems] = useState<any[]>([]);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loadingPdf, setLoadingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
-  // Adicione este useEffect logo após os outros useEffects no componente
+  // Carrega o PDF da NF-e
+  useEffect(() => {
+    const loadPDF = async () => {
+      if (documentType !== "nfe_pdf") return;
+
+      if (!product?.nfeId) {
+        setPdfError("ID da NF-e não encontrado");
+        setLoadingPdf(false);
+        return;
+      }
+
+      try {
+        setLoadingPdf(true);
+        setPdfError(null);
+        const url = await handleNfeById(product.nfeId);
+        setPdfUrl(url);
+      } catch (err) {
+        console.error("Erro ao carregar PDF:", err);
+        setPdfError("Erro ao carregar o PDF da NF-e");
+      } finally {
+        setLoadingPdf(false);
+      }
+    };
+
+    loadPDF();
+
+    // Cleanup: libera a URL quando o componente desmontar
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [documentType, product?.nfeId]);
+
+  // Processa etiquetas
   useEffect(() => {
     const processLabelsOnMount = async () => {
       if (documentType !== "label_70x30" || processedItems.length > 0) {
@@ -37,7 +76,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       }
 
       if (!product?.orderItems) {
-        // Produto único
         const originalQuantity = product?.quantity || 1;
 
         if (originalQuantity > 10) {
@@ -54,7 +92,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         return;
       }
 
-      // Múltiplos itens
       const items = product.orderItems || [];
       const confirmedItems = [];
 
@@ -96,24 +133,20 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       return;
     }
 
-    // Se for etiqueta 70x30, processa confirmações antes
     if (documentType === "label_70x30") {
       await handlePrepareLabels();
       return;
     }
 
-    // Para outros tipos, imprime direto
     window.print();
   };
 
   const handlePrepareLabels = async () => {
-    // Se já processou, apenas imprime
     if (processedItems.length > 0) {
       window.print();
       return;
     }
 
-    // Caso contrário, processa novamente (fallback)
     if (!product?.orderItems) {
       const quantity = await confirmQuantity(product, product?.quantity || 1);
       if (quantity === 0) {
@@ -169,7 +202,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     try {
       const html2pdf = (await import('html2pdf.js')).default;
 
-      // Simplifica completamente a estrutura para captura
       if (documentType === "separation_list" || documentType === "purchase_order" || documentType === "render_os_print_sheet") {
         element.className = 'bg-white w-[210mm] min-h-[297mm] mt-32';
       } else if (documentType.includes('label')) {
@@ -186,7 +218,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         main.style.cssText = 'display: block; width: 220mm; margin: 0; padding: 0; overflow: visible;';
       }
 
-      // Aguarda dois frames para garantir que todos os estilos sejam aplicados
       await new Promise(resolve => requestAnimationFrame(resolve));
       await new Promise(resolve => requestAnimationFrame(resolve));
 
@@ -282,14 +313,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     `)}`;
   };
 
-  //CONFIRME QUANTIDADE
   const confirmQuantity = async (item: any, originalQuantity: number): Promise<number> => {
-    // Se for 10 ou menos, imprime direto sem perguntar
     if (originalQuantity <= 10) {
       return originalQuantity;
     }
 
-    // Confirmação inicial
     const result = await Swal.fire({
       title: '⚠️ Atenção!',
       html: `
@@ -347,6 +375,52 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     }
 
     return 0;
+  };
+
+  const renderNFePDF = () => {
+    if (loadingPdf) {
+      return (
+        <div className="flex items-center justify-center w-[210mm] min-h-[297mm] bg-white">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Carregando PDF da NF-e...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (pdfError) {
+      return (
+        <div className="flex items-center justify-center w-[210mm] min-h-[297mm] bg-white">
+          <div className="text-center text-red-600">
+            <X className="w-12 h-12 mx-auto mb-4" />
+            <p className="font-semibold">{pdfError}</p>
+            <button
+              onClick={onClose}
+              className="mt-4 px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] rounded-sm border border-gray-200">
+        {pdfUrl && (
+          <iframe
+            src={pdfUrl}
+            className="w-full h-[297mm]"
+            title="DANFE NF-e"
+            style={{
+              border: 'none',
+              minHeight: '297mm'
+            }}
+          />
+        )}
+      </div>
+    );
   };
 
   const renderLabel70x30 = () => {
@@ -411,7 +485,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       ));
     };
 
-    // Mostra loading enquanto processa
     if (processedItems.length === 0) {
       return (
         <div className="flex items-center justify-center h-screen">
@@ -423,7 +496,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       );
     }
 
-    // 🔹 Renderiza as etiquetas processadas
     return (
       <div className="flex flex-col gap-6">
         {processedItems.map((item: any) => {
@@ -440,6 +512,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       </div>
     );
   };
+
   const renderLabel100x100 = () => {
     if (product?.orderNumber) {
       return (
@@ -462,20 +535,16 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               }}
             >
               <div className="flex flex-col h-full">
-
-                {/* Cabeçalho */}
                 <div className="text-center pb-2 mt-10 mb-1">
                   <div className="font-bold text-1xl">
                     PEDIDO {product.orderNumber}
                   </div>
                 </div>
 
-                {/* Cliente */}
                 <div className="text-center pb-1 mb-1">
                   <div className="font-semibold text-base">{product.customerName}</div>
                 </div>
 
-                {/* Endereço de Entrega */}
                 <div className="flex flex-col text-center gap-1 pb-1 mb-1">
                   <div className="font-bold text-sm text-gray-600">ENDEREÇO DE ENTREGA:</div>
                   <div className="text-sm">
@@ -484,7 +553,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   </div>
                 </div>
 
-                {/* Campos vazios */}
                 <div className="flex-1 flex flex-col space-y-2 text-sm">
                   <div className="flex gap-4 self-center p-1">
                     <span className="font-bold">TRANSP: </span>
@@ -495,7 +563,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   </div>
                 </div>
 
-                {/* Informações do Pedido */}
                 <div className="flex items-center justify-center gap-2 text-center text-xs mb-6">
                   <div className="text-center p-1">
                     <div className="font-bold text-gray-600">VOLUME</div>
@@ -511,7 +578,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   </div>
                 </div>
 
-                {/* Rodapé da etiqueta */}
                 <div className="text-center mb-8 -mt-5">
                   <p className="text-sm" style={{ fontSize: "12px" }}>
                     {company?.name} - {company?.cnpj || "------"}
@@ -525,9 +591,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       );
     }
   };
+
   const renderPurchaseOrder = () => (
-    <div
-      className="flex flex-col print-area print-area print:scale-1  scale-[0.8]  bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
+    <div className="flex flex-col print-area print-area print:scale-1  scale-[0.8]  bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
       {order ? (
         <>
           <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
@@ -659,9 +725,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       )}
     </div>
   );
+
   const renderSeparationList = () => (
     <div className="flex flex-col print-area print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
-      {/* Cabeçalho Compacto */}
       <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
         <div className="flex items-start gap-2">
           <div className="w-12 h-12 flex items-center justify-center">
@@ -689,7 +755,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </div>
       </div>
 
-      {/* Informações principais compactas */}
       <div className="flex flex-row justify-between border border-gray-200 rounded px-2 py-2 gap-4 mb-4 text-xs">
         <div className="flex-1">
           <h3 className="font-bold mb-1 text-black">Dados do cliente</h3>
@@ -718,7 +783,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </div>
       </div>
 
-      {/* Tabela de Produtos Compacta */}
       <div className="border border-gray-200 rounded mb-4 print-break">
         <div className="bg-gray-800 px-3 py-2">
           <h3 className="text-white font-semibold text-xs flex items-center gap-1">
@@ -766,7 +830,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </table>
       </div>
 
-      {/* Observações Compactas */}
       {order?.notes && (
         <div className="border border-amber-200 rounded p-3 mb-4 bg-amber-50 text-xs">
           <p className="text-amber-700 font-semibold mb-1">Observações</p>
@@ -774,7 +837,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </div>
       )}
 
-      {/* Assinaturas Compactas */}
       <div className="flex flex-row justify-between print-signatures mb-4 pt-3 border-t border-gray-200 text-xs mt-auto">
         {["Separado por", "Conferido por"].map((label, i) => (
           <div key={i} className="text-center w-full">
@@ -786,16 +848,15 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         ))}
       </div>
 
-      {/* Rodapé Compacto */}
       <div className="text-center text-xs text-gray-500 border-t border-gray-200 pt-2">
         <p>Vendas {company?.name} • {company?.email}</p>
         <p className="text-xs">Documento gerado em {new Date().toLocaleDateString()} • Konéxus</p>
       </div>
     </div>
   );
+
   const renderOSPrintSheet = () => (
     <div className="flex flex-col print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
-      {/* Cabeçalho */}
       <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
         <div className="flex items-start gap-2">
           <div className="w-12 h-12 flex items-center justify-center">
@@ -829,7 +890,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </div>
       </div>
 
-      {/* Informações principais */}
       <div className="flex flex-row justify-between border border-gray-200 rounded px-2 py-2 gap-4 mb-4 text-xs">
         <div className="flex-1">
           <h3 className="font-bold mb-1 text-black">Solicitante</h3>
@@ -864,11 +924,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </p>
         </div>
       </div>
+      
       <div className="flex self-left px-2 py-1 bg-gray-50 mb-2">
-          <h2 className="text-lg font-medium">OBS: {order.stock_movement === true ? "Movimentação de Estoque" : "Não Movimenta Estoque"}, Tipo: {order.movement_type}</h2>
+        <h2 className="text-lg font-medium">OBS: {order.stock_movement === true ? "Movimentação de Estoque" : "Não Movimenta Estoque"}{order.movement_type ? `, Tipo: ${order.movement_type}` : ""}</h2>
       </div>
 
-      {/* Itens da OS */}
       <div className="border border-gray-200 rounded mb-4 print-break">
         <div className="bg-gray-800 px-3 py-2">
           <h3 className="text-white font-semibold text-xs flex items-center gap-1">
@@ -915,7 +975,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </table>
       </div>
 
-      {/* Observações gerais */}
       {order?.notes && (
         <div className="border border-amber-200 rounded p-3 mb-4 bg-amber-50 text-xs">
           <p className="text-amber-700 font-semibold mb-1">Observações</p>
@@ -923,7 +982,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         </div>
       )}
 
-      {/* Assinaturas */}
       <div className="flex flex-row justify-between print-signatures mb-4 pt-3 border-t border-gray-200 text-xs mt-auto">
         {["Executado por", "Conferido por"].map((label, i) => (
           <div key={i} className="text-center w-full">
@@ -935,7 +993,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         ))}
       </div>
 
-      {/* Rodapé */}
       <div className="text-center text-xs text-gray-500 border-t border-gray-200 pt-2">
         <p>
           {company?.name} • {company?.email}
@@ -951,7 +1008,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     if (documentType === "label_70x30") return "size: 70mm 30mm;";
     if (documentType === "label_100x100") return "size: 100mm 100mm;";
     if (documentType === "separation_list") return "size: A4; margin: 25mm;";
-    if (documentType === "render_os_print_sheet") return "size A4; margin: 25mm;"
+    if (documentType === "render_os_print_sheet") return "size: A4; margin: 25mm;";
+    if (documentType === "nfe_pdf") return "size: A4;";
     return "size: A4;";
   };
 
@@ -1024,32 +1082,34 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           }
         `}</style>
 
-
-      <div className="fixed inset-0  z-50 bg-gray-300 flex h-full flex-col">
-        {/* Header moderno com engrenagem à direita */}
+      <div className="fixed inset-0 z-50 bg-gray-300 flex h-full flex-col">
         <header className="no-print flex justify-between items-center h-12 w-full px-7 bg-slate-800 shadow-lg">
-          {/* Lado esquerdo - Título do documento */}
-          <div className="flex items-center gap-3 ">
+          <div className="flex items-center gap-3">
             <div className="w-6 h-6 bg-slate-700 rounded-lg flex items-center justify-center">
               {documentType === "purchase_order" && <FileText className="text-white" size={14} />}
               {documentType.includes("label") && <Package className="text-white" size={14} />}
               {documentType === "separation_list" && <CheckSquare className="text-white" size={14} />}
+              {documentType === "render_os_print_sheet" && <Wrench className="text-white" size={14} />}
+              {documentType === "nfe_pdf" && <FileText className="text-white" size={14} />}
             </div>
             <div>
               <h1 className="text-white font-semibold text-lg">
                 {documentType === "purchase_order" && "Pedido de Compra"}
                 {documentType === "separation_list" && "Lista de Separação"}
+                {documentType === "render_os_print_sheet" && "Ordens de Serviço"}
+                {documentType === "nfe_pdf" && "DANFE NF-e"}
                 {documentType.includes("label") && "Etiquetas"}
               </h1>
               <p className="text-slate-300 text-sm">
                 {documentType.includes("label")
                   ? product?.productcode
+                  : documentType === "nfe_pdf"
+                  ? `NF-e ID: ${product?.nfeId || "---"}`
                   : order?.orderNumber || order?.ordernumber}
               </p>
             </div>
           </div>
 
-          {/* Lado direito - Botão de engrenagem */}
           <div className="relative">
             <button
               onClick={toggleMenu}
@@ -1059,13 +1119,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               <Settings size={14} />
             </button>
 
-            {/* Menu deslizante */}
             <div className={`
               fixed top-0 right-0 h-full bg-slate-800 shadow-2xl transition-transform duration-300 z-50
               ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}
             `} style={{ width: '280px' }}>
 
-              {/* Cabeçalho do menu */}
               <div className="flex items-center justify-between p-6 border-b border-slate-700">
                 <h2 className="text-white font-semibold text-lg">Opções</h2>
                 <button
@@ -1076,9 +1134,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 </button>
               </div>
 
-              {/* Conteúdo do menu */}
               <div className="p-6 space-y-4">
-                {/* Grupo - Ações do Documento */}
                 <div>
                   <h3 className="text-slate-400 text-sm font-medium mb-3 uppercase tracking-wider">
                     Ações do Documento
@@ -1110,7 +1166,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   </div>
                 </div>
 
-                {/* Grupo - Configurações */}
                 <div>
                   <h3 className="text-slate-400 text-sm font-medium mb-3 uppercase tracking-wider">
                     Configurações
@@ -1118,7 +1173,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   <div className="space-y-2">
                     <button
                       onClick={() => {
-                        // Função para duplicar documento
                         console.log('Duplicar documento');
                         setIsMenuOpen(false);
                       }}
@@ -1130,7 +1184,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
                     <button
                       onClick={() => {
-                        // Função para compartilhar
                         console.log('Compartilhar documento');
                         setIsMenuOpen(false);
                       }}
@@ -1142,7 +1195,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   </div>
                 </div>
 
-                {/* Grupo - Sistema */}
                 <div>
                   <h3 className="text-slate-400 text-sm font-medium mb-3 uppercase tracking-wider">
                     Sistema
@@ -1150,7 +1202,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   <div className="space-y-2">
                     <button
                       onClick={() => {
-                        // Função para ajuda
                         console.log('Abrir ajuda');
                         setIsMenuOpen(false);
                       }}
@@ -1172,7 +1223,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               </div>
             </div>
 
-            {/* Overlay quando menu está aberto */}
             {isMenuOpen && (
               <div
                 className="fixed inset-0 bg-black bg-opacity-50 z-40"
@@ -1182,13 +1232,12 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
           </div>
         </header>
 
-        {/* Conteúdo principal (mantém igual) */}
         <main className="flex justify-center m-auto items-center overflow-hidden">
           <div
             id="printable-content"
             className={
               documentType.includes('label') ? '' :
-                documentType === "separation_list" ? 'w-[210mm] min-h-[297mm]' : 'origin-top'
+                documentType === "separation_list" || documentType === "nfe_pdf" ? 'w-[210mm] min-h-[297mm]' : 'origin-top'
             }
           >
             {documentType === "label_70x30" && renderLabel70x30()}
@@ -1196,6 +1245,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             {documentType === "purchase_order" && renderPurchaseOrder()}
             {documentType === "separation_list" && renderSeparationList()}
             {documentType === "render_os_print_sheet" && renderOSPrintSheet()}
+            {documentType === "nfe_pdf" && renderNFePDF()}
           </div>
         </main>
       </div>

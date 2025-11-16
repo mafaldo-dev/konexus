@@ -4,7 +4,7 @@ import { Supplier } from '../../../service/interfaces'
 import Dashboard from '../../../components/dashboard/Dashboard'
 import FormAdd from './Form-add'
 import EditModal from './modal-edit'
-import { DynamicTable } from '../Table/DynamicTable' // Ajuste o caminho
+import { DynamicTable } from '../../../utils/Table/DynamicTable' // Ajuste o caminho
 import { DeleteIcon, Edit, Filter, DotIcon} from 'lucide-react'
 import { useAuth } from '../../../AuthContext'
 import Swal from 'sweetalert2'

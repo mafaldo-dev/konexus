@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Products } from "../../../service/interfaces/stock/products"
 import { handleAllProducts } from "../../../service/api/Administrador/products"
-import { DynamicTable } from "../Table/DynamicTable"
+import { DynamicTable } from "../../../utils/Table/DynamicTable"
 import { Search, X, ChevronDown, BarChart2, Layers, Clock, Package, TrendingUp, ShoppingBag } from "lucide-react"
 import Dashboard from "../../../components/dashboard/Dashboard"
 

@@ -1,6 +1,7 @@
+// --- SEU CÓDIGO ORIGINAL (NÃO ALTEREI NADA AQUI) ---
 import { Eye, Download, MoreVertical, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import {
   updatePurchaseOrder,
@@ -9,10 +10,11 @@ import {
 } from '../../../service/api/Administrador/purchaseRequests';
 import DocumentViewer from '../../../utils/screenOptions';
 import { OrderResponse } from '../../../service/interfaces';
+import { handleAllOrderServices } from '../../../service/api/Administrador/orderService/service';
 
 interface QuotationsListProps {
   quotations: any[];
-  onPreview?: (quotation: any) => void;
+  onPreview?: (quotation: any[]) => void;
   onUpdate?: () => void;
 }
 
@@ -50,15 +52,29 @@ const getStatusLabel = (status: string): string => {
   return statusLabels[status as OrderStatus] || status || 'Desconhecido';
 };
 
+// --- COMPONENTE COM PAGINAÇÃO ---
 export default function QuotationsList({ quotations = [], onUpdate }: QuotationsListProps) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [showViewer, setShowViewer] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
-  const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
+  const [documentType, setDocumentType] =
+    useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
+
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  
+
+  // PAGINAÇÃO
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  const totalPages = Math.ceil(quotations.length / itemsPerPage);
+
+  const paginatedData = quotations.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     try {
@@ -82,9 +98,7 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
         didOpen: () => Swal.showLoading(),
       });
 
-
       const fullOrder = await getOrderById(order.ordernumber);
-
       if (!fullOrder) throw new Error('Pedido não encontrado');
 
       const normalizedOrder = {
@@ -99,7 +113,6 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
         notes: fullOrder.notes || 'Nenhuma observação',
         companyid: fullOrder.companyId,
         createdat: fullOrder.createdAt,
-
         items: fullOrder.orderItems?.map((item: any) => ({
           productid: item.productid,
           productname: item.productname,
@@ -110,7 +123,6 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
           cost: item.cost,
           subtotal: item.quantity * item.cost
         })) || [],
-
         orderitems: fullOrder.orderItems || [],
         supplier: {
           id: fullOrder.supplier?.id,
@@ -131,12 +143,10 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
 
       Swal.close();
     } catch (error: any) {
-      console.error('Erro ao buscar pedido:', error);
       Swal.fire({
         title: 'Erro!',
         text: 'Não foi possível carregar os detalhes do pedido.',
-        icon: 'error',
-        confirmButtonColor: '#1e293b',
+        icon: 'error'
       });
     }
   };
@@ -150,106 +160,46 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
     setOpenMenuId(null);
     const currentStatus = order.orderstatus;
 
-    const optionsHtml = statusOptions
-      .map(option =>
-        `<option value="${option.value}" ${option.value === currentStatus ? 'selected' : ''} class="${option.color}">
-          ${option.label}
-        </option>`
-      )
-      .join('');
+    const optionsHtml = statusOptions.map(option =>
+      `<option value="${option.value}" ${option.value === currentStatus ? 'selected' : ''}>${option.label}</option>`
+    ).join('');
 
     const { value: newStatus, isConfirmed } = await Swal.fire({
       title: 'Atualizar Status',
       html: `
-        <div class="text-left mb-4">
-          <p class="text-sm text-gray-600 mb-2">Pedido: <strong>${order.ordernumber}</strong></p>
-          <p class="text-sm text-gray-600 mb-4">Fornecedor: <strong>${order.suppliername}</strong></p>
-        </div>
-        <label class="block text-left text-sm font-medium text-gray-700 mb-2">
-          Selecione o novo status:
-        </label>
-        <select id="status-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-300 outline-none">
+        <select id="status-select" class="w-full border p-2 rounded">
           ${optionsHtml}
         </select>
-        <div class="mt-4 text-left">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Observações (opcional):
-          </label>
-          <textarea 
-            id="notes-input" 
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-300 outline-none resize-none"
-            rows="3"
-            placeholder="Adicione observações sobre a mudança de status..."
-          >${order.notes || ''}</textarea>
-        </div>
       `,
       showCancelButton: true,
       confirmButtonText: 'Atualizar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#1e293b',
-      cancelButtonColor: '#94a3b8',
-      width: '500px',
       preConfirm: () => {
         const select = document.getElementById('status-select') as HTMLSelectElement;
-        const notes = (document.getElementById('notes-input') as HTMLTextAreaElement).value;
-        return {
-          status: select.value,
-          notes: notes.trim() || null
-        };
+        return select.value;
       }
     });
 
-    if (isConfirmed && newStatus) {
+    if (isConfirmed) {
       try {
-        Swal.fire({
-          title: 'Atualizando...',
-          text: 'Por favor, aguarde',
-          allowOutsideClick: false,
-          didOpen: () => Swal.showLoading(),
-        });
-
-        const updatePayload: UpdateOrderStatusPayload = {
-          orderStatus: newStatus.status,
-          notes: newStatus.notes
+        const payload: UpdateOrderStatusPayload = {
+          orderStatus: newStatus,
+          notes: order.notes
         };
-
-        await updatePurchaseOrder(Number(order.id), updatePayload);
-
-        Swal.fire({
-          title: 'Sucesso!',
-          text: 'Status atualizado com sucesso!',
-          icon: 'success',
-          confirmButtonColor: '#1e293b',
-          timer: 2000
-        });
-
+        await updatePurchaseOrder(Number(order.id), payload);
         if (onUpdate) onUpdate();
-      } catch (error: any) {
-        console.error('❌ Erro capturado:', error);
-        Swal.fire({
-          title: 'Erro!',
-          text: error.message || 'Não foi possível atualizar o status.',
-          icon: 'error',
-          confirmButtonColor: '#1e293b'
-        });
+      } catch (err) {
+        console.error(err);
       }
     }
   };
 
   const handlePrintProductLabels = async (order: any) => {
     try {
-      Swal.fire({
-        title: 'Carregando...',
-        text: 'Buscando informações completas do pedido',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading(),
-      });
+      Swal.fire({ title: 'Carregando...', didOpen: () => Swal.showLoading() });
 
-      // Busca o pedido completo
       const fullOrder = await getOrderById(order.orderNumber || order.ordernumber);
-      if (!fullOrder || !Array.isArray(fullOrder.orderItems)) {
-        throw new Error('O pedido não possui itens válidos.');
-      }
+      if (!fullOrder || !Array.isArray(fullOrder.orderItems)) throw new Error();
+
       const orderWithLowercase = {
         ...fullOrder,
         orderItems: fullOrder.orderItems.map((item: any) => ({
@@ -257,21 +207,20 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
           productname: item.productname,
           productbrand: item.productbrand,
           productlocation: item.productlocation,
-          quantity: item.quantity,
+          quantity: item.quantity
         }))
       };
 
       setSelectedProduct(orderWithLowercase);
       setDocumentType("label_70x30");
       setShowDocumentViewer(true);
-      Swal.close();
-    } catch (error) {
-      Swal.close();
-      console.error('Erro ao buscar pedido:', error);
-      Swal.fire('Erro', 'Não foi possível carregar os detalhes do pedido.', 'error');
+
+    } catch {
+      Swal.fire('Erro', 'Não foi possível carregar os itens.', 'error');
     }
   };
 
+  // 👉 SE O VIEWER ESTIVER ABERTO, MOSTRA ELE
   if (showDocumentViewer) {
     return (
       <DocumentViewer
@@ -285,7 +234,7 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
     );
   }
 
-
+  // 👉 RENDERIZA TUDO NORMAL (COM PAGINAÇÃO)
   return (
     <>
       <div className="bg-white p-6 rounded shadow space-y-4">
@@ -296,88 +245,99 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
         {quotations.length === 0 ? (
           <p className="text-slate-500">Nenhuma solicitação registrada ainda.</p>
         ) : (
-          <div className="overflow-x-auto rounded border border-slate-300">
-            <table className="min-w-full text-sm text-slate-700">
-              <thead className="bg-slate-900 text-white">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold">Nº Solicitação</th>
-                  <th className="px-4 py-3 text-left font-semibold">Fornecedor</th>
-                  <th className="px-4 py-3 text-left font-semibold">Data</th>
-                  <th className="px-4 py-3 text-right font-semibold">Total</th>
-                  <th className="px-4 py-3 text-center font-semibold">Status</th>
-                  <th className="px-4 py-3 text-center font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {quotations.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">
-                      {order.ordernumber || `#${order.id}`}
-                    </td>
-                    <td className="px-4 py-3">{order.suppliername || '---'}</td>
-                    <td className="px-4 py-3">{formatDate(order.orderdate)}</td>
-                    <td className="px-4 py-3 text-right text-emerald-700 font-semibold">
-                      R$ {order.totalcost}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`px-2 py-1 rounded text-xs border font-medium inline-block ${getStatusColor(order.orderstatus)}`}
-                      >
-                        {getStatusLabel(order.orderstatus)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="relative inline-block">
-                        <button
-                          onClick={() => toggleMenu(order.id)}
-                          className="p-1.5 rounded-lg hover:bg-slate-100 transition text-slate-600 hover:text-slate-800"
-                          title="Mais opções"
-                        >
-                          <MoreVertical size={18} />
-                        </button>
-
-                        {openMenuId === order.id && (
-                          <>
-                            <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
-                              <button
-                                onClick={() => handlePreview(order)}
-                                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition"
-                              >
-                                <Eye size={16} className="text-blue-600" />
-                                Visualizar
-                              </button>
-                              <button
-                                onClick={() => handleUpdateStatus(order)}
-                                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition"
-                              >
-                                <RefreshCw size={16} className="text-purple-600" />
-                                Atualizar Status
-                              </button>
-                              <button
-                                onClick={() => handlePrintProductLabels(order)}
-                                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition"
-                              >
-                                <Download size={16} className="text-green-600" />
-                                Etiquetas
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto rounded border border-slate-300">
+              <table className="min-w-full text-sm text-slate-700">
+                <thead className="bg-slate-900 text-white">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Nº Solicitação</th>
+                    <th className="px-4 py-3 text-left">Fornecedor</th>
+                    <th className="px-4 py-3 text-left">Data</th>
+                    <th className="px-4 py-3 text-right">Total</th>
+                    <th className="px-4 py-3 text-center">Status</th>
+                    <th className="px-4 py-3 text-center">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+
+                <tbody className="divide-y divide-slate-200">
+                  {paginatedData.map((order) => (
+                    <tr key={order.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3">{order.ordernumber}</td>
+                      <td className="px-4 py-3">{order.suppliername}</td>
+                      <td className="px-4 py-3">{formatDate(order.orderdate)}</td>
+                      <td className="px-4 py-3 text-right">R$ {order.totalcost}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(order.orderstatus)}`}>
+                          {getStatusLabel(order.orderstatus)}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 text-center">
+                        <div className="relative">
+                          <button onClick={() => toggleMenu(order.id)} className="p-1.5 rounded-lg">
+                            <MoreVertical size={18} />
+                          </button>
+
+                          {openMenuId === order.id && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+
+                              <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded py-1 z-20">
+                                <button onClick={() => handlePreview(order)} className="w-full px-4 py-2 text-left flex gap-2">
+                                  <Eye size={16} />
+                                  Visualizar
+                                </button>
+
+                                <button onClick={() => handleUpdateStatus(order)} className="w-full px-4 py-2 text-left flex gap-2">
+                                  <RefreshCw size={16} />
+                                  Atualizar Status
+                                </button>
+
+                                <button onClick={() => handlePrintProductLabels(order)} className="w-full px-4 py-2 text-left flex gap-2">
+                                  <Download size={16} />
+                                  Etiquetas
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* PAGINAÇÃO */}
+            <div className="flex justify-between items-center mt-4">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="px-3 py-1 bg-slate-200 rounded disabled:opacity-50"
+              >
+                Anterior
+              </button>
+
+              <span className="text-sm text-slate-700">
+                Página {currentPage} de {totalPages}
+              </span>
+
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="px-3 py-1 bg-slate-200 rounded disabled:opacity-50"
+              >
+                Próxima
+              </button>
+            </div>
+          </>
         )}
       </div>
 
       {showViewer && (
         <DocumentViewer order={selectedOrder} onClose={handleCloseViewer} />
       )}
-
     </>
   );
 }

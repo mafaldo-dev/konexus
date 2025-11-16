@@ -1,7 +1,8 @@
 import { SubmitHandler, useForm } from "react-hook-form";
 import { Customer } from "../../../service/interfaces";
-import { PackagePlus, Save } from "lucide-react";
+import { PackagePlus, Save, MapPin, User, Mail, Phone, Hash, Map } from "lucide-react";
 import { insertCustomer } from "../../../service/api/Administrador/customer/clients";
+import { useState } from "react";
 
 interface FormAddedProps {
     onCustomerAdded: () => void
@@ -12,11 +13,14 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
         register,
         handleSubmit,
         reset,
-        formState: { errors },
+        formState: { errors, isSubmitting },
     } = useForm<Customer>()
+
+    const [isLoading, setIsLoading] = useState(false);
 
     const onSubmit: SubmitHandler<Customer> = async (data) => {
         try {
+            setIsLoading(true);
             const payload: Customer = {
                 ...data,
                 createdAt: new Date(),
@@ -24,10 +28,12 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
             };
             await insertCustomer(payload);
             reset();
-            onCustomerAdded()
+            onCustomerAdded();
         } catch (error) {
             console.error("Erro ao adicionar novo cliente: ", error);
             throw new Error("Erro interno do servidor!");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -38,6 +44,7 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
             .replace(/(\d{5})(\d)/, '$1-$2')
             .replace(/(-\d{4})\d+?$/, '$1')
     }
+
     const maskZipCode = (value: string) => {
         return value
             .replace(/\D/g, '')
@@ -45,142 +52,324 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded })
             .replace(/(-\d{3})\d+?$/, '$1')
     }
 
+    const maskCpfCnpj = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+            .replace(/(-\d{2})\d+?$/, '$1')
+            .replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d)/, '$1.$2.$3/$4-$5')
+            .replace(/(\/\d{4}-\d{2})\d+?$/, '$1');
+    }
+
+    // Estados brasileiros
+    const estados = [
+        "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", 
+        "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", 
+        "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+    ];
+
     return (
         <form
             onSubmit={handleSubmit(onSubmit)}
-            className="w-full mx-auto p-8 bg-white shadow-lg rounded-lg space-y-6"
+            className="w-full mx-auto p-8 bg-white shadow-xl rounded-2xl space-y-8 border border-gray-100"
         >
-            <h2 className="text-3xl font-bold text-gray-700 flex items-center gap-3 mb-6">
-                <PackagePlus size={30} /> Cadastro de Clientes
-            </h2>
+            {/* Header */}
+            <div className="text-center border-b border-gray-200 pb-6">
+                <div className="flex items-center justify-center gap-3 mb-3">
+                    <div className="p-3 bg-indigo-100 rounded-full">
+                        <PackagePlus size={28} className="text-indigo-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-800">Cadastro de Cliente</h2>
+                </div>
+                <p className="text-gray-600 text-sm">Preencha os dados do cliente para cadastro no sistema</p>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                {/* Nome */}
-                <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Nome do Cliente *</label>
-                    <input
-                        type="text"
-                        {...register("name", { required: "Nome obrigatório" })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Ex: Roger macedo"
-                    />
-                    {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name.message}</p>}
+            {/* Seção: Dados Pessoais */}
+            <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <User size={20} className="text-indigo-600" />
+                    <h3 className="text-lg font-semibold text-gray-800">Dados Pessoais</h3>
                 </div>
 
-                {/* Código */}
-                <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Código *</label>
-                    <input
-                        type="text"
-                        {...register("code", { required: "Código obrigatório" })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Ex: CLI-000"
-                    />
-                    {errors.code && <p className="text-red-600 text-sm mt-1">{errors.code.message}</p>}
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Nome */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <User size={16} className="text-gray-500" />
+                            Nome Completo *
+                        </label>
+                        <input
+                            type="text"
+                            {...register("name", { required: "Nome obrigatório" })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Ex: Roger Macedo"
+                        />
+                        {errors.name && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.name.message}
+                        </p>}
+                    </div>
 
-                {/* Telefone */}
-                <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Telefone *</label>
-                    <input
-                        {...register("phone",
-                            {
-                                required: "Adicione um telefone",
+                    {/* CPF/CNPJ */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <Hash size={16} className="text-gray-500" />
+                            CPF/CNPJ *
+                        </label>
+                        <input
+                            type="text"
+                            {...register("cpf_cnpj", { 
+                                required: "CPF/CNPJ obrigatório",
+                                onChange: (e) => {
+                                    e.target.value = maskCpfCnpj(e.target.value)
+                                }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                            placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                        />
+                        {errors.cpf_cnpj && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.cpf_cnpj.message}
+                        </p>}
+                    </div>
+
+                    {/* Código */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <Hash size={16} className="text-gray-500" />
+                            Código *
+                        </label>
+                        <input
+                            type="text"
+                            {...register("code", { required: "Código obrigatório" })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Ex: CLI-0001"
+                        />
+                        {errors.code && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.code.message}
+                        </p>}
+                    </div>
+
+                    {/* Telefone */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <Phone size={16} className="text-gray-500" />
+                            Telefone *
+                        </label>
+                        <input
+                            {...register("phone", {
+                                required: "Telefone obrigatório",
                                 onChange: (e) => {
                                     e.target.value = maskPhone(e.target.value)
                                 }
                             })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="(XX) XXXX-XXXX"
-                    />
-                    {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone.message}</p>}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                            placeholder="(11) 99999-9999"
+                        />
+                        {errors.phone && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.phone.message}
+                        </p>}
+                    </div>
+
+                    {/* E-mail */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <Mail size={16} className="text-gray-500" />
+                            E-mail *
+                        </label>
+                        <input
+                            type="email"
+                            {...register("email", { 
+                                required: "E-mail obrigatório",
+                                pattern: {
+                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                    message: "E-mail inválido"
+                                }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                            placeholder="exemplo@email.com"
+                        />
+                        {errors.email && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.email.message}
+                        </p>}
+                    </div>
                 </div>
-                {/* E-mail */}
-                <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">E-mail *</label>
-                    <input
-                        type="text"
-                        {...register("email", { required: "Adicione um email ao cliente" })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Ex: email@gmail.com"
-                    />
-                    {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>}
+            </div>
+
+            {/* Seção: Endereço */}
+            <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <MapPin size={20} className="text-indigo-600" />
+                    <h3 className="text-lg font-semibold text-gray-800">Endereço</h3>
                 </div>
 
-                {/* Cidade */}
-                <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Cidade *</label>
-                    <input
-                        type="text"
-                        {...register("address.city", { required: "Adicione uma cidade ao cliente" })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Ex: Sorocaba"
-                    />
-                    {errors.address?.city && <p className="text-red-600 text-sm mt-1">{errors.address?.city.message}</p>}
-                </div>
-
-                {/* Rua */}
-                <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Rua *</label>
-                    <input
-                        type="text"
-                        {...register("address.street", { required: "Adicione uma rua ao cliente" })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Ex: Av. Celso garcia"
-                    />
-                    {errors.address?.street && <p className="text-red-600 text-sm mt-1">{errors.address?.street.message}</p>}
-                </div>
-
-                {/* Numero */}
-                <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">Numero *</label>
-                    <input
-                        type="number"
-                        {...register("address.number", { required: "Estoque mínimo obrigatório", valueAsNumber: true })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Ex: 1245"
-                    />
-                    {errors.address?.number && <p className="text-red-600 text-sm mt-1">{errors.address?.number.message}</p>}
-                </div>
-
-                {/* CEP */}
-                <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-1">CEP *</label>
-                    <input
-                        {...register("address.zip",
-                            {
-                                required: "Adicione um CEP ao cliente",
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* CEP */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <MapPin size={16} className="text-gray-500" />
+                            CEP *
+                        </label>
+                        <input
+                            {...register("address.zip", {
+                                required: "CEP obrigatório",
                                 onChange: (e) => {
                                     e.target.value = maskZipCode(e.target.value)
                                 }
                             })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Ex: XXXXX-XXX"
-                    />
-                    {errors.address?.zip && <p className="text-red-600 text-sm mt-1">{errors.address?.zip.message}</p>}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                            placeholder="00000-000"
+                        />
+                        {errors.address?.zip && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.address.zip.message}
+                        </p>}
+                    </div>
+
+                    {/* Estado */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <Map size={16} className="text-gray-500" />
+                            Estado *
+                        </label>
+                        <select
+                            {...register("address.state", { required: "Estado obrigatório" })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white"
+                        >
+                            <option value="">Selecione o estado</option>
+                            {estados.map(estado => (
+                                <option key={estado} value={estado}>{estado}</option>
+                            ))}
+                        </select>
+                        {errors.address?.state && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.address.state.message}
+                        </p>}
+                    </div>
+
+                    {/* Código da Cidade */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <Hash size={16} className="text-gray-500" />
+                            UF
+                        </label>
+                        <input
+                            type="text"
+                            {...register("address.city_code", { 
+                                required: "Código IBGE obrigatório",
+                                pattern: {
+                                    value: /^\d{7}$/,
+                                    message: "Código IBGE deve ter 7 dígitos"
+                                }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Ex: 3550308"
+                        />
+                        {errors.address?.city_code && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.address.city_code.message}
+                        </p>}
+                    </div>
+
+                    {/* Cidade */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <MapPin size={16} className="text-gray-500" />
+                            Cidade *
+                        </label>
+                        <input
+                            type="text"
+                            {...register("address.city", { required: "Cidade obrigatória" })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Ex: São Paulo"
+                        />
+                        {errors.address?.city && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.address.city.message}
+                        </p>}
+                    </div>
+
+                    {/* Rua */}
+                    <div className="space-y-2 md:col-span-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <MapPin size={16} className="text-gray-500" />
+                            Logradouro *
+                        </label>
+                        <input
+                            type="text"
+                            {...register("address.street", { required: "Logradouro obrigatório" })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Ex: Avenida Paulista"
+                        />
+                        {errors.address?.street && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.address.street.message}
+                        </p>}
+                    </div>
+
+                    {/* Número */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <Hash size={16} className="text-gray-500" />
+                            Número *
+                        </label>
+                        <input
+                            type="number"
+                            {...register("address.number", { 
+                                required: "Número obrigatório", 
+                                valueAsNumber: true,
+                                min: {
+                                    value: 1,
+                                    message: "Número deve ser maior que 0"
+                                }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Ex: 1234"
+                        />
+                        {errors.address?.number && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                            <span>⚠</span> {errors.address.number.message}
+                        </p>}
+                    </div>
                 </div>
             </div>
 
             {/* Botões */}
-            <div className="flex justify-end gap-4 mt-8">
+            <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
                 <button
                     type="button"
                     onClick={() => reset()}
-                    className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-100 transition"
+                    className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all duration-200 font-medium"
+                    disabled={isLoading}
                 >
-                    Limpar
+                    Limpar Campos
                 </button>
 
                 <button
                     type="submit"
-                    className="flex items-center gap-2 bg-slate-800 hover:bg-indigo-700 text-white px-6 py-2 rounded shadow-md transition"
+                    disabled={isLoading}
+                    className="flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <Save size={18} /> Adicionar
+                    {isLoading ? (
+                        <>
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Cadastrando...
+                        </>
+                    ) : (
+                        <>
+                            <Save size={18} />
+                            Cadastrar Cliente
+                        </>
+                    )}
                 </button>
+            </div>
+
+            {/* Nota informativa */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                <p className="text-sm text-blue-800 flex items-start gap-2">
+                    <span className="text-blue-600">💡</span>
+                    <span>
+                        <strong>Importante:</strong> Todos os campos marcados com * são obrigatórios. 
+                        O CPF/CNPJ e Código IBGE são necessários para emissão de notas fiscais.
+                    </span>
+                </p>
             </div>
         </form>
     );
 }
 
-export default CustomerRegistrationForm
+export default CustomerRegistrationForm;

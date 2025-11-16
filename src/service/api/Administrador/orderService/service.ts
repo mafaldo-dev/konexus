@@ -39,7 +39,7 @@ export const handleAllOrderServices = async(token?: string) => {
   }
 }
 
-export const handleOrderServiceById = async (id?: string, token?: string,) => {
+export const handleOrderServiceById = async (id?: string, token?: string) => {
   const storedToken = localStorage.getItem("token");
   const authToken = token || storedToken;
 
@@ -55,7 +55,7 @@ export const handleOrderServiceById = async (id?: string, token?: string,) => {
 
   try {
     const response = await apiRequest(
-      `service/${id}/order`,
+      `service/${id}/os`,
       "GET",
       undefined,
       authToken
@@ -66,3 +66,19 @@ export const handleOrderServiceById = async (id?: string, token?: string,) => {
     throw new Error("Erro interno do servidor!");
   }
 };
+
+export const handleUpdateOrderServiceStatus = async(id: string, orderStatus: string, token?: string) => {
+  const tkn = localStorage.getItem("token")
+  try{
+    const body =  { orderStatus }
+    const response  = apiRequest(`service/${id}/os`, "PATCH", body, token || tkn as string)
+
+    if(!response) {
+      console.warn("Erro: Não foi possivel atualizar o status!")
+    }
+    return response
+  }catch(err) {
+    console.error("Erro ao atualizar o status da Order de serviço:", err)
+    throw new Error("Erro interno do servidor!")
+  }
+}

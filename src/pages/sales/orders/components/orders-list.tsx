@@ -8,11 +8,13 @@ import { OrderResponse } from "../../../../service/interfaces";
 import { handleAllOrders, updateOrderStatus } from "../../../../service/api/Administrador/orders";
 
 import { motion } from "framer-motion";
-import { Truck, AlertCircle, MoreVertical, Package } from "lucide-react";
+import { Truck, MoreVertical } from "lucide-react";
 import Dashboard from "../../../../components/dashboard/Dashboard";
 import DocumentViewer from "../../../../utils/screenOptions";
+import { DynamicTable } from "../../../../utils/Table/DynamicTable";
+import { mapOrderStatus, getStatusColor, getStatusLabel, getStatusTabColor } from "../../../../components/utils/statusLabel";
 
-type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "cancelled" | "backout" | any;
+type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "cancelled" | "backout" | any
 
 export default function OrderList() {
   const [selectedTab, setSelectedTab] = useState<OrderStatus>("approved");
@@ -25,19 +27,6 @@ export default function OrderList() {
   const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
-  const mapStatus = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'pending': 'pending',
-      'approved': 'approved',
-      'in_progress': 'in_progress',
-      'shipped': 'shipped',
-      'cancelled': 'cancelled',
-      'delivered': 'delivered',
-      'backout': 'backout'
-    };
-    return statusMap[status?.toLowerCase()] || status || 'approved' || 'backout';
-  };
-
   const loadOrders = async () => {
     try {
       setIsLoading(true);
@@ -46,7 +35,7 @@ export default function OrderList() {
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
         id: order.id,
         orderDate: order.orderDate,
-        orderStatus: mapStatus(order.orderStatus),
+        orderStatus: mapOrderStatus(order.orderStatus), // Usando função importada
         orderNumber: order.orderNumber || `ORD-${order.id}`,
         totalAmount: parseFloat(order.totalAmount) || 0,
         currency: order.currency || "BRL",
@@ -194,24 +183,6 @@ export default function OrderList() {
 
   const getOrdersByStatus = (status: OrderStatus) => orders.filter((order) => order.orderStatus === status);
 
-  const statusColors: Record<OrderStatus, string> = {
-    pending: "bg-amber-50 text-amber-800 border-amber-200",
-    approved: "bg-cyan-100 text-blue-500 border-blue-200",
-    in_progress: "bg-slate-50 text-slate-700 border-slate-300",
-    shipped: "bg-indigo-50 text-indigo-800 border-indigo-200",
-    cancelled: "bg-red-50 text-red-800 border-red-200",
-    backout: "bg-orange-50 text-white border-orange-200"
-  };
-
-  const statusLabels: Record<OrderStatus, string> = {
-    pending: "Pendente",
-    approved: "Aprovada",
-    in_progress: "Separando",
-    shipped: "Enviado",
-    cancelled: "Cancelado",
-    backout: "Estornado"
-  };
-
   const handleConferencia = async (order: OrderResponse) => {
     const { value: formValues } = await Swal.fire({
       title: "Realizar Conferência",
@@ -251,24 +222,22 @@ export default function OrderList() {
     await updateOrderStatusInDb(orderId, status, extraData);
   };
 
-  // Função para imprimir etiquetas 70x30 
- const handlePrintProductLabels = (order: OrderResponse) => {
-
-  const orderWithLowercase = {
-    ...order,
-    orderItems: order.orderItems.map(item => ({
-      productcode: item.productCode,
-      productname: item.productName,
-      productbrand: item.productBrand,
-      productlocation: item.location,
-      quantity: item.quantity,
-    }))
+  const handlePrintProductLabels = (order: OrderResponse) => {
+    const orderWithLowercase = {
+      ...order,
+      orderItems: order.orderItems.map(item => ({
+        productcode: item.productCode,
+        productname: item.productName,
+        productbrand: item.productBrand,
+        productlocation: item.location,
+        quantity: item.quantity,
+      }))
+    };
+    
+    setSelectedProduct(orderWithLowercase);
+    setDocumentType("label_70x30");
+    setShowDocumentViewer(true);
   };
-  
-  setSelectedProduct(orderWithLowercase);
-  setDocumentType("label_70x30");
-  setShowDocumentViewer(true);
-};
 
   const handlePrintOrderLabel = (order: OrderResponse) => {
     setSelectedProduct({
@@ -283,7 +252,7 @@ export default function OrderList() {
       totalVolumes: order.totalVolumes || order.orderItems.length,
       totalWeight: order.totalWeight,
       orderDate: order.orderDate,
-      carrier:order.carrier
+      carrier: order.carrier
     });
     setDocumentType("label_100x100");
     setShowDocumentViewer(true);
@@ -379,6 +348,86 @@ export default function OrderList() {
     );
   };
 
+  // ============================================
+  // DEFINIÇÃO DAS COLUNAS DA TABELA DINÂMICA
+  // ============================================
+  const getColumnsForTab = (tab: OrderStatus) => {
+    const baseColumns = [
+      {
+        key: 'orderNumber',
+        header: 'Pedido',
+        render: (order: OrderResponse) => (
+          <span className="font-semibold text-gray-900">{order.orderNumber}</span>
+        ),
+      },
+      {
+        key: 'customer',
+        header: 'Cliente',
+        render: (order: OrderResponse) => (
+          <span className="text-gray-700">{order.customer.name}</span>
+        ),
+      },
+      {
+        key: 'salesperson',
+        header: 'Vendedor',
+        render: (order: OrderResponse) => (
+          <span className="text-gray-700">{order.salesperson}</span>
+        ),
+      },
+      {
+        key: 'items',
+        header: 'Itens',
+        render: (order: OrderResponse) => (
+          <span className="text-gray-700 font-medium">{order.orderItems.length}</span>
+        ),
+      },
+    ];
+
+    // Adiciona colunas extras para "shipped"
+    if (tab === "shipped") {
+      baseColumns.push(
+        {
+          key: 'volumes',
+          header: 'Volumes',
+          render: (order: OrderResponse) => (
+            <span className="text-gray-700 font-medium">
+              {order.totalVolumes || order.orderItems.length}
+            </span>
+          ),
+        },
+        {
+          key: 'weight',
+          header: 'Peso',
+          render: (order: OrderResponse) => (
+            <span className="text-gray-700">
+              {order.totalWeight ? `${order.totalWeight} kg` : 'Não informado'}
+            </span>
+          ),
+        }
+      );
+    }
+
+    // Adiciona coluna de status (usando função importada)
+    baseColumns.push({
+      key: 'status',
+      header: 'Status',
+      render: (order: OrderResponse) => (
+        <span className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold ${getStatusColor(order.orderStatus)}`}>
+          {getStatusLabel(order.orderStatus)}
+        </span>
+      ),
+    });
+
+    // Adiciona coluna de ações
+    baseColumns.push({
+      key: 'actions',
+      header: 'Ações',
+      render: (order: OrderResponse) => <ActionMenu order={order} />,
+    });
+
+    return baseColumns;
+  };
+
   // Renderiza o DocumentViewer para Lista de Separação
   if (selectedOrder && documentType === "separation_list") {
     return (
@@ -430,13 +479,14 @@ export default function OrderList() {
                   <button
                     key={status}
                     onClick={() => setSelectedTab(status)}
-                    className={`py-4 px-4 font-semibold text-sm transition-all ${selectedTab === status
-                      ? statusActiveTabClass(status)
-                      : "bg-white hover:bg-gray-50 text-gray-600 border-b-2 border-transparent"
-                      }`}
+                    className={`py-4 px-4 font-semibold text-sm transition-all ${
+                      selectedTab === status
+                        ? getStatusTabColor(status)
+                        : "bg-white hover:bg-gray-50 text-gray-600 border-b-2 border-transparent"
+                    }`}
                   >
                     <div className="flex items-center justify-center gap-2">
-                      <span className="uppercase tracking-wide">{statusLabels[status]}</span>
+                      <span className="uppercase tracking-wide">{getStatusLabel(status)}</span>
                       <span className="inline-block bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 text-xs font-medium">
                         {getOrdersByStatus(status).length}
                       </span>
@@ -445,107 +495,18 @@ export default function OrderList() {
                 ))}
               </div>
 
-              {/* Lista de pedidos */}
-              <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-                {isLoading ? (
-                  <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mx-auto"></div>
-                    <p className="text-gray-600 mt-4 font-medium">Carregando pedidos...</p>
-                  </div>
-                ) : getOrdersByStatus(selectedTab).length === 0 ? (
-                  <div className="text-center py-16">
-                    <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 font-medium">Nenhum pedido com status "{statusLabels[selectedTab]}"</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto rounded-t-md">
-                    <table className="w-full rounded-sm">
-                      <thead className="bg-slate-900 text-white">
-                        <tr>
-                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Pedido</th>
-                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Cliente</th>
-                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Vendedor</th>
-                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Itens</th>
-                          {selectedTab === "shipped" && (
-                            <>
-                              <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Volumes</th>
-                              <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Peso</th>
-                            </>
-                          )}
-                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-2 text-left text-sm font-semibold uppercase tracking-wider">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {getOrdersByStatus(selectedTab).map((order) => (
-                          <motion.tr
-                            key={order.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="hover:bg-gray-50 transition-colors"
-                          >
-                            <td className="px-6 py-2 whitespace-nowrap">
-                              <span className="font-semibold text-gray-900">{order.orderNumber}</span>
-                            </td>
-                            <td className="px-6 py-2 whitespace-nowrap">
-                              <span className="text-gray-700">{order.customer.name}</span>
-                            </td>
-                            <td className="px-6 py-2 whitespace-nowrap">
-                              <span className="text-gray-700">{order.salesperson}</span>
-                            </td>
-                            <td className="px-6 py-2 whitespace-nowrap">
-                              <span className="text-gray-700 font-medium">{order.orderItems.length}</span>
-                            </td>
-                            {selectedTab === "shipped" && (
-                              <>
-                                <td className="px-6 py-2 whitespace-nowrap">
-                                  <span className="text-gray-700 font-medium">{order.totalVolumes || order.orderItems.length}</span>
-                                </td>
-                                <td className="px-6 py-2 whitespace-nowrap">
-                                  <span className="text-gray-700">
-                                    {order.totalWeight ? `${order.totalWeight} kg` : 'Não informado'}
-                                  </span>
-                                </td>
-                              </>
-                            )}
-                            <td className="px-6 py-2 whitespace-nowrap">
-                              <span className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold ${statusColors[order.orderStatus]}`}>
-                                {statusLabels[order.orderStatus]}
-                              </span>
-                            </td>
-                            <td className="px-6 py-2 whitespace-nowrap">
-                              <ActionMenu order={order} />
-                            </td>
-                          </motion.tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              {/* TABELA DINÂMICA */}
+              <DynamicTable
+                data={getOrdersByStatus(selectedTab)}
+                columns={getColumnsForTab(selectedTab)}
+                loading={isLoading}
+                emptyMessage={`Nenhum pedido com status "${getStatusLabel(selectedTab)}"`}
+                emptyDescription="Os pedidos aparecerão aqui quando houver"
+              />
             </div>
           </motion.div>
         </div>
       </div>
     </Dashboard>
   );
-}
-
-function statusActiveTabClass(status: OrderStatus) {
-  switch (status) {
-    case "pending":
-      return "bg-amber-50 text-amber-800 border-b-2 border-amber-500"
-    case "approved":
-      return "bg-cyan-50 text-blue-600 border-b-2 border-blue-500"
-    case "in_progress":
-      return "bg-slate-50 text-slate-700 border-b-2 border-slate-500"
-    case "shipped":
-      return "bg-indigo-50 text-indigo-800 border-b-2 border-indigo-500"
-    case "cancelled":
-      return "bg-red-50 text-red-800 border-b-2 border-red-500"
-    case "backout":
-      return "bg-orange-50 text-white border-orange-200"
-    default:
-      return "bg-gray-50 text-gray-700 border-b-2 border-gray-500"
-  }
 }

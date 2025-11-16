@@ -22,6 +22,7 @@ export interface Order {
   notes?: string;
   orderItems: OrderItem[];
   carrier: string
+  payment_method?: string
 }
 
 
@@ -38,6 +39,7 @@ export interface OrderResponse {
   salesperson?: string;
   notes?: string;
   carrier: string
+  payment_method?: string
   companyCnpj: string
 
   customer: {
@@ -47,6 +49,7 @@ export interface OrderResponse {
     phone?: string;
     email?: string;
     status?: string
+    cpf_cnpj?: string
   };
 
   shipping?: Address;
@@ -73,6 +76,8 @@ export interface Address {
   number?: number;
   city?: string;
   zip?: string;
+  state?: string
+  city_code?: string
 }
 
 

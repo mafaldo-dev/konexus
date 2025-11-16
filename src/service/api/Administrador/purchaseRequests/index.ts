@@ -41,8 +41,9 @@ export const purchaseRequisition = async (order: PurchaseOrder): Promise<string>
 export const purchaseAllOrders = async (token?: string): Promise<PurchaseOrder[]> => {
   const tkn = localStorage.getItem("token")
   try {
-    const response = await apiRequest("purchase/all", "GET", undefined, tkn as string);
-    return response
+    const response = await apiRequest("purchase/all", "GET", undefined, token || tkn as string);
+
+    return response.data
   } catch (error: any) {
     console.error("Erro ao recuperar solicitações de compra:", error.message || error);
     Swal.fire("Erro", "Erro ao recuperar solicitações de compra", "error");

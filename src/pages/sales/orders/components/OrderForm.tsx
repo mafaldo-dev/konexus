@@ -24,6 +24,7 @@ type FormValues = {
   salesperson: string;
   notes?: string;
   carrier: string
+  payment_method: string
   shippingAddressId?: string | any;
   billingAddressId?: string | any;
 };
@@ -56,6 +57,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
       orderStatus: "pending",
       currency: "BRL",
       salesperson: isSalesPerson ? user.username : "",
+      payment_method: "pix"
     },
   });
 
@@ -72,7 +74,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   } = useInvoiceProductsManagement();
 
   // ==================== EFFECTS ==================== //
-  
+
   useEffect(() => {
     if (editMode && initialData && !hasPrefilledData.current) {
       hasPrefilledData.current = true;
@@ -82,6 +84,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
       setValue("currency", initialData.currency);
       setValue("salesperson", initialData.salesperson || "");
       setValue("notes", initialData.notes || "");
+      setValue("payment_method", initialData.payment_method || "pix");
       setValue("shippingAddressId", initialData.shipping?.id?.toString() || "");
       setValue("billingAddressId", initialData.billing?.id?.toString() || "");
 
@@ -108,12 +111,15 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
         email: initialData.customer.email || "",
         code: initialData.customer.code,
         status: initialData.customer.status || "",
+        cpf_cnpj: initialData.customer.cpf_cnpj ||"",
         address: {
           id: initialData.shipping?.id || initialData.billing?.id || "",
           city: initialData.shipping?.city || initialData.billing?.city || "",
           number: initialData.shipping?.number || initialData.billing?.number || 0,
           street: initialData.shipping?.street || initialData.billing?.street || "",
           zip: initialData.shipping?.zip || initialData.billing?.zip || "",
+          state: initialData.shipping?.state || initialData.billing?.state || "",
+          city_code: initialData.shipping?.city_code || initialData.billing?.city_code || "",
           type: 'shipping'
         },
         createdAt: new Date().toISOString()
@@ -207,54 +213,54 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   };
 
   //Função para adicionar produto convertendo para ProductsProps
-const handleAddProductWithStockCheck = () => {
-  if (!selectedProduct) return;
+  const handleAddProductWithStockCheck = () => {
+    if (!selectedProduct) return;
 
-  const existingProduct = products.find(p => p.id === selectedProduct.id);
-  const totalQuantity = existingProduct ? existingProduct.quantity + quantity : quantity;
-  
-  const availableStock = selectedProduct.stock || 0;
-  
-  if (totalQuantity > availableStock) {
-    Swal.fire({
-      title: "Estoque Insuficiente!",
-      html: `Quantidade solicitada: <strong>${totalQuantity}</strong><br>Estoque disponível: <strong>${availableStock}</strong>`,
-      icon: "warning",
-      confirmButtonText: "Entendi"
-    });
-    return;
-  }
+    const existingProduct = products.find(p => p.id === selectedProduct.id);
+    const totalQuantity = existingProduct ? existingProduct.quantity + quantity : quantity;
 
-  const newProduct: ProductsProps = {
-    id: selectedProduct.id,
-    productname: selectedProduct.name,
-    name: selectedProduct.name,
-    code: selectedProduct.code,
-    quantity: quantity,
-    price: unitCost,
-    coast: unitCost,
-    location: selectedProduct.location || "",
-    stock: availableStock,
-    total_price: quantity * unitCost
-  };
+    const availableStock = selectedProduct.stock || 0;
 
-  if (existingProduct) {
-    setProducts(prev => prev.map(p => 
-      p.id === selectedProduct.id 
-        ? { 
-            ...p, 
-            quantity: p.quantity + quantity, 
+    if (totalQuantity > availableStock) {
+      Swal.fire({
+        title: "Estoque Insuficiente!",
+        html: `Quantidade solicitada: <strong>${totalQuantity}</strong><br>Estoque disponível: <strong>${availableStock}</strong>`,
+        icon: "warning",
+        confirmButtonText: "Entendi"
+      });
+      return;
+    }
+
+    const newProduct: ProductsProps = {
+      id: selectedProduct.id,
+      productname: selectedProduct.name,
+      name: selectedProduct.name,
+      code: selectedProduct.code,
+      quantity: quantity,
+      price: unitCost,
+      coast: unitCost,
+      location: selectedProduct.location || "",
+      stock: availableStock,
+      total_price: quantity * unitCost
+    };
+
+    if (existingProduct) {
+      setProducts(prev => prev.map(p =>
+        p.id === selectedProduct.id
+          ? {
+            ...p,
+            quantity: p.quantity + quantity,
             total_price: (p.quantity + quantity) * p.price,
             stock: availableStock
           }
-        : p
-    ));
-  } else {
-    setProducts(prev => [...prev, newProduct]);
-  }
+          : p
+      ));
+    } else {
+      setProducts(prev => [...prev, newProduct]);
+    }
 
-  addProductToInvoice();
-};
+    addProductToInvoice();
+  };
 
   const onSubmit = async (data: FormValues) => {
     if (!isSalesPerson) {
@@ -316,6 +322,7 @@ const handleAddProductWithStockCheck = () => {
         salesperson: data.salesperson,
         notes: data.notes,
         carrier: data.carrier,
+        payment_method: data.payment_method,
         shippingAddressId: data.shippingAddressId,
         billingAddressId: data.billingAddressId,
         orderItems: products.map((p) => ({
@@ -346,7 +353,7 @@ const handleAddProductWithStockCheck = () => {
           icon: "success",
           confirmButtonText: "Ver Pedidos"
         });
-        
+
 
         navigate("/sales/orders");
       } else {
@@ -450,6 +457,21 @@ const handleAddProductWithStockCheck = () => {
                     <option value="EUR">EUR (Euro)</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Forma de Pagamento *</label>
+                  <select
+                    {...register("payment_method", { required: "Forma de pagamento é obrigatória" })}
+                    className={`w-full border rounded-lg p-3 ${errors.payment_method ? "border-red-300" : "border-gray-300"}`}
+                  >
+                    <option value="pix">PIX</option>
+                    <option value="credit_card">Cartão de Crédito</option>
+                    <option value="debit_card">Cartão de Débito</option>
+                    <option value="bank_slip">Boleto Bancário</option>
+                    <option value="cash">Dinheiro</option>
+                    <option value="bank_transfer">Transferência Bancária</option>
+                  </select>
+                  {errors.payment_method && <p className="text-red-600 text-sm mt-1">{errors.payment_method.message}</p>}
+                </div>
               </div>
             </div>
 
@@ -517,7 +539,7 @@ const handleAddProductWithStockCheck = () => {
             </div>
 
             {/* Adicionar Produto */}
-           <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+            <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
               <h2 className="text-xl font-semibold mb-4">Adicionar Produto</h2>
               <div className="flex gap-3 flex-wrap items-center">
                 <input
@@ -604,8 +626,8 @@ const handleAddProductWithStockCheck = () => {
                             <td className="p-4 text-center">{item.quantity}</td>
                             <td className="p-4 text-center">
                               <span className={`px-2 py-1 rounded text-xs font-medium ${(item.stock || 0) >= item.quantity
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
                                 }`}>
                                 {item.stock || 0}
                               </span>
@@ -659,8 +681,8 @@ const handleAddProductWithStockCheck = () => {
                 type="submit"
                 disabled={isSubmitting || !isSalesPerson}
                 className={`px-6 py-3 rounded-lg transition-colors ${isSalesPerson
-                    ? "bg-slate-800 text-white hover:bg-slate-900"
-                    : "bg-gray-400 text-gray-200 cursor-not-allowed"
+                  ? "bg-slate-800 text-white hover:bg-slate-900"
+                  : "bg-gray-400 text-gray-200 cursor-not-allowed"
                   } disabled:opacity-50`}
               >
                 {!isSalesPerson

@@ -4,7 +4,7 @@ import { handleAllProducts } from "../../../service/api/Administrador/products";
 import Dashboard from "../../../components/dashboard/Dashboard";
 import UpdadtedProduct from "./modal-edit";
 import FormAdd from "./Form-add";
-import { DynamicTable } from "../Table/DynamicTable";
+import { DynamicTable } from "../../../utils/Table/DynamicTable";
 import { useAuth } from '../../../AuthContext'
 import { Filter, MapPin, EyeIcon} from "lucide-react";
 

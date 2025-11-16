@@ -2,30 +2,40 @@ import React, { useEffect, useState } from "react"
 import { Search, Filter, Plus, MoreHorizontal } from 'lucide-react'
 import { Button } from "../ui/Button"
 import { Input } from "../ui/Input"
-import { Card, CardContent } from "../ui/Card"
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../ui/Table"
 import { Badge } from "../ui/Badge"
-import { contasReceber, contasPagar, faturas, pedidos } from "../../../../data/mockData"
+import { contasReceber, contasPagar, faturas } from "../../../../data/mockData"
 import { formatCurrency, formatDate, getStatusVariant } from "../../../../utils/formatters"
 import { OrderResponse } from "../../../../service/interfaces"
 import handleOrderSales from "../../../../service/api/Administrador/financial"
 import { updateOrderStatus } from "../../../../service/api/Administrador/orders"
 import Swal from "sweetalert2"
+import { DynamicTable } from "../../../../utils/Table/DynamicTable"
+import { mapOrderStatus, getStatusLabel, ORDER_STATUS } from "../../../utils/statusLabel"
+
 
 // Status compatíveis com o backend
-type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "delivered" | "cancelled" | "backout"
+type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "delivered" | "cancelled" | "backout" | any
 
 export const MovimentacoesTab: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState("contas-receber")
   const [orders, setOrders] = useState<OrderResponse[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleOrder = async () => {
     try {
+      setIsLoading(true)
       const response = await handleOrderSales()
-      setOrders(response)
+      // Mapear os status ao carregar os pedidos
+      const mappedOrders = response.map((order: any) => ({
+        ...order,
+        orderStatus: mapOrderStatus(order.orderStatus)
+      }))
+      setOrders(mappedOrders)
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error)
       Swal.fire("Erro", "Erro ao carregar pedidos!", "error")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -37,7 +47,7 @@ export const MovimentacoesTab: React.FC = () => {
     try {
       const nextStatusMap: Record<string, OrderStatus> = {
         'pending': 'approved',
-        'approved': 'in_progress', 
+        'approved': 'in_progress',
         'in_progress': 'shipped',
         'shipped': 'delivered',
         'delivered': 'delivered',
@@ -45,14 +55,14 @@ export const MovimentacoesTab: React.FC = () => {
         'backout': 'backout'
       }
 
-        const newStatus = currentStatus === 'backout'
-      ? 'approved'
-      : (nextStatusMap[currentStatus] || 'approved');
-      
-      // Mostrar confirmação antes de atualizar
+      const newStatus = currentStatus === 'backout'
+        ? 'approved'
+        : (nextStatusMap[currentStatus] || 'approved');
+
+      // Mostrar confirmação antes de atualizar usando getStatusLabel
       const result = await Swal.fire({
         title: 'Confirmar atualização',
-        text: `Deseja alterar o status para "${getStatusText(newStatus)}"?`,
+        text: `Deseja alterar o status para "${getStatusLabel(newStatus)}"?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Sim, atualizar',
@@ -62,15 +72,12 @@ export const MovimentacoesTab: React.FC = () => {
       if (result.isConfirmed) {
         await updateOrderStatus(orderId, newStatus)
 
-        
-        
         // Atualizar estado local
-        const updatedOrders = orders.map((order) => 
+        const updatedOrders = orders.map((order) =>
           order.id === orderId ? { ...order, orderStatus: newStatus } : order
         )
         setOrders(updatedOrders)
-        
-        
+
         Swal.fire("Sucesso", "Status atualizado com sucesso!", "success")
       }
     } catch (error) {
@@ -79,47 +86,312 @@ export const MovimentacoesTab: React.FC = () => {
     }
   }
 
+  // ============================================
+  // DEFINIÇÃO DAS COLUNAS - CONTAS A RECEBER
+  // ============================================
+  const contasReceberColumns = [
+    {
+      key: 'cliente',
+      header: 'Cliente',
+      render: (conta: any) => (
+        <p className="font-medium text-slate-900">{conta.cliente}</p>
+      ),
+    },
+    {
+      key: 'projeto',
+      header: 'Projeto',
+      render: (conta: any) => (
+        <p className="text-sm text-slate-600">{conta.projeto}</p>
+      ),
+    },
+    {
+      key: 'documento',
+      header: 'Documento',
+      render: (conta: any) => (
+        <p className="text-sm font-mono text-slate-600">{conta.documento}</p>
+      ),
+    },
+    {
+      key: 'valor',
+      header: 'Valor',
+      render: (conta: any) => (
+        <p className="font-semibold">{formatCurrency(conta.valor)}</p>
+      ),
+    },
+    {
+      key: 'vencimento',
+      header: 'Vencimento',
+      render: (conta: any) => (
+        <p className="text-sm">{formatDate(conta.vencimento)}</p>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (conta: any) => (
+        <Badge variant={getStatusVariant(conta.status)} className="capitalize">
+          {conta.status}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: () => (
+        <Button variant="ghost" size="sm">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      ),
+    },
+  ];
+
+  // ============================================
+  // DEFINIÇÃO DAS COLUNAS - CONTAS A PAGAR
+  // ============================================
+  const contasPagarColumns = [
+    {
+      key: 'fornecedor',
+      header: 'Fornecedor',
+      render: (conta: any) => (
+        <p className="font-medium text-slate-900">{conta.fornecedor}</p>
+      ),
+    },
+    {
+      key: 'categoria',
+      header: 'Categoria',
+      render: (conta: any) => (
+        <Badge variant="outline" className="text-xs">
+          {conta.categoria}
+        </Badge>
+      ),
+    },
+    {
+      key: 'documento',
+      header: 'Documento',
+      render: (conta: any) => (
+        <p className="text-sm font-mono text-slate-600">{conta.documento}</p>
+      ),
+    },
+    {
+      key: 'valor',
+      header: 'Valor',
+      render: (conta: any) => (
+        <p className="font-semibold">{formatCurrency(conta.valor)}</p>
+      ),
+    },
+    {
+      key: 'vencimento',
+      header: 'Vencimento',
+      render: (conta: any) => (
+        <p className="text-sm">{formatDate(conta.vencimento)}</p>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (conta: any) => (
+        <Badge variant={getStatusVariant(conta.status)} className="capitalize">
+          {conta.status}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: () => (
+        <Button variant="ghost" size="sm">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      ),
+    },
+  ];
+
+  // ============================================
+  // DEFINIÇÃO DAS COLUNAS - FATURAS
+  // ============================================
+  const faturasColumns = [
+    {
+      key: 'numero',
+      header: 'Número',
+      render: (fatura: any) => (
+        <p className="font-mono font-medium text-slate-900">{fatura.numero}</p>
+      ),
+    },
+    {
+      key: 'cliente',
+      header: 'Cliente',
+      render: (fatura: any) => (
+        <p className="font-medium">{fatura.cliente}</p>
+      ),
+    },
+    {
+      key: 'projeto',
+      header: 'Projeto',
+      render: (fatura: any) => (
+        <p className="text-sm text-slate-600">{fatura.projeto}</p>
+      ),
+    },
+    {
+      key: 'valor',
+      header: 'Valor',
+      render: (fatura: any) => (
+        <p className="font-semibold">{formatCurrency(fatura.valor)}</p>
+      ),
+    },
+    {
+      key: 'emissao',
+      header: 'Emissão',
+      render: (fatura: any) => (
+        <p className="text-sm">{formatDate(fatura.emissao)}</p>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (fatura: any) => (
+        <Badge variant={getStatusVariant(fatura.status)} className="capitalize">
+          {fatura.status}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: () => (
+        <Button variant="ghost" size="sm">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      ),
+    },
+  ];
+
+  // ============================================
+  // DEFINIÇÃO DAS COLUNAS - PEDIDOS
+  // ============================================
+  const pedidosColumns = [
+    {
+      key: 'orderNumber',
+      header: 'Número',
+      render: (order: OrderResponse) => (
+        <div>
+          <p className="font-mono font-medium text-slate-900">
+            {order.orderNumber || `#${order.id}`}
+          </p>
+          <p className="text-xs text-gray-500">
+            {new Date(order.orderDate).toLocaleDateString('pt-BR')}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'customer',
+      header: 'Cliente',
+      render: (order: OrderResponse) => (
+        <div>
+          <p className="font-medium">{order.customer.name}</p>
+          <p className="text-xs text-gray-500">{order.customer.code}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'items',
+      header: 'Itens',
+      render: (order: OrderResponse) => (
+        <p className="text-sm text-slate-600">
+          {order.orderItems?.length || 0} item(s)
+        </p>
+      ),
+    },
+    {
+      key: 'salesperson',
+      header: 'Vendedor',
+      render: (order: OrderResponse) => (
+        <p className="font-semibold text-sm">{order.salesperson}</p>
+      ),
+    },
+    {
+      key: 'totalAmount',
+      header: 'Total',
+      render: (order: OrderResponse) => (
+        <p className="font-semibold">
+          {new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: order.currency || 'BRL'
+          }).format(order.totalAmount || 0)}
+        </p>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (order: OrderResponse) => {
+        const statusInfo = ORDER_STATUS[order.orderStatus] || {
+          label: order.orderStatus,
+          color: "bg-gray-50 text-gray-800 border-gray-200"
+        };
+        return (
+          <Badge className={statusInfo.color}>
+            {statusInfo.label}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Ações',
+      render: (order: OrderResponse) => {
+        const canUpdate = order.orderStatus === 'pending' || order.orderStatus === 'backout';
+        return (
+          <Button
+            onClick={() => toggleUpdateStatusOrder(order.id, order.orderStatus)}
+            variant="ghost"
+            size="sm"
+            disabled={!canUpdate}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex gap-1 bg-slate-100/50 p-1 rounded-lg">
           <button
             onClick={() => setActiveSubTab("contas-receber")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSubTab === "contas-receber"
-                ? "bg-white shadow-sm text-slate-900"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeSubTab === "contas-receber"
+              ? "bg-white shadow-sm text-slate-900"
+              : "text-slate-600 hover:text-slate-900"
+              }`}
           >
             Contas a Receber
           </button>
           <button
             onClick={() => setActiveSubTab("contas-pagar")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSubTab === "contas-pagar"
-                ? "bg-white shadow-sm text-slate-900"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeSubTab === "contas-pagar"
+              ? "bg-white shadow-sm text-slate-900"
+              : "text-slate-600 hover:text-slate-900"
+              }`}
           >
             Contas a Pagar
           </button>
           <button
             onClick={() => setActiveSubTab("faturas")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSubTab === "faturas" 
-                ? "bg-white shadow-sm text-slate-900" 
-                : "text-slate-600 hover:text-slate-900"
-            }`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeSubTab === "faturas"
+              ? "bg-white shadow-sm text-slate-900"
+              : "text-slate-600 hover:text-slate-900"
+              }`}
           >
             Faturas
           </button>
           <button
             onClick={() => setActiveSubTab("pedidos")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSubTab === "pedidos" 
-                ? "bg-white shadow-sm text-slate-900" 
-                : "text-slate-600 hover:text-slate-900"
-            }`}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeSubTab === "pedidos"
+              ? "bg-white shadow-sm text-slate-900"
+              : "text-slate-600 hover:text-slate-900"
+              }`}
           >
             Pedidos
           </button>
@@ -141,267 +413,49 @@ export const MovimentacoesTab: React.FC = () => {
         </div>
       </div>
 
+      {/* CONTAS A RECEBER - TABELA DINÂMICA */}
       {activeSubTab === "contas-receber" && (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Projeto</TableHead>
-                  <TableHead>Documento</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-20">{''}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contasReceber.map((conta: any) => (
-                  <TableRow key={conta.id}>
-                    <TableCell>
-                      <p className="font-medium text-slate-900">{conta.cliente}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm text-slate-600">{conta.projeto}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm font-mono text-slate-600">{conta.documento}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-semibold">{formatCurrency(conta.valor)}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm">{formatDate(conta.vencimento)}</p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(conta.status)} className="capitalize">
-                        {conta.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <DynamicTable
+          data={contasReceber}
+          columns={contasReceberColumns}
+          loading={false}
+          emptyMessage="Nenhuma conta a receber encontrada"
+          emptyDescription="As contas aparecerão aqui quando houver"
+        />
       )}
 
+      {/* CONTAS A PAGAR - TABELA DINÂMICA */}
       {activeSubTab === "contas-pagar" && (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Documento</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-20">{''}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contasPagar.map((conta: any) => (
-                  <TableRow key={conta.id}>
-                    <TableCell>
-                      <p className="font-medium text-slate-900">{conta.fornecedor}</p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {conta.categoria}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm font-mono text-slate-600">{conta.documento}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-semibold">{formatCurrency(conta.valor)}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm">{formatDate(conta.vencimento)}</p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(conta.status)} className="capitalize">
-                        {conta.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <DynamicTable
+          data={contasPagar}
+          columns={contasPagarColumns}
+          loading={false}
+          emptyMessage="Nenhuma conta a pagar encontrada"
+          emptyDescription="As contas aparecerão aqui quando houver"
+        />
       )}
 
+      {/* FATURAS - TABELA DINÂMICA */}
       {activeSubTab === "faturas" && (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Projeto</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Emissão</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-20">{''}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {faturas.map((fatura: any) => (
-                  <TableRow key={fatura.id}>
-                    <TableCell>
-                      <p className="font-mono font-medium text-slate-900">{fatura.numero}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{fatura.cliente}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm text-slate-600">{fatura.projeto}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-semibold">{formatCurrency(fatura.valor)}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm">{formatDate(fatura.emissao)}</p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(fatura.status)} className="capitalize">
-                        {fatura.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <DynamicTable
+          data={faturas}
+          columns={faturasColumns}
+          loading={false}
+          emptyMessage="Nenhuma fatura encontrada"
+          emptyDescription="As faturas aparecerão aqui quando houver"
+        />
       )}
 
+      {/* PEDIDOS - TABELA DINÂMICA */}
       {activeSubTab === "pedidos" && (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Itens</TableHead>
-                  <TableHead>Vendedor</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-20">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>
-                      <p className="font-mono font-medium text-slate-900">
-                        {order.orderNumber || `#${order.id}`}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(order.orderDate).toLocaleDateString('pt-BR')}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{order.customer.name}</p>
-                      <p className="text-xs text-gray-500">{order.customer.code}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm text-slate-600">
-                        {order.orderItems?.length || 0} item(s)
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-semibold text-sm">{order.salesperson}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-semibold">
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: order.currency || 'BRL'
-                        }).format(order.totalAmount || 0)}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`capitalize ${getStatusColor(order.orderStatus)}`}>
-                        {getStatusText(order.orderStatus)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {order.orderStatus === 'pending' || order.orderStatus === 'backout' ? (
-                        <Button
-                          onClick={() => toggleUpdateStatusOrder(order.id, order.orderStatus)}
-                          variant="ghost"
-                          size="sm"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      ): (
-                         <Button
-                          onClick={() => toggleUpdateStatusOrder(order.id, order.orderStatus)}
-                          variant="ghost"
-                          size="sm"
-                          disabled
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <DynamicTable
+          data={orders}
+          columns={pedidosColumns}
+          loading={isLoading}
+          emptyMessage="Nenhum pedido encontrado"
+          emptyDescription="Os pedidos aparecerão aqui quando houver"
+        />
       )}
     </div>
   )
 }
-
-// Função para cores dos status
-const getStatusColor = (status: string) => {
-  const colors = {
-    pending: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
-    approved: 'bg-green-100 text-green-800 hover:bg-green-100',
-    in_progress: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
-    shipped: 'bg-purple-100 text-purple-800 hover:bg-purple-100',
-    delivered: 'bg-gray-100 text-gray-800 hover:bg-gray-100',
-    cancelled: 'bg-red-100 text-red-800 hover:bg-red-100',
-    backout: "bg-orange-50 text-orange-800 hover:bg-orange-100"
-  };
-  return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-};
-
-// Função para texto dos status em português
-const getStatusText = (status: string) => {
-  const statusMap = {
-    pending: 'Pendente',
-    approved: 'Aprovado',
-    in_progress: 'Em Andamento',
-    shipped: 'Enviado',
-    delivered: 'Entregue',
-    cancelled: 'Cancelado',
-    backout: 'Estornado'
-  };
-  return statusMap[status as keyof typeof statusMap] || status;
-};

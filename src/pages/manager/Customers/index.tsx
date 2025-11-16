@@ -4,7 +4,7 @@ import { Customer } from "../../../service/interfaces"
 import Dashboard from "../../../components/dashboard/Dashboard"
 import FormAdd from './Form-add'
 import EditForm from './modal-edit'
-import { DynamicTable } from '../Table/DynamicTable'
+import { DynamicTable } from '../../../utils/Table/DynamicTable'
 import { Filter, MapPin, Edit, DeleteIcon, Plus, X, DotIcon } from "lucide-react"
 import { useAuth } from '../../../AuthContext'
 
@@ -218,7 +218,7 @@ const CustomersContent = () => {
 
   return (
     <Dashboard>
-      <div className="w-full flex flex-col items-center m-auto p-4">
+      <div className="w-full h-full flex flex-col items-center m-auto p-4">
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <p className="text-gray-600">Carregando clientes...</p>
