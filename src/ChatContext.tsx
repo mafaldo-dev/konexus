@@ -1,14 +1,16 @@
-// ChatContext.tsx
 import {
   createContext,
   useContext,
   useState,
   ReactNode,
   useEffect,
-  useReducer
+  useReducer,
+  useRef,
+  useCallback
 } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
-import { fetchMessages, markMessagesReadAPI, sendMessageAPI } from './service/api/chat';
+import { fetchMessages, markMessagesReadAPI, sendMessageAPI, fetchConversationAPI } from './service/api/chat';
 import { handleAllEmployee } from './service/api/Administrador/employee';
 
 export type UserStatus = 'online' | 'offline' | 'away';
@@ -65,15 +67,18 @@ interface ChatContextData {
   setUserInactive: () => void;
   setUserActive: () => void;
   unreadCounts: UnreadCountsState;
-  setUnreadCounts: React.Dispatch<Action>; // ✅ ADICIONADO DE VOLTA
+  setUnreadCounts: React.Dispatch<Action>;
+  isConnected: boolean;
+  typingUsers: Set<string>;
+  startTyping: (recipientId: string) => void;
+  stopTyping: (recipientId: string) => void;
+
 }
 
 const ChatContext = createContext<ChatContextData | undefined>(undefined);
 
-// Chave para sessionStorage
 const ONLINE_USERS_KEY = 'chat_online_users';
 
-// Funções para gerenciar sessionStorage
 const getOnlineUsersFromStorage = (): Record<string, UserStatus> => {
   try {
     const stored = sessionStorage.getItem(ONLINE_USERS_KEY);
@@ -108,47 +113,80 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, _setMessages] = useState<Message[]>([]);
   const [unreadCounts, dispatchUnreadCounts] = useReducer(unreadCountsReducer, {});
+  const [isConnected, setIsConnected] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
 
-  // ✅ ADICIONADO: Exportar o dispatch para os componentes
+  const messagesRef = useRef<Message[]>([]);
+  const socketRef = useRef<Socket | null>(null);
+  const mountedRef = useRef<boolean>(true);
+
+  const setMessages = useCallback((updater: Message[] | ((prev: Message[]) => Message[])) => {
+    _setMessages(prev => {
+      const next = typeof updater === 'function' ? (updater as (p: Message[]) => Message[])(prev) : updater;
+      messagesRef.current = next;
+      return next;
+    });
+  }, []);
+
   const setUnreadCounts = dispatchUnreadCounts;
+  const tkn = localStorage.getItem('token');
 
-  // Função para buscar mensagens
-  const refreshMessages = async () => {
-    if (!authUser?.id) return;
-
+  const fetchUsers = useCallback(async () => {
     try {
-      const msgs = await fetchMessages(authUser.id);
-      setMessages(msgs.sort((a: Message, b: Message) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      ));
-    } catch (err) {
-      console.error("Erro ao buscar mensagens:", err);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const employees = await handleAllEmployee();
+      let employees = await handleAllEmployee();
       const onlineUsers = getOnlineUsersFromStorage();
 
+      if (employees?.data && Array.isArray(employees.data)) {
+        employees = employees.data;
+      }
+
+      if (Array.isArray(employees) && employees.length > 0 && Array.isArray(employees[0])) {
+        employees = employees[0];
+      }
+
+      if (!Array.isArray(employees)) {
+        console.warn("⚠ Formato inesperado de employees, normalizando para array vazio.");
+        employees = [];
+      }
+
       const usersFromApi: User[] = employees.map((emp: any) => ({
-        id: emp.id,
-        username: emp.username || emp.name || 'Sem nome',
-        role: emp.role || 'Administrador',
+        id: String(emp.id),
+        username: emp.username || emp.name || "Sem nome",
+        role: emp.role || "Administrador",
         designation: emp.sector || "Geral",
-        active: emp.active || false,
-        status: onlineUsers[emp.id] || 'offline',
+        active: !!emp.active,
+        status: onlineUsers[String(emp.id)] || "offline",
       }));
 
       setUsers(usersFromApi);
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
     }
-  };
+  }, []);
 
-  const setUserStatus = (userId: string, status: UserStatus) => {
+  const refreshMessages = useCallback(async () => {
+    if (!authUser?.id) return;
+    try {
+      const msgs = await fetchMessages(authUser.id);
+    
+      const normalized = msgs.map((m: any) => ({
+        ...m,
+        id: String(m.id),
+        senderId: String(m.senderId),
+        recipientId: String(m.recipientId),
+      }));
+      const sorted = normalized.sort((a: Message, b: Message) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      setMessages(sorted);
+    } catch (err) {
+      console.error('Erro ao buscar mensagens:', err);
+    }
+  }, [authUser?.id, setMessages]);
+
+  const setUserStatus = useCallback((userId: string, status: UserStatus) => {
     if (status === 'offline') {
       removeOnlineUserFromStorage(userId);
     } else {
@@ -162,109 +200,292 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           : u
       )
     );
-    setCurrentUser(curr => (curr && curr.id === userId ? { ...curr, status } : curr));
-  };
 
-  const setUserActive = () => {
+    setCurrentUser(curr => (curr && curr.id === userId ? { ...curr, status } : curr));
+  }, []);
+
+  const setUserActive = useCallback(() => {
     if (!authUser?.id) return;
     setUserStatus(authUser.id, 'online');
-  };
+  }, [authUser?.id, setUserStatus]);
 
-  const setUserInactive = () => {
+  const setUserInactive = useCallback(() => {
     if (!authUser?.id) return;
     setUserStatus(authUser.id, 'offline');
-  };
+  }, [authUser?.id, setUserStatus]);
 
-  const sendMessage = async (msg: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
-    try {
-      const newMsg: Omit<Message, 'id'> = {
+  // ================ SOCKET.IO =====================
+  useEffect(() => {
+    if (!authUser?.id || !tkn) {
+      return;
+    }
+
+    const socket = io(process.env.REACT_APP_SOCKET_URL || process.env.REACT_APP_API_URL || 'http://localhost:3010', {
+      auth: { token: tkn },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      setIsConnected(true);
+      if (authUser?.id) {
+        socket.emit('user:online', { userId: authUser.id });
+      }
+      fetchUsers().catch(err => console.error('Erro ao carregar usuários após conexão:', err));
+    });
+
+    socket.on('disconnect', () => setIsConnected(false));
+    socket.on('connect_error', (error: any) => { console.error('❌ ERRO DE CONEXÃO SOCKET.IO!', error); setIsConnected(false); });
+
+    socket.on('message:receive', (message: Message) => {
+      const normalized = { ...message, id: String(message.id), senderId: String((message as any).senderId), recipientId: String((message as any).recipientId) };
+      setMessages(prev => [...prev, normalized]);
+      dispatchUnreadCounts({ type: 'INCREMENT_UNREAD', userId: normalized.senderId });
+
+      if (Notification.permission === 'granted' && document.hidden) {
+        new Notification(`Nova mensagem de ${message.senderName}`, { body: message.content, icon: '/logo.png' });
+      }
+    });
+
+    socket.on('message:sent', (msg) => {
+      console.log('✅ Mensagem confirmada pelo servidor:', msg);
+
+      const normalized = {
         ...msg,
-        timestamp: new Date().toISOString(),
-        read: false,
+        id: String(msg.id),
+        senderId: String(msg.senderId),
+        recipientId: String(msg.recipientId)
       };
 
-      await sendMessageAPI(newMsg);
-      // Atualiza mensagens após enviar
-      setTimeout(refreshMessages, 500);
-    } catch (error) {
-      console.error("Erro ao enviar mensagem:", error);
-    }
-  };
+      setMessages(prev => {
+        // Remove mensagens temporárias deste sender/recipient
+        const withoutTemp = prev.filter(m =>
+          !m.id.startsWith('temp-') ||
+          m.senderId !== normalized.senderId ||
+          m.recipientId !== normalized.recipientId
+        );
 
-  const markMessagesRead = async (senderId: string, recipientId: string) => {
-    try {
-      await markMessagesReadAPI(senderId, recipientId);
-      // Atualiza mensagens após marcar como lidas
-      setTimeout(refreshMessages, 500);
-    } catch (error) {
-      console.error("Erro ao marcar mensagens como lidas:", error);
-    }
-  };
+        const exists = withoutTemp.some(m => m.id === normalized.id);
+        if (exists) return withoutTemp;
 
-  // Efeito único de inicialização
-  useEffect(() => {
-    let mounted = true;
+        return [...withoutTemp, normalized].sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      });
+    });
 
-    const initializeChat = async () => {
-      if (!authUser || !mounted) return;
 
-      // Aguarda um pouco para garantir que o token está disponível
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    socket.on('message:read-receipt', ({ messageId }: { messageId: string }) => {
+      setMessages(prev =>
+        prev.map(msg => msg.id === String(messageId) ? { ...msg, read: true } : msg)
+      );
+    });
 
-      const onlineUsers = getOnlineUsersFromStorage();
-      const userStatus = onlineUsers[authUser.id] || 'online';
+    socket.on("message:unread-count", (payload) => {
+      let map: Record<string, number> = {};
 
-      if (!onlineUsers[authUser.id]) {
-        setOnlineUserInStorage(authUser.id, 'online');
+      if (Array.isArray(payload)) {
+        payload.forEach((item: any) => {
+          const sender = String(item.sender_id ?? item.senderId ?? item.sender);
+          const count = Number(item.unread_count ?? item.count ?? 0);
+          if (sender) map[sender] = count;
+        });
+      } else if (payload && typeof payload === 'object') {
+        Object.entries(payload).forEach(([k, v]) => { map[String(k)] = Number(v); });
       }
 
-      if (mounted) {
-        setCurrentUser({
-          id: authUser.id || '',
-          username: authUser.username,
-          role: authUser.role,
-          designation: authUser.designation,
-          active: authUser.active || false,
-          status: userStatus,
-        });
+      dispatchUnreadCounts({ type: 'SET_UNREAD', unreadMap: map });
+    })
 
-        try {
-          await fetchUsers();
-          await refreshMessages();
-        } catch (error) {
-          console.error('Erro na inicialização:', error);
-        }
+    socket.on("message:new", (msg) => {
+
+      setMessages(prev => {
+        const exists = prev.some(m => m.id === msg.id);
+        if (exists) return prev;
+
+        return [...prev, msg].sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      });
+    });
+
+
+    socket.on('users:online', (onlineUserIds: string[]) => {
+      setUsers(prevUsers =>
+        prevUsers.map(user => ({ ...user, status: onlineUserIds.map(String).includes(user.id) ? 'online' : 'offline' }))
+      );
+      onlineUserIds.forEach(userId => setOnlineUserInStorage(String(userId), 'online'));
+    });
+
+    socket.on('typing:update', ({ userId, isTyping }: { userId: string; isTyping: boolean }) => {
+      setTypingUsers(prev => {
+        const newSet = new Set(prev);
+        if (isTyping) newSet.add(String(userId)); else newSet.delete(String(userId));
+        return newSet;
+      });
+    });
+
+    socket.on('message:error', (error) => { console.error('❌ Erro ao enviar mensagem:', error); });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [authUser?.id, tkn, fetchUsers]);
+
+
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    if (!messages || messages.length === 0) return;
+
+    const newUnreadMap: Record<string, number> = {};
+    messages.forEach(msg => {
+      if (String(msg.recipientId) === String(authUser.id) && !msg.read) {
+        const s = String(msg.senderId);
+        newUnreadMap[s] = (newUnreadMap[s] || 0) + 1;
+      }
+    });
+
+    dispatchUnreadCounts({ type: 'SET_UNREAD', unreadMap: newUnreadMap });
+  }, [messages, authUser?.id]);
+
+  const sendMessage = useCallback(async (msg: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
+    const tempMessage: Message = {
+      id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      ...msg,
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+
+    try {
+      setMessages(prev => {
+        const newMessages = [...prev, tempMessage];
+        return newMessages.sort((a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+      });
+
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('message:send', {
+          recipientId: msg.recipientId,
+          content: msg.content,
+          timestamp: tempMessage.timestamp,
+        });
+      } else {
+        console.warn('⚠️ Socket.IO desconectado. Usando API REST...');
+        await sendMessageAPI({
+          ...msg,
+          timestamp: tempMessage.timestamp,
+          read: false
+        });
+      }
+
+      dispatchUnreadCounts({
+        type: 'RESET_UNREAD',
+        userId: String(msg.recipientId)
+      });
+
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+
+      setMessages(prev => prev.filter(m => m.id !== tempMessage.id));
+    }
+  }, [setMessages]);
+
+  const markMessagesRead = useCallback(async (senderId: string, recipientId: string) => {
+    try {
+      // local UX update first
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.senderId === String(senderId) && msg.recipientId === String(recipientId)
+            ? { ...msg, read: true }
+            : msg
+        )
+      );
+
+      // reset counter locally
+      dispatchUnreadCounts({ type: 'RESET_UNREAD', userId: String(senderId) });
+
+      // send to API (note: API expects /messages/:userId/read-all/:senderId where userId is the recipient)
+      await markMessagesReadAPI(String(recipientId), String(senderId));
+
+      // notify sender via socket for read receipt
+      if (socketRef.current?.connected) {
+        const messagesToMark = messagesRef.current.filter(
+          msg => msg.senderId === String(senderId) && msg.recipientId === String(recipientId) && !msg.read
+        );
+        messagesToMark.forEach(msg => socketRef.current?.emit('message:read', msg.id));
+      }
+    } catch (error) {
+      console.error('Erro ao marcar mensagens como lidas:', error);
+    }
+  }, []);
+
+  const startTyping = useCallback((recipientId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('typing:start', recipientId);
+  }, []);
+
+  const stopTyping = useCallback((recipientId: string) => {
+    if (!socketRef.current?.connected) return;
+    socketRef.current.emit('typing:stop', recipientId);
+  }, []);
+
+
+  useEffect(() => {
+    mountedRef.current = true;
+    const initializeChat = async () => {
+      if (!authUser?.id) return;
+      await new Promise(r => setTimeout(r, 200));
+
+      const onlineUsers = getOnlineUsersFromStorage();
+      const userStatus = onlineUsers[String(authUser.id)] || 'online';
+
+      if (!onlineUsers[String(authUser.id)]) setOnlineUserInStorage(String(authUser.id), 'online');
+
+      setCurrentUser({
+        id: String(authUser.id),
+        username: authUser.username,
+        role: authUser.role,
+        designation: authUser.designation,
+        active: authUser.active || false,
+        status: userStatus,
+      });
+
+      setUserActive();
+
+      try {
+        await fetchUsers();
+        await refreshMessages();
+      } catch (error) {
+        console.error('Erro na inicialização:', error);
       }
     };
 
     initializeChat();
 
     return () => {
-      mounted = false;
-      if (authUser?.id) {
-        removeOnlineUserFromStorage(authUser.id);
-      }
+      mountedRef.current = false;
+      if (authUser?.id) removeOnlineUserFromStorage(String(authUser.id));
     };
-  }, []); // Só depende do ID
+  }, [authUser?.id, fetchUsers, refreshMessages, setUserActive]);
 
-  // Efeito para unread counts
- useEffect(() => {
-  if (!authUser) return;
-
-  const newUnreadMap: Record<string, number> = {};
-  messages.forEach(msg => {
-    if (msg.recipientId === authUser.id && !msg.read) {
-      newUnreadMap[msg.senderId] = (newUnreadMap[msg.senderId] || 0) + 1;
+  useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission();
     }
-  });
+  }, []);
 
-  // Só despacha se for diferente do estado atual
-  const same = JSON.stringify(unreadCounts) === JSON.stringify(newUnreadMap);
-  if (!same) {
-    dispatchUnreadCounts({ type: 'SET_UNREAD', unreadMap: newUnreadMap });
-  }
-}, [messages, authUser, unreadCounts]);
-
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null; }
+    };
+  }, []);
 
   return (
     <ChatContext.Provider
@@ -280,7 +501,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         setUserInactive,
         setUserActive,
         unreadCounts,
-        setUnreadCounts, // ✅ ADICIONADO NO PROVIDER
+        setUnreadCounts,
+        isConnected,
+        typingUsers,
+        startTyping,
+        stopTyping,
       }}
     >
       {children}
@@ -290,8 +515,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
 export const useChat = () => {
   const context = useContext(ChatContext);
-  if (!context) {
-    throw new Error('useChat deve ser usado dentro de um ChatProvider');
-  }
+  if (!context) throw new Error('useChat deve ser usado dentro de um ChatProvider');
   return context;
 };

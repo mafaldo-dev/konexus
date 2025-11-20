@@ -1,6 +1,5 @@
 import { apiRequest } from './api';
 
-// Tipos compatíveis com seu ChatContext
 export interface User {
   id: string;
   name: string;
@@ -20,26 +19,29 @@ export interface Message {
   read: boolean;
 }
 
+export const fetchMessages = async (userId: string) => {
+  const resp = await apiRequest(`message/${userId}/recent`, 'GET');
+  return resp?.data ?? [];
+};
 
-
-export const fetchMessages = async (userId: string): Promise<Message[]> => {
-  //const response = await apiRequest(`messages/user/${userId}`, 'GET');
-  return [];
+export const fetchConversationAPI = async (userId: string, recipientId: string) => {
+  const resp = await apiRequest(`message/${userId}/${recipientId}`, 'GET');
+  return resp?.data ?? [];
 };
 
 export const sendMessageAPI = async (message: Omit<Message, 'id'>): Promise<Message> => {
-  const response = await apiRequest('messages', 'POST', message);
+  const response = await apiRequest('message', 'POST', message);
   return response
 };
 
-export const markMessagesReadAPI = async (senderId: string, recipientId: string): Promise<void> => {
-  await apiRequest(`messages/read`, 'PUT', { senderId, recipientId });
-};
+export async function markMessagesReadAPI(userId: string, senderId: string) {
+  return apiRequest(`message/${userId}/read-all/${senderId}`, "PUT");
+}
 
 export const updateUserStatus = async (userId: string, status: boolean, token?: string): Promise<void> => {
   await apiRequest(`employee/${userId}/status`, 'PUT', { status }, token);
 };
 
 export const getUserStatus = async (userId: string, token?: string) => {
-  return apiRequest(`/employee/${userId}/status`, 'GET', undefined, token);
+  return apiRequest(`employee/${userId}/status`, 'GET', undefined, token);
 };

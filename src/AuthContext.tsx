@@ -30,6 +30,7 @@ export interface UserInfo {
   access?: AccessType | string;
   sector?: string;
   companyId?: number;
+  token?: string
 }
 
 export enum EmployeeDesignation {
@@ -41,6 +42,7 @@ interface AuthContextType {
   isAuthenticate: boolean;
   user: UserInfo | null;
   company: CompanyInfo | null;
+  token: string | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -52,6 +54,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [company, setCompany] = useState<CompanyInfo | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -59,12 +62,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkAuth = async () => {
       const storedUser = localStorage.getItem("userData");
       const storedCompany = localStorage.getItem("companyData");
-      const token = localStorage.getItem("token");
+      const storedToken = localStorage.getItem("token");
 
-      if (storedUser && token) {
+      if (storedUser && storedToken) {
         try {
           const userData = JSON.parse(storedUser);
           setUser(userData);
+          setToken(storedToken);
 
           if (storedCompany) {
             const companyData = JSON.parse(storedCompany);
@@ -96,9 +100,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       let userData: UserInfo | null = null;
       let companyData: CompanyInfo | null = null;
-      let token: string | null = null;
+      let authToken: string | null = null;
+      try {
+            if (user?.id) {
+              const tokenFromStorage = localStorage.getItem("token");
+              await apiRequest(`employees/${user.id}/status`, "PUT", { status: true },
+                tokenFromStorage as string);
+            }
+          } catch (error) {
+            console.warn("Erro ao atualizar status no logout:", error);
+          }
 
-      // 🔹 Tenta Admin primeiro - COM TRATAMENTO SILENCIOSO
       try {
         const adminResponse = await handleLoginAdmin(username, password);
 
@@ -112,7 +124,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             designation: adminResponse.user.sector || "Administrador",
             sector: adminResponse.user.sector || "Administrador",
             companyId: adminResponse.user.companyId
-
           };
 
           if (adminResponse.user.companyName) {
@@ -126,20 +137,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
           }
 
-          token = adminResponse.token;
+          authToken = adminResponse.token;
         }
       } catch (adminError: any) {
         if (adminError.message?.includes("404") || adminError.message?.includes("não encontrado")) {
-
+          
         } else {
-
+         
         }
       }
 
       if (!userData) {
         try {
           const employeeResponse = await handleLoginEmployee(username, password);
-  
+
           if (employeeResponse?.user && employeeResponse?.token) {
             userData = {
               id: employeeResponse.user.id,
@@ -163,26 +174,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               };
             }
 
-            token = employeeResponse.token;
+            authToken = employeeResponse.token;
           }
         } catch (employeeError: any) {
           if (employeeError.message?.includes("404") || employeeError.message?.includes("não encontrado")) {
-
+            
           } else {
-
+           
           }
         }
       }
-      if (!userData || !token) {
+
+      if (!userData || !authToken) {
         await Swal.fire("Erro", "Usuário ou senha inválidos", "error");
         return;
       }
 
       setUser(userData);
       setCompany(companyData);
+      setToken(authToken);
+
       localStorage.setItem("userData", JSON.stringify(userData));
       localStorage.setItem("companyData", JSON.stringify(companyData));
-      localStorage.setItem("token", token);
+      localStorage.setItem("token", authToken);
 
       const userSector = userData.sector;
       const sectorRouteMap: Record<string, string> = {
@@ -211,9 +225,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async (status?: boolean) => {
     try {
       if (user?.id) {
-        const token = localStorage.getItem("token");
+        const tokenFromStorage = localStorage.getItem("token");
         await apiRequest(`employees/${user.id}/status`, "PUT", { status: 'Inativo' },
-          token as string);
+          tokenFromStorage as string);
       }
     } catch (error) {
       console.warn("Erro ao atualizar status no logout:", error);
@@ -221,6 +235,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setUser(null);
     setCompany(null);
+    setToken(null); 
     localStorage.removeItem("userData");
     localStorage.removeItem("companyData");
     localStorage.removeItem("token");
@@ -233,6 +248,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticate: !!user,
         user,
         company,
+        token,
         loading,
         login,
         logout,

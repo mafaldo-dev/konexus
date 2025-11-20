@@ -23,7 +23,7 @@ export default function Sidebar({ sidebarCollapsed }: any) {
     if (user && currentUser) {
       setUserActive();
     }
-  }, [user, currentUser, setUserActive]);
+  }, []);
 
   function canAccess(allowed: string[]) {
     const result = allowed.includes(designation);

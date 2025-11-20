@@ -20,7 +20,6 @@ export async function insertEmployee(employee: Employee) {
 export async function handleAllEmployee(token?: string): Promise<Employee[] | any> {
   try {
     const response = await apiRequest(`employees/all`, "GET", undefined, token);
-  
     const employee = response.data
   
     if (typeof employee === 'object' && !Array.isArray(employee.data)) {
@@ -34,6 +33,24 @@ export async function handleAllEmployee(token?: string): Promise<Employee[] | an
   return []
 }
 
+export async function employeeLength(token?: string) {
+  try {
+    const response = await apiRequest("employees/all", "GET", undefined, token);
+    const employees = response.data;
+
+  
+    const countsArray = Object.entries(employees).map(([key, value]) => ({
+      designation: key,
+      count: (value as any[]).length
+    }));
+
+    return countsArray;
+  } catch (err) {
+    console.error("Erro ao recuperar designações:", err);
+    return {};
+  }
+}
+
 export async function designation(token?: string) {
   try {
     const response = await apiRequest("employees/all", "GET", undefined, token);
@@ -45,12 +62,11 @@ export async function designation(token?: string) {
       acc[key].push(emp);
       return acc;
     }, {});
-
+  
     const countsArray = Object.entries(grouped).map(([key, value]) => ({
       designation: key,
       count: (value as any[]).length
     }));
-
 
     return countsArray;
   } catch (err) {

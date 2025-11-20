@@ -1,4 +1,3 @@
-import type React from "react"
 import { ArrowUpRight, ArrowDownRight, TrendingUp, CreditCard, DollarSign, Receipt } from "lucide-react"
 import { Card, CardContent } from "./ui/Card"
 import { formatCurrency } from "../../../utils/formatters"

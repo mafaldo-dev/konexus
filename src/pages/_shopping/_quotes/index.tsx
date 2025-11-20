@@ -1,7 +1,7 @@
 // --- SEU CÓDIGO ORIGINAL (NÃO ALTEREI NADA AQUI) ---
 import { Eye, Download, MoreVertical, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Swal from 'sweetalert2';
 import {
   updatePurchaseOrder,
@@ -9,8 +9,6 @@ import {
   getOrderById
 } from '../../../service/api/Administrador/purchaseRequests';
 import DocumentViewer from '../../../utils/screenOptions';
-import { OrderResponse } from '../../../service/interfaces';
-import { handleAllOrderServices } from '../../../service/api/Administrador/orderService/service';
 
 interface QuotationsListProps {
   quotations: any[];
@@ -193,34 +191,44 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
     }
   };
 
-  const handlePrintProductLabels = async (order: any) => {
-    try {
-      Swal.fire({ title: 'Carregando...', didOpen: () => Swal.showLoading() });
+const handlePrintProductLabels = async (order: any) => {
+  try {
+    Swal.fire({ 
+      title: 'Carregando...', 
+      didOpen: () => Swal.showLoading() 
+    });
 
-      const fullOrder = await getOrderById(order.orderNumber || order.ordernumber);
-      if (!fullOrder || !Array.isArray(fullOrder.orderItems)) throw new Error();
-
-      const orderWithLowercase = {
-        ...fullOrder,
-        orderItems: fullOrder.orderItems.map((item: any) => ({
-          productcode: item.productcode,
-          productname: item.productname,
-          productbrand: item.productbrand,
-          productlocation: item.productlocation,
-          quantity: item.quantity
-        }))
-      };
-
-      setSelectedProduct(orderWithLowercase);
-      setDocumentType("label_70x30");
-      setShowDocumentViewer(true);
-
-    } catch {
-      Swal.fire('Erro', 'Não foi possível carregar os itens.', 'error');
+    const fullOrder = await getOrderById(order.orderNumber || order.ordernumber);
+    
+    if (!fullOrder || !Array.isArray(fullOrder.orderItems)) {
+      throw new Error('Pedido inválido');
     }
-  };
 
-  // 👉 SE O VIEWER ESTIVER ABERTO, MOSTRA ELE
+    const orderWithLowercase = {
+      ...fullOrder,
+      orderItems: fullOrder.orderItems.map((item: any) => ({
+        productcode: item.productcode,
+        productname: item.productname,
+        productbrand: item.productbrand,
+        productlocation: item.productlocation,
+        quantity: item.quantity
+      }))
+    };
+
+    Swal.close();
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    setSelectedProduct(orderWithLowercase);
+    setDocumentType("label_70x30");
+    setShowDocumentViewer(true);
+
+  } catch (error) {
+    Swal.close();
+    Swal.fire('Erro', 'Não foi possível carregar os itens.', 'error');
+  }
+};
+
   if (showDocumentViewer) {
     return (
       <DocumentViewer

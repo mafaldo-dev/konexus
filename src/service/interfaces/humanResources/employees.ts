@@ -23,6 +23,6 @@ export interface Employee {
     role: EmployeeFunction
     access: EmployeeDesignation
     active: boolean
-    status: boolean
+    status: string | any
     sector: EmployeeSector
 }

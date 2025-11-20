@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from "react"
 import { Products, Customer, Employee } from "../../service/interfaces"
 import { handleAllProducts } from "../../service/api/Administrador/products"
 import { handleAllCustomers } from "../../service/api/Administrador/customer/clients"
-import { designation, handleAllEmployee } from "../../service/api/Administrador/employee"
+import { designation, employeeLength, handleAllEmployee } from "../../service/api/Administrador/employee"
 
 import Dashboard from "../dashboard/Dashboard"
 
@@ -33,12 +33,13 @@ const AdministrationScreen = () => {
   useEffect(() => {
   const handleData = async () => {
     try {
-      const [ employes, designa, custome, produc ] = await Promise.all([
+      const [designa, employes, custome, produc ] = await Promise.all([
         designation(),
-        handleAllEmployee(),
+        employeeLength(),
         handleAllCustomers(),
         handleAllProducts()
       ]);
+      console.log()
       
       setRole(designa);
       setEmployee(employes);

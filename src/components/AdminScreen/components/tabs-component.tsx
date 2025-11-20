@@ -4,6 +4,7 @@ interface TabContentItem {
     content: string
     badge?: string
 }
+
 const tabs = [
     { id: "notificacoes", label: "Notificações" },
     { id: "statisticas", label: "Estatísticas" },
@@ -17,8 +18,6 @@ const countStoredMessages = (): number => {
 };
 
 const totalMsg = countStoredMessages();
-
-
 
 const tabContent: { [key: string]: TabContentItem[]} = {
     notificacoes: [

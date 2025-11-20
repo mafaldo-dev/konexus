@@ -1,7 +1,7 @@
 import { type SubmitHandler, useForm } from "react-hook-form"
 import { Employee } from "../../../service/interfaces"
 import { handleAllEmployee, insertEmployee } from "../../../service/api/Administrador/employee"
-import { User, Lock, MapPin, Loader2, CheckCircle } from "lucide-react"
+import { Lock, Loader2, CheckCircle } from "lucide-react"
 import Dashboard from "../../../components/dashboard/Dashboard"
 import { useState } from "react"
 
@@ -9,7 +9,6 @@ export default function EmployeeAdministration() {
   const [success, setSuccess] = useState<boolean>(false)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
-  {/**/}
   const {
     register,
     handleSubmit,
@@ -23,8 +22,9 @@ export default function EmployeeAdministration() {
       const formattedData: Employee = {
         ...data,
         active: true,
-        status: true
+        status: 'Ativo'
       }
+      console.log(formattedData)
 
       await insertEmployee(formattedData)
       reset()
@@ -33,40 +33,6 @@ export default function EmployeeAdministration() {
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  const maskPhone = (value: string) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{5})(\d)/, "$1-$2")
-      .replace(/(-\d{4})\d+?$/, "$1")
-  }
-
-  const maskCpf = (value: string) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{1,2})/, "$1-$2")
-      .replace(/(-\d{2})\d+?$/, "$1")
-  }
-
-  const maskRg = (value: string) => {
-    return value
-      .replace(/\D/g, "")
-      .replace(/(\d{2})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{1})/, "$1-$2")
-      .replace(/(-\d{1})\d+?$/, "$1")
-  }
-
-  function maskSalaryBRL(value: string) {
-    value = value.replace(/\D/g, "")
-    value = (Number.parseInt(value, 10) / 100).toFixed(2) + ""
-    value = value.replace(".", ",")
-    value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-    return "R$ " + value
   }
 
   return (

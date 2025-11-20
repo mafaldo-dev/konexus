@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share, Wrench } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import Swal from 'sweetalert2';
@@ -34,7 +34,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
-  // Carrega o PDF da NF-e
   useEffect(() => {
     const loadPDF = async () => {
       if (documentType !== "nfe_pdf") return;
@@ -68,60 +67,80 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     };
   }, [documentType, product?.nfeId]);
 
-  // Processa etiquetas
+const hasProcessed = useRef(false);
+  const hasAskedQuantity = useRef(false);
+
   useEffect(() => {
-    const processLabelsOnMount = async () => {
-      if (documentType !== "label_70x30" || processedItems.length > 0) {
+    if (hasProcessed.current || documentType !== "label_70x30") {
+      return;
+    }
+    hasProcessed.current = true;
+
+    if (!product?.orderItems) {
+  
+      const originalQuantity = product?.quantity || 1;
+      setProcessedItems([{ ...product, finalQuantity: originalQuantity }]);
+    } else {
+      const items = product.orderItems.map((item: any) => ({
+        ...item,
+        finalQuantity: item.quantity || 1
+      }));
+      setProcessedItems(items);
+    }
+  }, [documentType]);
+
+  useEffect(() => {
+    const askForQuantities = async () => {
+      if (
+        hasAskedQuantity.current ||
+        documentType !== "label_70x30" ||
+        processedItems.length === 0
+      ) {
         return;
       }
+      hasAskedQuantity.current = true;
+
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       if (!product?.orderItems) {
-        const originalQuantity = product?.quantity || 1;
+        const item = processedItems[0];
+        const originalQuantity = item.finalQuantity;
 
         if (originalQuantity > 10) {
           const confirmedQuantity = await confirmQuantity(product, originalQuantity);
+          
+          if (confirmedQuantity > 0 && confirmedQuantity !== originalQuantity) {
+            setProcessedItems([{ ...item, finalQuantity: confirmedQuantity }]);
+          }
+        }
+      } else {
+        const updatedItems = [];
+        let hasChanges = false;
 
-          if (confirmedQuantity > 0) {
-            setProcessedItems([{ ...product, finalQuantity: confirmedQuantity }]);
+        for (const item of processedItems) {
+          const originalQuantity = item.finalQuantity;
+
+          if (originalQuantity > 10) {
+            const confirmedQuantity = await confirmQuantity(item, originalQuantity);
+            
+            if (confirmedQuantity > 0) {
+              updatedItems.push({ ...item, finalQuantity: confirmedQuantity });
+              if (confirmedQuantity !== originalQuantity) {
+                hasChanges = true;
+              }
+            }
           } else {
-            setProcessedItems([{ ...product, finalQuantity: originalQuantity }]);
+            updatedItems.push(item);
           }
-        } else {
-          setProcessedItems([{ ...product, finalQuantity: originalQuantity }]);
         }
-        return;
-      }
-
-      const items = product.orderItems || [];
-      const confirmedItems = [];
-
-      for (const item of items) {
-        const originalQuantity = item.quantity || 1;
-
-        if (originalQuantity > 10) {
-          const confirmedQuantity = await confirmQuantity(item, originalQuantity);
-
-          if (confirmedQuantity > 0) {
-            confirmedItems.push({
-              ...item,
-              finalQuantity: confirmedQuantity
-            });
-          }
-        } else {
-          confirmedItems.push({
-            ...item,
-            finalQuantity: originalQuantity
-          });
+        if (hasChanges && updatedItems.length > 0) {
+          setProcessedItems(updatedItems);
         }
-      }
-
-      if (confirmedItems.length > 0) {
-        setProcessedItems(confirmedItems);
       }
     };
 
-    processLabelsOnMount();
-  }, [documentType, product]);
+    askForQuantities();
+  }, [processedItems.length]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -315,6 +334,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   const confirmQuantity = async (item: any, originalQuantity: number): Promise<number> => {
     if (originalQuantity <= 10) {
+      console.log(originalQuantity)
       return originalQuantity;
     }
 
