@@ -220,7 +220,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const socket = io(process.env.REACT_APP_SOCKET_URL || process.env.REACT_APP_API_URL || 'http://localhost:3010', {
+    const socket = io(process.env.REACT_APP_AI_URL || process.env.REACT_APP_SOCKET_URL, {
       auth: { token: tkn },
       reconnection: true,
       reconnectionAttempts: 5,
