@@ -613,7 +613,7 @@ const hasProcessed = useRef(false);
   };
 
   const renderPurchaseOrder = () => (
-    <div className="flex flex-col print-area print-area print:scale-1  scale-[0.8]  bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
+    <div className="flex flex-col print-area print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
       {order ? (
         <>
           <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
