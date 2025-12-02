@@ -1,106 +1,213 @@
-import React from "react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Cell } from "recharts"
-import { fluxoCaixaData, distribuicaoData } from "../../../../data/mockData"
-import { formatCurrency } from "../../../../utils/formatters"
-import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card"
+import React, { useState, useEffect } from 'react';
+import { Search, Filter } from 'lucide-react';
 
+import { DynamicTable } from '../../../../utils/Table/DynamicTable';
+import { FinancialService } from '../../../../pages/Financial/service/financialService';
+import { getContasPagarColumns } from '../../../../pages/Financial/components/columns/contasPagar';
+import { getContasReceberColumns } from '../../../../pages/Financial/components/columns/contasReceber';
+import { getPedidosColumns } from '../../../../pages/Financial/components/columns/pedidosColumn';
+import { ActiveFilters } from '../../../../pages/Financial/utils/ActivateFilter';
+import { CustomerOrdersModal } from '../../../../pages/Financial/utils/customerOrderModal';
+import { FiltersModal } from '../../../../pages/Financial/utils/FiltersModal';
+import { ReportModal } from '../../../../pages/Financial/utils/ReportModal';
+import { StatsCards } from '../../../../pages/Financial/utils/StatsCards';
+import { TabNavigation } from '../../../../pages/Financial/utils/TabNavigation';
+import { useFinancialData } from '../../../../hooks/useFinancialData';
+import { useFinancialFilters } from '../../../../hooks/useFinancialFilters';
+import { CreateContaPagarModal } from '../../../../pages/Financial/paymentAccounts';
+import { ActionsDropdown } from '../../../../pages/Financial/components/ActionsDropdown';
+
+
+// Interface para as colunas
+interface ColumnsMap {
+  [key: string]: any[];
+}
 
 export const OverviewTab: React.FC = () => {
+  const [activeSubTab, setActiveSubTab] = useState<"contas-receber" | "contas-pagar" | "pedidos">("contas-receber");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [filtersModalOpen, setFiltersModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<{ name: string; id: number } | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<any[]>([]);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  const {
+    contasReceber,
+    contasPagar,
+    pedidos,
+    stats,
+    isLoadingContasReceber,
+    isLoadingContasPagar,
+    loadContasReceber,
+    loadContasPagar,
+    setPedidos
+  } = useFinancialData();
+
+  const {
+    searchTerm,
+    setSearchTerm,
+    activeFilters,
+    setActiveFilters,
+    aplicarFiltros
+  } = useFinancialFilters();
+
+  // Aplicar filtros
+  const contasReceberFiltradas = aplicarFiltros(contasReceber, searchTerm, activeFilters);
+  const contasPagarFiltradas = aplicarFiltros(contasPagar, searchTerm, activeFilters);
+  const pedidosFiltrados = aplicarFiltros(pedidos, searchTerm, activeFilters);
+
+  const handleLoadData = async () => {
+    if (activeSubTab === "contas-receber") {
+      await loadContasReceber();
+    } else if (activeSubTab === "contas-pagar") {
+      await loadContasPagar();
+    }
+  };
+
+  const handleMarkAsPaid = (id: number) => {
+    FinancialService.markAsPaid(id, activeSubTab, handleLoadData);
+  };
+
+  const handleLoadCustomerOrders = async (id: number, customerName: string) => {
+    await FinancialService.loadCustomerOrders(
+      id,
+      customerName,
+      setCustomerOrders,
+      setSelectedCustomer,
+      setModalOpen
+    );
+  };
+
+  const handleGenerateReport = async (startDate: string, endDate: string, reportType: string) => {
+    await FinancialService.generateReport(startDate, endDate, reportType, setReportModalOpen);
+  };
+
+  const handleApplyFilters = (filters: any) => {
+    setActiveFilters(filters);
+  };
+
+  const handleExportData = () => {
+    FinancialService.exportData(activeSubTab, contasReceberFiltradas, contasPagarFiltradas, pedidosFiltrados);
+  };
+
+  // Carregar dados quando mudar de aba
+  useEffect(() => {
+    handleLoadData();
+  }, [activeSubTab]);
+
+  // Configurar colunas com tipo correto
+  const columns: ColumnsMap = {
+    "contas-receber": getContasReceberColumns({ handleMarkAsPaid }),
+    "contas-pagar": getContasPagarColumns(),
+    "pedidos": getPedidosColumns({ 
+      handleLoadCustomerOrders, 
+      pedidos, 
+      setPedidos 
+    })
+  };
+  
+  const handleCreateSuccess = () => {
+    // Recarregar os dados após criar uma nova conta
+    if (activeSubTab === "contas-pagar") {
+      loadContasPagar();
+    }
+  };
+
+  const getCurrentData = () => {
+    switch (activeSubTab) {
+      case "contas-receber": return contasReceberFiltradas;
+      case "contas-pagar": return contasPagarFiltradas;
+      case "pedidos": return pedidosFiltrados;
+      default: return [];
+    }
+  };
+
+  const getCurrentLoading = () => {
+    switch (activeSubTab) {
+      case "contas-receber": return isLoadingContasReceber;
+      case "contas-pagar": return isLoadingContasPagar;
+      default: return false;
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Fluxo de Caixa - Últimos 6 Meses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={fluxoCaixaData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="mes" stroke="#64748b" fontSize={12} />
-                    <YAxis stroke="#64748b" fontSize={12} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(value: any) => [formatCurrency(value), ""]}
-                    />
-                    <Line type="monotone" dataKey="entradas" stroke="#10b981" strokeWidth={3} name="Entradas" />
-                    <Line type="monotone" dataKey="saidas" stroke="#ef4444" strokeWidth={3} name="Saídas" />
-                    <Line type="monotone" dataKey="saldo" stroke="#3b82f6" strokeWidth={3} name="Saldo" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <StatsCards stats={stats} />
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Distribuição Financeira</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Tooltip formatter={(value: any) => formatCurrency(value)} />
-                    <PieChart data={distribuicaoData} cx="50%" cy="50%" outerRadius={60}>
-                      {distribuicaoData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </PieChart>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="space-y-2 mt-4">
-                {distribuicaoData.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-slate-600">{item.name}</span>
-                    </div>
-                    <span className="font-medium">{formatCurrency(item.value)}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+      <div className="flex items-center justify-between">
+        <TabNavigation activeSubTab={activeSubTab} setActiveSubTab={setActiveSubTab} />
+        
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              placeholder="Buscar por pedido ou cliente..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-64 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Vencimentos Próximos</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-sm">Amazon Web Services</p>
-                  <p className="text-xs text-slate-600">Vence em 2 dias</p>
-                </div>
-                <p className="font-semibold text-red-600">{formatCurrency(8750)}</p>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-sm">Adobe Systems</p>
-                  <p className="text-xs text-slate-600">Vence em 5 dias</p>
-                </div>
-                <p className="font-semibold text-yellow-600">{formatCurrency(4680)}</p>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-sm">TechCorp Solutions</p>
-                  <p className="text-xs text-slate-600">A receber em 3 dias</p>
-                </div>
-                <p className="font-semibold text-emerald-600">{formatCurrency(45000)}</p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Botão de Filtros (fica separado) */}
+          <button
+            onClick={() => setFiltersModalOpen(true)}
+            className="px-3 py-2 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-medium text-slate-700"
+          >
+            <Filter className="h-4 w-4" />
+            Filtros
+            {Object.values(activeFilters).some((filter: any) => filter !== '' && filter !== null) && (
+              <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+            )}
+          </button>
+
+          {/* Dropdown com as ações */}
+          <ActionsDropdown
+            activeSubTab={activeSubTab}
+            onCreateClick={() => setCreateModalOpen(true)}
+            onReportClick={() => setReportModalOpen(true)}
+            onExportClick={handleExportData}
+          />
         </div>
       </div>
+
+      <ActiveFilters activeFilters={activeFilters} setActiveFilters={setActiveFilters} />
+
+      <div className="bg-white rounded-lg border border-slate-200">
+        <DynamicTable
+          data={getCurrentData()}
+          columns={columns[activeSubTab]}
+          loading={getCurrentLoading()}
+          emptyMessage={`Nenhum ${activeSubTab.replace('-', ' ')} encontrado`}
+          emptyDescription={`Os ${activeSubTab.replace('-', ' ')} aparecerão aqui quando forem criados`}
+        />
+      </div>
+
+      <CustomerOrdersModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        customerName={selectedCustomer?.name || ''}
+        customerOrders={customerOrders}
+      />
+
+      <ReportModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        onGenerateReport={handleGenerateReport}
+      />
+
+      <FiltersModal
+        isOpen={filtersModalOpen}
+        onClose={() => setFiltersModalOpen(false)}
+        onApplyFilters={handleApplyFilters}
+        currentTab={activeSubTab}
+      />
+      
+      <CreateContaPagarModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSuccess={handleCreateSuccess}
+      />
     </div>
-  )
-}
+  );
+};

@@ -170,7 +170,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     if (!authUser?.id) return;
     try {
       const msgs = await fetchMessages(authUser.id);
-    
+
       const normalized = msgs.map((m: any) => ({
         ...m,
         id: String(m.id),
@@ -220,12 +220,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const socket = io(process.env.REACT_APP_AI_URL || process.env.REACT_APP_SOCKET_URL, {
-      auth: { token: tkn },
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
+    const socket = io(
+      process.env.REACT_APP_SOCKET_URL,
+      {
+        auth: { token: tkn },
+        transports: ["websocket"],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      }
+    );
     socketRef.current = socket;
 
     socket.on('connect', () => {

@@ -119,6 +119,7 @@ export const handleAllOrders = async (token?: string): Promise<OrderResponse[]> 
     const response = await apiRequest("orders/all", "GET", undefined, tkn as string);
 
     const orders = (response as any)?.orders || response || [];
+    console.log(orders)
     
     if (!Array.isArray(orders)) {
       console.warn("Orders não é um array:", orders);

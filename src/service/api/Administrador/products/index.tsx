@@ -91,8 +91,9 @@ export const handleProductWithCodeSilent = async (code: string | number, token?:
  * Recupera todos os produtos
  */
 export const handleAllProducts = async (token?: string): Promise<Products[]> => {
+  const tkn = localStorage.getItem("token")
   try {
-    const response = await apiRequest("products/all", "GET", undefined, token);
+    const response = await apiRequest("products/all", "GET", undefined, token || tkn as string);
     
     // Garante que sempre teremos um array
     const product: Products[] = Array.isArray(response?.products) ? response.products : [];

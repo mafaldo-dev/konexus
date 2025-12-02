@@ -60,3 +60,4 @@ export async function handleNfeById(nfeId?: string, token?: string) {
     throw err;
   }
 }
+

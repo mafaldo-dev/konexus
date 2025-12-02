@@ -34,13 +34,20 @@ export interface OrderResponse {
   orderDate: string;
   orderStatus: string;
   orderNumber: string;
-  totalAmount: number;
+  totalAmount: number | any;
   currency: string;
   salesperson?: string;
   notes?: string;
   carrier: string
   payment_method?: string
   companyCnpj: string
+  payment?:{
+    id?:string
+    status?: string
+    date?: string | any
+    due_date?: string | any
+    amount?: string
+  }
 
   customer: {
     id: number | any;
