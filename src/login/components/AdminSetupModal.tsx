@@ -3,12 +3,18 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { CompanyData, createCompanyAdmin } from "../../service/api/adminArea/administrator";
 
+const PLANS = {
+  STARTER: { id: 1, name: "Plano Starter", description: "Ideal para pequenas empresas" },
+  PREMIUM: { id: 2, name: "Plano Premium", description: "Para empresas em crescimento" },
+  PLUS: { id: 3, name: "Plano Plus", description: "Solução completa para grandes empresas" },
+};
+
 const AdminSetupModal = ({ onClose }: { onClose: () => void }) => {
   const navigate = useNavigate();
   const [companyName, setCompanyName] = useState("");
   const [adminUsername, setAdminUsername] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
-  const [logo, setLogo] = useState<File | null>(null);
+  const [installation_id, setInstallationId] = useState<any>();
   const [ico, setIco] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,28 +33,28 @@ const AdminSetupModal = ({ onClose }: { onClose: () => void }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!companyName || !adminUsername || !adminPassword) {
+    if (!companyName || !adminUsername || !adminPassword || !installation_id) {
       Swal.fire("Atenção", "Preencha todos os campos obrigatórios!", "warning");
       return;
     }
 
     setIsLoading(true);
     try {
-      let logoBase64: string | null = null;
+
       let icoBase64: string | null = null;
 
-      if (logo) logoBase64 = await fileToBase64(logo);
       if (ico) icoBase64 = await fileToBase64(ico);
 
       const companyData: CompanyData = {
         companyName,
         adminUsername,
         adminPassword,
-        logo: logoBase64,
-        ico: icoBase64
+        installation_id,
+        icon: icoBase64
       };
 
       const response = await createCompanyAdmin(companyData);
+      console.log("teste aqui ->",response)
 
       if (response?.id) {
         Swal.fire("Sucesso", "Admin e empresa criados com sucesso!", "success");
@@ -147,44 +153,65 @@ const AdminSetupModal = ({ onClose }: { onClose: () => void }) => {
               />
             </div>
 
-            {/* Logo Upload */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Logo da Empresa
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={e => setLogo(e.target.files?.[0] || null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all duration-200"
-              />
+            <div className="flex items-center">
+              {/* ICO Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ícone (ICO)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setIco(e.target.files?.[0] || null)}
+                  className="w-9/12 px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all duration-200"
+                />
+              </div>
+              {/* installation plan*/}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Plano escolhido:
+                </label>
+                <select
+                  value={installation_id || ""}
+                  onChange={e => {
+                    const planValue = e.target.value ? parseInt(e.target.value) : null;
+                    setInstallationId(planValue);
+                  }}
+                  className="w-full px-4 py-3.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white hover:border-gray-400 cursor-pointer"
+                  required
+                >
+                  <option value="" disabled className="text-gray-400">
+                    Selecione um plano
+                  </option>
+                  {Object.values(PLANS).map((plan) => (
+                    <option key={plan.id} value={plan.id} className="text-gray-700">
+                      {plan.name}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Feedback visual do plano selecionado */}
+                {installation_id && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    {Object.values(PLANS).find(p => p.id === installation_id)?.description}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* ICO Upload */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ícone (ICO)
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={e => setIco(e.target.files?.[0] || null)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all duration-200"
-              />
-            </div>
           </div>
 
           {/* Footer */}
           <div className="flex gap-3 p-6 border-t border-gray-200">
             <button
-              type="button" // ✅ IMPORTANTE: type="button"
+              type="button"
               onClick={onClose}
               className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors duration-200"
             >
               Cancelar
             </button>
             <button
-              type="submit" // ✅ MUDEI PARA type="submit"
+              type="submit"
               disabled={isLoading}
               className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
             >

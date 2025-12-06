@@ -6,7 +6,7 @@ export interface Movement {
   movementdate: string; 
   orderid: number;
   invoicenumber: string
-  purchaseordernumber: string
+  ordernumber: string
   productname: string;
   productcode: string;
   movement: number

@@ -30,11 +30,6 @@ export const menuItems = [
       submenu: [
         { title: 'Pedidos', to: '/sales/orders', icon: ShoppingBag, access: ['Administrador', 'Vendedor', 'Gestor', 'Comprador', 'Gerente', 'Encarregado'] },
         { title: 'Orçamentos', to: '/sales/order-list', icon: FileText, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor',  'Gerente', 'Encarregado']},
-        { title: "NF-e", to: '/financial/order-nfe', icon: FileTextIcon, access: ['Administrador', 'Conferente', 'Gestor', 'Gerente', 'Financeiro']},
-        { title: 'Vendas Realizadas', to: '/sales/completed', icon: TrendingUp, access: ['Administrador', 'Conferente', 'Gestor', 'Gerente', 'Encarregado'] },
-        { title: 'Comissões', to: '/sales/comissions', icon: DollarSign, access: ['Administrador','Gestor', 'Financeiro', 'Gerente', 'Encarregado']},
-        { title: 'Metas', to: '/sales/goals', icon: Target, access: ['Administrador', 'Vendedor', 'Gestor', 'Financeiro', 'Gerente', 'Encarregado'] },
-        { title: 'Relatórios', to: '/sales/reports', icon: BarChart3, access: ['Administrador', 'Vendedor', 'Conferente',  'Gestor', 'Gerente', 'Encarregado'] }
       ]
     },
     {
@@ -56,6 +51,7 @@ export const menuItems = [
         { title: 'Inventário', to: '/stock/inventory', icon: Package, access: ['Administrador', 'Conferente', 'Estoquista', 'Gestor', 'Gerente', 'Encarregado'] }, 
         { title: 'Movimentações', to: '/stock/movements', icon: TrendingUp, access: ['Administrador', 'Vendedor', 'Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Encarregado']},
         { title: 'Alertas de Estoque', to: '/shopping/purchase-order', icon: AlertTriangle, access: ['Administrador', 'Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Encarregado']},
+        { title: 'Relatórios', to: '/sales/reports', icon: BarChart3, access: ['Administrador', 'Vendedor', 'Conferente',  'Gestor', 'Gerente', 'Encarregado'] }
       ]
     },
     {
@@ -64,7 +60,12 @@ export const menuItems = [
       icon: DollarSign,
       access: ['Administrador','Vendedor','Conferente', 'Estoquista', 'Gestor', 'Comprador', 'Gerente', 'Financeiro', 'Encarregado'],
       submenu: [
-        { title: 'Finanças', to: '/financer/financial', icon: CreditCard, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro', 'Encarregado'] }]
+        { title: 'Finanças', to: '/financer/financial', icon: CreditCard, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro', 'Encarregado'] },
+        { title: 'Metas', to: '/sales/goals', icon: Target, access: ['Administrador', 'Gestor', 'Financeiro', 'Gerente'] },
+        { title: "NF-e", to: '/financial/order-nfe', icon: FileTextIcon, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro']},
+        { title: 'Vendas Realizadas', to: '/sales/completed', icon: TrendingUp, access: ['Administrador', 'Gestor', 'Gerente'] },
+        { title: 'Comissões', to: '/sales/comissions', icon: DollarSign, access: ['Administrador',' Gestor', 'Financeiro', 'Gerente']},
+      ]
     },
     {
       key: 'rh',

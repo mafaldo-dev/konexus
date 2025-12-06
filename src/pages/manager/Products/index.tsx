@@ -6,7 +6,7 @@ import UpdadtedProduct from "./modal-edit";
 import FormAdd from "./Form-add";
 import { DynamicTable } from "../../../utils/Table/DynamicTable";
 import { useAuth } from '../../../AuthContext'
-import { Filter, MapPin, EyeIcon} from "lucide-react";
+import { Filter, MapPin, EyeIcon } from "lucide-react";
 
 const SearchProducts = () => {
   const [openRegister, setOpenRegister] = useState<boolean>(false);
@@ -77,7 +77,7 @@ const SearchProducts = () => {
   const handleCloseEditModal = async () => {
     setOpenEdit(false)
     const reload = await handleAllProducts()
-    console.log("console do reload do component pai =>",reload)
+    console.log("console do reload do component pai =>", reload)
     setItem(reload)
   }
 
@@ -153,19 +153,19 @@ const SearchProducts = () => {
     {
       key: 'actions',
       header: 'Ações',
-      render: (product: any) => (      
-          <div className="flex gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // Previne o click da linha
-                handleEditProduct(product);
-              }}
-              title="Ver informações"
-              className="p-1 px-4 hover:scale-110 transition-transform"
-            >
-              <EyeIcon className="h-4 text-green-500" />
-            </button>
-          </div>
+      render: (product: any) => (
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Previne o click da linha
+              handleEditProduct(product);
+            }}
+            title="Ver informações"
+            className="p-1 px-4 hover:scale-110 transition-transform"
+          >
+            <EyeIcon className="h-4 text-green-500" />
+          </button>
+        </div>
       ),
     },
   ];
@@ -293,24 +293,25 @@ const SearchProducts = () => {
       {/* Modal de Registro */}
       {openRegister && (
         <>
-          <div className="fixed inset-0 bg-black/80 z-40" />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center  rounded-lg shadow-sm w-full max-w-[100vw] z-50  h-[100vh] overflow-y-auto">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2  rounded-lg shadow-sm w-full max-w-[100vw] z-50  h-[100vh] overflow-y-auto">
             <div className="p-6">
-              <div className="relative mb-6">
-                <button
-                  onClick={() => setOpenRegister(false)}
-                  className="cursor-pointer absolute top-5 right-2 text-gray-500 hover:text-red-500 text-2xl transition-transform duration-200 hover:scale-110"
+              <button
+                onClick={() => setOpenRegister(false)}
+                className="cursor-pointer absolute top-5 right-72 text-white hover:text-red-500 text-2xl transition-transform duration-200 hover:scale-110"
 
-                >
-                  &times;
-                </button>
+              >
+                &times;
+              </button>
+              <div className="relative">
+                <FormAdd 
+                  onClose={() => setOpenRegister(false)}
+                  onProductsAdded={async () => {
+                  const reload = await handleAllProducts()
+                  setItem(reload)
+                  setOpenRegister(false)
+                }}
+                />
               </div>
-              <FormAdd onProductsAdded={async () => {
-                const reload = await handleAllProducts()
-                setItem(reload)
-                setOpenRegister(false)
-              }}
-              />
             </div>
           </div>
         </>

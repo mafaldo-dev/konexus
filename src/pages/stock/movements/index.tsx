@@ -1,6 +1,6 @@
 import type React from "react";
 
-import { useState, useEffect, useMemo, useCallback } from "react"; // 👈 Adicione useCallback
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { ContextMenuPosition, FilterState, ReportConfig } from "./movementsType";
 import { handleAllProducts } from "../../../service/api/Administrador/products";
 import { Products } from "../../../service/interfaces/stock/products";
@@ -69,7 +69,6 @@ export default function ProfessionalProductList() {
     // ✅ CORREÇÃO: Use useCallback para evitar recriação da função
     const openKardexModal = useCallback(async (product: Products) => {
         setLoadingKardex(true);
-        console.log("📦 Abrindo Kardex para:", product);
         try {
             const movements = await handlekardexMoviment(product.id);
             setKardexProduct(product);
@@ -86,19 +85,13 @@ export default function ProfessionalProductList() {
         const isElectron = typeof (window as any).require !== 'undefined';
         
         if (isElectron) {
-            console.log("🔌 Electron detectado - configurando atalhos F4");
+        
             const { ipcRenderer } = (window as any).require('electron');
             
-            const handleF4Shortcut = () => {
-                console.log("🎯 F4 pressionado no Electron");
-                if (selectedProduct) {
-                    console.log("📦 Produto selecionado:", selectedProduct.name);
+            const handleF4Shortcut = () => {         
+                if (selectedProduct) {             
                     openKardexModal(selectedProduct);
-                } else {
-                    console.log("⚠️ Nenhum produto selecionado para abrir Kardex");
-                    // Opcional: mostrar mensagem para o usuário
-                    // alert("Selecione um produto primeiro para abrir o Kardex");
-                }
+                } 
             };
             
             // ✅ CORREÇÃO: Use o nome correto do evento
@@ -108,11 +101,10 @@ export default function ProfessionalProductList() {
                 ipcRenderer.removeListener('global-shortcut-f4', handleF4Shortcut);
             };
         } else {
-            console.log("🌐 Ambiente web - usando event listener nativo");
+          
             const handleKeyDown = (e: KeyboardEvent) => {
                 if (e.key === "F4" && selectedProduct) {
                     e.preventDefault();
-                    console.log("🎯 F4 pressionado no navegador");
                     openKardexModal(selectedProduct);
                 }
             };
@@ -120,7 +112,7 @@ export default function ProfessionalProductList() {
             window.addEventListener("keydown", handleKeyDown);
             return () => window.removeEventListener("keydown", handleKeyDown); 
         }
-    }, [selectedProduct, openKardexModal]); // ✅ openKardexModal agora é estável graças ao useCallback
+    }, [selectedProduct, openKardexModal]);
 
     const filteredProducts = useMemo(() => {
         return products.filter((product) => {

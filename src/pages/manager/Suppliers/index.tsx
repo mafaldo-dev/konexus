@@ -5,7 +5,7 @@ import Dashboard from '../../../components/dashboard/Dashboard'
 import FormAdd from './Form-add'
 import EditModal from './modal-edit'
 import { DynamicTable } from '../../../utils/Table/DynamicTable' // Ajuste o caminho
-import { DeleteIcon, Edit, Filter, DotIcon} from 'lucide-react'
+import { DeleteIcon, Edit, Filter, DotIcon } from 'lucide-react'
 import { useAuth } from '../../../AuthContext'
 import Swal from 'sweetalert2'
 
@@ -122,18 +122,18 @@ const SearchSuppliers = () => {
             className: "px-4 py-2 text-xs bg-gray-100 text-gray-700 rounded font-medium",
         },
         {
-              key: 'active',
-              header: 'Status',
-              render: (supplier: Supplier) => (
+            key: 'active',
+            header: 'Status',
+            render: (supplier: Supplier) => (
                 <span className="text-sm text-gray-600 flex items-center">
-                  <DotIcon
-                    className={`h-10 w-10 ${supplier.active === false ? "text-red-600" : "text-green-600"
-                      }`}
-                  />
-                  {supplier.active ? "Ativo" : "Inativo"}
+                    <DotIcon
+                        className={`h-10 w-10 ${supplier.active === false ? "text-red-600" : "text-green-600"
+                            }`}
+                    />
+                    {supplier.active ? "Ativo" : "Inativo"}
                 </span>
-              )
-            },
+            )
+        },
         {
             key: 'actions',
             header: 'Ações',
@@ -142,7 +142,7 @@ const SearchSuppliers = () => {
                     <div className="flex gap-2">
                         <button
                             onClick={(e) => {
-                                e.stopPropagation(); 
+                                e.stopPropagation();
                                 handleEditSupplier(supplier);
                             }}
                             className="p-1 hover:scale-110 transition-transform"
@@ -262,20 +262,11 @@ const SearchSuppliers = () => {
             {/* Modal de Registro */}
             {openRegister && (
                 <>
-                    <div className="fixed inset-0 bg-black/50 z-40" />
-                    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-lg w-full max-w-[60vw] z-50 max-h-[90vh] overflow-y-auto">
+                    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2  rounded-lg shadow-sm w-full max-w-[100vw] z-50  h-[100vh] overflow-y-auto">
                         <div className="p-6">
-                            <div className="relative mb-6">
-                                <h2 className="text-2xl font-semibold mb-2">Cadastrar Fornecedor</h2>
-                                <p className="text-gray-600">Preencha os campos abaixo para cadastrar um novo fornecedor.</p>
-                                <button
-                                    onClick={() => setOpenRegister(false)}
-                                    className="cursor-pointer absolute top-0 right-0 text-gray-500 hover:text-gray-700 text-2xl"
-                                >
-                                    &times;
-                                </button>
-                            </div>
-                            <FormAdd onSupplierAdded={async () => {
+                            <FormAdd
+                                onClose={() => setOpenRegister(false)} 
+                                onSupplierAdded={async () => {
                                 const updated = await handleAllSuppliers()
                                 setSuppliers(updated)
                                 setOpenRegister(false)

@@ -20,7 +20,6 @@ function useAutoUpdater() {
     const { ipcRenderer } = (window as any).require("electron");
 
     ipcRenderer.on("update_available", () => {
-      console.log("🔔 Atualização disponível detectada");
       setDownloading(true);
       setProgress(0);
       

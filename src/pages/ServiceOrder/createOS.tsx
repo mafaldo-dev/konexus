@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { UseFormReturn, Controller } from 'react-hook-form';
-import { X, Plus, Trash2, Search } from 'lucide-react';
+import { X, Plus, Trash2, Search, TextIcon } from 'lucide-react';
 import { CreateOSFormData } from '.';
 import { handleAllEmployee } from '../../service/api/Administrador/employee';
 import { useAuth } from '../../AuthContext';
@@ -163,18 +163,26 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden animate-fadeIn">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-800">Nova Ordem de Serviço</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            type="button"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        <div className="px-8 pt-8 pb-6 border-b  border-gray-200 bg-slate-800">
+          <div className="flex justify-between">
+            <div className="flex flex-col">
+              <h2 className="text-3xl font-bold text-white flex items-center justify-start gap-3">
+                <TextIcon size={32} className="text-white" />
+                Nova Ordem de Serviço
+              </h2>
+              <p className="text-gray-600 text-sm">Preencha os dados da ordem de serviço</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition -mt-20 -mr-4"
+              aria-label="Fechar"
+            >
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         {/* Form - Scrollable */}
@@ -326,33 +334,33 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                     <label className="flex items-center gap-2">
                       <input
                         type="radio"
-                        value="saida"
-                        checked={field.value === "saida"}
-                        onChange={() => field.onChange("saida")}
+                        value="exit"
+                        checked={field.value === "exit"}
+                        onChange={() => field.onChange("exit")}
                         disabled={!formMethods.watch("stock_movement")}
                       />
-                      <span className="text-sm">Saída</span>
+                      <span className="text-sm">{field.value === "exit"? "exit": "Saida"}</span>
                     </label>
 
                     <label className="flex items-center gap-2">
                       <input
                         type="radio"
-                        value="entrada"
-                        checked={field.value === "entrada"}
-                        onChange={() => field.onChange("entrada")}
+                        value="entry"
+                        checked={field.value === "entry"}
+                        onChange={() => field.onChange("entry")}
                         disabled={!formMethods.watch("stock_movement")}
                       />
-                      <span className="text-sm">Entrada</span>
+                      <span className="text-sm">{field.value === "entry" ? "entry" : "Entrada"}</span>
                     </label>
                     <label className="flex items-center gap-2">
                       <input
                         type="radio"
-                        value="produçao"
-                        checked={field.value === "produçao"}
-                        onChange={() => field.onChange("produçao")}
+                        value="production"
+                        checked={field.value === "production"}
+                        onChange={() => field.onChange("production")}
                         disabled={!formMethods.watch("stock_movement")}
                       />
-                      <span className="text-sm">Produção</span>
+                      <span className="text-sm">{field.value === "production" ? "production" : "Produção"}</span>
                     </label>
                   </div>
                 )}
@@ -380,7 +388,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
                 <button
                   type="button"
                   onClick={addOrderItem}
-                  className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition text-sm"
+                  className="flex items-center gap-2 px-3 py-2 bg-slate-800 text-white rounded-md hover:bg-green-600 transition text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Adicionar Item
@@ -557,7 +565,7 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-5 py-2 bg-slate-800 text-white rounded-md hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Criando...' : 'Criar OS'}
               </button>

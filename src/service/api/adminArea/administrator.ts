@@ -4,8 +4,8 @@ export interface CompanyData {
   companyName: string;
   adminUsername: string;
   adminPassword: string;
-  logo?: string | null;
-  ico?: string | null;
+  installation_id: number | any
+  icon?: string | null;
 }
 
 export const createCompanyAdmin = async (data: CompanyData) => {

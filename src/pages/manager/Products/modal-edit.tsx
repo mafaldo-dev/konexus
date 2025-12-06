@@ -96,20 +96,20 @@ const UpdatedProduct = ({ product, onClose }: Props) => {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
 
         {/* Header */}
-        <div className="px-8 py-6 border-b border-gray-200 bg-gray-50">
+        <div className="px-8 py-6 border-b border-gray-200 bg-slate-800">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 ">
               <div className={`p-2 rounded-lg ${isEditing ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-100 text-blue-600'}`}>
                 {isEditing ? <Edit size={24} /> : <Eye size={24} />}
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">
+                <h2 className="text-2xl font-bold text-white">
                   {isEditing ? 'Editar Produto' : 'Visualizar Produto'}
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-white mt-1">
                   {isEditing ? 'Atualize as informações do produto' : 'Visualize todas as informações do produto'}
                 </p>
               </div>
@@ -122,7 +122,7 @@ const UpdatedProduct = ({ product, onClose }: Props) => {
                   onClick={handleEditToggle}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${isEditing
                     ? 'bg-gray-600 hover:bg-gray-700 text-white'
-                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    : 'bg-white hover:bg-indigo-00 text-black'
                     }`}
                 >
                   {isEditing ? (
@@ -776,7 +776,7 @@ const UpdatedProduct = ({ product, onClose }: Props) => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className={`flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition text-sm ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                    className={`flex items-center gap-2 bg-slate-800 hover:bg-slate-600 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition text-sm ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                   >
                     <Save size={16} />
@@ -787,7 +787,7 @@ const UpdatedProduct = ({ product, onClose }: Props) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition text-sm"
+                  className="px-5 py-2 bg-slate-800 hover:bg-slate-600 text-white font-semibold rounded-lg transition text-sm"
                 >
                   Fechar
                 </button>

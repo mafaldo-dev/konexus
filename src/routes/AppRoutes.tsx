@@ -47,9 +47,6 @@ const AppRoutes = () => {
       {/* AREA DE LOGIN */}
       <Route path="/" element={<LoginPage />} />
 
-
-      {/* PAINEL ADMIN */}
-
       {/* ROTA ÚNICA PARA PEDIDOS - gerencia internamente list/create */}
       <Route path="/sales/orders" element={<PurchaseOrder />} />
       <Route path="/sales/order-list" element={<OrdersList />} />

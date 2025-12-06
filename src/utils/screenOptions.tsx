@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share, Wrench } from "lucide-react";
+import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share, Wrench, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import Swal from 'sweetalert2';
 import { handleNfeById } from "../service/api/Administrador/financial";
+import * as XLSX from 'xlsx';
 
 
 declare global {
@@ -17,13 +18,15 @@ declare global {
 interface DocumentViewerProps {
   order?: any;
   product?: any;
-  documentType?: "purchase_order" | "label_70x30" | "label_100x100" | "separation_list" | "render_os_print_sheet" | "nfe_pdf";
+  report?: any
+  documentType?: "purchase_order" | "label_70x30" | "label_100x100" | "separation_list" | "render_os_print_sheet" | "nfe_pdf" | "render_report_print_sheet" | "relatorio_expedicao" | "relatorio_inventario";
   onClose: () => void;
 }
 
 const DocumentViewer: React.FC<DocumentViewerProps> = ({
   order,
   product,
+  report,
   documentType = "purchase_order",
   onClose
 }) => {
@@ -33,6 +36,116 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+
+
+  const handleExportExcel = () => {
+    try {
+      // Prepara os dados baseado no tipo de relatório
+      const reportTitle = report?.reportType === 'inventory'
+        ? 'Relatório de Inventário'
+        : 'Relatório de Expedição';
+
+      const reportDate = report?.selectedDate
+        ? new Date(report.selectedDate).toLocaleDateString('pt-BR')
+        : new Date().toLocaleDateString('pt-BR');
+
+      // Cabeçalho do relatório
+      const header = [
+        [reportTitle],
+        [`Data: ${reportDate}`],
+        [`Total de Itens: ${report?.reportitems?.length || 0}`],
+        [], // Linha vazia
+      ];
+
+      // Colunas selecionadas
+      const selectedFilters = report?.selectedFilters || [];
+      const allFilters = report?.allFilters || [];
+
+      // Monta o cabeçalho das colunas
+      const columnHeaders = selectedFilters.map((filterKey: string) => {
+        const filter = allFilters.find((f: any) => f.key === filterKey);
+        if (filter) return filter.label;
+        if (filterKey === 'quantity') return 'Quantidade';
+        if (filterKey === 'orderNumber') return 'Nº Pedido';
+        return filterKey;
+      });
+
+      // Adiciona coluna de conferência
+      columnHeaders.push('Conferido');
+
+      // Monta os dados das linhas
+      const dataRows = (report?.reportitems || []).map((item: any) => {
+        const row = selectedFilters.map((key: string) => {
+          const value = item[key];
+
+          // Formata valores especiais
+          if (key === 'stock' || key === 'minimum_stock' || key === 'quantity') {
+            return `${value || 0} un`;
+          }
+
+          return value?.toString() || '—';
+        });
+        row.push('');
+
+        return row;
+      });
+
+      // Combina tudo
+      const worksheetData = [
+        ...header,
+        columnHeaders,
+        ...dataRows,
+      ];
+
+      // Cria a planilha
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+      // Configurações de largura das colunas
+      const colWidths = selectedFilters.map((key: string) => {
+        if (key === 'code') return { wch: 12 };
+        if (key === 'name' || key === 'description') return { wch: 30 };
+        if (key === 'location') return { wch: 15 };
+        if (key === 'orderNumber') return { wch: 12 };
+        return { wch: 15 };
+      });
+      colWidths.push({ wch: 10 }); // Coluna conferido
+      worksheet['!cols'] = colWidths;
+
+      // Mescla células do título
+      worksheet['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: columnHeaders.length - 1 } }, // Título
+        { s: { r: 1, c: 0 }, e: { r: 1, c: columnHeaders.length - 1 } }, // Data
+        { s: { r: 2, c: 0 }, e: { r: 2, c: columnHeaders.length - 1 } }, // Total
+      ];
+
+      // Estiliza o cabeçalho (primeira linha)
+      const titleCell = 'A1';
+      if (!worksheet[titleCell]) worksheet[titleCell] = {};
+      worksheet[titleCell].s = {
+        font: { bold: true, sz: 16 },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: '1E293B' } },
+      };
+
+      // Cria o workbook
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório');
+
+      // Nome do arquivo
+      const fileName = report?.reportType === 'inventory'
+        ? `Inventario_${reportDate.replace(/\//g, '-')}.xlsx`
+        : `Expedicao_${reportDate.replace(/\//g, '-')}.xlsx`;
+
+      // Salva o arquivo
+      XLSX.writeFile(workbook, fileName);
+
+      setIsMenuOpen(false);
+    } catch (error) {
+      console.error('❌ Erro ao exportar Excel:', error);
+      alert('Erro ao exportar para Excel. Tente novamente.');
+    }
+  };
+
 
   useEffect(() => {
     const loadPDF = async () => {
@@ -59,7 +172,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     loadPDF();
 
-    // Cleanup: libera a URL quando o componente desmontar
     return () => {
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
@@ -67,7 +179,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     };
   }, [documentType, product?.nfeId]);
 
-const hasProcessed = useRef(false);
+  const hasProcessed = useRef(false);
   const hasAskedQuantity = useRef(false);
 
   useEffect(() => {
@@ -77,7 +189,7 @@ const hasProcessed = useRef(false);
     hasProcessed.current = true;
 
     if (!product?.orderItems) {
-  
+
       const originalQuantity = product?.quantity || 1;
       setProcessedItems([{ ...product, finalQuantity: originalQuantity }]);
     } else {
@@ -108,7 +220,7 @@ const hasProcessed = useRef(false);
 
         if (originalQuantity > 10) {
           const confirmedQuantity = await confirmQuantity(product, originalQuantity);
-          
+
           if (confirmedQuantity > 0 && confirmedQuantity !== originalQuantity) {
             setProcessedItems([{ ...item, finalQuantity: confirmedQuantity }]);
           }
@@ -122,7 +234,7 @@ const hasProcessed = useRef(false);
 
           if (originalQuantity > 10) {
             const confirmedQuantity = await confirmQuantity(item, originalQuantity);
-            
+
             if (confirmedQuantity > 0) {
               updatedItems.push({ ...item, finalQuantity: confirmedQuantity });
               if (confirmedQuantity !== originalQuantity) {
@@ -147,8 +259,8 @@ const hasProcessed = useRef(false);
   };
 
   const handlePrint = async () => {
-    if (!order && !product) {
-      alert("Nenhum documento disponível para imprimir.");
+    if (!order && !product && !report) {
+      Swal.fire("Atenção","Nenhum documento disponível para imprimir.", "warning");
       return;
     }
 
@@ -204,14 +316,15 @@ const hasProcessed = useRef(false);
   };
 
   const handleGeneratePDF = async () => {
-    if (!order && !product) {
-      alert("Nenhum documento disponível para gerar PDF.");
+    if (!order && !product && !report) {
+      Swal.fire("Atenção", "Nenhum documento disponível para gerar PDF.", "warning");
       return;
     }
 
     const element = document.getElementById('printable-content');
     const wrapper = element?.parentElement;
     const main = wrapper?.parentElement;
+
     if (!element) return;
 
     const originalElementClass = element.className;
@@ -221,7 +334,12 @@ const hasProcessed = useRef(false);
     try {
       const html2pdf = (await import('html2pdf.js')).default;
 
-      if (documentType === "separation_list" || documentType === "purchase_order" || documentType === "render_os_print_sheet") {
+      if (documentType === "separation_list" ||
+        documentType === "purchase_order" ||
+        documentType === "render_os_print_sheet" ||
+        documentType === "render_report_print_sheet" ||
+        documentType === "relatorio_expedicao" ||
+        documentType === "relatorio_inventario") {
         element.className = 'bg-white w-[210mm] min-h-[297mm] mt-32';
       } else if (documentType.includes('label')) {
         element.className = '';
@@ -240,13 +358,28 @@ const hasProcessed = useRef(false);
       await new Promise(resolve => requestAnimationFrame(resolve));
       await new Promise(resolve => requestAnimationFrame(resolve));
 
+      // 🔹 CORREÇÃO: Lógica de filename corrigida
+      let filename = `documento_${Date.now()}.pdf`;
+
+      if (documentType.includes("label")) {
+        filename = `etiqueta_${product?.productcode || "produto"}.pdf`;
+      } else if (documentType === "separation_list") {
+        filename = `lista_separacao_${order?.orderNumber || order?.id}.pdf`;
+      } else if (documentType === "render_report_print_sheet") {
+        if (report?.reportType === 'shipping_report') {
+          filename = `relatorio_expedicao_${report?.selectedDate || Date.now()}.pdf`;
+        } else {
+          filename = `Relatorio_${report?.reportSelected || report?.id}.pdf`;
+        }
+      } else if (documentType === "render_os_print_sheet") {
+        filename = `OS_${order?.ordernumber || order?.id}.pdf`;
+      } else {
+        filename = `pedido_${order?.ordernumber || order?.id}.pdf`;
+      }
+
       const opt = {
         margin: [0, 0, 0, 0] as [number, number, number, number],
-        filename: documentType.includes("label")
-          ? `etiqueta_${product?.productcode || "produto"}.pdf`
-          : documentType === "separation_list"
-            ? `lista_separacao_${order?.orderNumber || order?.id}.pdf`
-            : `pedido_${order?.ordernumber || order?.id}.pdf`,
+        filename: filename, // ✅ Agora é sempre string
         image: { type: "jpeg" as const, quality: 0.99 },
         html2canvas: {
           scale: 2,
@@ -279,6 +412,7 @@ const hasProcessed = useRef(false);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       alert('Erro ao gerar PDF. Tente usar a função de impressão.');
+
       element.className = originalElementClass;
       if (wrapper) {
         wrapper.className = originalWrapperClass;
@@ -1024,11 +1158,419 @@ const hasProcessed = useRef(false);
     </div>
   );
 
+  const renderReportsPrintSheet = () => (
+    <div className="flex flex-col print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
+      <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
+        <div className="flex items-start gap-2">
+          <div className="w-12 h-12 flex items-center justify-center">
+          </div>
+          <div>
+            <h1 className="text-sm font-bold text-gray-900">
+              {company?.name || "Empresa"} - Relatorio personalizado
+            </h1>
+            <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              {company?.email || "guimansystem.comercial@gmail.com"}
+            </p>
+          </div>
+        </div>
+
+        <div className="text-center w-[6vw]">
+          <div className="bg-gray-50 h-[6vh] p-2 rounded border border-gray-200">
+            <p className="text-xs text-gray-500 uppercase">Relatorio</p>
+            <p className="text-xs font-bold text-gray-900 mt-0.5">
+              {report?.selectedId}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-row justify-between border border-gray-200 rounded px-2 py-2 gap-4 mb-4 text-xs">
+        <div className="text-center">
+          <h3 className="font-bold mb-1 text-black">Criada em</h3>
+          <p className="text-black font-medium">
+            {report?.date
+              ? new Date(order.orderdate).toLocaleDateString()
+              : "—"}
+          </p>
+        </div>
+      </div>
+      <div className="border border-gray-200 rounded mb-4 print-break">
+        <table className="w-full print-table text-xs">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="p-2 text-left font-semibold text-gray-700 w-8">✓</th>
+              <th className="p-2 text-left font-semibold text-gray-700">Produto</th>
+              <th className="p-2 text-left font-semibold text-gray-700">Marca</th>
+              <th className="p-2 text-center font-semibold text-gray-700 w-24">Quantidade</th>
+              <th className="p-2 text-center font-semibold text-gray-700 w-32">Localização</th>
+            </tr>
+          </thead>
+          <tbody>
+            {report?.reportitems?.map((item: any, i: number) => (
+              <tr
+                key={i}
+                className={`border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  }`}
+              >
+                <td className="p-2">
+                  <div className="w-4 h-4 border border-gray-400 rounded-sm flex items-center justify-center">
+                    <div className="w-2 h-2 bg-transparent rounded-sm"></div>
+                  </div>
+                </td>
+                <td className="p-2 text-gray-800">{item.productname || "—"}</td>
+                <td className="p-2 text-gray-800">{item.brand}</td>
+                <td className="p-2 text-center">
+                  <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                    {item.quantity || 1}
+                  </span>
+                </td>
+                <td className="p-2 text-center text-gray-700">
+                  {item.location || "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-row justify-between print-signatures mb-4 pt-3 border-t border-gray-200 text-xs mt-auto">
+        {["Executado por", "Conferido por"].map((label, i) => (
+          <div key={i} className="text-center w-full">
+            <p className="text-gray-600 mb-2 font-medium">{label}</p>
+            <div className="border-b border-gray-400 h-6 mb-1 mx-2"></div>
+            <p className="text-gray-500 text-xs">Assinatura</p>
+            <p className="text-gray-400 text-xs mt-0.5">Data: __/__/____</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="text-center text-xs text-gray-500 border-t border-gray-200 pt-2">
+        <p>
+          {company?.name} • {company?.email}
+        </p>
+        <p className="text-xs">
+          Documento gerado em {new Date().toLocaleDateString()} • Konéxus
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderShippingReport = () => (
+    <div className="flex flex-col relative print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
+      <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
+        <div className="flex items-start gap-2">
+          <div className="w-12 h-12 flex items-center justify-center">
+            <img
+              src={company?.companyIcon || "logo"}
+              alt="Logo"
+              className="w-10 h-10 object-contain"
+            />
+          </div>
+          <div>
+            <h1 className="text-sm font-bold text-gray-900">
+              {company?.name || "Empresa"} - Relatório de expedição
+            </h1>
+            <p className="text-xs text-gray-600 font-medium">
+              Itens Expedidos por Data
+            </p>
+            <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              {company?.email || "konexuserp@comercial.com"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-row justify-between border border-gray-200 rounded px-2 py-2 gap-4 mb-4 text-xs">
+        <div className="text-center">
+          <h3 className="font-bold mb-1 text-black">Data de Expedição</h3>
+          <p className="text-black font-medium">
+            {report?.selectedDate
+              ? new Date(report.selectedDate).toLocaleDateString('pt-BR')
+              : "—"}
+          </p>
+        </div>
+
+        <div className="text-center">
+          <h3 className="font-bold mb-1 text-black">Total de Itens</h3>
+          <p className="text-black font-medium">
+            {report?.reportitems?.length || 0} produtos
+          </p>
+        </div>
+
+        <div className="text-center">
+          <h3 className="font-bold mb-1 text-black">Total de Unidades</h3>
+          <p className="text-black font-medium">
+            {report?.reportitems?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0} un
+          </p>
+        </div>
+
+        <div className="text-center">
+          <h3 className="font-bold mb-1 text-black">Gerado em</h3>
+          <p className="text-black font-medium">
+            {new Date().toLocaleDateString('pt-BR')}
+          </p>
+        </div>
+      </div>
+
+      <div className="border border-gray-200 rounded mb-4 print-break">
+        <div className="bg-gray-200 px-3 py-2 flex justify-center">
+          <h3 className="text-black font-semibold text-xs flex items-center gap-1">
+            <Package className="w-3 h-3" />
+            Contagem diaria
+          </h3>
+        </div>
+
+        <table className="w-full print-table text-xs">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="p-2 text-left font-semibold text-gray-700 w-20">Código</th>
+              <th className="p-2 text-left font-semibold text-gray-700">Produto</th>
+              <th className="p-2 text-left font-semibold text-gray-700">Marca</th>
+              <th className="p-2 text-center font-semibold text-gray-700 w-20">Qtd</th>
+              <th className="p-2 text-center font-semibold text-gray-700 w-24">Localização</th>
+              <th className="p-2 text-center font-semibold text-gray-700 w-24">Pedido</th>
+            </tr>
+          </thead>
+          <tbody>
+            {!report?.reportitems || report.reportitems.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="p-4 text-center text-gray-500">
+                  Nenhum item encontrado
+                </td>
+              </tr>
+            ) : (
+              report.reportitems.map((item: any, i: number) => (
+                <tr
+                  key={i}
+                  className={`border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"
+                    }`}
+                >
+                  <td className="p-2 text-gray-800 font-mono">{item.code || "—"}</td>
+                  <td className="p-2 text-gray-800">{item.name || "—"}</td>
+                  <td className="p-2 text-gray-800">{item.brand || "—"}</td>
+                  <td className="p-2 text-center">
+                    <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                      {item.quantity || 0}
+                    </span>
+                  </td>
+                  <td className="p-2 text-center">
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs ${item.location && item.location !== "Não definido"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-amber-100 text-amber-800"
+                      }`}>
+                      {item.location || "—"}
+                    </span>
+                  </td>
+                  <td className="p-2 text-center text-gray-700 font-medium">
+                    {item.orderNumber || "—"}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="text-center absolute bottom-8 flex flex-col self-center text-xs text-gray-500 border-t border-gray-200 pt-2">
+        <p>
+          {company?.name} • {company?.email}
+        </p>
+        <p className="text-xs">
+          Documento gerado em {new Date().toLocaleDateString()} • Konéxus
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderInventoryReport = () => {
+    // Pega os filtros selecionados do report
+    const selectedFilters = report?.selectedFilters || ['code', 'name', 'location', 'stock'];
+    const allFilters = report?.allFilters || [
+      { key: 'code', label: 'Código' },
+      { key: 'name', label: 'Nome' },
+      { key: 'description', label: 'Descrição' },
+      { key: 'brand', label: 'Marca' },
+      { key: 'category', label: 'Categoria' },
+      { key: 'location', label: 'Localização' },
+      { key: 'stock', label: 'Estoque Atual' },
+      { key: 'minimum_stock', label: 'Estoque Mínimo' },
+    ];
+
+    // Função para formatar valores
+    const formatValue = (key: string, value: any) => {
+      if (key === 'stock' || key === 'minimum_stock') {
+        return `${value || 0} un`;
+      }
+      return value?.toString() || '—';
+    };
+
+    // Calcula total de estoque
+    const totalStock = report?.reportitems?.reduce((sum: number, item: any) =>
+      sum + (parseInt(item.stock) || 0), 0) || 0;
+
+    return (
+      <div className="flex flex-col print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
+        {/* Cabeçalho */}
+        <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
+          <div className="flex items-start gap-2">
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img
+                src={company?.companyIcon || "logo"}
+                alt="Logo"
+                className="w-10 h-10 object-contain"
+              />
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-gray-900">
+                {company?.name || "Empresa"} - Relatório de Inventário
+              </h1>
+              <p className="text-xs text-gray-600 font-medium">
+                Contagem de Estoque
+              </p>
+              <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                {company?.email || "konexuserp@comercial.com"}
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center w-[8vw]">
+            <div className="bg-gray-50 h-[6vh] p-2 rounded border border-gray-200">
+              <p className="text-xs text-gray-500 uppercase">Data</p>
+              <p className="text-xs font-bold text-gray-900 mt-0.5">
+                {report?.selectedDate ? new Date(report.selectedDate).toLocaleDateString('pt-BR') : '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Resumo */}
+        <div className="flex flex-row justify-between border border-gray-200 rounded px-2 py-2 gap-4 mb-4 text-xs">
+          <div className="text-center">
+            <h3 className="font-bold mb-1 text-black">Data do Inventário</h3>
+            <p className="text-black font-medium">
+              {report?.selectedDate
+                ? new Date(report.selectedDate).toLocaleDateString('pt-BR')
+                : "—"}
+            </p>
+          </div>
+
+          <div className="text-center">
+            <h3 className="font-bold mb-1 text-black">Total de Produtos</h3>
+            <p className="text-black font-medium">
+              {report?.reportitems?.length || 0} itens
+            </p>
+          </div>
+
+          <div className="text-center">
+            <h3 className="font-bold mb-1 text-black">Total em Estoque</h3>
+            <p className="text-black font-medium">
+              {totalStock} un
+            </p>
+          </div>
+
+          <div className="text-center">
+            <h3 className="font-bold mb-1 text-black">Gerado em</h3>
+            <p className="text-black font-medium">
+              {new Date().toLocaleDateString('pt-BR')}
+            </p>
+          </div>
+        </div>
+
+        {/* Tabela de Produtos - DINÂMICA */}
+        <div className="border relative border-gray-200 rounded mb-4 print-break">
+          <table className="w-full print-table text-xs">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {/* Renderiza colunas dinamicamente baseado nos filtros selecionados */}
+                {selectedFilters.map((filterKey: string) => {
+                  const filter = allFilters.find((f: any) => f.key === filterKey);
+                  return (
+                    <th key={filterKey} className="p-2 text-left font-semibold text-gray-700">
+                      {filter?.label || filterKey}
+                    </th>
+                  );
+                })}
+                {/* Coluna de conferência sempre presente */}
+                <th className="p-2 text-center font-semibold text-gray-700 w-16">
+                  Conferido
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {!report?.reportitems || report.reportitems.length === 0 ? (
+                <tr>
+                  <td colSpan={selectedFilters.length + 1} className="p-4 text-center text-gray-500">
+                    Nenhum item encontrado
+                  </td>
+                </tr>
+              ) : (
+                report.reportitems.map((item: any, i: number) => (
+                  <tr
+                    key={i}
+                    className={`border-b border-gray-100 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"
+                      }`}
+                  >
+                    {/* Renderiza células dinamicamente baseado nos filtros */}
+                    {selectedFilters.map((filterKey: string) => {
+                      const value = item[filterKey];
+                      const isStockField = filterKey === 'stock' || filterKey === 'minimum_stock';
+                      const isLocationField = filterKey === 'location';
+
+                      return (
+                        <td key={filterKey} className="p-2 text-gray-800">
+                          {isStockField ? (
+                            <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                              {formatValue(filterKey, value)}
+                            </span>
+                          ) : isLocationField ? (
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs ${value && value !== "Não definido"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-amber-100 text-amber-800"
+                              }`}>
+                              {value || "—"}
+                            </span>
+                          ) : filterKey === 'code' ? (
+                            <span className="font-mono">{value || "—"}</span>
+                          ) : (
+                            formatValue(filterKey, value)
+                          )}
+                        </td>
+                      );
+                    })}
+                    {/* Coluna de checkbox */}
+                    <td className="p-2 text-center">
+                      <div className="w-4 h-4 border-2 border-gray-400 rounded mx-auto"></div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Rodapé */}
+        <div className="text-center flex flex-col self-center absolute bottom-8 text-xs text-gray-500 border-t border-gray-200 pt-2">
+          <p>
+            {company?.name} • {company?.email}
+          </p>
+          <p className="text-xs">
+            Konéxus
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   const getPageSize = () => {
     if (documentType === "label_70x30") return "size: 70mm 30mm;";
     if (documentType === "label_100x100") return "size: 100mm 100mm;";
     if (documentType === "separation_list") return "size: A4; margin: 25mm;";
     if (documentType === "render_os_print_sheet") return "size: A4; margin: 25mm;";
+    if (documentType === "render_report_print_sheet") return "size: A4; margin: 25mm;"
+    if (documentType === "relatorio_expedicao") return "size: A4; margin: 25mm;"
+    if (documentType === "relatorio_inventario") return "size: A4; margin: 25mm;"
     if (documentType === "nfe_pdf") return "size: A4;";
     return "size: A4;";
   };
@@ -1111,12 +1653,18 @@ const hasProcessed = useRef(false);
               {documentType === "separation_list" && <CheckSquare className="text-white" size={14} />}
               {documentType === "render_os_print_sheet" && <Wrench className="text-white" size={14} />}
               {documentType === "nfe_pdf" && <FileText className="text-white" size={14} />}
+              {documentType === "render_report_print_sheet" && <FileText className="text-white" size={14} />}
+              {documentType === "relatorio_expedicao" && <FileText className="text-white" size={14} />}
+              {documentType === "relatorio_inventario" && <FileText className="text-white" size={14} />}
             </div>
             <div>
               <h1 className="text-white font-semibold text-lg">
                 {documentType === "purchase_order" && "Pedido de Compra"}
                 {documentType === "separation_list" && "Lista de Separação"}
                 {documentType === "render_os_print_sheet" && "Ordens de Serviço"}
+                {documentType === "render_report_print_sheet" && "Relatorios Personalizados"}
+                {documentType === "relatorio_expedicao" && "Relatorio por data"}
+                {documentType === "relatorio_inventario" && "Relatorio Inventario"}
                 {documentType === "nfe_pdf" && "DANFE NF-e"}
                 {documentType.includes("label") && "Etiquetas"}
               </h1>
@@ -1167,18 +1715,30 @@ const hasProcessed = useRef(false);
                       <Printer size={14} />
                       <span>Imprimir Documento</span>
                     </button>
-
                     <button
                       onClick={handleGeneratePDF}
                       className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                      disabled
+                      title="Função indisponivel. Use a impressão direta!"
                     >
                       <FileText size={14} />
                       <span>Gerar PDF</span>
                     </button>
 
+                    {/* NOVO: Exportar para Excel */}
+                    <button
+                      onClick={handleExportExcel}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white transition"
+                    >
+                      <FileSpreadsheet size={14} />
+                      <span>Exportar para Excel</span>
+                    </button>
+
                     <button
                       onClick={handleDownload}
                       className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                      disabled
+                      title="Função indisponivel"
                     >
                       <Download size={14} />
                       <span>Exportar JSON</span>
@@ -1201,7 +1761,6 @@ const hasProcessed = useRef(false);
                       <FileText size={14} />
                       <span>Duplicar Documento</span>
                     </button>
-
                     <button
                       onClick={() => {
                         console.log('Compartilhar documento');
@@ -1230,7 +1789,6 @@ const hasProcessed = useRef(false);
                       <HelpCircle size={14} />
                       <span>Ajuda & Suporte</span>
                     </button>
-
                     <button
                       onClick={onClose}
                       className="w-full flex items-center gap-3 p-3 rounded-lg bg-red-600 hover:bg-red-500 text-white transition"
@@ -1265,6 +1823,9 @@ const hasProcessed = useRef(false);
             {documentType === "purchase_order" && renderPurchaseOrder()}
             {documentType === "separation_list" && renderSeparationList()}
             {documentType === "render_os_print_sheet" && renderOSPrintSheet()}
+            {documentType === "render_report_print_sheet" && renderReportsPrintSheet()}
+            {documentType === "relatorio_expedicao" && renderShippingReport()}
+            {documentType === "relatorio_inventario" && renderInventoryReport()}
             {documentType === "nfe_pdf" && renderNFePDF()}
           </div>
         </main>

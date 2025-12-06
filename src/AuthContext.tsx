@@ -1,53 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiRequest } from "./service/api/api";
 import { handleLoginEmployee, handleLoginAdmin } from "./service/api/login";
 import Swal from "sweetalert2";
+import { shouldShowMenuItem, canAccessSubmenu, filterMenuItems, filterSubmenuItems, menuKeyToModuleKey as mapMenuKeyToModule, canAccessRoute as checkRouteAccess, } from "./utils/moduleMapping";
+import { EmployeeDesignation } from "./service/interfaces";
+import { AuthContextType, UserInfo, CompanyInfo } from "./utils/authContext";
+
 
 export type AccessType = "Full-access" | "Normal";
-
-export interface CompanyInfo {
-  id: number;
-  name: string;
-  cnpj?: string
-  address?: {
-    state: string
-    city: string
-    number: number
-  }
-  email?: string
-  phone?: string
-  companyIcon: string | null;
-  logoUrl?: string | null;
-}
-
-export interface UserInfo {
-  id: string;
-  username: string;
-  role: string;
-  designation: string;
-  active: boolean;
-  access?: AccessType | string;
-  sector?: string;
-  companyId?: number;
-  token?: string
-}
-
-export enum EmployeeDesignation {
-  ADMIN = "Full-access",
-  EMPLOYEE = "Normal"
-}
-
-interface AuthContextType {
-  isAuthenticate: boolean;
-  user: UserInfo | null;
-  company: CompanyInfo | null;
-  token: string | null;
-  loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  hasAccess: (requiredAccess: AccessType | AccessType[]) => boolean;
-}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -55,14 +16,80 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [company, setCompany] = useState<CompanyInfo | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [modules, setModules] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Verifica se tem um módulo específico
+  const hasModule = (moduleKey: string): boolean => {
+    // Se for uma chave de menu (como "financeiro"), converte para module key ("finance")
+    const moduleKeyFromMenu = mapMenuKeyToModule(moduleKey);
+    return modules.includes(moduleKeyFromMenu);
+  };
+
+  // Verifica se o usuário tem um dos cargos permitidos
+  const hasRole = (allowedRoles: string[]): boolean => {
+    if (!user) return false;
+    return allowedRoles.includes(user.role);
+  };
+
+  // Verificação combinada para itens do menu principal
+  const canAccessMenuItem = (menuKey: string, allowedRoles?: string[]): boolean => {
+    // 1. Verifica se o módulo está ativo
+    if (!shouldShowMenuItem(menuKey, modules)) {
+      return false;
+    }
+
+    // 2. Se houver verificação de cargo, verifica
+    if (allowedRoles && allowedRoles.length > 0) {
+      if (!hasRole(allowedRoles)) {
+        return false;
+      }
+    }
+
+    // 3. Caso especial: config só para administradores
+    if (menuKey === 'config' && user?.role !== 'Administrador') {
+      return false;
+    }
+
+    return true;
+  };
+
+  // Verificação para subitens do menu
+  const canAccessSubmenuItem = (path: string, allowedRoles?: string[]): boolean => {
+    if (!user) return false;
+
+    return canAccessSubmenu(path, modules, user.role, allowedRoles);
+  };
+
+  // Filtra um array de itens de menu
+  const filterMenu = <T extends { key: string; access?: string[]; submenu?: any[] }>(
+    items: T[]
+  ): T[] => {
+    if (!user) return [];
+
+    const filteredItems = filterMenuItems(items, modules, user.role);
+
+    // Filtra também os subitens
+    return filteredItems.map(item => ({
+      ...item,
+      submenu: item.submenu ? filterSubmenuItems(item.submenu, modules, user.role) : undefined,
+    }));
+  };
+
+  // Verifica se uma rota pode ser acessada
+  const canAccessRoute = (pathname: string): boolean => {
+    if (!user) return false;
+
+    return checkRouteAccess(pathname, modules, user.role); // ← Usa o nome renomeado
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
       const storedUser = localStorage.getItem("userData");
       const storedCompany = localStorage.getItem("companyData");
       const storedToken = localStorage.getItem("token");
+      const storedModules = localStorage.getItem("companyModules");
 
       if (storedUser && storedToken) {
         try {
@@ -73,12 +100,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (storedCompany) {
             const companyData = JSON.parse(storedCompany);
             setCompany(companyData);
+
+            // Carrega módulos
+            if (storedModules) {
+              const parsedModules = JSON.parse(storedModules);
+              setModules(parsedModules);
+            } else if (companyData.modules) {
+              setModules(companyData.modules);
+              localStorage.setItem("companyModules", JSON.stringify(companyData.modules));
+            }
           }
         } catch (error) {
           console.error("Erro ao ler dados do localStorage:", error);
-          localStorage.removeItem("userData");
-          localStorage.removeItem("companyData");
-          localStorage.removeItem("token");
+          clearLocalStorage();
         }
       }
       setLoading(false);
@@ -96,20 +130,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return requiredAccesses.includes(userAccess);
   };
 
+  const clearLocalStorage = () => {
+    localStorage.removeItem("userData");
+    localStorage.removeItem("companyData");
+    localStorage.removeItem("token");
+    localStorage.removeItem("companyModules");
+  };
+
   const login = async (username: string, password: string) => {
     try {
       let userData: UserInfo | null = null;
       let companyData: CompanyInfo | null = null;
       let authToken: string | null = null;
-      try {
-            if (user?.id) {
-              const tokenFromStorage = localStorage.getItem("token");
-              await apiRequest(`employees/${user.id}/status`, "PUT", { status: true },
-                tokenFromStorage as string);
-            }
-          } catch (error) {
-            console.warn("Erro ao atualizar status no logout:", error);
-          }
+      let companyModules: string[] = [];
 
       try {
         const adminResponse = await handleLoginAdmin(username, password);
@@ -133,18 +166,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               email: adminResponse.user.companyEmail,
               phone: adminResponse.user.companyPhone,
               companyIcon: adminResponse.user.companyIcon || "S/L",
-              cnpj: adminResponse.user.companyCnpj || ""
+              cnpj: adminResponse.user.companyCnpj || "",
+              modules: adminResponse.user.modules || []
             };
+
+            if (adminResponse.user.modules) {
+              companyModules = adminResponse.user.modules;
+            }
           }
 
           authToken = adminResponse.token;
         }
       } catch (adminError: any) {
-        if (adminError.message?.includes("404") || adminError.message?.includes("não encontrado")) {
-          
-        } else {
-         
-        }
+
       }
 
       if (!userData) {
@@ -170,18 +204,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 email: employeeResponse.user.companyEmail,
                 phone: employeeResponse.user.companyPhone,
                 companyIcon: employeeResponse.user.companyIcon || "S/L",
-                cnpj: employeeResponse.user.companyCnpj
+                cnpj: employeeResponse.user.companyCnpj,
+                modules: employeeResponse.user.modules || []
               };
+
+              if (employeeResponse.user.modules) {
+                companyModules = employeeResponse.user.modules;
+              }
             }
 
             authToken = employeeResponse.token;
           }
         } catch (employeeError: any) {
-          if (employeeError.message?.includes("404") || employeeError.message?.includes("não encontrado")) {
-            
-          } else {
-           
-          }
+
         }
       }
 
@@ -189,35 +224,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await Swal.fire("Erro", "Usuário ou senha inválidos", "error");
         return;
       }
+      try {
+        await apiRequest(`employees/${userData.id}/status`, "PUT",
+          { status: 'Ativo' },
+          authToken
+        );
+
+      } catch (statusError) {
+        console.warn("Erro ao atualizar status no login:", statusError);
+
+      }
 
       setUser(userData);
       setCompany(companyData);
       setToken(authToken);
+      setModules(companyModules);
 
       localStorage.setItem("userData", JSON.stringify(userData));
       localStorage.setItem("companyData", JSON.stringify(companyData));
       localStorage.setItem("token", authToken);
+      localStorage.setItem("companyModules", JSON.stringify(companyModules));
 
-      const userSector = userData.sector;
-      const sectorRouteMap: Record<string, string> = {
-        "Administrador": "/dashboard",
-        "Comercial": "/sales/orders",
-        "Estoque": "/sales/order-list",
-        "Gerencia": "/dashboard",
-        "Escritorio": "/financial",
-        "Geral": "/"
-      };
-
-      const route = sectorRouteMap[userSector || ""] || "/";
-      navigate(route);
+      navigate("/dashboard")
 
     } catch (error: any) {
       console.error("❌ Erro inesperado no login:", error);
-
-      localStorage.removeItem("userData");
-      localStorage.removeItem("companyData");
-      localStorage.removeItem("token");
-
+      clearLocalStorage();
       await Swal.fire("Erro", "Ocorreu um erro inesperado ao realizar login", "error");
     }
   };
@@ -226,19 +258,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (user?.id) {
         const tokenFromStorage = localStorage.getItem("token");
-        await apiRequest(`employees/${user.id}/status`, "PUT", { status: 'Inativo' },
+        await apiRequest(`employees/${user.id}/status`, "PUT", { status: 'Ausente' },
           tokenFromStorage as string);
       }
     } catch (error) {
       console.warn("Erro ao atualizar status no logout:", error);
     }
 
+    // Limpa todos os estados
     setUser(null);
     setCompany(null);
-    setToken(null); 
-    localStorage.removeItem("userData");
-    localStorage.removeItem("companyData");
-    localStorage.removeItem("token");
+    setToken(null);
+    setModules([]);
+
+    // Limpa localStorage
+    clearLocalStorage();
+
+    // Redireciona para login
     navigate("/");
   };
 
@@ -253,6 +289,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         logout,
         hasAccess,
+
+        // Módulos
+        modules,
+        hasModule,
+        hasRole,
+        canAccessMenuItem,
+        canAccessSubmenuItem,
+        filterMenu,
+        canAccessRoute,
       }}
     >
       {children}

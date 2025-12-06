@@ -21,9 +21,9 @@ export async function handleAllEmployee(token?: string): Promise<Employee[] | an
   try {
     const response = await apiRequest(`employees/all`, "GET", undefined, token);
     const employee = response.data
-  
+
     if (typeof employee === 'object' && !Array.isArray(employee.data)) {
-      return [employee]
+      return employee
     }
 
   } catch (err) {

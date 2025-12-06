@@ -81,18 +81,6 @@ const CustomersContent = () => {
     loadCustomers()
   }, [])
 
-  {/*
-  const handleDeleteCustomer = async (id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir este cliente?")) {
-      try {
-        await deleteCustomer(id)
-        await loadCustomers() // Recarregar a lista
-      } catch (error) {
-        console.error("Erro ao excluir cliente:", error)
-      }
-    }
-  }
-*/}
   const handleEditCustomer = (customer: Customer) => {
     setCurrentCustomer(customer)
     setOpenEditCustomer(true)
@@ -101,12 +89,12 @@ const CustomersContent = () => {
   const handleCloseEditModal = () => {
     setOpenEditCustomer(false)
     setCurrentCustomer(null)
-    loadCustomers() // Recarregar após edição
+    loadCustomers() 
   }
 
   const handleCloseAddModal = () => {
     setOpenRegister(false)
-    loadCustomers() // Recarregar após adição
+    loadCustomers() 
   }
 
   // ============================================
@@ -174,12 +162,11 @@ const CustomersContent = () => {
       key: 'status',
       header: 'Status',
       render: (customer: Customer) => (
-        <span className="text-sm text-gray-600 flex items-center gap-1">
+        <span title={`${customer.status === "Inativo"? "Cliente inativo" : "Cliente ativo"}`} className="text-sm text-gray-600 flex items-center gap-1">
           <DotIcon
             className={`h-10 w-10 ${customer.status === "Inativo" ? "text-red-600" : "text-green-600"
               }`}
           />
-          {customer.status}
         </span>
       )
     },
@@ -345,19 +332,13 @@ const CustomersContent = () => {
         {/* Modal Adicionar Cliente */}
         {openRegister && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="fixed inset-0 bg-black/50" onClick={() => setOpenRegister(false)} />
+            <div className="fixed inset-0 bg-black/40" />
             <div className="relative bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-6 border-b">
-                <h2 className="text-xl font-semibold text-gray-900">Adicionar Novo Cliente</h2>
-                <button
-                  onClick={() => setOpenRegister(false)}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
               <div className="p-6">
-                <FormAdd onCustomerAdded={handleCloseAddModal} />
+                <FormAdd 
+                  onCustomerAdded={handleCloseAddModal}
+                  onClose={() => setOpenRegister(false)} 
+                />
               </div>
             </div>
           </div>
@@ -366,7 +347,7 @@ const CustomersContent = () => {
         {/* Modal Editar Cliente */}
         {openEditCustomer && currentCustomer && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="fixed inset-0 bg-black/50" onClick={handleCloseEditModal} />
+            <div className="fixed inset-0 bg-black/40" onClick={handleCloseEditModal} />
             <div className="relative bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-6 border-b">
                 <h2 className="text-xl font-semibold text-gray-900">Editar Cliente</h2>

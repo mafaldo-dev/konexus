@@ -1,16 +1,17 @@
 import { SubmitHandler, useForm } from "react-hook-form";
 import { Products } from "../../../service/interfaces";
 import { insertProductComKardex } from "../../../service/api/Administrador/products";
-import { PackagePlus, Save } from "lucide-react";
+import { PackagePlus, Save, X } from "lucide-react";
 import Swal from "sweetalert2";
 import { handleAllSuppliers } from "../../../service/api/Administrador/suppliers/supplier";
 import { useEffect, useState } from "react";
 
 interface FormAddedProps {
   onProductsAdded: () => void;
+  onClose: () => void
 }
 
-const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) => {
+const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded, onClose }: FormAddedProps) => {
   const [supId, setSupId] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"geral" | "fiscal">("geral");
 
@@ -43,52 +44,65 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
   }, []);
 
   return (
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col overflow-y-auto">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
+
+        {/* Header */}
+        <div className="px-8 pt-8 pb-6 border-b  border-gray-200 bg-slate-800">
+          <div className="flex justify-between">
+            <div className="flex flex-col">
+              <h2 className="text-3xl font-bold text-white flex items-center justify-start gap-3">
+                <PackagePlus size={32} className="text-white" />
+                Cadastro de Produto
+              </h2>
+              <p className="text-white text-start mt-2">Preencha todos os campos obrigatórios (*) para emissão de NF-e</p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition -mt-20 -mr-4"
+              aria-label="Fechar"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 px-8">
+          <button
+            type="button"
+            className={`px-6 py-3 font-semibold transition relative ${activeTab === "geral"
+              ? "text-indigo-600"
+              : "text-gray-600 hover:text-indigo-600"
+              }`}
+            onClick={() => setActiveTab("geral")}
+          >
+            Dados Gerais
+            {activeTab === "geral" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></div>
+            )}
+          </button>
+          <button
+            type="button"
+            className={`px-6 py-3 font-semibold transition relative ${activeTab === "fiscal"
+              ? "text-indigo-600"
+              : "text-gray-600 hover:text-indigo-600"
+              }`}
+            onClick={() => setActiveTab("fiscal")}
+          >
+            Dados Fiscais
+            {activeTab === "fiscal" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></div>
+            )}
+          </button>
+        </div>
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="w-full max-w-4xl mx-auto bg-white shadow-lg rounded-2xl border border-gray-200"
+          className="w-full max-w-7xl mx-auto bg-white shadow-lg rounded-2xl border border-gray-200  overflow-y-auto"
         >
-          {/* Header */}
-          <div className="px-8 pt-8 pb-6 border-b  border-gray-200">
-            <h2 className="text-3xl font-bold text-gray-800 flex items-center justify-center gap-3">
-              <PackagePlus size={32} className="text-indigo-600" />
-              Cadastro de Produto
-            </h2>
-            <p className="text-gray-600 text-center mt-2">Preencha todos os campos obrigatórios (*) para emissão de NF-e</p>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200 px-8">
-            <button
-              type="button"
-              className={`px-6 py-3 font-semibold transition relative ${activeTab === "geral"
-                  ? "text-indigo-600"
-                  : "text-gray-600 hover:text-indigo-600"
-                }`}
-              onClick={() => setActiveTab("geral")}
-            >
-              Dados Gerais
-              {activeTab === "geral" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></div>
-              )}
-            </button>
-            <button
-              type="button"
-              className={`px-6 py-3 font-semibold transition relative ${activeTab === "fiscal"
-                  ? "text-indigo-600"
-                  : "text-gray-600 hover:text-indigo-600"
-                }`}
-              onClick={() => setActiveTab("fiscal")}
-            >
-              Dados Fiscais
-              {activeTab === "fiscal" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"></div>
-              )}
-            </button>
-          </div>
-
           {/* Form Content - Fixed Height */}
-          <div className="px-8 py-6" style={{ minHeight: "600px" }}>
+          <div className="flex-1 px-4 py-4" style={{ minHeight: "600px" }}>
             {activeTab === "geral" && (
               <div className="space-y-4">
                 {/* Identificação e Classificação Combinadas */}
@@ -599,7 +613,7 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
               </button>
               <button
                 type="submit"
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-md transition"
+                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-600 text-white font-semibold px-6 py-2.5 rounded-lg shadow-md transition"
               >
                 <Save size={18} />
                 Salvar Produto
@@ -608,6 +622,7 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded }) 
           </div>
         </form>
       </div>
+    </div>
   );
 };
 

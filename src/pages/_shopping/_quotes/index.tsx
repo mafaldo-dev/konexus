@@ -1,4 +1,3 @@
-// --- SEU CÓDIGO ORIGINAL (NÃO ALTEREI NADA AQUI) ---
 import { Eye, Download, MoreVertical, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState } from 'react';
@@ -54,6 +53,7 @@ const getStatusLabel = (status: string): string => {
 export default function QuotationsList({ quotations = [], onUpdate }: QuotationsListProps) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [showViewer, setShowViewer] = useState(false);
+  
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);

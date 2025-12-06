@@ -11,7 +11,7 @@ import ReportProblemChat from './ChatReport';
 import { version } from '../../../version';
 
 export default function Sidebar({ sidebarCollapsed }: any) {
-  const { user } = useAuth();
+  const { user, filterMenu } = useAuth(); // ← Adicionei filterMenu aqui
   const designation = user?.role || "";
   const username = user?.username || "Usuário";
   const userSector = designation;
@@ -25,6 +25,10 @@ export default function Sidebar({ sidebarCollapsed }: any) {
     }
   }, []);
 
+  // ← ADICIONADO: Filtra os itens do menu baseado nos módulos e cargo
+  const filteredMenuItems = filterMenu(menuItems);
+
+  // ← ATUALIZADO: Função simplificada, pois a verificação agora está no MenuItem
   function canAccess(allowed: string[]) {
     const result = allowed.includes(designation);
     return result;
@@ -56,8 +60,13 @@ export default function Sidebar({ sidebarCollapsed }: any) {
 
           <nav className="flex-1 overflow-y-auto py-4">
             <div className="px-3 space-y-1">
-              {menuItems.map((item) => (
-                <MenuItem key={item.key} item={item} sidebarCollapsed={sidebarCollapsed} canAccess={canAccess} />
+              {/* ← ATUALIZADO: Usa os itens filtrados */}
+              {filteredMenuItems.map((item) => (
+                <MenuItem 
+                  key={item.key} 
+                  item={item} 
+                  sidebarCollapsed={sidebarCollapsed} 
+                />
               ))}
             </div>
           </nav>

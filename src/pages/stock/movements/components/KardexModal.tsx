@@ -135,7 +135,7 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                                                     {new Date(entry.movementdate).toLocaleDateString('pt-BR')}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-700">
-                                                    {entry.purchaseordernumber || '-'}
+                                                    {entry.ordernumber || '-'}
                                                 </td>
                                                 <td className="px-1 py-3">
                                                     <div className="flex items-center gap-2">

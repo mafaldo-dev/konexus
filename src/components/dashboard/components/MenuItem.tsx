@@ -1,7 +1,7 @@
-// components/dashboard/components/MenuItem.tsx
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
+import { useAuth } from '../../../AuthContext'; // ← Adicione o useAuth
 
 interface MenuItemProps {
   item: {
@@ -19,29 +19,31 @@ interface MenuItemProps {
     }>;
   };
   sidebarCollapsed: boolean;
-  canAccess: (allowed: string[]) => boolean;
+  // ← REMOVIDO: canAccessMenuItem não é mais necessário como prop
 }
 
-export default function MenuItem({ item, sidebarCollapsed, canAccess }: MenuItemProps) {
+export default function MenuItem({ item, sidebarCollapsed }: MenuItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { canAccessMenuItem, canAccessSubmenuItem } = useAuth(); // ← Usa o AuthContext
 
-  if (item.access && !canAccess(item.access)) {
+  // ← ATUALIZADO: Usa a função do AuthContext
+  if (!canAccessMenuItem(item.key, item.access)) {
     return null; 
   }
 
   const isActive = location.pathname === item.to;
   const hasSubmenu = item.submenu && item.submenu.length > 0;
 
+  // ← ATUALIZADO: Filtra subitens usando a função do AuthContext
   const accessibleSubmenu = item.submenu?.filter(subItem => 
-    !subItem.access || canAccess(subItem.access)
+    canAccessSubmenuItem(subItem.to, subItem.access)
   ) || [];
 
-  const shouldRender = accessibleSubmenu.length > 0 || !hasSubmenu;
-
-    if (!shouldRender) {
-      return null;
-    }
+  // Se tem submenu mas nenhum subitem é acessível, não renderiza
+  if (hasSubmenu && accessibleSubmenu.length === 0) {
+    return null;
+  }
 
   return (
     <div className="mb-1">

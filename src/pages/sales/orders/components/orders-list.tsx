@@ -13,14 +13,16 @@ import Dashboard from "../../../../components/dashboard/Dashboard";
 import DocumentViewer from "../../../../utils/screenOptions";
 import { DynamicTable } from "../../../../utils/Table/DynamicTable";
 import { mapOrderStatus, getStatusColor, getStatusLabel, getStatusTabColor } from "../../../../components/utils/statusLabel";
+import { useConferenceModal } from "../../../../hooks/useConferenceModal";
+import ConferenceModal from "./confereceModal";
 
 type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "cancelled" | "backout" | any
 
 export default function OrderList() {
   const [selectedTab, setSelectedTab] = useState<OrderStatus>("approved");
   const [orders, setOrders] = useState<OrderResponse[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { isModalOpen, selectedOrder, openModal, closeModal } = useConferenceModal();
   const { user, company } = useAuth();
 
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
@@ -35,7 +37,7 @@ export default function OrderList() {
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
         id: order.id,
         orderDate: order.orderDate,
-        orderStatus: mapOrderStatus(order.orderStatus), // Usando função importada
+        orderStatus: mapOrderStatus(order.orderStatus),
         orderNumber: order.orderNumber || `ORD-${order.id}`,
         totalAmount: parseFloat(order.totalAmount) || 0,
         currency: order.currency || "BRL",
@@ -183,39 +185,37 @@ export default function OrderList() {
 
   const getOrdersByStatus = (status: OrderStatus) => orders.filter((order) => order.orderStatus === status);
 
-  const handleConferencia = async (order: OrderResponse) => {
-    const { value: formValues } = await Swal.fire({
-      title: "Realizar Conferência",
-      html: `
-        <div class="grid gap-2 text-left">
-          <label>Pedido: <b>${order.orderNumber}</b></label>
-          <label>Cliente: <b>${order.customer.name}</b></label>
-          <input id="separador" class="swal2-input" placeholder="Nome do Separador">
-          <input id="conferente" class="swal2-input" placeholder="Nome do Conferente">
-          <input id="peso" class="swal2-input" placeholder="Peso total (kg)" type="number" step="0.01">
-          <input id="volumes" class="swal2-input" placeholder="Quantidade de volumes" type="number" value="${order.orderItems.length}">
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonText: "Realizar Conferência",
-      width: '600px',
-      preConfirm: () => {
-        const separador = (document.getElementById("separador") as HTMLInputElement).value;
-        const conferente = (document.getElementById("conferente") as HTMLInputElement).value;
-        const peso = parseFloat((document.getElementById("peso") as HTMLInputElement).value);
-        const volumes = parseInt((document.getElementById("volumes") as HTMLInputElement).value);
-        if (!separador || !conferente || !peso || !volumes) Swal.showValidationMessage("Preencha todos os campos");
-        return { separador, conferente, peso, volumes };
-      }
-    });
+  const handleConfirmConference = async (data: {
+    separador: string;
+    conferente: string;
+    peso: number;
+    volumes: number;
+  }) => {
+    if (!selectedOrder) return;
 
-    if (formValues) {
-      await updateOrderStatusInDb(order.id, "shipped", {
-        totalVolumes: formValues.volumes,
-        totalWeight: formValues.peso
+    setIsLoading(true);
+    try {
+      // Chama sua API
+      await updateOrderStatusInDb(selectedOrder.id, "shipped", {
+        totalVolumes: data.volumes,
+        totalWeight: data.peso
       });
-      Swal.fire("Sucesso!", "Conferência realizada e status atualizado para Enviado.", "success");
+
+      // Feedback de sucesso (pode usar toast ou algo similar)
+      Swal.fire('info', 'Conferência realizada e status atualizado para Enviado!', 'success');
+
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('Erro ao realizar conferência');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleConferencia = (order: OrderResponse) => {
+    console.log(order)
+    openModal(order);
+    console.log(order)
   };
 
   const handleUpdateStatus = async (orderId: string | number, status: OrderStatus, extraData?: any) => {
@@ -233,7 +233,7 @@ export default function OrderList() {
         quantity: item.quantity,
       }))
     };
-    
+
     setSelectedProduct(orderWithLowercase);
     setDocumentType("label_70x30");
     setShowDocumentViewer(true);
@@ -258,52 +258,51 @@ export default function OrderList() {
     setShowDocumentViewer(true);
   };
 
-  // Menu de ação
   const ActionMenu = ({ order }: { order: OrderResponse }) => {
     const options = () => {
       switch (order.orderStatus) {
         case "approved":
           return [
-            { 
-              label: "PDF", 
+            {
+              label: "PDF",
               action: () => {
-                setSelectedOrder(order);
+               // setSelectedOrders(order);
                 setDocumentType("separation_list");
-              } 
+              }
             },
             { label: "Iniciar Separação", action: () => handleUpdateStatus(order.id, "in_progress") },
             { label: "Estornar", action: () => confirmAndUpdateStatus(order.id, "backout", `Deseja estornar o pedido: ${order.orderNumber} ?`) }
           ];
         case "in_progress":
           return [
-            { 
-              label: "PDF", 
+            {
+              label: "PDF",
               action: () => {
-                setSelectedOrder(order);
+                //setSelectedOrder(order);
                 setDocumentType("separation_list");
-              } 
+              }
             },
             { label: "Imprimir Etiquetas", action: () => handlePrintProductLabels(order) },
             { label: "Realizar Conferência", action: () => handleConferencia(order) }
           ];
         case "shipped":
           return [
-            { 
-              label: "PDF", 
+            {
+              label: "PDF",
               action: () => {
-                setSelectedOrder(order);
+               // setSelectedOrders(order);
                 setDocumentType("separation_list");
-              } 
+              }
             },
             { label: "Gerar Etiqueta", action: () => handlePrintOrderLabel(order) }
           ];
         default:
-          return [{ 
-            label: "Lista de Separação", 
+          return [{
+            label: "Lista de Separação",
             action: () => {
-              setSelectedOrder(order);
+              //setSelectedOrders(order);
               setDocumentType("separation_list");
-            } 
+            }
           }];
       }
     };
@@ -435,7 +434,7 @@ export default function OrderList() {
         order={selectedOrder}
         documentType="separation_list"
         onClose={() => {
-          setSelectedOrder(null);
+          closeModal()
           setDocumentType("separation_list");
         }}
       />
@@ -479,11 +478,10 @@ export default function OrderList() {
                   <button
                     key={status}
                     onClick={() => setSelectedTab(status)}
-                    className={`py-4 px-4 font-semibold text-sm transition-all ${
-                      selectedTab === status
-                        ? getStatusTabColor(status)
-                        : "bg-white hover:bg-gray-50 text-gray-600 border-b-2 border-transparent"
-                    }`}
+                    className={`py-4 px-4 font-semibold text-sm transition-all ${selectedTab === status
+                      ? getStatusTabColor(status)
+                      : "bg-white hover:bg-gray-50 text-gray-600 border-b-2 border-transparent"
+                      }`}
                   >
                     <div className="flex items-center justify-center gap-2">
                       <span className="uppercase tracking-wide">{getStatusLabel(status)}</span>
@@ -507,6 +505,16 @@ export default function OrderList() {
           </motion.div>
         </div>
       </div>
+      {
+        selectedOrder && (
+          <ConferenceModal
+            order={selectedOrder}
+            isOpen={isModalOpen}
+            onClose={closeModal}
+            onConfirm={handleConfirmConference}
+          />
+        )
+      }
     </Dashboard>
   );
 }
