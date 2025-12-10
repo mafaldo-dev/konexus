@@ -14,6 +14,7 @@ export interface Customer {
         zip: string;
         state: string
         city_code: string
+        neighborhood: string
         type: 'shipping' | 'billing';
     }
     createdAt: string | any

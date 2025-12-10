@@ -75,6 +75,7 @@ export interface OrderItemResponse {
   unitPrice: number;
   location?: string;
   subtotal: number;
+  codigo_barras: number | any
 }
 
 export interface Address {
@@ -85,6 +86,7 @@ export interface Address {
   zip?: string;
   state?: string
   city_code?: string
+  neighborhood?: string
 }
 
 

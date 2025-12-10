@@ -8,12 +8,10 @@ export const updateDataCompany = async (companyId: any, payload: any): Promise<v
   }
 
   try {
-    console.log("🚀 ENVIANDO PATCH - Payload:", payload);
 
     const hasImage = payload.icon instanceof File || payload.logo instanceof File;
     
     if (hasImage) {
-      console.log("📸 Detectado arquivo de imagem - enviando como FormData");
       
       const formData = new FormData();
       
@@ -35,7 +33,6 @@ export const updateDataCompany = async (companyId: any, payload: any): Promise<v
 
       for (const url of endpoints) {
         try {
-          console.log(`🔄 Tentando endpoint: ${url}`);
           
           // ✅ Adiciona timeout de 10 segundos
           const controller = new AbortController();
@@ -54,7 +51,6 @@ export const updateDataCompany = async (companyId: any, payload: any): Promise<v
 
           if (response.ok) {
             const result = await response.json();
-            console.log("✅ RESPOSTA RECEBIDA (com imagem):", result);
             return result;
           }
           
@@ -70,9 +66,7 @@ export const updateDataCompany = async (companyId: any, payload: any): Promise<v
       // ✅ Se chegou aqui, todos os endpoints falharam
       throw new Error("Não foi possível conectar com nenhum servidor");
 
-    } else {
-      // ✅ Comportamento normal sem imagem
-      console.log("📄 Sem arquivos - enviando como JSON");
+    } else {;
       const response = await apiRequest(
         `admin/companie/${companyId}`,
         "PATCH",
@@ -80,7 +74,6 @@ export const updateDataCompany = async (companyId: any, payload: any): Promise<v
         tkn
       );
 
-      console.log("✅ RESPOSTA RECEBIDA (sem imagem):", response);
       return response;
     }
 

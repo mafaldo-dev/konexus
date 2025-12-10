@@ -1,6 +1,5 @@
 import { apiRequest } from "../../api";
 
-// ✅ ATUALIZADO: Função para atualizar estoque (agora via kardex)
 export const updateProductStock = async (productId: number, stock: number): Promise<any> => {
     try {
         const response = await apiRequest(`products/product/${productId}`, 'PUT', {
@@ -13,7 +12,6 @@ export const updateProductStock = async (productId: number, stock: number): Prom
     }
 };
 
-// ✅ ATUALIZADO: Função para criar movimentação no Kardex
 export const createKardexMovement = async (kardexData: {
     productId: number;
     orderId?: number;
@@ -31,7 +29,6 @@ export const createKardexMovement = async (kardexData: {
     }
 };
 
-// ✅ NOVA: Buscar movimentações do Kardex por produto
 export const getKardexByProduct = async (productId?: string): Promise<any> => {
     const tkn = localStorage.getItem("token")
     try {
@@ -51,11 +48,10 @@ export const getKardexByProduct = async (productId?: string): Promise<any> => {
     }
 };
 
-// ✅ NOVA: Buscar movimentações do Kardex por pedido
+
 export const getKardexByOrder = async (orderId: string): Promise<any> => {
     try {
         const response = await apiRequest(`orders/${orderId}/kardex`, 'GET');
-        console.log(response)
         return response;
     } catch (error) {
         console.error('Erro ao buscar movimentações do pedido:', error);
@@ -63,7 +59,6 @@ export const getKardexByOrder = async (orderId: string): Promise<any> => {
     }
 };
 
-// ✅ CORRIGIDA: Sua função original - agora usando a nova rota
 export const handlekardexMoviment = async (productId?: string): Promise<any> => { 
     const tkn = localStorage.getItem("token")
     try {
@@ -74,8 +69,7 @@ export const handlekardexMoviment = async (productId?: string): Promise<any> => 
             throw new Error("Token não disponibilizado!")
         }
         
-        const response = await apiRequest(`kardex/products/${productId}`, "GET", undefined, tkn as string);   
-        console.log(response)
+        const response = await apiRequest(`kardex/products/${productId}`, "GET", undefined, tkn as string);  
         return response?.movements || [];
     
     } catch (err) {
@@ -84,7 +78,6 @@ export const handlekardexMoviment = async (productId?: string): Promise<any> => 
     }
 };
 
-// ✅ NOVA: Função para processar estoque completo (usada no finalizar pedido)
 export const processInventoryUpdates = async (orderData: {
     orderId: number;
     orderItems: Array<{
@@ -95,7 +88,6 @@ export const processInventoryUpdates = async (orderData: {
     companyId: number;
 }): Promise<any> => {
     try {
-        // Para cada item do pedido, criar movimentação no Kardex
         const kardexPromises = orderData.orderItems.map(item =>
             createKardexMovement({
                 productId: item.productId,

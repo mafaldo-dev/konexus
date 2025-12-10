@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
+import { Products } from '../../service/interfaces';
 
 interface Column<T> {
   key: string;
@@ -21,6 +22,9 @@ interface DynamicTableProps<T> {
   rowClassName?: string | ((item: T, index: number) => string);
   loading?: boolean;
   loadingMessage?: string;
+  handleProductClick?: (product: Products) => void;
+  handleContextMenu?: (e: React.MouseEvent, product: Products) => void;
+  selectedProduct?: T | null;
 }
 
 export function DynamicTable<T extends Record<string, any>>({
@@ -35,13 +39,29 @@ export function DynamicTable<T extends Record<string, any>>({
   rowClassName = "border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50",
   loading = false,
   loadingMessage = "Carregando...",
+  handleProductClick,
+  handleContextMenu,
+  selectedProduct,
 }: DynamicTableProps<T>) {
 
   const getRowClassName = (item: T, index: number): string => {
+    const isSelected = selectedProduct && selectedProduct.id === item.id;
+    
+    // Classes base
+    let baseClass = "";
+    
     if (typeof rowClassName === 'function') {
-      return rowClassName(item, index);
+      baseClass = rowClassName(item, index);
+    } else {
+      baseClass = rowClassName;
     }
-    return rowClassName;
+
+    // Adiciona classes de seleção
+    if (isSelected) {
+      return `${baseClass} bg-blue-50 border-l-4 border-l-blue-500`;
+    }
+
+    return baseClass;
   };
 
   // -------------------------
@@ -110,7 +130,17 @@ export function DynamicTable<T extends Record<string, any>>({
                   <tr
                     key={item.id || index}
                     className={getRowClassName(item, index)}
-                    onClick={() => onRowClick?.(item, index)}
+                    onClick={() => {
+                      if (handleProductClick) {
+                        handleProductClick(item as any);
+                      }
+                      onRowClick?.(item, index);
+                    }}
+                    onContextMenu={(e) => {
+                      if (handleContextMenu) {
+                        handleContextMenu(e, item as any);
+                      }
+                    }}
                     style={{ userSelect: "none" }}
                   >
                     {columns.map((column) => (
@@ -140,19 +170,19 @@ export function DynamicTable<T extends Record<string, any>>({
           <button
             onClick={prevPage}
             disabled={page === 1}
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition-colors"
           >
             Anterior
           </button>
 
-          <span className="text-sm">
-            Página {page} de {totalPages}
+          <span className="text-sm font-medium text-gray-700">
+            Página {page} de {totalPages} • {data.length} itens
           </span>
 
           <button
             onClick={nextPage}
             disabled={page === totalPages}
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition-colors"
           >
             Próxima
           </button>

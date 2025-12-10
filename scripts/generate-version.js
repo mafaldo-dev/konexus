@@ -10,4 +10,3 @@ const targetPath = path.join(__dirname, '../src/version.ts');
 
 fs.writeFileSync(targetPath, content);
 
-console.log(`Version ${version} written to src/version.ts`);

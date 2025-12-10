@@ -224,15 +224,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await Swal.fire("Erro", "Usuário ou senha inválidos", "error");
         return;
       }
+      const tkn = localStorage.getItem("token")
       try {
-        await apiRequest(`employees/${userData.id}/status`, "PUT",
+        const statusResponse = await apiRequest(
+          `employees/${userData.id}/status`,
+          "PUT",
           { status: 'Ativo' },
-          authToken
+          tkn as string
         );
-
       } catch (statusError) {
-        console.warn("Erro ao atualizar status no login:", statusError);
-
+        console.error("❌ ERRO ao atualizar status:", statusError);
+      
       }
 
       setUser(userData);

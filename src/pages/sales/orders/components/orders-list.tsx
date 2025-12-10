@@ -22,7 +22,7 @@ export default function OrderList() {
   const [selectedTab, setSelectedTab] = useState<OrderStatus>("approved");
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { isModalOpen, selectedOrder, openModal, closeModal } = useConferenceModal();
+  const { isModalOpen, selectedOrder, openModal, closeModal, setSelectedOrder } = useConferenceModal();
   const { user, company } = useAuth();
 
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
@@ -85,6 +85,7 @@ export default function OrderList() {
           productName: item.productName || item.productname,
           productCode: item.productCode || item.productcode,
           productBrand: item.productBrand || item.productbrand,
+          codigo_barras: item.codigo_barras || item.codigo_barras,
           quantity: item.quantity,
           unitPrice: parseFloat(item.unitPrice || item.unitprice),
           location: item.location,
@@ -213,9 +214,7 @@ export default function OrderList() {
   };
 
   const handleConferencia = (order: OrderResponse) => {
-    console.log(order)
     openModal(order);
-    console.log(order)
   };
 
   const handleUpdateStatus = async (orderId: string | number, status: OrderStatus, extraData?: any) => {
@@ -230,6 +229,7 @@ export default function OrderList() {
         productname: item.productName,
         productbrand: item.productBrand,
         productlocation: item.location,
+        codigo_barras: item.codigo_barras,
         quantity: item.quantity,
       }))
     };
@@ -266,7 +266,7 @@ export default function OrderList() {
             {
               label: "PDF",
               action: () => {
-               // setSelectedOrders(order);
+                setSelectedOrder(order);
                 setDocumentType("separation_list");
               }
             },
@@ -278,7 +278,7 @@ export default function OrderList() {
             {
               label: "PDF",
               action: () => {
-                //setSelectedOrder(order);
+                setSelectedOrder(order);
                 setDocumentType("separation_list");
               }
             },
@@ -290,7 +290,7 @@ export default function OrderList() {
             {
               label: "PDF",
               action: () => {
-               // setSelectedOrders(order);
+                setSelectedOrder(order);
                 setDocumentType("separation_list");
               }
             },
@@ -300,7 +300,7 @@ export default function OrderList() {
           return [{
             label: "Lista de Separação",
             action: () => {
-              //setSelectedOrders(order);
+              setSelectedOrder(order);
               setDocumentType("separation_list");
             }
           }];

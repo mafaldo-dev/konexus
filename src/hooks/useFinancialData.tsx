@@ -23,7 +23,7 @@ export const useFinancialData = () => {
 
   const getDataAtualBrasil = (): string => {
     const agora = new Date();
-    
+
     const dataBrasil = new Date(agora.toLocaleString('en-US', {
       timeZone: 'America/Sao_Paulo'
     }));
@@ -37,17 +37,14 @@ export const useFinancialData = () => {
 
   const calcularVencimentosHoje = (contas: PaymentAccount[]): number => {
     const hojeBrasil = getDataAtualBrasil();
-    console.log("Data atual no Brasil:", hojeBrasil);
 
     return contas.filter(conta => {
       if (conta.payment_status !== 'pending') return false;
       if (!conta.payment_date) return false;
 
-      console.log(`Comparando: ${conta.payment_date} === ${hojeBrasil}`);
       return conta.payment_date === hojeBrasil;
     }).length;
   };
-
 
   const loadContasReceber = async () => {
     try {
@@ -93,15 +90,13 @@ export const useFinancialData = () => {
 
       if (response && response.data) {
         setContasPagar(response.data);
-        console.log("aqui meu patrao response =>", response.data)
+
 
         const totalPagar = response.data
           .filter(conta => conta.payment_status !== 'paid' && conta.payment_status !== 'cancelled')
           .reduce((sum, conta) => sum + (parseFloat(conta.total_amount || '0')), 0);
-        console.log("aqui meu patrao total a pagar =>", totalPagar)
-        // Agora calcula CORRETAMENTE os vencimentos de hoje
+
         const payment_date = calcularVencimentosHoje(response.data);
-        console.log("aqui meu patrao payment_date =>", payment_date)
 
         setStats(prev => ({
           ...prev,
@@ -119,6 +114,7 @@ export const useFinancialData = () => {
       setIsLoadingContasPagar(false);
     }
   };
+  
   const loadContasPagarByStatus = async (status?: string) => {
     try {
       setIsLoadingContasPagar(true);

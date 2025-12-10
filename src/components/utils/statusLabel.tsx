@@ -35,6 +35,11 @@ export const ORDER_STATUS: any = {
     label: "Estornado", 
     color: "bg-orange-50 text-orange-800 border-orange-200",
     tabColor: "bg-orange-50 text-orange-800 border-b-2 border-orange-500"
+  },
+  received: {
+    label: "Recebido",
+    color: "bg-green-50 text-green-800 border-green-200",
+    tabColor: "bg-green-50 text-green-800 border-b-2 border-green-500"
   }
 };
 

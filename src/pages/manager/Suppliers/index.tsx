@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { deleteSupplier, handleAllSuppliers } from '../../../service/api/Administrador/suppliers/supplier'
+import { handleAllSuppliers } from '../../../service/api/Administrador/suppliers/supplier'
 import { Supplier } from '../../../service/interfaces'
 import Dashboard from '../../../components/dashboard/Dashboard'
 import FormAdd from './Form-add'
@@ -60,15 +60,6 @@ const SearchSuppliers = () => {
         }
         loadSuppliers()
     }, [])
-
-    const handleDeleteSupplier = async (id: string) => {
-        const confirmed = await deleteSupplier(id)
-
-        if (confirmed) {
-            const reload = await handleAllSuppliers()
-            setSuppliers(reload)
-        }
-    }
 
     const handleEditSupplier = (supplier: Supplier) => {
         setCurrentData(supplier)

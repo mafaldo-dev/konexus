@@ -120,6 +120,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
           zip: initialData.shipping?.zip || initialData.billing?.zip || "",
           state: initialData.shipping?.state || initialData.billing?.state || "",
           city_code: initialData.shipping?.city_code || initialData.billing?.city_code || "",
+          neighborhood: initialData.shipping?.neighborhood || initialData.billing?.neighborhood || "",
           type: 'shipping'
         },
         createdAt: new Date().toISOString()

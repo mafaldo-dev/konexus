@@ -6,7 +6,7 @@ export async function getDashboard(token?: string): Promise<Dashboard> {
   
   try {
     const response = await apiRequest("payment/dashboard", "GET", undefined, tkn);
-    console.log(response)
+
     return response.data;
   } catch (error) {
     console.error("Erro ao buscar dashboard:", error);

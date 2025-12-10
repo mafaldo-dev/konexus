@@ -217,32 +217,54 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   // ================ SOCKET.IO =====================
   useEffect(() => {
     if (!authUser?.id || !tkn) {
+      console.warn("ID do usuario ou TOKEN não fornecido")   
       return;
     }
 
-    const socket = io(
-      process.env.REACT_APP_SOCKET_URL,
-      {
-        auth: { token: tkn },
-        transports: ["websocket"],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
+    const getSocketUrl = () => {
+      // Se estiver em desenvolvimento, use local
+      if (process.env.NODE_ENV === 'development') {
+        return process.env.REACT_APP_SOCKET_URL_LOCAL || 'http://localhost:3010';
       }
-    );
+
+      return process.env.REACT_APP_SOCKET_URL;
+    };
+
+    const socketUrl = getSocketUrl();
+
+    const socket = io(socketUrl, {
+      auth: { token: tkn },
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
     socketRef.current = socket;
 
     socket.on('connect', () => {
+
       setIsConnected(true);
+
       if (authUser?.id) {
         socket.emit('user:online', { userId: authUser.id });
       }
+
       fetchUsers().catch(err => console.error('Erro ao carregar usuários após conexão:', err));
     });
 
-    socket.on('disconnect', () => setIsConnected(false));
-    socket.on('connect_error', (error: any) => { console.error('❌ ERRO DE CONEXÃO SOCKET.IO!', error); setIsConnected(false); });
+    socket.on('disconnect', () => {
+      setIsConnected(false);
+    });
 
+    socket.on('connect_error', (error: any) => {
+      console.error('❌❌❌ [FRONTEND] ERRO DE CONEXÃO SOCKET.IO! ❌❌❌');
+      console.error('❌ [FRONTEND] Erro completo:', error);
+      console.error('❌ [FRONTEND] Mensagem:', error.message);
+      console.error('❌ [FRONTEND] Tipo:', error.type);
+      console.error('❌ [FRONTEND] Descrição:', error.description);
+      setIsConnected(false);
+    });
     socket.on('message:receive', (message: Message) => {
       const normalized = { ...message, id: String(message.id), senderId: String((message as any).senderId), recipientId: String((message as any).recipientId) };
       setMessages(prev => [...prev, normalized]);
@@ -254,7 +276,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     });
 
     socket.on('message:sent', (msg) => {
-      console.log('✅ Mensagem confirmada pelo servidor:', msg);
 
       const normalized = {
         ...msg,
@@ -264,7 +285,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       };
 
       setMessages(prev => {
-        // Remove mensagens temporárias deste sender/recipient
         const withoutTemp = prev.filter(m =>
           !m.id.startsWith('temp-') ||
           m.senderId !== normalized.senderId ||
@@ -358,9 +378,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   }, [messages, authUser?.id]);
 
   const sendMessage = useCallback(async (msg: Omit<Message, 'id' | 'timestamp' | 'read'>) => {
+
     const tempMessage: Message = {
       id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       ...msg,
+      senderId: String(msg.senderId),
+      recipientId: String(msg.recipientId),
       timestamp: new Date().toISOString(),
       read: false
     };
@@ -374,18 +397,44 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (socketRef.current?.connected) {
+
         socketRef.current.emit('message:send', {
-          recipientId: msg.recipientId,
+          senderId: String(msg.senderId),
+          senderName: msg.senderName,
+          recipientId: String(msg.recipientId),
           content: msg.content,
-          timestamp: tempMessage.timestamp,
         });
+
       } else {
-        console.warn('⚠️ Socket.IO desconectado. Usando API REST...');
-        await sendMessageAPI({
-          ...msg,
-          timestamp: tempMessage.timestamp,
-          read: false
-        });
+        console.warn('⚠️ [4] Socket DESCONECTADO!');
+
+        try {
+          const sentMessage = await sendMessageAPI({
+            senderId: String(msg.senderId),
+            senderName: msg.senderName,
+            recipientId: String(msg.recipientId),
+            content: msg.content,
+            sector: msg.sector,
+            timestamp: tempMessage.timestamp,
+            read: false
+          });
+
+          setMessages(prev => {
+            const filtered = prev.filter(m => m.id !== tempMessage.id);
+            return [...filtered, {
+              ...sentMessage,
+              id: String(sentMessage.id),
+              senderId: String(sentMessage.senderId),
+              recipientId: String(sentMessage.recipientId),
+            }].sort((a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
+          });
+
+        } catch (apiError) {
+          console.error('❌ [ERROR] Falha ao enviar via API:', apiError);
+          throw apiError;
+        }
       }
 
       dispatchUnreadCounts({
@@ -394,12 +443,15 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       });
 
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      console.error('❌ [ERROR] Erro geral ao enviar mensagem:', error);
 
-      setMessages(prev => prev.filter(m => m.id !== tempMessage.id));
+      // Remove mensagem temporária em caso de erro
+      setMessages(prev => {
+        const filtered = prev.filter(m => m.id !== tempMessage.id);
+        return filtered;
+      });
     }
   }, [setMessages]);
-
   const markMessagesRead = useCallback(async (senderId: string, recipientId: string) => {
     try {
       // local UX update first

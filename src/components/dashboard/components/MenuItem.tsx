@@ -19,15 +19,13 @@ interface MenuItemProps {
     }>;
   };
   sidebarCollapsed: boolean;
-  // ← REMOVIDO: canAccessMenuItem não é mais necessário como prop
 }
 
 export default function MenuItem({ item, sidebarCollapsed }: MenuItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const { canAccessMenuItem, canAccessSubmenuItem } = useAuth(); // ← Usa o AuthContext
+  const { canAccessMenuItem, canAccessSubmenuItem } = useAuth(); 
 
-  // ← ATUALIZADO: Usa a função do AuthContext
   if (!canAccessMenuItem(item.key, item.access)) {
     return null; 
   }
@@ -35,7 +33,6 @@ export default function MenuItem({ item, sidebarCollapsed }: MenuItemProps) {
   const isActive = location.pathname === item.to;
   const hasSubmenu = item.submenu && item.submenu.length > 0;
 
-  // ← ATUALIZADO: Filtra subitens usando a função do AuthContext
   const accessibleSubmenu = item.submenu?.filter(subItem => 
     canAccessSubmenuItem(subItem.to, subItem.access)
   ) || [];

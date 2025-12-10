@@ -95,7 +95,7 @@ export default function PurchaseManagementScreen() {
   const goToRequestTab = () => setActiveTab('request');
 
   const handlePreviewQuotation = (quotation: any) => {
-    console.log("Visualizar pedido:", quotation);
+    console.info("Visualizar pedido:", quotation);
   };
 
   return (

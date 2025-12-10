@@ -30,7 +30,7 @@ function useAutoUpdater() {
         showConfirmButton: false,
         allowOutsideClick: false,
         didOpen: () => {
-          console.log("📥 Iniciando download da atualização...");
+          console.info("📥 Iniciando download da atualização...");
         },
       });
     });
@@ -38,7 +38,7 @@ function useAutoUpdater() {
     ipcRenderer.on("download_progress", (_: any, progressObj: any) => {
       const percent = Math.round(progressObj.percent);
       setProgress(percent);
-      console.log(`📊 Progresso do download: ${percent}%`);
+      console.info(`📊 Progresso do download: ${percent}%`);
 
       if (Swal.isVisible() && downloading) {
         Swal.update({
@@ -58,7 +58,7 @@ function useAutoUpdater() {
     });
 
     ipcRenderer.on("update_downloaded", () => {
-      console.log("✅ Download da atualização concluído");
+      console.info("✅ Download da atualização concluído");
       setDownloading(false);
       setProgress(100);
       
@@ -73,14 +73,14 @@ function useAutoUpdater() {
         cancelButtonColor: "#6c757d",
       }).then((result) => {
         if (result.isConfirmed) {
-          console.log("🔄 Reiniciando aplicação para instalar atualização...");
+          console.info("🔄 Reiniciando aplicação para instalar atualização...");
           ipcRenderer.send("restart_app");
         }
       });
     });
 
     ipcRenderer.on("update_not_available", () => {
-      console.log("ℹ️ Nenhuma atualização disponível");
+      console.info("ℹ️ Nenhuma atualização disponível");
     });
 
     ipcRenderer.on("update_error", (_:any, error: any) => {
@@ -112,18 +112,17 @@ const LoginPage: React.FC = () => {
   const [showAdminSetup, setShowAdminSetup] = useState(false); 
   const { loading, error, handleLogin } = useAuthService();
 
-  // ✅ Agora usando o hook do auto-updater
+
   const { downloading, progress } = useAutoUpdater();
 
   useEffect(() => {
     const isElectron = typeof (window as any).require !== 'undefined';
     
     if (isElectron) {
-      // ✅ No Electron: usa IPC para F1
+   
       const { ipcRenderer } = (window as any).require('electron');
       
       const handleF1Shortcut = () => {
-        console.log("🎯 F1 pressionado - Abrindo login admin");
         setShowAdminLogin(true);
       };
       
@@ -133,11 +132,10 @@ const LoginPage: React.FC = () => {
         ipcRenderer.removeListener('global-shortcut-f1', handleF1Shortcut);
       };
     } else {
-      // ✅ No navegador: usa event listener normal
+
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "F1") {
           e.preventDefault();
-          console.log("🎯 F1 pressionado no navegador - Abrindo login admin");
           setShowAdminLogin(true);
         }
       };

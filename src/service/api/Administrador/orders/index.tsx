@@ -1,73 +1,54 @@
-// ordersApi.ts
 import { apiRequest } from "../../api";
 import { Order, Customer, OrderResponse } from "../../../interfaces";
 
-/**
- * Busca o último orderNumber do backend - CORRIGIDO
- */
+
 export const getLastOrderNumber = async (token?: string): Promise<string> => {
   try {
     const response = await apiRequest("orders/last-number", "GET", undefined, token);
-   // console.log("Resposta do last-number:", response);
+  
     
     if (!response || !response.lastOrderNumber) {
-      return "100"; // Fallback como STRING
+      return "100"; 
     }
-    return response.lastOrderNumber.toString(); // Garantir que seja string
+    return response.lastOrderNumber.toString(); 
   } catch (error) {
     console.error("Erro ao buscar último número do pedido:", error);
-    return "100"; // Fallback como STRING
+    return "100";
   }
 };
 
-/**
- * Gera o próximo orderNumber baseado no último - CORRIGIDO
- */
 export const generateNextOrderNumber = (lastOrderNumber: string): string => {
-  //console.log("Último orderNumber recebido:", lastOrderNumber);
-  
-  // Se for número, converte para string com prefixo P-
+
   if (typeof lastOrderNumber === 'number') {
     return `P-${lastOrderNumber + 1}`;
   }
   
-  // Se for string com prefixo P-
   const match = lastOrderNumber.match(/P-(\d+)/);
   if (match && match[1]) {
     const nextNumber = parseInt(match[1]) + 1;
     return `P-${nextNumber}`;
   }
   
-  // Se for apenas número como string
   if (!isNaN(Number(lastOrderNumber))) {
     return `P-${parseInt(lastOrderNumber) + 1}`;
   }
   
-  // Fallback
   return "P-100";
 };
 
-/**
- * Obtém e gera o próximo orderNumber - CORRIGIDO
- */
 export const getNextOrderNumber = async (token?: string): Promise<string> => {
   try {
     const lastOrderNumber = await getLastOrderNumber(token);
-    //console.log("Último número do backend:", lastOrderNumber);
-    
+   
     const nextOrderNumber = generateNextOrderNumber(lastOrderNumber);
-   // console.log("Próximo número gerado:", nextOrderNumber);
     
     return nextOrderNumber;
   } catch (error) {
     console.error("Erro ao gerar próximo número do pedido:", error);
-    return "P-100"; // Fallback como STRING
-  }
+    return "P-100"; 
 };
 
-/**
- * Busca lista de clientes
- */
+}
 export const getCustomers = async (token?: string): Promise<Customer[]> => {
   try {
     const response = await apiRequest("orders/customers/list", "GET", undefined, token);
@@ -79,9 +60,6 @@ export const getCustomers = async (token?: string): Promise<Customer[]> => {
   }
 };
 
-/**
- * Insere um novo pedido - ATUALIZADO com orderNumber
- */
 export const insertOrder = async (order: Order, token?: string): Promise<any> => {
   try {
     const orderData = {
@@ -109,9 +87,6 @@ export const insertOrder = async (order: Order, token?: string): Promise<any> =>
   }
 };
 
-/**
- * Recupera todos os pedidos - VERSÃO SIMPLIFICADA
- */
 export const handleAllOrders = async (token?: string): Promise<OrderResponse[]> => {
   const tkn = token || localStorage.getItem('token');
   
@@ -119,7 +94,6 @@ export const handleAllOrders = async (token?: string): Promise<OrderResponse[]> 
     const response = await apiRequest("orders/all", "GET", undefined, tkn as string);
 
     const orders = (response as any)?.orders || response || [];
-    console.log(orders)
     
     if (!Array.isArray(orders)) {
       console.warn("Orders não é um array:", orders);
@@ -133,13 +107,10 @@ export const handleAllOrders = async (token?: string): Promise<OrderResponse[]> 
   }
 };
 
-/**
- * Recupera um pedido específico por ID
- */
+
 export const getOrderById = async (orderId: string | number, token?: string): Promise<Order | null> => {
   try {
     const response = await apiRequest(`orders/${orderId}`, "GET", undefined, token);
-    console.log("response direto",response)
     if (!response || !response.order) return null;
     return response.order;
   } catch (error) {
@@ -148,9 +119,6 @@ export const getOrderById = async (orderId: string | number, token?: string): Pr
   }
 };
 
-/**
- * Atualiza o status de um pedido - ATUALIZADO
- */
 export const updateOrderStatus = async (
   orderId: number | string,
   orderStatus: string,
@@ -158,7 +126,7 @@ export const updateOrderStatus = async (
   extraData?: { totalVolumes?: number; totalWeight?: number }
 ): Promise<any> => {
   try {
-    const body = { orderStatus, ...extraData }; // inclui totalVolumes e totalWeight se existirem
+    const body = { orderStatus, ...extraData }; 
     const response = await apiRequest(`orders/${orderId}/status`, "PUT", body, token);
     return response;
   } catch (error) {
@@ -176,7 +144,7 @@ export const handleCancelOrder = async (orderId: number | string, token?: string
     const tkn = token || localStorage.getItem("token");
     const response = await apiRequest(`orders/${orderId}/cancel`, "PATCH", undefined, tkn as string);
     if (response?.message) {
-      console.log("✅ Pedido cancelado com sucesso:", response.message);
+      console.info("✅ Pedido cancelado com sucesso:", response.message);
     }
     return response;
   } catch (error: any) {
@@ -186,9 +154,6 @@ export const handleCancelOrder = async (orderId: number | string, token?: string
 };
 
 
-/**
- * Deleta um pedido
- */
 export const deleteOrder = async (orderId: number | string, token?: string): Promise<boolean> => {
   try {
     const response = await apiRequest(`orders/${orderId}`, "DELETE", undefined, token);
@@ -202,10 +167,7 @@ export const deleteOrder = async (orderId: number | string, token?: string): Pro
 // service/api/Administrador/orders.ts
 export const updateOrder = async (orderId: number, order: Order, token?: string): Promise<any> => {
   try {
-    console.log("📝 [API] Atualizando pedido ID:", orderId);
-    
     const response = await apiRequest(`orders/${orderId}`, "PUT", order, token);
-    console.log("📝 [API] Resposta da atualização:", response);
     
     if (!response) {
       console.error("Erro ao atualizar pedido: resposta inválida");
@@ -221,10 +183,8 @@ export const updateOrder = async (orderId: number, order: Order, token?: string)
 
 export const getOrderForEdit = async (orderId: string, token?: string): Promise<any> => {
   try {
-    console.log("🔍 [API] Buscando pedido para edição ID:", orderId);
     
     const response = await apiRequest(`orders/edit/${orderId}`, "GET", null, token);
-    console.log("🔍 [API] Resposta da busca para edição:", response);
     
     if (!response) {
       console.error("Erro ao buscar pedido para edição: resposta inválida");

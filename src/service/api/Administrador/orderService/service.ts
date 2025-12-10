@@ -10,7 +10,6 @@ export const insertOrderOfService = async (order: OrderService, token?: string):
     };
 
     const response = await apiRequest("service/create", "POST", orderData, token || tkn as string);
-    console.log("response do service api =>",response)
 
     if (!response) {
       console.error("Erro ao criar pedido: resposta inválida");

@@ -19,6 +19,7 @@ export const useConferenceModal = () => {
   return {
     isModalOpen,
     selectedOrder,
+    setSelectedOrder,
     openModal,
     closeModal
   };

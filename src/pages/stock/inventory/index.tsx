@@ -246,7 +246,6 @@ const Inventory: React.FC = () => {
                
             }))
         };
-         console.log("report logs ->",report)
 
         setSelectedReport(report);
         setDocumentType(reportType === 'inventory' ? 'relatorio_inventario' : 'relatorio_expedicao');
@@ -292,7 +291,7 @@ const Inventory: React.FC = () => {
                                 className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold transition flex items-center gap-2 shadow-md"
                             >
                                 <Settings className="w-5 h-5" />
-                                Configurar Relatório
+                                Relatório(s)*
                             </button>
                             
                             {reportType && (
@@ -610,8 +609,8 @@ const Inventory: React.FC = () => {
                     {!reportType && (
                         <div className="bg-white rounded-lg shadow-md p-12 text-center">
                             <Settings className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold text-slate-700 mb-2">Nenhum relatório configurado</h3>
-                            <p className="text-slate-500 mb-6">Clique no botão "Configurar Relatório" para começar</p>
+                            <h3 className="text-xl font-semibold text-slate-700 mb-2">Nenhum relatório selecionado</h3>
+                            <p className="text-slate-500 mb-6">Clique no botão "Relatório" para selecionar o tipo</p>
                         </div>
                     )}
                 </div>

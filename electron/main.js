@@ -1,10 +1,58 @@
-const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, dialog } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
+const fs = require("fs");
 
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
+
+function startNetworkMonitor(win) {
+  const dns = require("dns");
+  let lastOnline = true;
+
+  setInterval(() => {
+    dns.resolve("google.com", (err) => {
+      const online = !err;
+      if (online !== lastOnline) {
+        lastOnline = online;
+        win.webContents.send("network-status", online);
+      }
+    });
+  }, 3000);
+}
+
+// ✅ HANDLER PARA SALVAR EXCEL
+ipcMain.on("save-excel-file", async (event, { fileName, buffer }) => {
+  try {
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Salvar Relatório Excel',
+      defaultPath: path.join(app.getPath('documents'), fileName),
+      filters: [
+        { name: "Arquivos Excel", extensions: ["xlsx"] },
+        { name: "Todos os arquivos", extensions: ["*"] }
+      ],
+    });
+
+    if (canceled || !filePath) {
+      console.warn('❌ Usuário cancelou o salvamento');
+      return;
+    }
+
+    fs.writeFile(filePath, Buffer.from(buffer), (err) => {
+      if (err) {
+        console.error("❌ Erro ao salvar arquivo:", err);
+        event.reply('save-excel-error', err.message);
+      } else {
+        console.info('✅ Arquivo salvo com sucesso:', filePath);
+        event.reply('save-excel-success', filePath);
+      }
+    });
+  } catch (error) {
+    console.error("❌ Erro no dialog:", error);
+    event.reply('save-excel-error', error.message);
+  }
+});
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -14,12 +62,20 @@ function createWindow() {
     minHeight: 768,
     webPreferences: {
       nodeIntegration: true,
+      contextIsolation: false, 
       webSecurity: false,
-      contextIsolation: false,
+      enableRemoteModule: true, 
     },
   });
 
-  // 👇 ADICIONA LISTENER PARA ERROS DE REDE
+  win.webContents.on('did-finish-load', () => {
+    win.webContents.executeJavaScript(`
+      if (typeof window !== 'undefined' && typeof require !== 'undefined') {
+        window.ipcRenderer = require('electron').ipcRenderer;
+      }
+    `);
+  });
+
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     log.error('Failed to load:', errorCode, errorDescription);
   });
@@ -42,13 +98,13 @@ function createWindow() {
 let mainWindow;
 
 app.whenReady().then(() => {
-  // 👇 DESABILITA LIMITAÇÃO DE REQUISIÇÕES HTTP
   app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
   app.commandLine.appendSwitch('disable-site-isolation-trials');
-  
-  mainWindow = createWindow();
 
- const registerShortcuts = () => {
+  mainWindow = createWindow();
+  startNetworkMonitor(mainWindow);
+
+  const registerShortcuts = () => {
     globalShortcut.register('F4', () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('global-shortcut-f4');
@@ -64,7 +120,6 @@ app.whenReady().then(() => {
 
   registerShortcuts();
 
-  // Só roda o autoUpdater em produção
   if (process.env.NODE_ENV !== 'development') {
     autoUpdater.checkForUpdatesAndNotify();
   }
@@ -82,11 +137,10 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
 
-// 👇 ADICIONA HANDLER PARA CERTIFICADOS SSL (caso o Render tenha problema)
 app.on('certificate-error', (event, url, callback) => {
   if (url.startsWith('https://backend-oi68.onrender.com')) {
     event.preventDefault();
-    callback(true); // Aceita o certificado
+    callback(true);
   } else {
     callback(false);
   }
@@ -117,7 +171,7 @@ autoUpdater.on('download-progress', (progressObj) => {
   log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
   log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
   log.info(log_message);
-  
+
   if (mainWindow) {
     mainWindow.webContents.send('download_progress', progressObj);
   }

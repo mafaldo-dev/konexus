@@ -93,7 +93,6 @@ export class FinancialService {
       const response = await getPaymentsByCustomer(id);
 
       const merged = response.combined || [];
-      console.log(merged)
 
       merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 

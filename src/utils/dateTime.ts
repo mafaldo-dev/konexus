@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { format, isValid , parseISO} from "date-fns";
+import { format, isValid, parse } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 
 export const useDateTime = (): string => {
@@ -46,7 +46,7 @@ export const formatPostgresDate = (dateString: string | null | undefined): strin
   try {
     // Remove a parte do timezone se existir
     const cleanDate = dateString.split('+')[0].split('.')[0];
-    const date = parseISO(cleanDate);
+    const date = parse(cleanDate);
     
     return format(date, 'dd/MM/yyyy');
   } catch (error) {
@@ -61,9 +61,9 @@ export const formatPostgresDateTime = (dateString: string | null | undefined): s
   
   try {
     const cleanDate = dateString.split('+')[0].split('.')[0];
-    const date = parseISO(cleanDate);
+    const date = parse(cleanDate);
     
-    return format(date, 'dd/MM/yyyy HH:mm', { locale: ptBR });
+    return format(date, 'dd/MM/yyyy HH:mm');
   } catch (error) {
     console.error('Erro ao formatar data/hora:', error);
     return "Data inválida";
@@ -76,9 +76,9 @@ export const formatPostgresDateLong = (dateString: string | null | undefined): s
   
   try {
     const cleanDate = dateString.split('+')[0].split('.')[0];
-    const date = parseISO(cleanDate);
+    const date = parse(cleanDate);
     
-    return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    return format(date, "dd 'de' MMMM 'de' yyyy");
   } catch (error) {
     console.error('Erro ao formatar data longa:', error);
     return "Data inválida";

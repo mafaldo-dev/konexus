@@ -8,6 +8,8 @@ import {
   getOrderById
 } from '../../../service/api/Administrador/purchaseRequests';
 import DocumentViewer from '../../../utils/screenOptions';
+import { getStatusColor, getStatusLabel, mapOrderStatus, ORDER_STATUS } from '../../../components/utils/statusLabel';
+
 
 interface QuotationsListProps {
   quotations: any[];
@@ -15,59 +17,24 @@ interface QuotationsListProps {
   onUpdate?: () => void;
 }
 
-type OrderStatus = 'pending' | 'approved' | 'in_progress' | 'canceled' | 'received';
+// Lista de opções para o select de status (formato array para Swal)
+const STATUS_OPTIONS = Object.entries(ORDER_STATUS).map(([value, config]: [string, any]) => ({
+  value,
+  label: config.label
+}));
 
-const statusColors: Record<OrderStatus | string, string> = {
-  pending: 'bg-yellow-200 text-yellow-800 border-yellow-400',
-  approved: 'bg-blue-200 text-blue-800 border-blue-400',
-  in_progress: 'bg-purple-200 text-purple-800 border-purple-400',
-  received: 'bg-green-200 text-green-800 border-green-400',
-  canceled: 'bg-red-200 text-red-800 border-red-400'
-};
-
-const statusLabels: Record<OrderStatus | string, string> = {
-  pending: 'Pendente',
-  approved: 'Aprovado',
-  in_progress: 'Em Andamento',
-  received: 'Recebido',
-  canceled: 'Cancelado'
-};
-
-const statusOptions: { value: OrderStatus; label: string; color: string }[] = [
-  { value: 'pending', label: 'Pendente', color: 'text-yellow-600' },
-  { value: 'approved', label: 'Aprovado', color: 'text-blue-600' },
-  { value: 'in_progress', label: 'Em Andamento', color: 'text-purple-600' },
-  { value: 'received', label: 'Recebido', color: 'text-green-600' },
-  { value: 'canceled', label: 'Cancelado', color: 'text-red-600' }
-];
-
-const getStatusColor = (status: string): string => {
-  return statusColors[status as OrderStatus] || 'bg-gray-200 text-gray-800 border-gray-400';
-};
-
-const getStatusLabel = (status: string): string => {
-  return statusLabels[status as OrderStatus] || status || 'Desconhecido';
-};
-
-// --- COMPONENTE COM PAGINAÇÃO ---
 export default function QuotationsList({ quotations = [], onUpdate }: QuotationsListProps) {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [showViewer, setShowViewer] = useState(false);
-  
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
-
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
-  const [documentType, setDocumentType] =
-    useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
-
+  const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   // PAGINAÇÃO
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-
   const totalPages = Math.ceil(quotations.length / itemsPerPage);
-
   const paginatedData = quotations.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -99,13 +66,16 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
       const fullOrder = await getOrderById(order.ordernumber);
       if (!fullOrder) throw new Error('Pedido não encontrado');
 
+      // Normalizar status usando mapOrderStatus
+      const normalizedStatus = mapOrderStatus(fullOrder.orderStatus);
+
       const normalizedOrder = {
         id: fullOrder.id,
         ordernumber: fullOrder.orderNumber,
         suppliername: fullOrder.supplier?.name || '---',
         supplierid: fullOrder.supplierId,
         orderdate: fullOrder.orderDate,
-        orderstatus: fullOrder.orderStatus,
+        orderstatus: normalizedStatus,
         totalcost: fullOrder.totalCost,
         currency: fullOrder.currency || 'BRL',
         notes: fullOrder.notes || 'Nenhuma observação',
@@ -126,7 +96,8 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
           id: fullOrder.supplier?.id,
           name: fullOrder.supplier?.name || '---',
           email: fullOrder.supplier?.email || '---',
-          phone: fullOrder.supplier?.phone || '---'
+          phone: fullOrder.supplier?.phone || '---',
+          cnpj: fullOrder.supplier?.cnpj || '---'
         },
         company: {
           id: fullOrder.requestingCompany?.id,
@@ -156,10 +127,15 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
 
   const handleUpdateStatus = async (order: any) => {
     setOpenMenuId(null);
-    const currentStatus = order.orderstatus;
+    
+    // Normalizar o status atual
+    const currentStatus = mapOrderStatus(order.orderstatus);
 
-    const optionsHtml = statusOptions.map(option =>
-      `<option value="${option.value}" ${option.value === currentStatus ? 'selected' : ''}>${option.label}</option>`
+    // Gerar opções HTML
+    const optionsHtml = STATUS_OPTIONS.map((option) =>
+      `<option value="${option.value}" ${option.value === currentStatus ? 'selected' : ''}>
+        ${option.label}
+      </option>`
     ).join('');
 
     const { value: newStatus, isConfirmed } = await Swal.fire({
@@ -177,57 +153,69 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
       }
     });
 
-    if (isConfirmed) {
+    if (isConfirmed && newStatus) {
       try {
         const payload: UpdateOrderStatusPayload = {
           orderStatus: newStatus,
-          notes: order.notes
+          notes: order.notes || ''
         };
         await updatePurchaseOrder(Number(order.id), payload);
         if (onUpdate) onUpdate();
+        
+        Swal.fire({
+          title: 'Sucesso!',
+          text: 'Status atualizado com sucesso.',
+          icon: 'success',
+          timer: 1500
+        });
       } catch (err) {
         console.error(err);
+        Swal.fire({
+          title: 'Erro!',
+          text: 'Não foi possível atualizar o status.',
+          icon: 'error'
+        });
       }
     }
   };
 
-const handlePrintProductLabels = async (order: any) => {
-  try {
-    Swal.fire({ 
-      title: 'Carregando...', 
-      didOpen: () => Swal.showLoading() 
-    });
+  const handlePrintProductLabels = async (order: any) => {
+    try {
+      Swal.fire({ 
+        title: 'Carregando...', 
+        didOpen: () => Swal.showLoading() 
+      });
 
-    const fullOrder = await getOrderById(order.orderNumber || order.ordernumber);
-    
-    if (!fullOrder || !Array.isArray(fullOrder.orderItems)) {
-      throw new Error('Pedido inválido');
+      const fullOrder = await getOrderById(order.orderNumber || order.ordernumber);
+      
+      if (!fullOrder || !Array.isArray(fullOrder.orderItems)) {
+        throw new Error('Pedido inválido');
+      }
+
+      const orderWithLowercase = {
+        ...fullOrder,
+        orderItems: fullOrder.orderItems.map((item: any) => ({
+          productcode: item.productcode,
+          productname: item.productname,
+          productbrand: item.productbrand,
+          productlocation: item.productlocation,
+          quantity: item.quantity
+        }))
+      };
+
+      Swal.close();
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      setSelectedProduct(orderWithLowercase);
+      setDocumentType("label_70x30");
+      setShowDocumentViewer(true);
+
+    } catch (error) {
+      Swal.close();
+      Swal.fire('Erro', 'Não foi possível carregar os itens.', 'error');
     }
-
-    const orderWithLowercase = {
-      ...fullOrder,
-      orderItems: fullOrder.orderItems.map((item: any) => ({
-        productcode: item.productcode,
-        productname: item.productname,
-        productbrand: item.productbrand,
-        productlocation: item.productlocation,
-        quantity: item.quantity
-      }))
-    };
-
-    Swal.close();
-
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    setSelectedProduct(orderWithLowercase);
-    setDocumentType("label_70x30");
-    setShowDocumentViewer(true);
-
-  } catch (error) {
-    Swal.close();
-    Swal.fire('Erro', 'Não foi possível carregar os itens.', 'error');
-  }
-};
+  };
 
   if (showDocumentViewer) {
     return (
@@ -242,7 +230,6 @@ const handlePrintProductLabels = async (order: any) => {
     );
   }
 
-  // 👉 RENDERIZA TUDO NORMAL (COM PAGINAÇÃO)
   return (
     <>
       <div className="bg-white p-6 rounded shadow space-y-4">
@@ -268,51 +255,70 @@ const handlePrintProductLabels = async (order: any) => {
                 </thead>
 
                 <tbody className="divide-y divide-slate-200">
-                  {paginatedData.map((order) => (
-                    <tr key={order.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3">{order.ordernumber}</td>
-                      <td className="px-4 py-3">{order.suppliername}</td>
-                      <td className="px-4 py-3">{formatDate(order.orderdate)}</td>
-                      <td className="px-4 py-3 text-right">R$ {order.totalcost}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(order.orderstatus)}`}>
-                          {getStatusLabel(order.orderstatus)}
-                        </span>
-                      </td>
+                  {paginatedData.map((order) => {
+                    // Normalizar status para exibição
+                    const normalizedStatus = mapOrderStatus(order.orderstatus);
+                    
+                    return (
+                      <tr key={order.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3">{order.ordernumber}</td>
+                        <td className="px-4 py-3">{order.suppliername}</td>
+                        <td className="px-4 py-3">{formatDate(order.orderdate)}</td>
+                        <td className="px-4 py-3 text-right">R$ {order.totalcost}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(normalizedStatus)}`}>
+                            {getStatusLabel(normalizedStatus)}
+                          </span>
+                        </td>
 
-                      <td className="px-4 py-3 text-center">
-                        <div className="relative">
-                          <button onClick={() => toggleMenu(order.id)} className="p-1.5 rounded-lg">
-                            <MoreVertical size={18} />
-                          </button>
+                        <td className="px-4 py-3 text-center">
+                          <div className="relative">
+                            <button 
+                              onClick={() => toggleMenu(order.id)} 
+                              className="p-1.5 rounded-lg hover:bg-slate-100"
+                            >
+                              <MoreVertical size={18} />
+                            </button>
 
-                          {openMenuId === order.id && (
-                            <>
-                              <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+                            {openMenuId === order.id && (
+                              <>
+                                <div 
+                                  className="fixed inset-0 z-10" 
+                                  onClick={() => setOpenMenuId(null)} 
+                                />
 
-                              <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded py-1 z-20">
-                                <button onClick={() => handlePreview(order)} className="w-full px-4 py-2 text-left flex gap-2">
-                                  <Eye size={16} />
-                                  Visualizar
-                                </button>
+                                <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded py-1 z-20">
+                                  <button 
+                                    onClick={() => handlePreview(order)} 
+                                    className="w-full px-4 py-2 text-left flex gap-2 hover:bg-slate-50"
+                                  >
+                                    <Eye size={16} />
+                                    Visualizar
+                                  </button>
 
-                                <button onClick={() => handleUpdateStatus(order)} className="w-full px-4 py-2 text-left flex gap-2">
-                                  <RefreshCw size={16} />
-                                  Atualizar Status
-                                </button>
+                                  <button 
+                                    onClick={() => handleUpdateStatus(order)} 
+                                    className="w-full px-4 py-2 text-left flex gap-2 hover:bg-slate-50"
+                                  >
+                                    <RefreshCw size={16} />
+                                    Atualizar Status
+                                  </button>
 
-                                <button onClick={() => handlePrintProductLabels(order)} className="w-full px-4 py-2 text-left flex gap-2">
-                                  <Download size={16} />
-                                  Etiquetas
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </td>
-
-                    </tr>
-                  ))}
+                                  <button 
+                                    onClick={() => handlePrintProductLabels(order)} 
+                                    className="w-full px-4 py-2 text-left flex gap-2 hover:bg-slate-50"
+                                  >
+                                    <Download size={16} />
+                                    Etiquetas
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -322,7 +328,7 @@ const handlePrintProductLabels = async (order: any) => {
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => prev - 1)}
-                className="px-3 py-1 bg-slate-200 rounded disabled:opacity-50"
+                className="px-3 py-1 bg-slate-200 rounded disabled:opacity-50 hover:bg-slate-300"
               >
                 Anterior
               </button>
@@ -334,7 +340,7 @@ const handlePrintProductLabels = async (order: any) => {
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => prev + 1)}
-                className="px-3 py-1 bg-slate-200 rounded disabled:opacity-50"
+                className="px-3 py-1 bg-slate-200 rounded disabled:opacity-50 hover:bg-slate-300"
               >
                 Próxima
               </button>

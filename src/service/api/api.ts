@@ -37,14 +37,11 @@ export const apiRequest = async <T = any>(
       const errorText = await response.text();
       console.error('❌ 403 - Acesso negado:', errorText);
 
-      // ✅ Só remove o token se realmente não foi fornecido
       if (errorText.includes('Token não fornecido')) {
         localStorage.removeItem('token');
         localStorage.removeItem('userData');
         throw new Error('Token inválido ou expirado. Faça login novamente.');
       }
-
-      // ✅ Se for erro de módulo, mantém o token e retorna erro específico
       throw new Error('Você não possui acesso a este módulo.');
     }
 

@@ -40,7 +40,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   const handleExportExcel = () => {
     try {
-      // Prepara os dados baseado no tipo de relatório
       const reportTitle = report?.reportType === 'inventory'
         ? 'Relatório de Inventário'
         : 'Relatório de Expedição';
@@ -136,8 +135,20 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         ? `Inventario_${reportDate.replace(/\//g, '-')}.xlsx`
         : `Expedicao_${reportDate.replace(/\//g, '-')}.xlsx`;
 
-      // Salva o arquivo
-      XLSX.writeFile(workbook, fileName);
+      // ✅ DETECÇÃO CORRETA DO ELECTRON
+      const isElectron = !!(
+        typeof window !== 'undefined' &&
+        window.require &&
+        (window as any).ipcRenderer
+      );
+
+      if (isElectron) {
+        const fileBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+        (window as any).ipcRenderer.send("save-excel-file", { fileName, buffer: fileBuffer });
+      } else {
+
+        XLSX.writeFile(workbook, fileName);
+      }
 
       setIsMenuOpen(false);
     } catch (error) {
@@ -145,7 +156,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       alert('Erro ao exportar para Excel. Tente novamente.');
     }
   };
-
 
   useEffect(() => {
     const loadPDF = async () => {
@@ -260,7 +270,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   const handlePrint = async () => {
     if (!order && !product && !report) {
-      Swal.fire("Atenção","Nenhum documento disponível para imprimir.", "warning");
+      Swal.fire("Atenção", "Nenhum documento disponível para imprimir.", "warning");
       return;
     }
 
@@ -451,24 +461,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     return labels[status] || status;
   };
 
-  const generateBarcode = (code: string) => {
-    const barcodeWidth = 4;
-    const barcodeHeight = 60;
-    const bars = code.split('').map((char, i) => {
-      const isBlack = i % 2 === 0;
-      return `<rect x="${i * barcodeWidth}" y="0" width="${barcodeWidth}" height="${barcodeHeight}" fill="${isBlack ? 'black' : 'white'}"/>`;
-    }).join('');
-
-    return `data:image/svg+xml,${encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="${code.length * barcodeWidth}" height="${barcodeHeight}">
-        ${bars}
-      </svg>
-    `)}`;
-  };
-
   const confirmQuantity = async (item: any, originalQuantity: number): Promise<number> => {
     if (originalQuantity <= 10) {
-      console.log(originalQuantity)
       return originalQuantity;
     }
 
@@ -579,35 +573,26 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   const renderLabel70x30 = () => {
     const renderLabels = (item: any, quantity: number) => {
-      const barcodeValue = `${(item?.productname || 'Produto')
-        .replace(/\s+/g, '')
-        .toLowerCase()}-${(item?.productcode || 'PROD001')
-          .replace(/\s+/g, '')
-          .toLowerCase()}-${(item?.productbrand || 'Marca')
-            .replace(/\s+/g, '')
-            .toLowerCase()}-${(item?.productlocation || 'A01')
-              .replace(/\s+/g, '')
-              .toLowerCase()}`;
 
       return Array.from({ length: quantity }, (_, idx) => (
         <div
           key={`${item.productcode}-${idx}`}
           className="bg-white border-2 border-black"
           style={{
-            width: '78mm',
-            height: '36mm',
-            padding: '4mm',
+            width: '85mm',
+            height: '40mm',
+            padding: '2mm',
             boxShadow: "0 0",
             borderRadius: "4px",
           }}
         >
           <div className="flex flex-col h-full justify-between">
-            <div className="text-center font-bold text-md truncate">
+            <div className="text-center font-semibold text-5xl">
               {item?.productcode}
             </div>
-            <div className="flex gap-2 justify-around text-center text-sm font-semibold py-1 truncate">
-              <p className="text-sm">I: {item?.productname}</p>
-              <span className="text-sm">M: {item?.productbrand}</span>
+            <div className="flex flex-col justify-around text-center text-sm font-semibold">
+              <p className="text-xl">I: {item?.productname}</p>
+              <span className="text-xl">M: {item?.productbrand}</span>
             </div>
             <div className="flex items-center justify-between">
               <div
@@ -618,15 +603,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   overflow: 'hidden',
                 }}
               >
-                <img
-                  src={generateBarcode(barcodeValue)}
-                  alt="Código de barras"
-                  style={{
-                    width: '45%',
-                    height: "35px",
-                    objectFit: 'cover',
-                  }}
-                />
+              {/*{item?.codigo_barras || '-'} */}
               </div>
               <div className="inline-flex items-center w-[60px] justify-end">
                 <div className="text-sm font-bold px-2 w-full py-1 bg-gray-100 whitespace-nowrap">
@@ -805,7 +782,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 <strong>Telefone:</strong> {order.supplier?.phone || "---"}
               </p>
               <p>
-                <strong>CNPJ:</strong> {order.suppliercnpj || "---"}
+                <strong>CNPJ:</strong> {order.supplier?.cnpj || "---"}
               </p>
             </div>
           </div>
@@ -1753,7 +1730,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   <div className="space-y-2">
                     <button
                       onClick={() => {
-                        console.log('Duplicar documento');
+                        
                         setIsMenuOpen(false);
                       }}
                       className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
@@ -1763,7 +1740,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                     </button>
                     <button
                       onClick={() => {
-                        console.log('Compartilhar documento');
+                        
                         setIsMenuOpen(false);
                       }}
                       className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
@@ -1781,7 +1758,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   <div className="space-y-2">
                     <button
                       onClick={() => {
-                        console.log('Abrir ajuda');
+                        
                         setIsMenuOpen(false);
                       }}
                       className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"

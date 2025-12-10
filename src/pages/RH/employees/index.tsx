@@ -24,7 +24,6 @@ export default function EmployeeAdministration() {
         active: true,
         status: 'Ativo'
       }
-      console.log(formattedData)
 
       await insertEmployee(formattedData)
       reset()
@@ -133,6 +132,8 @@ export default function EmployeeAdministration() {
                     <option value="Estoquista">Estoquista</option>
                     <option value="Gerente">Gerente</option>
                     <option value="Administrador">Administração</option>
+                    <option value="Compras">Compras</option>
+                    <option value="Encarregado">Encarregado</option>
                   </select>
                   {errors.role && <p className="mt-1 text-sm text-red-600">Função é obrigatória</p>}
                 </div>

@@ -1,9 +1,7 @@
 import { PaymentAccount } from '../../../../service/interfaces/financial/paymentAccounts';
 import { formatCurrency, formatDate } from '../../../../utils/formatters';
-import { PAYMENT_STATUS } from '../../../../utils/financial';
 import { formatPostgresDate } from '../../../../utils/dateTime';
 import { ORDER_STATUS } from '../../../../components/utils/statusLabel';
-import { a } from 'framer-motion/dist/types.d-BJcRxCew';
 
 export const getContasPagarColumns = () => [
   {
@@ -70,7 +68,7 @@ export const getContasPagarColumns = () => [
     key: 'payment_date',
     header: 'Data Pagamento',
     render: (account: PaymentAccount) => (
-      <div className="text-sm">{formatPostgresDate(account.payment_date)}</div>
+      <div className="text-sm">{formatDate(account.payment_date)}</div>
     ),
   },
 ];

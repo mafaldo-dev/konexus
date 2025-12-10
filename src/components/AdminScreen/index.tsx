@@ -89,7 +89,7 @@ const AdministrationScreen = () => {
         const pending = response.filter(o => o.orderStatus === "pending");
         const inProgress = response.filter(o => o.orderStatus === "in_progress");
 
-        const active = employee.filter((e: any) => e.active === true)
+        const active = employee.filter((e: any) => e.status === 'Ativo')
 
         setOrderPending(pending);
         setOrderInProgress(inProgress);
@@ -175,7 +175,6 @@ const AdministrationScreen = () => {
     }
   ]);
 
-  // Função para buscar dados do tempo
   const fetchWeather = async () => {
     try {
       setWeather(prev => ({ ...prev, loading: true }));
@@ -212,7 +211,6 @@ const AdministrationScreen = () => {
     }
   };
 
-  // Retorna descrição e ícone baseado no código do tempo
   const getWeatherInfo = (code: number) => {
     if (code === 0) return { desc: 'Céu limpo', icon: Sun, color: 'text-yellow-500' };
     if (code <= 3) return { desc: 'Parcialmente nublado', icon: Cloud, color: 'text-gray-500' };

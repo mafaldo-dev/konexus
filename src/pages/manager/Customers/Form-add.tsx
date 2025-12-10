@@ -262,6 +262,21 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded, o
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
                                     <MapPin size={16} className="text-gray-500" />
+                                    Bairro *
+                                </label>
+                                <input
+                                    type="text"
+                                    {...register("address.neighborhood", { required: "Bairro obrigatória" })}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
+                                    placeholder="Ex: Vila japão"
+                                />
+                                {errors.address?.neighborhood && <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                                    <span>⚠</span> {errors.address.neighborhood?.message}
+                                </p>}
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <MapPin size={16} className="text-gray-500" />
                                     Cidade *
                                 </label>
                                 <input

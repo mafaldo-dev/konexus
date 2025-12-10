@@ -54,7 +54,6 @@ const AdminSetupModal = ({ onClose }: { onClose: () => void }) => {
       };
 
       const response = await createCompanyAdmin(companyData);
-      console.log("teste aqui ->",response)
 
       if (response?.id) {
         Swal.fire("Sucesso", "Admin e empresa criados com sucesso!", "success");

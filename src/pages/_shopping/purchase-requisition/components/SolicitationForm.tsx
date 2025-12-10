@@ -2,6 +2,7 @@ import { useState } from "react";
 import Swal from "sweetalert2";
 import { Supplier } from "../../../../service/interfaces";
 import { usePurchaseOrder } from "../../../../hooks/_manager/usePurchaseOrder";
+import { useAuth } from '../../../../AuthContext'
 
 interface Props {
   supplierData: Supplier[];
@@ -16,6 +17,10 @@ export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoa
   const [currency, setCurrency] = useState("BRL");
   const [notes, setNotes] = useState("");
   const [buyer, setBuyer] = useState("");
+
+  const { user } = useAuth()
+
+  const isAllowed = user?.role === "Compras" && user?.sector === "Comercial";
 
   const {
     orderItems,
@@ -35,8 +40,9 @@ export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoa
     clearOrder,
   } = usePurchaseOrder();
 
+
   const handleSubmit = async () => {
-    if (!supplierId || orderItems.length === 0 || !buyer) {
+    if (!supplierId || orderItems.length === 0) {
       Swal.fire("Atenção!", "Preencha fornecedor, produtos e comprador.", "info");
       return;
     }
@@ -45,30 +51,27 @@ export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoa
       orderNumber,
       supplierId,
       orderItems: orderItems.map(item => ({
-        productId: item.productId,    
-        quantity: item.quantity,       
-        coast: item.coast              
+        productId: item.productId,
+        quantity: item.quantity,
+        coast: item.coast
       })),
-      totalCost: calculateTotal(),     
-      currency,                        
-      notes,                           
+      totalCost: calculateTotal(),
+      currency,
+      notes,
       orderDate: `${orderDate} 00:00:00`,
-      orderStatus: "pending",          
-      buyer                            
+      orderStatus: "pending",
+      buyer: user?.username
     };
-
-    console.log("📤 Payload enviado:", payload);
 
     try {
       const result = await onSubmitOrder(payload);
-      console.log("Log do result",result)
       Swal.fire("Sucesso!", "Pedido criado com sucesso!", "success");
-      
+
       clearOrder();
       setOrderNumber("");
       setNotes("");
       setSupplierId("");
-      setBuyer(""); 
+      setBuyer("");
     } catch (err) {
       console.error("❌ Erro ao criar pedido:", err);
       Swal.fire("Erro!", "Falha ao criar pedido.", "error");
@@ -98,11 +101,15 @@ export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoa
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-600 mb-1">Comprador *</label>
         <input
+          className="px-2 p-1 rounded-sm"
           type="text"
-          placeholder="Nome do comprador"
-          value={buyer}
-          onChange={(e) => setBuyer(e.target.value)}
-          className="border rounded-lg w-full p-2"
+          value={isAllowed ? user.username : "Função não permitida"}
+          readOnly={!isAllowed}
+          style={{
+            backgroundColor: isAllowed ? '#e1e1e1' : '#f0f0f0',
+            color: isAllowed ? 'black' : '#999',
+            cursor: isAllowed ? 'text' : 'not-allowed'
+          }}
         />
       </div>
 
@@ -274,7 +281,7 @@ export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoa
 
       <button
         onClick={handleSubmit}
-        disabled={isLoading || !supplierId || orderItems.length === 0 || !buyer || !orderNumber}
+        disabled={isLoading || !supplierId || orderItems.length === 0 || !user?.username || !orderNumber}
         className="bg-blue-700 text-white px-5 py-3 rounded-lg hover:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed w-full font-semibold"
       >
         {isLoading ? 'Criando Pedido...' : 'Criar Pedido de Compra'}

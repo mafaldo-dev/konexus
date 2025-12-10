@@ -29,7 +29,6 @@ export const useInvoiceProductsManagement = () => {
 
     try {
       const product = await handleProductWithCode(productCode);
-      console.log("chamada da funçao => ", product)
       
       if (product) {
         setSelectedProduct(product as ProductData);

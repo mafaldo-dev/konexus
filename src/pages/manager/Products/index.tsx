@@ -1,12 +1,17 @@
-import { useState, useEffect } from "react";
-import { Products } from "../../../service/interfaces";
+import { useState, useEffect, useCallback } from "react";
+import { Movement, Products } from "../../../service/interfaces";
 import { handleAllProducts } from "../../../service/api/Administrador/products";
 import Dashboard from "../../../components/dashboard/Dashboard";
 import UpdadtedProduct from "./modal-edit";
 import FormAdd from "./Form-add";
 import { DynamicTable } from "../../../utils/Table/DynamicTable";
 import { useAuth } from '../../../AuthContext'
-import { Filter, MapPin, EyeIcon } from "lucide-react";
+import { Filter, MapPin, MoreVertical } from "lucide-react";
+import KardexModal from "../../stock/movements/components/KardexModal";
+import { ContextMenuPosition } from "../../stock/movements/movementsType";
+import { handlekardexMoviment } from "../../../service/api/Administrador/kardex";
+import ContextMenu from "../../stock/movements/components/ContextMenu";
+import LocationModal from "../../stock/movements/components/LocationModal";
 
 const SearchProducts = () => {
   const [openRegister, setOpenRegister] = useState<boolean>(false);
@@ -15,7 +20,124 @@ const SearchProducts = () => {
   const [items, setItem] = useState<Products[]>([]);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [currentData, setCurrentData] = useState<Products | null>(null)
+
+  const [kardexProduct, setKardexProduct] = useState<Products | null>(null);
+  const [kardexMovements, setKardexMovements] = useState<Movement[]>([]);
+  const [showKardexModal, setShowKardexModal] = useState(false);
+  const [loadingKardex, setLoadingKardex] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
+
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationProduct, setLocationProduct] = useState<Products | null>(null);
+
+  const [contextMenu, setContextMenu] = useState<{
+    show: boolean;
+    position: ContextMenuPosition;
+    product: Products | null;
+  }>({
+    show: false,
+    position: { x: 0, y: 0 },
+    product: null,
+  });
+
   const { user } = useAuth()
+
+  // Verificar se usuário tem permissão para ver o menu
+  const hasMenuPermission = user?.role && [
+    "Administrador",
+    "Encarregado",
+    "Gestor",
+    "Conferente",
+    "Estoque"
+  ].includes(user.role);
+
+  const openKardexModal = useCallback(async (product: Products) => {
+    setLoadingKardex(true);
+    try {
+      const movements = await handlekardexMoviment(product.id);
+      setKardexProduct(product);
+      setKardexMovements(movements);
+      setShowKardexModal(true);
+    } catch (error) {
+      console.error("Erro ao buscar Kardex", error);
+    } finally {
+      setLoadingKardex(false);
+    }
+  }, []);
+
+  const handleContextMenu = (e: React.MouseEvent, product: Products) => {
+    e.preventDefault();
+    
+    if (!hasMenuPermission) return;
+
+    setSelectedProduct(product);
+
+    setContextMenu({
+      show: true,
+      position: { x: e.clientX, y: e.clientY },
+      product,
+    });
+  };
+
+  const handleProductClick = (product: Products) => {
+    setSelectedProduct(product);
+    setContextMenu({ show: false, position: { x: 0, y: 0 }, product: null });
+  };
+
+  const handleContextMenuAction = (action: string) => {
+    const product = contextMenu.product;
+    if (!product) return;
+
+    switch (action) {
+      case "edit":
+        handleEditProduct(product);
+        break;
+      case "kardex":
+        openKardexModal(product);
+        break;
+      case "photo":
+        alert(`Visualizar foto de: ${product.name}`);
+        break;
+      case "address":
+        setLocationProduct(product);
+        setShowLocationModal(true);
+        break;
+      case "report":
+        alert(`Gerando relatório para: ${product.name}`);
+        break;
+    }
+    setContextMenu({ show: false, position: { x: 0, y: 0 }, product: null });
+  };
+
+  useEffect(() => {
+    const isElectron = typeof (window as any).require !== 'undefined';
+
+    if (isElectron) {
+      const { ipcRenderer } = (window as any).require('electron');
+
+      const handleF4Shortcut = () => {
+        if (selectedProduct && hasMenuPermission) {
+          openKardexModal(selectedProduct);
+        }
+      };
+
+      ipcRenderer.on('global-shortcut-f4', handleF4Shortcut);
+
+      return () => {
+        ipcRenderer.removeListener('global-shortcut-f4', handleF4Shortcut);
+      };
+    } else {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "F4" && selectedProduct && hasMenuPermission) {
+          e.preventDefault();
+          openKardexModal(selectedProduct);
+        }
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [selectedProduct, openKardexModal, hasMenuPermission]);
 
   const [filters, setFilters] = useState({
     code: "",
@@ -77,7 +199,6 @@ const SearchProducts = () => {
   const handleCloseEditModal = async () => {
     setOpenEdit(false)
     const reload = await handleAllProducts()
-    console.log("console do reload do component pai =>", reload)
     setItem(reload)
   }
 
@@ -111,7 +232,6 @@ const SearchProducts = () => {
       header: 'Marca',
       className: "px-4 py-2 text-[12px] text-gray-700",
     },
-
     {
       key: 'supplier_name',
       header: 'Fornecedor',
@@ -155,16 +275,18 @@ const SearchProducts = () => {
       header: 'Ações',
       render: (product: any) => (
         <div className="flex gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation(); // Previne o click da linha
-              handleEditProduct(product);
-            }}
-            title="Ver informações"
-            className="p-1 px-4 hover:scale-110 transition-transform"
-          >
-            <EyeIcon className="h-4 text-green-500" />
-          </button>
+          {hasMenuPermission && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleContextMenu(e, product);
+              }}
+              title="Menu de opções"
+              className="p-2  hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <MoreVertical className="h-4 w-4 text-gray-600" />
+            </button>
+          )}
         </div>
       ),
     },
@@ -179,6 +301,15 @@ const SearchProducts = () => {
           <div className="max-w-screen mx-auto">
             <div className="mb-8 flex justify-between items-center">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestão de Produtos</h1>
+              {/* Indicador de produto selecionado */}
+              {selectedProduct && hasMenuPermission && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+                  <p className="text-xs text-blue-600 font-medium">
+                    Selecionado: <span className="font-bold">{selectedProduct.name}</span>
+                    <span className="text-blue-400 ml-2">(Pressione F4 para Kardex)</span>
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Filtros */}
@@ -277,14 +408,15 @@ const SearchProducts = () => {
                 </div>
               )}
             </div>
-
-            {/* TABELA DINÂMICA - SUBSTITUI TODO O HTML ANTIGO */}
             <DynamicTable
               data={filteredProducts}
               columns={columns}
               loading={loading}
+              handleProductClick={handleProductClick}
+              handleContextMenu={handleContextMenu}
               emptyMessage="Nenhum produto encontrado"
               emptyDescription="Tente ajustar os filtros de busca"
+              selectedProduct={selectedProduct}
             />
           </div>
         )}
@@ -303,13 +435,13 @@ const SearchProducts = () => {
                 &times;
               </button>
               <div className="relative">
-                <FormAdd 
+                <FormAdd
                   onClose={() => setOpenRegister(false)}
                   onProductsAdded={async () => {
-                  const reload = await handleAllProducts()
-                  setItem(reload)
-                  setOpenRegister(false)
-                }}
+                    const reload = await handleAllProducts()
+                    setItem(reload)
+                    setOpenRegister(false)
+                  }}
                 />
               </div>
             </div>
@@ -325,6 +457,35 @@ const SearchProducts = () => {
           </div>
         </>
       )}
+
+      {/* Context Menu - Só renderiza se tiver permissão */}     
+        {hasMenuPermission && (
+          <ContextMenu
+            show={contextMenu.show}
+            position={contextMenu.position}
+            product={contextMenu.product}
+            handleContextMenuAction={handleContextMenuAction}
+            closeContextMenu={() => setContextMenu({ show: false, position: { x: 0, y: 0 }, product: null })}
+          />
+        )}
+      {/* Kardex Modal */}
+      <KardexModal
+        show={showKardexModal}
+        closeModal={() => setShowKardexModal(false)}
+        product={kardexProduct}
+        movements={kardexMovements}
+        loading={loadingKardex}
+      />
+
+      {/* Location Modal */}
+      <LocationModal
+        show={showLocationModal}
+        product={locationProduct}
+        onClose={() => {
+          setShowLocationModal(false);
+          setLocationProduct(null);
+        }}
+      />
     </Dashboard>
   );
 };

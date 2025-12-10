@@ -8,7 +8,6 @@ export default async function invoiceEntries(invoice: InvoiceDataEntries) {
       ...invoice,
       date: new Date(),
     })
-    console.log(response)
 
     return response
   } catch (error: any) {
