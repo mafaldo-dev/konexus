@@ -1,8 +1,8 @@
 import { apiRequest } from "../../api";
-import { OpportunityData, Opportunity } from "../../../interfaces";
+
 
 // Criar oportunidade
-export async function createOpportunity(opportunityData: OpportunityData): Promise<Opportunity> {
+export async function createOpportunity(opportunityData: any){
   try {
     const body = {
       ...opportunityData,
@@ -18,7 +18,7 @@ export async function createOpportunity(opportunityData: OpportunityData): Promi
 }
 
 // Buscar todas oportunidades
-export async function getAllOpportunities(): Promise<Opportunity[]> {
+export async function getAllOpportunities() {
   try {
     const opportunities = await apiRequest("/opportunities", "GET");
     return opportunities;

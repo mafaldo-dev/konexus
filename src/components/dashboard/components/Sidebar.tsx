@@ -11,7 +11,7 @@ import ReportProblemChat from './ChatReport';
 import { version } from '../../../version';
 
 export default function Sidebar({ sidebarCollapsed }: any) {
-  const { user, filterMenu } = useAuth(); // ← Adicionei filterMenu aqui
+  const { user, filterMenu } = useAuth();
   const designation = user?.role || "";
   const username = user?.username || "Usuário";
   const userSector = designation;
@@ -25,14 +25,8 @@ export default function Sidebar({ sidebarCollapsed }: any) {
     }
   }, []);
 
-  // ← ADICIONADO: Filtra os itens do menu baseado nos módulos e cargo
   const filteredMenuItems = filterMenu(menuItems);
 
-  // ← ATUALIZADO: Função simplificada, pois a verificação agora está no MenuItem
-  function canAccess(allowed: string[]) {
-    const result = allowed.includes(designation);
-    return result;
-  }
   
   // Salvar mensagens no localStorage
   const handleSendMessage = (msg: any) => {
@@ -60,7 +54,6 @@ export default function Sidebar({ sidebarCollapsed }: any) {
 
           <nav className="flex-1 overflow-y-auto py-4">
             <div className="px-3 space-y-1">
-              {/* ← ATUALIZADO: Usa os itens filtrados */}
               {filteredMenuItems.map((item) => (
                 <MenuItem 
                   key={item.key} 

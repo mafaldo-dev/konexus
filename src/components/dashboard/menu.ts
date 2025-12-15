@@ -19,7 +19,7 @@ export const menuItems = [
         { title: 'Clientes', to: '/manager/customer', icon: Users, access: ['Administrador', 'Vendedor','Conferente', 'Gestor', 'Gerente', 'Financeiro', 'Encarregado'] },
         { title: 'Fornecedores', to: '/manager/suppliers', icon: Truck, access: ['Administrador', 'Vendedor','Conferente', 'Gestor', 'Compras', 'Gerente', 'Financeiro', 'Encarregado']},
         { title: 'Categorias', to: '/manager/categories', icon: Target, access: ['Administrador','Gestor','Gerente', 'Compras', 'Financeiro', 'Encarregado'] },
-        { title: 'Orders de serviço', to: '/manager/services', icon: Archive, access: ['Administrador', 'Gestor', 'Compras', 'Gerente', 'Encarregado']}
+        
       ]
     },
     {
@@ -48,9 +48,9 @@ export const menuItems = [
       icon: Warehouse,
       access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Compras', 'Gerente', 'Financeiro', 'Encarregado'],
       submenu: [
-        { title: 'Inventário', to: '/stock/inventory', icon: Package, access: ['Administrador', 'Conferente', 'Estoquista', 'Gestor', 'Gerente', 'Encarregado'] }, 
+        { title: 'Relatorios', to: '/stock/inventory', icon: Package, access: ['Administrador', 'Conferente', 'Estoquista', 'Gestor', 'Gerente', 'Encarregado'] }, 
         { title: 'Alertas de Estoque', to: '/shopping/purchase-order', icon: AlertTriangle, access: ['Administrador', 'Conferente', 'Estoquista', 'Gestor', 'Compras', 'Gerente', 'Encarregado']},
-        { title: 'Relatórios', to: '/sales/reports', icon: BarChart3, access: ['Administrador', 'Vendedor', 'Conferente',  'Gestor', 'Gerente', 'Encarregado'] }
+        { title: 'Orders de serviço', to: '/manager/services', icon: Archive, access: ['Administrador', 'Gestor', 'Compras', 'Gerente', 'Encarregado']}
       ]
     },
     {
@@ -59,11 +59,8 @@ export const menuItems = [
       icon: DollarSign,
       access: ['Administrador','Vendedor','Conferente', 'Estoquista', 'Gestor', 'Compras', 'Gerente', 'Financeiro', 'Encarregado'],
       submenu: [
-        { title: 'Finanças', to: '/financer/financial', icon: CreditCard, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro', 'Encarregado'] },
-        { title: 'Metas', to: '/sales/goals', icon: Target, access: ['Administrador', 'Gestor', 'Financeiro', 'Gerente'] },
-        { title: "NF-e", to: '/financial/order-nfe', icon: FileTextIcon, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro']},
-        { title: 'Vendas Realizadas', to: '/sales/completed', icon: TrendingUp, access: ['Administrador', 'Gestor', 'Gerente'] },
-        { title: 'Comissões', to: '/sales/comissions', icon: DollarSign, access: ['Administrador',' Gestor', 'Financeiro', 'Gerente']},
+        { title: 'Dashboard', to: '/financer/financial', icon: CreditCard, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro', 'Encarregado'] },
+        { title: "NF-e", to: '/financial/order-nfe', icon: FileTextIcon, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro']}
       ]
     },
     {
@@ -72,12 +69,8 @@ export const menuItems = [
       icon: UserCheck,
       access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Compras', 'Gerente', 'Financeiro', 'Encarregado'],
       submenu: [
-        { title: 'Funcionários', to: '/rh/employee', icon: Users, access: ['Administrador', 'Gestor', 'Financeiro', 'Encarregado']},
-        { title: 'Cargos e Salários', to: '/rh/infos', icon: Award, access: ['Administrador', 'Gestor', 'Gerente','Financeiro', 'Encarregado']},
+        { title: 'Colaboradores', to: '/rh/employee', icon: Users, access: ['Administrador', 'Gestor', 'Financeiro', 'Encarregado']},
         { title: 'Folha de Pagamento', to: '/rh/folha', icon: Calculator, access: ['Administrador', 'Gestor', 'Gerente','Financeiro', 'Encarregado']},
-        { title: 'Ponto Eletrônico', to: '/rh/ponto', icon: Clock, access: ['Administrador', 'Gestor', 'Gerente','Financeiro', 'Encarregado'] },
-        { title: 'Férias', to: '/rh/ferias', icon: Calendar, access: ['Administrador', 'Gestor', 'Gerente','Financeiro', 'Encarregado'] },
-        { title: 'Benefícios', to: '/rh/beneficios', icon: Award, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro', 'Encarregado'] },
         { title: 'Treinamentos', to: '/rh/treinamentos', icon: Target, access: ['Administrador', 'Vendedor', 'Gestor', 'Gerente','Financeiro', 'Encarregado'] }
       ],
 
@@ -88,7 +81,9 @@ export const menuItems = [
       icon: Users,
       access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Compras', 'Gerente', 'Financeiro'],
       submenu: [
-        { title: 'Dashboard', to: '/crm/dashboard', icon: BarChart3, access: ['Administrador', 'Vendedor', 'Gestor', 'Gerente', 'Financeiro']},]
+        { title: 'Dashboard', to: '/crm', icon: BarChart3, access: ['Administrador', 'Vendedor', 'Gestor', 'Gerente', 'Financeiro']},
+        { title: 'Metas', to: '/sales/goals', icon: Target, access: ['Administrador', 'Gestor', 'Financeiro', 'Gerente'] }
+      ]
     },
     {
       key: 'config',
@@ -100,7 +95,6 @@ export const menuItems = [
         { title: 'Parâmetros do Sistema', to: '/config/system', icon: Database, access: ['Administrador'] },
         { title: 'Notificações', to: '/config/notifications', icon: Bell, access: ['Administrador'] },
         { title: 'Segurança', to: '/config/security-area', icon: Shield, access: ['Administrador'] },
-        { title: 'Backup', to: '/config/backup', icon: Database, access: ['Administrador'] },
         { title: 'Ajustes', to: '/dashboard', icon: Settings, access: ['Administrador'] },
       ]
     }

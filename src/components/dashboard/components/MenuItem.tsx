@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
-import { useAuth } from '../../../AuthContext'; // ← Adicione o useAuth
+import { useAuth } from '../../../AuthContext';
 
 interface MenuItemProps {
   item: {
@@ -37,16 +37,13 @@ export default function MenuItem({ item, sidebarCollapsed }: MenuItemProps) {
     canAccessSubmenuItem(subItem.to, subItem.access)
   ) || [];
 
-  // Se tem submenu mas nenhum subitem é acessível, não renderiza
   if (hasSubmenu && accessibleSubmenu.length === 0) {
     return null;
   }
 
   return (
     <div className="mb-1">
-      {/* Item Principal */}
       {hasSubmenu ? (
-        // Item com submenu
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors hover:bg-slate-800 ${
@@ -62,7 +59,6 @@ export default function MenuItem({ item, sidebarCollapsed }: MenuItemProps) {
           )}
         </button>
       ) : (
-        // Item simples (link)
         <Link
           to={item.to || '#'}
           className={`flex items-center gap-3 p-3 rounded-lg transition-colors hover:bg-slate-800 ${
