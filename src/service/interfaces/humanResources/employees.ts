@@ -1,14 +1,18 @@
 export enum EmployeeDesignation {
     ADMIN = "Full-access",
-    EMPLOYEE = "Normal"
+    EMPLOYEE = "Normal",
+    MANAGER = 'Administrador'
 }
 export enum EmployeeFunction {
     SELLER = "Vendedor",
     RECEIVER = "Conferente",
     STOCKIST = "Estoquista",
     MANAGER = "Gerente",
-    ADMIN = "Administração"
+    ADMIN = "Administração",
+    BUYER = "Comprador",
+    FINANCIAL = "Financeiro"
 }
+
 export enum EmployeeSector {
     COMERCIAL = "Comercial",
     ESTOQUE = "Estoque",
@@ -25,4 +29,6 @@ export interface Employee {
     active: boolean
     status: string | any
     sector: EmployeeSector
+    avatar?: string | any
+    email?: string
 }

@@ -3,6 +3,7 @@ import { Shield, Save, Building2, Upload } from 'lucide-react';
 import Dashboard from '../../../components/dashboard/Dashboard';
 import { useAuth } from '../../../AuthContext';
 import { updateDataCompany } from '../../../service/api/Administrador/configs';
+import BackupSecurityPage from './backup';
 
 interface PasswordPolicy {
   minLength: number;
@@ -34,7 +35,6 @@ export default function AdminSettingsPage() {
     requireSpecialChars: false,
   });
 
-  //const [ipBlockList, setIpBlockList] = useState('203.0.113.1\n198.51.100.2');
   const [isLoading, setIsLoading] = useState(false);
   const [showSnackbar, setShowSnackbar] = useState(false);
 
@@ -243,6 +243,9 @@ export default function AdminSettingsPage() {
               </button>
             </div>
           </div>
+        )}
+        {activeTab === 'security' && (
+          <BackupSecurityPage />
         )}
 
         {/* Snackbar */}

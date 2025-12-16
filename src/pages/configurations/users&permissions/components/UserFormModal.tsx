@@ -10,6 +10,7 @@ interface UserFormModalProps {
   onClose: () => void;
   onSave: (user: Employee) => void;
   user: Employee | null;
+  isCreating?: boolean
 }
 
 const UserFormModal: React.FC<UserFormModalProps> = ({
