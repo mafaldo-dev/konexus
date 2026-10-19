@@ -1,6 +1,6 @@
 // hooks/useProductManagement.ts
 import { useState, useEffect, useRef } from "react";
-import { Products } from "../service/interfaces";
+import { Products } from "../types";
 
 export function useProductManagement(initialProducts: Products[]) {
   const [products] = useState<Products[]>(initialProducts);

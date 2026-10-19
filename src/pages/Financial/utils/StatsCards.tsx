@@ -1,7 +1,7 @@
 import React from 'react';
 import {  Calendar, DollarSign, Package } from 'lucide-react';
 import { Card, CardContent } from '../../../components/dashboard/components/ui/Card';
-import { FinancialStats } from '../../../service/interfaces/financial/paymentAccounts';
+import { FinancialStats } from '../../../types/financial/paymentAccounts';
 import { formatCurrency } from '../../../utils/formatters';
 
 

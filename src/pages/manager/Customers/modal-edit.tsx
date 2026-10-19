@@ -1,7 +1,7 @@
 import { useForm, SubmitHandler } from 'react-hook-form'
-import { Customer } from '../../../service/interfaces'
+import { Customer } from '../../../types'
 import { useEffect } from 'react'
-import { updateCustomer } from '../../../service/api/Administrador/customer/clients'
+import { updateCustomer } from '../../../services/customerService'
 import Swal from 'sweetalert2'
 import { MapPin, User, Mail, Phone, Hash, Map, Save, X } from 'lucide-react'
 import { maskCpfCnpj, maskPhone, maskZipCode } from '../../../utils/masks'
@@ -39,10 +39,11 @@ const UpdatedCustomer = ({ customer, onClose }: Props) => {
         if (!customer?.id) return
 
         try {
-            await updateCustomer(customer.id, {
+            const response = await updateCustomer(customer.id, {
                 ...data,
                 updatedAt: new Date()
             })
+            if (!response.ok) throw new Error(response.error || "Erro ao atualizar")
             Swal.fire('Sucesso', 'Informações atualizadas com sucesso!', 'success')
             onClose()
         } catch (error) {

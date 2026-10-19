@@ -1,7 +1,7 @@
 import React from 'react';
 import { MoreVertical } from 'lucide-react';
 import { FinancialService } from '../../service/financialService';
-import { OrderResponse } from '../../../../service/interfaces';
+import { OrderResponse } from '../../../../types';
 import { RECEIVABLE_STATUS } from '../../../../utils/financial';
 import { formatCurrency, formatDate } from '../../../../utils/formatters';
 import { ORDER_STATUS } from '../../../../components/utils/statusLabel';

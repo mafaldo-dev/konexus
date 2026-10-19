@@ -1,6 +1,10 @@
 import { useEffect, useState, useMemo } from "react"
-import { handleAllCustomers } from "../../../service/api/Administrador/customer/clients"
-import { Customer } from "../../../service/interfaces"
+import {
+  listCustomers,
+  getCustomerById,
+  deleteCustomer,
+} from "../../../services/customerService";
+import { Customer } from "../../../types"
 import Dashboard from "../../../components/dashboard/Dashboard"
 import FormAdd from './Form-add'
 import EditForm from './modal-edit'
@@ -68,8 +72,12 @@ const CustomersContent = () => {
   const loadCustomers = async () => {
     try {
       setLoading(true)
-      const clients = await handleAllCustomers()
-      setCustomers(clients)
+      const response = await listCustomers()
+      if (response.ok && response.data) {
+        setCustomers(response.data.data || [])
+      } else {
+        console.error(response.error || "Erro ao recuperar clientes.")
+      }
     } catch (error) {
       console.error("Erro ao recuperar dados dos clientes:", error)
     } finally {

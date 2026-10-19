@@ -1,5 +1,5 @@
 import { Package, CheckCircle } from 'lucide-react';
-import { Products } from '../../../../service/interfaces';
+import { Products } from '../../../../types';
 import { useState, useEffect } from 'react';
 
 interface ProductsTableProps {

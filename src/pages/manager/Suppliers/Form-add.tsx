@@ -1,7 +1,7 @@
 import { useForm, SubmitHandler } from "react-hook-form"
 
-import { Supplier } from "../../../service/interfaces"
-import { insertSupplier } from "../../../service/api/Administrador/suppliers/supplier"
+import { Supplier } from "../../../types"
+import { createSupplier } from "../../../services/supplierService"
 import Swal from "sweetalert2"
 import { maskCpfCnpj, maskPhone } from "../../../utils/masks"
 import { User2Icon, UserIcon, X } from "lucide-react"
@@ -22,7 +22,8 @@ const FormRegisterSupplier: React.FC<FormAddProps> = ({ onSupplierAdded, onClose
                 createdAt: new Date(),
                 updatedAt: new Date(),
             }
-            await insertSupplier(supplierData)
+            const response = await createSupplier(supplierData)
+            if (!response.ok) throw new Error(response.error || "Erro ao criar fornecedor")
             reset()
             onSupplierAdded()
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MapPin, X, Edit2, Save, Package } from 'lucide-react';
-import { Products } from '../../../../service/interfaces';
-import { handleAllProducts, updateProduct } from '../../../../service/api/Administrador/products';
+import { Products } from '../../../../types';
+import { listProducts, updateProduct } from '../../../../services/productService';
 import { useAuth } from '../../../../AuthContext'
 import Swal from 'sweetalert2';
 

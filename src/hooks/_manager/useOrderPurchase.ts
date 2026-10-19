@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { getOrderById } from "../../service/api/Administrador/purchaseRequests";
-import { PurchaseOrder } from "../../service/interfaces";
+import { getPurchaseOrderByNumber } from "../../services/purchaseService";
+import { PurchaseOrder } from "../../types";
 
 export const useOrderSearch = (setValue: any) => {
   const [orderByCode, setOrderByCode] = useState<string>("");
@@ -16,7 +16,8 @@ export const useOrderSearch = (setValue: any) => {
 
     try {
         setIsLoading(true);
-        const orderData = await getOrderById(orderByCode);
+        const response = await getPurchaseOrderByNumber(orderByCode);
+        const orderData = (response.ok && response.data) ? response.data : null;
 
       if (orderData && orderData.id) {
           setOrder(orderData);

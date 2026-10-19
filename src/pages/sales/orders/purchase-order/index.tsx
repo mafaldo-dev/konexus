@@ -8,8 +8,8 @@ import { motion } from "framer-motion";
 import { format, isValid } from "date-fns";
 
 import Dashboard from "../../../../components/dashboard/Dashboard";
-import { handleAllOrders, handleCancelOrder } from "../../../../service/api/Administrador/orders";
-import { OrderResponse } from "../../../../service/interfaces";
+import { listOrders, cancelOrder } from "../../../../services/orderService";
+import { OrderResponse } from "../../../../types";
 import Swal from "sweetalert2";
 import DocumentViewer from "../../../../utils/screenOptions";
 import { DynamicTable } from "../../../../utils/Table/DynamicTable";
@@ -43,7 +43,8 @@ export default function OrdersPage() {
   const loadOrders = async () => {
     try {
       setIsLoading(true);
-      const fetchedOrders = await handleAllOrders();
+      const response = await listOrders();
+      const fetchedOrders = (response.ok && response.data) ? response.data : [];
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
         id: order.id,
         orderDate: order.orderDate,
@@ -173,11 +174,11 @@ export default function OrdersPage() {
 
     try {
       setIsLoading(true);
-      const response = await handleCancelOrder(order.id);
+      const response = await cancelOrder(order.id);
 
       await Swal.fire({
         title: "Sucesso!",
-        text: response.message || "Pedido cancelado com sucesso!",
+        text: (response.ok && response.data?.message) || "Pedido cancelado com sucesso!",
         icon: "success",
         confirmButtonText: "OK"
       });

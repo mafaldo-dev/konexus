@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Supplier } from "../../../../service/interfaces";
+import { Supplier } from "../../../../types";
 import { useDebounce } from '../../../../hooks/utils/useDebounce';
 
 interface SupplierFilterProps {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FileText, FileArchive, ExternalLink, Download, Eye, MoreVertical, TrendingUp, CheckCircle, XCircle } from "lucide-react";
 import { DynamicTable } from "../../utils/Table/DynamicTable";
-import { handleNfeAllDate, handleNfeById } from "../../service/api/Administrador/financial";
+import { listNfe, downloadDanfe } from "../../services/nfeService";
 import Dashboard from "../../components/dashboard/Dashboard";
 import DocumentViewer from "../../utils/screenOptions";
 import { motion } from "framer-motion";
@@ -37,8 +37,8 @@ export default function NfeList() {
     const loadNotas = async () => {
         try {
             setLoading(true);
-            const response = await handleNfeAllDate();
-            setNotas(response);
+            const response = await listNfe();
+            setNotas((response.ok && response.data?.notas) || []);
         } catch (err) {
             console.error("Erro ao carregar NFs:", err);
         } finally {
@@ -143,7 +143,9 @@ export default function NfeList() {
                                 className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 flex items-center gap-3 text-gray-700 transition-colors"
                                 onClick={async () => {
                                     try {
-                                        const pdfUrl = await handleNfeById(item.id);
+                                        const resp = await downloadDanfe(item.id);
+                                        const pdfUrl = (resp.ok && resp.data) ? URL.createObjectURL(resp.data) : null;
+                                        if (!pdfUrl) throw new Error("Erro ao obter DANFE");
                                         window.open(pdfUrl, "_blank");
                                         setTimeout(() => URL.revokeObjectURL(pdfUrl), 10000);
                                     } catch (error) {
@@ -161,7 +163,9 @@ export default function NfeList() {
                                 className="w-full px-4 py-2.5 text-left text-sm hover:bg-slate-50 flex items-center gap-3 text-gray-700 transition-colors border-t border-gray-100"
                                 onClick={async () => {
                                     try {
-                                        const pdfUrl = await handleNfeById(item.id);
+                                        const resp = await downloadDanfe(item.id);
+                                        const pdfUrl = (resp.ok && resp.data) ? URL.createObjectURL(resp.data) : null;
+                                        if (!pdfUrl) throw new Error("Erro ao obter DANFE");
                                         const link = document.createElement('a');
                                         link.href = pdfUrl;
                                         link.download = `DANFE-${item.numero}.pdf`;

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { OrderResponse } from '../../service/interfaces';
-import { handleAllOrders } from '../../service/api/Administrador/orders';
+import { OrderResponse, listOrders } from '../../services/orderService';
 
 
 interface UseOrdersResult {
@@ -19,7 +18,8 @@ export const useOrders = (): UseOrdersResult => {
     setIsLoading(true);
     setError(null);
     try {
-      const fetchedOrders = await handleAllOrders();
+      const response = await listOrders();
+      const fetchedOrders = (response.ok && response.data) ? response.data : [];
       setOrders(fetchedOrders);
     } catch (err) {
       console.error('Error fetching orders:', err);

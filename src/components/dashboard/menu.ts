@@ -86,6 +86,14 @@ export const menuItems = [
       ]
     },
     {
+      key: 'planos',
+      title: 'Planos e Módulos',
+      icon: CreditCard,
+      href: '/planos',
+      to: '/planos',
+      access: ['Administrador', 'Financeiro', 'Conferente', 'Estoquista', 'Vendedor', 'Encarregado', 'Compras', 'Gestor', 'Gerente']
+    },
+    {
       key: 'config',
       title: 'Configurações',
       icon: Settings,

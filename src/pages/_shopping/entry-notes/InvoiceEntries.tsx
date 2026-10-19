@@ -1,9 +1,9 @@
 import { SubmitHandler, useForm } from 'react-hook-form';
-import invoiceEntries from '../../../service/api/Administrador/invoices';
+import { createInvoice, InvoiceData } from '../../../services/invoiceService';
 import Dashboard from '../../../components/dashboard/Dashboard';
 import SupplierSearchForm from './components/SupplierSearchForm';
 import { useEffect, useState } from 'react';
-import { InvoiceDataEntries, OrderResponse, PurchaseOrder } from '../../../service/interfaces';
+import { InvoiceDataEntries, OrderResponse, PurchaseOrder } from '../../../types';
 import { useOrderSearch } from '../../../hooks/_manager/useOrderPurchase';
 import InvoiceProductTable from './components/invoiceTable';
 import Swal from 'sweetalert2';
@@ -45,7 +45,8 @@ const InvoiceEntries = () => {
                 status: 'Pendente'
             };
 
-            await invoiceEntries(invoiceData)
+            const response = await createInvoice(invoiceData as unknown as InvoiceData);
+            if (!response.ok) throw new Error(response.error || "Erro ao criar nota fiscal");
 
             Swal.fire("Sucesso!", "Nota fiscal salva com sucesso!", "success");
             reset()

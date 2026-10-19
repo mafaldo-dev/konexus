@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../../AuthContext';
 import { useChat, User } from '../../../ChatContext';
-import { fetchConversationAPI } from '../../../service/api/chat';
+import { getConversation } from '../../../services/messageService';
 
 export default function FloatingChat() {
   const { user: authUser } = useAuth();
@@ -46,7 +46,8 @@ export default function FloatingChat() {
     setIsLoading(true);
 
     try {
-      const conv = await fetchConversationAPI(String(authUser.id), String(user.id));
+      const response = await getConversation(String(authUser.id), String(user.id));
+      const conv = (response.ok && response.data) ? response.data : [];
 
       const normalized = conv.map((m: any) => ({
         id: String(m.id),

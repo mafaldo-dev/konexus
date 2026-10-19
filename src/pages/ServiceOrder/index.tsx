@@ -5,8 +5,13 @@ import { CreateOSModal } from './createOS';
 import { NotificationBadge } from './NotificationBagde';
 import Dashboard from '../../components/dashboard/Dashboard';
 import { useAuth } from '../../AuthContext';
-import { OrderService } from '../../service/interfaces/stock/service';
-import { insertOrderOfService, handleAllOrderServices, handleOrderServiceById, handleUpdateOrderServiceStatus } from '../../service/api/Administrador/orderService/service';
+import { OrderService } from '../../types/stock/service';
+import {
+  createServiceOrder,
+  listServiceOrders,
+  getServiceOrderById,
+  updateServiceOrderStatus,
+} from '../../services/serviceOrderService';
 import { format } from 'date-fns';
 import { normalizeOrderService, normalizeOrderServices, prepareOrderServiceForSubmit } from './parseItensOrder';
 import { DynamicTable } from '../../utils/Table/DynamicTable';
@@ -145,12 +150,8 @@ const OSSystem: React.FC = () => {
   const fetchAllOrders = async () => {
     try {
       setLoadingOrders(true);
-      const response = await handleAllOrderServices();
-      let data: any[] = [];
-
-      if (Array.isArray(response)) {
-        data = Array.isArray(response[0]) ? response[0] : response;
-      }
+      const response = await listServiceOrders();
+      let data: any[] = (response.ok && response.data) ? response.data : [];
 
       const normalized = normalizeOrderServices(data);
       const sorted = normalized.sort((a, b) => {
@@ -209,10 +210,10 @@ const OSSystem: React.FC = () => {
       };
      
       const prepared = prepareOrderServiceForSubmit(orderServiceData);   
-      const response = await insertOrderOfService(prepared);
+      const response = await createServiceOrder(prepared);
  
-      if (response?.order || response) {
-        const normalized = normalizeOrderService(response?.order || response);
+      if (response.ok && response.data?.order) {
+        const normalized = normalizeOrderService(response.data.order);
         setOrdens(prev => [normalized, ...prev]);
         setShowCreateModal(false);
         formMethods.reset();
@@ -244,7 +245,7 @@ const OSSystem: React.FC = () => {
 
   try {
     // 2. Chamada para o backend
-    await handleUpdateOrderServiceStatus(osId.toString(), newStatus);
+    await updateServiceOrderStatus(osId.toString(), newStatus);
 
     // 3. Notificação de sucesso
     addNotification({
@@ -293,10 +294,12 @@ const OSSystem: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await handleOrderServiceById(order.id.toString());
+      const response = await getServiceOrderById(order.id.toString());
 
-      if (response) {
-        setSelectedOrder(response);
+      const orderData = (response.ok && response.data) ? response.data : null;
+
+      if (orderData) {
+        setSelectedOrder(orderData);
         setDocumentType("render_os_print_sheet");
       } else {
         console.error("Nenhuma OS encontrada para o ID:", order.id);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Plus } from 'lucide-react';
-import { Products } from '../../../service/interfaces';
+import { Products } from '../../../types';
 
 import ProductsTable from './components/TableProducts';
 import SupplierFilter from './components/FilterSuppliers';
@@ -11,9 +11,8 @@ import Dashboard from "../../../components/dashboard/Dashboard";
 import { usePurchaseData } from '../../../hooks/_manager/usePurchaseData';
 import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter';
 import ReturnsPage from '../returns';
-import { purchaseAllOrders } from '../../../service/api/Administrador/purchaseRequests';
-import { purchaseRequisition } from '../../../service/api/Administrador/purchaseRequests'; // ✅ IMPORTAR
-import Swal from 'sweetalert2'; // ✅ IMPORTAR
+import { listPurchaseOrders, createPurchaseOrder } from '../../../services/purchaseService';
+import Swal from 'sweetalert2';
 
 export default function PurchaseManagementScreen() {
   const [activeTab, setActiveTab] = useState<'stock' | 'request' | 'quote' | 'returns'>('stock');
@@ -28,8 +27,8 @@ export default function PurchaseManagementScreen() {
   useEffect(() => {
     const fetchQuotations = async () => {
       try {
-        const data = await purchaseAllOrders();
-        setQuotations(data || []);
+        const response = await listPurchaseOrders()
+        setQuotations((response.ok && response.data) ? response.data : [])
       } catch (error) {
         console.error('❌ Erro ao buscar cotações:', error);
         setQuotations([]);
@@ -63,22 +62,23 @@ export default function PurchaseManagementScreen() {
     setSearchTerm('');
     setSelectedSupplier('');
   };
-  const handleCreateRequest = async (requestData: any): Promise<string> => {
-    setIsCreatingOrder(true);
+  const handleCreateRequest = async (requestData: any): Promise<string> => {    setIsCreatingOrder(true);
     
     try {
       
-      const orderId = await purchaseRequisition(requestData);
+      const response = await createPurchaseOrder(requestData);
+      if (!response.ok || !response.data) throw new Error(response.error || "Erro ao criar pedido de compra")
+      const orderId = response.data.id;
 
-      const updatedQuotations = await purchaseAllOrders();
-      setQuotations(updatedQuotations || []);
+      const resp2 = await listPurchaseOrders()
+      setQuotations((resp2.ok && resp2.data) ? resp2.data : [])
       
       setSelectedProducts([]);
       setActiveTab('quote'); 
       setShowSnackbar(true);
       setTimeout(() => setShowSnackbar(false), 3000);
       
-      return orderId; 
+      return String(orderId);
     } catch (error: any) {
       console.error('❌ Erro ao criar pedido:', error);
       Swal.fire({

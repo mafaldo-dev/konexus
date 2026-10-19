@@ -7,8 +7,8 @@ import SalesFilters from './components/SalesFilters';
 import SalesTable from './components/SalesTable';
 import Dashboard from '../../../components/dashboard/Dashboard';
 
-import { OrderResponse as OrderType } from '../../../service/interfaces/sales/orders';
-import { handleAllOrders } from '../../../service/api/Administrador/orders';
+import { OrderResponse as OrderType } from '../../../types/sales/orders';
+import { listOrders } from '../../../services/orderService';
 
 export default function CompletedSales() {
   const [orders, setOrders] = useState<OrderType[]>([]);
@@ -24,7 +24,7 @@ export default function CompletedSales() {
     const fetchCompletedOrders = async () => {
       try {
         setLoading(true);
-        const allOrders: OrderType[] = await handleAllOrders('-order_date');
+        const allOrders: OrderType[] = await (await listOrders()).data || [];
         const completedOrders = allOrders.filter(order => order.orderStatus === "Liberado");
         setOrders(completedOrders);
       } catch (err) {

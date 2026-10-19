@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Save } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { createPaymentAccount, createTitulo } from '../../service/api/Administrador/financial/paymentAccounts';
+import { createPaymentAccount } from '../../services/financialService';
 
 interface CreateContaPagarModalProps {
   isOpen: boolean;
@@ -52,17 +52,20 @@ export const CreateContaPagarModal: React.FC<CreateContaPagarModalProps> = ({
       return `${year}-${month}-${day}`;
     };
 
+    const paymentDate = corrigirTimezone(formData.payment_date) || '';
+
     const tituloData = {
       title: formData.title,
       supplier: formData.supplier,
       description: formData.description,
       total_amount: parseFloat(formData.total_amount),
-      payment_date: corrigirTimezone(formData.payment_date), 
+      payment_date: paymentDate,
       createdat: corrigirTimezone(formData.createdat) || new Date().toISOString().split('T')[0],
-      status: formData.payment_status,
+      payment_status: formData.payment_status as "pending" | "paid" | "overdue" | "cancelled",
     };
 
-    await createTitulo(tituloData);
+    const response = await createPaymentAccount(tituloData);
+    if (!response.ok) throw new Error(response.error || "Erro ao criar conta a pagar");
     
     Swal.fire('Sucesso', 'Conta a pagar criada com sucesso!', 'success');
     onSuccess();
@@ -174,7 +177,7 @@ export const CreateContaPagarModal: React.FC<CreateContaPagarModalProps> = ({
                 </label>
                 <select
                   value={formData.payment_status}
-                  onChange={(e) => setFormData({ ...formData, payment_status: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, payment_status: e.target.value as "pending" | "paid" | "overdue" | "cancelled" })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="pending">Pendente</option>

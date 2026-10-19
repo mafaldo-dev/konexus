@@ -1,7 +1,7 @@
 import React from 'react';
 import { Filter } from 'lucide-react';
 import { format } from 'date-fns';
-import { FilterState } from '../../../service/interfaces/financial/paymentAccounts';
+import { FilterState } from '../../../types/financial/paymentAccounts';
 import { formatCurrency } from '../../../utils/formatters';
 
 

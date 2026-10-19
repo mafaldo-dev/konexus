@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
-import { handleAllSuppliers } from '../../../service/api/Administrador/suppliers/supplier'
-import { Supplier } from '../../../service/interfaces'
+import {
+  listSuppliers,
+  getSupplierById,
+  deleteSupplier,
+} from '../../../services/supplierService';
+import { Supplier } from '../../../types'
 import Dashboard from '../../../components/dashboard/Dashboard'
 import FormAdd from './Form-add'
 import EditModal from './modal-edit'
-import { DynamicTable } from '../../../utils/Table/DynamicTable' // Ajuste o caminho
+import { DynamicTable } from '../../../utils/Table/DynamicTable'
 import { DeleteIcon, Edit, Filter, DotIcon } from 'lucide-react'
 import { useAuth } from '../../../AuthContext'
 import Swal from 'sweetalert2'
@@ -46,11 +50,12 @@ const SearchSuppliers = () => {
         const loadSuppliers = async () => {
             setLoading(true)
             try {
-                const data = await handleAllSuppliers()
-                if (data.length === 0) {
-                    Swal.fire("Alert", "Lista de fornecedores não carregada corretamente", "warning")
+                const response = await listSuppliers()
+                if (response.ok && response.data) {
+                    setSuppliers(response.data.data)
+                } else {
+                    Swal.fire("Alert", response.error || "Lista de fornecedores não carregada corretamente", "warning")
                 }
-                setSuppliers(data)
             } catch (error) {
                 console.error("Erro ao carregar fornecedores:", error)
                 Swal.fire("Erro", "Erro ao recuperar a lista de fornecedores!", "error")
@@ -68,8 +73,8 @@ const SearchSuppliers = () => {
 
     const handleCloseEditModal = async () => {
         setOpenEdit(false)
-        const reload = await handleAllSuppliers()
-        setSuppliers(reload)
+        const response = await listSuppliers();
+        setSuppliers((response.ok && response.data) ? response.data.data : []);
     }
 
     const hasActiveFilters = filters.name !== "" || filters.code !== ""
@@ -258,8 +263,8 @@ const SearchSuppliers = () => {
                             <FormAdd
                                 onClose={() => setOpenRegister(false)} 
                                 onSupplierAdded={async () => {
-                                const updated = await handleAllSuppliers()
-                                setSuppliers(updated)
+                                const response = await listSuppliers();
+                                setSuppliers((response.ok && response.data) ? response.data.data : []);
                                 setOpenRegister(false)
                             }} />
                         </div>

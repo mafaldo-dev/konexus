@@ -26,6 +26,8 @@ import CRMModule from '../pages/CRM';
 import SecuritySettingsPage from '../pages/configurations/security';
 import NotificationPreferences from '../pages/configurations/notifications';
 import UserManagementPage from '../pages/configurations/users&permissions';
+import CompanyManagement from '../pages/configurations/companies';
+import PlanosPage from '../pages/planos';
 
 import NotFound from '../pages/NOT-FOUND';
 import DesignationCheck from '../PermissionCheck';
@@ -286,6 +288,24 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={['Administrador']}>
             <PlugNotasConfigDashboard />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
+        path="/config/companies"
+        element={
+          <DesignationCheck allowed={['Administrador']}>
+            <CompanyManagement />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
+        path="/planos"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Conferente', 'Estoquista', 'Vendedor', 'Encarregado', 'Compras', 'Gestor', 'Gerente']}>
+            <PlanosPage />
           </DesignationCheck>
         }
       />

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
-import { Products } from '../../service/interfaces';
+import { Products } from '../../types';
 
 interface Column<T> {
   key: string;

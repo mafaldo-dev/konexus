@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { handleAllProducts } from '../../../service/api/Administrador/products';
-import { handleAllOrders } from '../../../service/api/Administrador/orders'; // Adicione esta importação
-import { Products } from '../../../service/interfaces';
+import { listProducts } from '../../../services/productService';
+import { listOrders } from '../../../services/orderService';
+import { Products } from '../../../types';
 import Dashboard from '../../../components/dashboard/Dashboard';
 import { Settings, X, Check, Calendar, Package, Filter, FileText } from 'lucide-react';
 
@@ -64,8 +64,8 @@ const Inventory: React.FC = () => {
     // Carrega produtos
     const allProductsInventory = async () => {
         try {
-            const res = await handleAllProducts();
-            setAllProducts(res);
+            const res = await listProducts();
+            setAllProducts((res.ok && res.data) ? res.data : []);
         } catch (error) {
             console.error('❌ Erro ao carregar produtos:', error);
         }
@@ -74,8 +74,8 @@ const Inventory: React.FC = () => {
     // Carrega pedidos
     const loadAllOrders = async () => {
         try {
-            const res = await handleAllOrders();
-            setAllOrders(res);
+            const res = await listOrders();
+            setAllOrders((res.ok && res.data) ? res.data : []);
         } catch (error) {
             console.error('❌ Erro ao carregar pedidos:', error);
         }

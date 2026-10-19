@@ -6,11 +6,15 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
 
-import { insertOrder, getNextOrderNumber, updateOrder } from "../../../../service/api/Administrador/orders";
-import { Order, OrderResponse } from "../../../../service/interfaces/sales/orders";
-import { Customer, ProductsProps } from "../../../../service/interfaces";
+import {
+  createOrder,
+  getNextOrderNumber,
+  updateOrder,
+  getOrderCustomers,
+} from "../../../../services/orderService";
+import { Order, OrderResponse } from "../../../../types/sales/orders";
+import { Customer, ProductsProps } from "../../../../types";
 import { useInvoiceProductsManagement } from "../../../../hooks/_manager/useProductManagement";
-import { handleAllCustomers } from "../../../../service/api/Administrador/customer/clients";
 import { useAuth } from "../../../../AuthContext";
 
 type FormValues = {
@@ -155,8 +159,10 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   useEffect(() => {
     const loadCustomers = async () => {
       try {
-        const customersData = await handleAllCustomers();
-        setCustomers(customersData);
+        const response = await getOrderCustomers();
+        if (response.ok && response.data) {
+          setCustomers(response.data);
+        }
       } catch (error) {
         console.error("Erro ao carregar clientes:", error);
       } finally {
@@ -339,10 +345,11 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
       if (editMode && orderId) {
         result = await updateOrder(orderId, orderData);
       } else {
-        result = await insertOrder(orderData);
+        result = await createOrder(orderData);
       }
 
-      if (result && (result.id || result.order?.id)) {
+      const orderResult = result.ok ? result.data : null;
+      if (orderResult && orderResult.id) {
         Swal.fire({
           title: "Sucesso!",
           html: `

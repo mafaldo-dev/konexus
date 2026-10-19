@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import Dashboard from "../dashboard/Dashboard"
-import { handleAllOrders } from "../../service/api/Administrador/orders";
-import { handleAllEmployee } from "../../service/api/Administrador/employee";
+import { listOrders } from "../../services/orderService";
+import { listEmployees } from "../../services/employeeService";
 
 import tech from '../../assets/image/tech.jpg'
 import recicla from '../../assets/image/recicla.jpg'
@@ -28,7 +28,7 @@ import {
   Sun,
   CloudSnow
 } from 'lucide-react';
-import { OrderResponse } from "../../service/interfaces";
+import { OrderResponse } from "../../types";
 import { Link } from "react-router-dom";
 
 interface NewsItem {
@@ -83,16 +83,19 @@ const AdministrationScreen = () => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const response = await handleAllOrders();
-        const employee = await handleAllEmployee()
+        const ordersRes = await listOrders();
+        const employeeRes = await listEmployees();
 
-        const pending = response.filter(o => o.orderStatus === "pending");
-        const inProgress = response.filter(o => o.orderStatus === "in_progress");
+        const orders = (ordersRes.ok && ordersRes.data) ? ordersRes.data : [];
+        const employees = (employeeRes.ok && employeeRes.data) ? employeeRes.data : [];
 
-        const active = employee.filter((e: any) => e.status === 'Ativo')
+        const pending = orders.filter(o => o.orderStatus === "pending");
+        const inProgress = orders.filter(o => o.orderStatus === "in_progress");
 
-        setOrderPending(pending);
-        setOrderInProgress(inProgress);
+        const active = employees.filter((e: any) => e.status === 'Ativo')
+
+        setOrderPending(pending as unknown as OrderResponse[]);
+        setOrderInProgress(inProgress as unknown as OrderResponse[]);
 
         setEmployeeLen(active)
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { FilterState } from '../../../service/interfaces/financial/paymentAccounts';
+import { FilterState } from '../../../types/financial/paymentAccounts';
 
 
 

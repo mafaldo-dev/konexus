@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, DollarSign, Package, Users } from "lucide-react";
-import { Order, OrderResponse } from "../../../../service/interfaces/sales/orders";
+import { Order, OrderResponse } from "../../../../types/sales/orders";
 
 
 

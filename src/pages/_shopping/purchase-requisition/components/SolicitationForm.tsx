@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Swal from "sweetalert2";
-import { Supplier } from "../../../../service/interfaces";
+import { Supplier } from "../../../../types";
 import { usePurchaseOrder } from "../../../../hooks/_manager/usePurchaseOrder";
 import { useAuth } from '../../../../AuthContext'
 

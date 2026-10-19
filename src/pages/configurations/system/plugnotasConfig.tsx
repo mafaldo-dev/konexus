@@ -7,8 +7,9 @@ import {
 import Dashboard from '../../../components/dashboard/Dashboard';
 import { useSystemStatus, StatusMessageType } from '../../../SystemStatusContext';
 import { maskCpfCnpj } from '../../../utils/masks';
-import { PlugNotasConfig } from '../../../service/interfaces/financial/plugnotas';
+import { PlugNotasConfig } from '../../../types/financial/plugnotas';
 import { useAuth } from '../../../AuthContext';
+import { getPlugNotasConfig, savePlugNotasConfig, togglePlugNotas } from '../../../services/plugnotasService';
 
 
 export default function PlugNotasManagementPanel() {
@@ -40,20 +41,12 @@ export default function PlugNotasManagementPanel() {
   const loadConfig = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${process.env.REACT_APP_SOCKET_URL_LOCAL}/plugnotas/config`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const response = await getPlugNotasConfig();
 
-      if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
-
-      const result = await response.json();
-
-      if (result.success && result.configured) {
+      if (response.ok && response.data?.configured && response.data.data) {
         setIsConfigured(true);
         setFormData({
-          ...result.data,
+          ...response.data.data,
           api_key: '',
           senha_certificado: '',
           senha_prefeitura: '',
@@ -127,27 +120,15 @@ export default function PlugNotasManagementPanel() {
 
     try {
       setIsSaving(true);
-      const token = localStorage.getItem('token');
 
-      const response = await fetch(`${process.env.REACT_APP_SOCKET_URL_LOCAL}/plugnotas/config`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await savePlugNotasConfig(formData);
 
-      if (!response.ok) throw new Error(`Erro HTTP ${response.status}`);
-
-      const result = await response.json();
-
-      if (result.success) {
+      if (response.ok) {
         addMessage(StatusMessageType.INFO, 'Configuração salva com sucesso!');
         setIsConfigured(true);
         loadConfig();
       } else {
-        addMessage(StatusMessageType.ERROR, 'Erro ao salvar', result.error);
+        addMessage(StatusMessageType.ERROR, 'Erro ao salvar', response.error || undefined);
       }
     } catch (error: any) {
       addMessage(StatusMessageType.ERROR, 'Erro ao salvar configuração', error.message);
@@ -158,23 +139,13 @@ export default function PlugNotasManagementPanel() {
 
   const handleToggleActive = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${process.env.REACT_APP_SOCKET_URL_LOCAL}/plugnotas/config/toggle`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ativo: !formData.ativo }),
-      });
+      const response = await togglePlugNotas(!formData.ativo);
 
-      const result = await response.json();
-
-      if (result.success) {
-        setFormData(prev => ({ ...prev, ativo: result.data.ativo }));
+      if (response.ok && response.data) {
+        const ativo = response.data.ativo;
+        setFormData(prev => ({ ...prev, ativo }));
         addMessage(StatusMessageType.INFO, 
-          `PlugNotas ${result.data.ativo ? 'ativado' : 'desativado'}`);
+          `PlugNotas ${ativo ? 'ativado' : 'desativado'}`);
       }
     } catch (error: any) {
       addMessage(StatusMessageType.ERROR, 'Erro ao alterar status', error.message);

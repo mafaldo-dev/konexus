@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Shield, Save, Building2, Upload } from 'lucide-react';
 import Dashboard from '../../../components/dashboard/Dashboard';
 import { useAuth } from '../../../AuthContext';
-import { updateDataCompany } from '../../../service/api/Administrador/configs';
+import { updateCompany } from '../../../services/companyService';
 
 interface PasswordPolicy {
   minLength: number;
@@ -82,7 +82,7 @@ export default function AdminSettingsPage() {
         return;
       }
 
-      const result = await updateDataCompany(company.id, updatedFields);
+      const result = await updateCompany(company.id, updatedFields);
 
       setShowSnackbar(true);
       setTimeout(() => setShowSnackbar(false), 3000);

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
-import { Products } from "../../../service/interfaces/stock/products"
-import { handleAllProducts } from "../../../service/api/Administrador/products"
+import { Products } from "../../../types/stock/products"
+import { listProducts } from "../../../services/productService";
 import { DynamicTable } from "../../../utils/Table/DynamicTable"
 import { Search, X, ChevronDown, BarChart2, Layers, Clock, Package, TrendingUp, ShoppingBag } from "lucide-react"
 import Dashboard from "../../../components/dashboard/Dashboard"
@@ -29,7 +29,8 @@ const Categories = () => {
     const fetchProductsAndBuildCategories = async () => {
       try {
         setIsLoading(true)
-        const products: Products[] = await handleAllProducts()
+        const response = await listProducts();
+        const products: Products[] = (response.ok && response.data) ? response.data : [];
         setAllProducts(products)
 
         const categoryMap = new Map<string, Category>()

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Dashboard from "../../../components/dashboard/Dashboard";
-import { handleAllEmployee } from "../../../service/api/Administrador/employee";
-import { Employee } from "../../../service/interfaces";
+import { listEmployees } from "../../../services/employeeService";
+import { Employee } from "../../../types";
 import {
   BarChart,
   Bar,
@@ -23,8 +23,8 @@ export default function PositionsAndSalaries() {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const res = await handleAllEmployee();
-        setEmployees(res || []);
+        const res = await listEmployees();
+        setEmployees((res.ok && res.data) ? res.data : []);
       } catch (error) {
         console.error("Erro ao buscar funcionários:", error);
       } finally {

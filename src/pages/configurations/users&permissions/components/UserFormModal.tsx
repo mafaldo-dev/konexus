@@ -3,7 +3,7 @@ import {
   Employee,
   EmployeeFunction,
   EmployeeDesignation
-} from '../../../../service/interfaces';
+} from '../../../../types';
 
 interface UserFormModalProps {
   isOpen: boolean;

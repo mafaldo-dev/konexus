@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { OrderResponse } from '../../../../service/interfaces/sales/orders';
+import { OrderResponse } from '../../../../types/sales/orders';
 import { CheckCheck } from 'lucide-react';
 import { useAuth } from '../../../../AuthContext';
 

@@ -8,8 +8,8 @@ import {
     Star, Upload, Download, Eye
 } from 'lucide-react';
 
-import { handleAllCustomers } from '../../service/api/Administrador/customer/clients';
-import { Customer, Deal, Stats } from '../../service/interfaces';
+import { listCustomers } from '../../services/customerService';
+import { Customer, Deal, Stats } from '../../types';
 import Dashboard from '../../components/dashboard/Dashboard';
 import { maskCpfCnpj } from '../../utils/masks';
 
@@ -86,7 +86,7 @@ const CRMModule: React.FC = () => {
     });
 
     // Função para garantir que o address tenha todas as propriedades necessárias
-    const ensureAddress = (address?: Customer['address']): Customer['address'] => {
+    const ensureAddress = (address?: Customer['address']): NonNullable<Customer['address']> => {
         if (!address) return getDefaultAddress();
 
         return {
@@ -109,10 +109,11 @@ const CRMModule: React.FC = () => {
             setError(null);
 
             // Call your API endpoint
-            const response = await handleAllCustomers();
+            const response = await listCustomers();
+            const customersList = (response.ok && response.data) ? response.data.data : [];
 
             // Transform API data to match our structure
-            const formattedCustomers = response.map((customer: Customer) => ({
+            const formattedCustomers = customersList.map((customer) => ({
                 ...customer,
                 status: customer.status || 'active',
                 createdAt: customer.createdAt || new Date().toISOString().split('T')[0],

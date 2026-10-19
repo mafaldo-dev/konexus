@@ -1,15 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
-import { Movement, Products } from "../../../service/interfaces";
-import { handleAllProducts } from "../../../service/api/Administrador/products";
+import { Movement, Products } from "../../../types";
+import {
+  listProducts,
+  getProductById,
+  deleteProduct,
+} from "../../../services/productService";
+import { getKardexByProduct } from "../../../services/kardexService";
 import Dashboard from "../../../components/dashboard/Dashboard";
 import UpdadtedProduct from "./modal-edit";
 import FormAdd from "./Form-add";
 import { DynamicTable } from "../../../utils/Table/DynamicTable";
-import { useAuth } from '../../../AuthContext'
+import { useAuth } from "../../../AuthContext";
 import { Filter, MapPin, MoreVertical } from "lucide-react";
 import KardexModal from "../../stock/movements/components/KardexModal";
 import { ContextMenuPosition } from "../../stock/movements/movementsType";
-import { handlekardexMoviment } from "../../../service/api/Administrador/kardex";
 import ContextMenu from "../../stock/movements/components/ContextMenu";
 import LocationModal from "../../stock/movements/components/LocationModal";
 
@@ -54,9 +58,26 @@ const SearchProducts = () => {
   const openKardexModal = useCallback(async (product: Products) => {
     setLoadingKardex(true);
     try {
-      const movements = await handlekardexMoviment(product.id);
+      const response = await getKardexByProduct(product.id);
       setKardexProduct(product);
-      setKardexMovements(movements);
+      if (response.ok && response.data) {
+        const movements: Movement[] = (response.data.movements || []).map((m) => ({
+          id: m.id,
+          movementtype: m.movementtype,
+          quantity: m.quantity,
+          unitprice: String(m.unitprice ?? ''),
+          movementdate: m.movementdate,
+          orderid: m.orderid ?? 0,
+          invoicenumber: m.invoicenumber ?? '',
+          ordernumber: m.ordernumber ?? '',
+          productname: m.productname ?? '',
+          productcode: m.productcode ?? '',
+          movement: m.quantity,
+          stockAfter: m.stockafter ?? 0,
+          stockBefore: m.stockbefore ?? 0,
+        }));
+        setKardexMovements(movements);
+      }
       setShowKardexModal(true);
     } catch (error) {
       console.error("Erro ao buscar Kardex", error);
@@ -179,8 +200,13 @@ const SearchProducts = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await handleAllProducts();
-        setItem(response)
+        const response = await listProducts();
+        if (response.ok && response.data) {
+          setItem(response.data);
+        } else {
+          console.error(response.error || "Erro ao recuperar produtos.");
+          setItem([]);
+        }
       } catch (error) {
         console.error("Erro ao recuperar a lista de produtos.", error);
         setItem([]);
@@ -198,8 +224,8 @@ const SearchProducts = () => {
 
   const handleCloseEditModal = async () => {
     setOpenEdit(false)
-    const reload = await handleAllProducts()
-    setItem(reload)
+    const reload = await listProducts()
+    if (reload.ok && reload.data) setItem(reload.data)
   }
 
   const hasActiveFilters = filters.code !== "" || filters.name !== "" || filters.brand !== "" || filters.location !== "";
@@ -438,8 +464,8 @@ const SearchProducts = () => {
                 <FormAdd
                   onClose={() => setOpenRegister(false)}
                   onProductsAdded={async () => {
-                    const reload = await handleAllProducts()
-                    setItem(reload)
+                  const response = await listProducts();
+                    setItem((response.ok && response.data) ? response.data : [])
                     setOpenRegister(false)
                   }}
                 />

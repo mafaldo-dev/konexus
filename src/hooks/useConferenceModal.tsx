@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { OrderResponse } from '../service/interfaces/sales/orders';
+import { OrderResponse } from '../types/sales/orders';
 
 
 export const useConferenceModal = () => {

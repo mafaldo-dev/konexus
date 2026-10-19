@@ -1,5 +1,5 @@
 
-import { Products } from "../../../service/interfaces";
+import { Products } from "../../../types";
 
 export interface FilterState {
     name: string;

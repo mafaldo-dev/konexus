@@ -1,9 +1,9 @@
 import { SubmitHandler, useForm } from "react-hook-form";
-import { Products } from "../../../service/interfaces";
-import { insertProductComKardex } from "../../../service/api/Administrador/products";
+import { Products } from "../../../types";
+import { createProduct } from "../../../services/productService";
 import { PackagePlus, Save, X } from "lucide-react";
 import Swal from "sweetalert2";
-import { handleAllSuppliers } from "../../../service/api/Administrador/suppliers/supplier";
+import { listSuppliers } from "../../../services/supplierService";
 import { useEffect, useState } from "react";
 import { maskCpfCnpj } from "../../../utils/masks";
 
@@ -25,8 +25,9 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded, on
 
   const onSubmit: SubmitHandler<Products> = async (data) => {
     try {
-      const payload: Products = { ...data, created_at: new Date() };
-      await insertProductComKardex(payload);
+      const payload = { ...data };
+      const response = await createProduct(payload);
+      if (!response.ok) throw new Error(response.error || "Erro ao criar produto");
       reset();
       onProductsAdded();
       Swal.fire("Sucesso!", "Produto cadastrado com sucesso!", "success");
@@ -38,8 +39,10 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded, on
 
   useEffect(() => {
     const fetchSuppliers = async () => {
-      const response = await handleAllSuppliers();
-      setSupId(response);
+      const response = await listSuppliers();
+      if (response.ok && response.data) {
+        setSupId(response.data.data || []);
+      }
     };
     fetchSuppliers();
   }, []);

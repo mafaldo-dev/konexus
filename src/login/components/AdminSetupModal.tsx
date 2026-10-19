@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { CompanyData, createCompanyAdmin } from "../../service/api/adminArea/administrator";
+import { CompanyData, createCompany } from "../../services/companyService";
 
 const PLANS = {
   STARTER: { id: 1, name: "Plano Starter", description: "Ideal para pequenas empresas" },
@@ -53,13 +53,13 @@ const AdminSetupModal = ({ onClose }: { onClose: () => void }) => {
         icon: icoBase64
       };
 
-      const response = await createCompanyAdmin(companyData);
+      const response = await createCompany(companyData);
 
-      if (response?.id) {
+      if (response.ok && response.data?.id) {
         Swal.fire("Sucesso", "Admin e empresa criados com sucesso!", "success");
         onClose();
       } else {
-        throw new Error("Erro ao criar admin!");
+        throw new Error(response.error || "Erro ao criar admin!");
       }
 
     } catch (err: any) {

@@ -1,4 +1,4 @@
-import { OrderService } from "../../service/interfaces/stock/service";
+import { OrderService } from "../../types/stock/service";
 
 export const parseOrderItems = (items: any): Array<{ productId: number; quantity: number }> => {
   if (Array.isArray(items) && items.length > 0) {

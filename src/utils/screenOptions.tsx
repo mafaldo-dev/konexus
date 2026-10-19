@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share, Wrench, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import Swal from 'sweetalert2';
-import { handleNfeById } from "../service/api/Administrador/financial";
+import { downloadDanfe } from "../services/nfeService";
 import * as XLSX from 'xlsx';
 
 
@@ -170,8 +170,11 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       try {
         setLoadingPdf(true);
         setPdfError(null);
-        const url = await handleNfeById(product.nfeId);
-        setPdfUrl(url);
+        const response = await downloadDanfe(product.nfeId);
+        if (response.ok && response.data) {
+          const url = URL.createObjectURL(response.data as Blob);
+          setPdfUrl(url);
+        }
       } catch (err) {
         console.error("Erro ao carregar PDF:", err);
         setPdfError("Erro ao carregar o PDF da NF-e");

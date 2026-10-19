@@ -1,7 +1,7 @@
 import { SubmitHandler, useForm } from "react-hook-form"
-import { Supplier } from "../../../service/interfaces"
+import { Supplier } from "../../../types"
 import { useEffect } from "react"
-import { updateSupplier } from "../../../service/api/Administrador/suppliers/supplier"
+import { updateSupplier } from "../../../services/supplierService"
 import Swal from "sweetalert2"
 import { maskCpfCnpj, maskPhone } from "../../../utils/masks"
 import { UserIcon, X } from "lucide-react"
@@ -28,11 +28,12 @@ const UpdatedSupplierForm = ({ supplier, onClose }: Props) => {
   const onSubmit: SubmitHandler<Supplier> = async (data) => {
     if (!supplier?.id) return
     try {
-      await updateSupplier(supplier.id, {
+      const response = await updateSupplier(supplier.id, {
         ...data,
         active: data.active === "Ativo",
         updatedAt: new Date()
       })
+      if (!response.ok) throw new Error(response.error || "Erro ao atualizar")
       Swal.fire("Sucesso", "Fornecedor atualizado com sucesso!", "success")
       onClose()
     } catch (error) {

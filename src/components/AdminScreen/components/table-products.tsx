@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import { handleAllProducts } from '../../../service/api/Administrador/products';
-import { Products } from '../../../service/interfaces';
+import { listProducts } from '../../../services/productService';
+import { Products } from '../../../types';
 
 const LoadingSpinner = () => (
     <div className="px-4 py-5 sm:p-6 text-center">
@@ -105,8 +105,8 @@ export default function TableProducts() {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
-                const response = await handleAllProducts();
-                setProducts(response);
+                const response = await listProducts();
+                setProducts(((response.ok && response.data) ? response.data : []) as unknown as Products[]);
             } catch (err) {
                 setError('Erro ao recuperar produtos.');
             } finally {

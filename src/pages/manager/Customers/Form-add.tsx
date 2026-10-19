@@ -1,7 +1,7 @@
 import { SubmitHandler, useForm } from "react-hook-form";
-import { Customer } from "../../../service/interfaces";
+import { Customer } from "../../../types";
 import { PackagePlus, Save, MapPin, User, Mail, Phone, Hash, Map, X } from "lucide-react";
-import { insertCustomer } from "../../../service/api/Administrador/customer/clients";
+import { createCustomer } from "../../../services/customerService";
 import { useState } from "react";
 import { maskCpfCnpj, maskPhone, maskZipCode } from "../../../utils/masks";
 
@@ -28,7 +28,8 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded, o
                 createdAt: new Date(),
                 status: 'Ativo'
             };
-            await insertCustomer(payload);
+            const response = await createCustomer(payload);
+            if (!response.ok) throw new Error(response.error || "Erro ao criar cliente");
             reset();
             onCustomerAdded();
         } catch (error) {

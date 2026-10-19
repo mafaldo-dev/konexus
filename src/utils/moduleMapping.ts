@@ -22,12 +22,13 @@ export const MODULE_MAPPING: Record<string, string> = {
   
   // Casos especiais
   'config': 'dashboard',
+  'planos': 'dashboard',
   'relatorios': 'relatorios',
 };
 
 // Mapeamento reverso: module key -> menu keys
 export const REVERSE_MODULE_MAPPING: Record<string, string[]> = {
-  'dashboard': ['dashboard', 'config'],
+  'dashboard': ['dashboard', 'config', 'planos'],
   'finance': ['financeiro'],
   'crm': ['crm'],
   'estoque': ['estoque'],

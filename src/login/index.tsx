@@ -5,7 +5,7 @@ import LoginForm from "./components/LoginForm";
 import useAuthService from "./useAuthService";
 import Swal from "sweetalert2";
 import AdminSetupModal from "./components/AdminSetupModal";
-import { handleLoginAdmin } from "../service/api/login";
+import { loginAdmin } from "../services/authService";
 
 // ✅ Hook do Auto-Updater funcionando
 function useAutoUpdater() {
@@ -159,12 +159,12 @@ const LoginPage: React.FC = () => {
     }
 
     try {
-      const response = await handleLoginAdmin(credentials.user, credentials.pass);
+      const response = await loginAdmin(credentials.user, credentials.pass);
 
-      if (response.user) {
+      if (response.ok && response.data?.user) {
         Swal.fire("Sucesso", "Login de administrador do sistema realizado!", "success");
         setShowAdminLogin(false);
-        setShowAdminSetup(true); 
+        setShowAdminSetup(true);
       } else {
         Swal.fire("Erro", "Credenciais inválidas!", "error");
       }

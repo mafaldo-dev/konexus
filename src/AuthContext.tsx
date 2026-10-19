@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { apiRequest } from "./service/api/api";
-import { handleLoginEmployee, handleLoginAdmin } from "./service/api/login";
+import { apiClient } from "./api/client";
+import { loginEmployee, loginAdmin } from "./services/authService";
 import Swal from "sweetalert2";
 import { shouldShowMenuItem, canAccessSubmenu, filterMenuItems, filterSubmenuItems, menuKeyToModuleKey as mapMenuKeyToModule, canAccessRoute as checkRouteAccess, } from "./utils/moduleMapping";
-import { EmployeeDesignation } from "./service/interfaces";
+import { EmployeeDesignation } from "./types";
 import { AuthContextType, UserInfo, CompanyInfo } from "./utils/authContext";
 
 
@@ -145,37 +145,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let companyModules: string[] = [];
 
       try {
-        const adminResponse = await handleLoginAdmin(username, password);
+        const adminResponse = await loginAdmin(username, password);
 
-        if (adminResponse?.user && adminResponse?.token) {
+        if (adminResponse.ok && adminResponse.data?.user && adminResponse.data?.token) {
+          const { user: adminUser, token } = adminResponse.data;
           userData = {
-            id: adminResponse.user.id,
-            username: adminResponse.user.username,
-            active: adminResponse.user.active || true,
+            id: adminUser.id,
+            username: adminUser.username,
+            active: adminUser.active || true,
             access: EmployeeDesignation.ADMIN,
-            role: adminResponse.user.role || "Administrador",
-            designation: adminResponse.user.sector || "Administrador",
-            sector: adminResponse.user.sector || "Administrador",
-            companyId: adminResponse.user.companyId
+            role: adminUser.role || "Administrador",
+            designation: adminUser.sector || "Administrador",
+            sector: adminUser.sector || "Administrador",
+            companyId: adminUser.companyId
           };
 
-          if (adminResponse.user.companyName) {
+          if (adminUser.companyName) {
             companyData = {
-              id: adminResponse.user.companyId,
-              name: adminResponse.user.companyName,
-              email: adminResponse.user.companyEmail,
-              phone: adminResponse.user.companyPhone,
-              companyIcon: adminResponse.user.companyIcon || "S/L",
-              cnpj: adminResponse.user.companyCnpj || "",
-              modules: adminResponse.user.modules || []
+              id: adminUser.companyId as number,
+              name: adminUser.companyName,
+              email: adminUser.companyEmail,
+              phone: adminUser.companyPhone,
+              companyIcon: adminUser.companyIcon || "S/L",
+              cnpj: adminUser.companyCnpj || "",
+              modules: adminUser.modules || []
             };
 
-            if (adminResponse.user.modules) {
-              companyModules = adminResponse.user.modules;
+            if (adminUser.modules) {
+              companyModules = adminUser.modules;
             }
           }
 
-          authToken = adminResponse.token;
+          authToken = token;
         }
       } catch (adminError: any) {
 
@@ -183,37 +184,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!userData) {
         try {
-          const employeeResponse = await handleLoginEmployee(username, password);
+          const employeeResponse = await loginEmployee(username, password);
 
-          if (employeeResponse?.user && employeeResponse?.token) {
+          if (employeeResponse.ok && employeeResponse.data?.user && employeeResponse.data?.token) {
+            const { user: empUser, token } = employeeResponse.data;
             userData = {
-              id: employeeResponse.user.id,
-              username: employeeResponse.user.username,
-              active: employeeResponse.user.active,
+              id: empUser.id,
+              username: empUser.username,
+              active: empUser.active,
               access: EmployeeDesignation.EMPLOYEE,
-              role: employeeResponse.user.role,
-              designation: employeeResponse.user.sector || "Geral",
-              sector: employeeResponse.user.sector || "Geral",
-              companyId: employeeResponse.user.companyId
+              role: empUser.role,
+              designation: empUser.sector || "Geral",
+              sector: empUser.sector || "Geral",
+              companyId: empUser.companyId
             };
 
-            if (employeeResponse.user.companyName) {
+            if (empUser.companyName) {
               companyData = {
-                id: employeeResponse.user.companyId,
-                name: employeeResponse.user.companyName,
-                email: employeeResponse.user.companyEmail,
-                phone: employeeResponse.user.companyPhone,
-                companyIcon: employeeResponse.user.companyIcon || "S/L",
-                cnpj: employeeResponse.user.companyCnpj,
-                modules: employeeResponse.user.modules || []
+                id: empUser.companyId,
+                name: empUser.companyName,
+                email: empUser.companyEmail,
+                phone: empUser.companyPhone,
+                companyIcon: empUser.companyIcon || "S/L",
+                cnpj: empUser.companyCnpj,
+                modules: empUser.modules || []
               };
 
-              if (employeeResponse.user.modules) {
-                companyModules = employeeResponse.user.modules;
+              if (empUser.modules) {
+                companyModules = empUser.modules;
               }
             }
 
-            authToken = employeeResponse.token;
+            authToken = token;
           }
         } catch (employeeError: any) {
 
@@ -226,12 +228,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       const tkn = localStorage.getItem("token")
       try {
-        const statusResponse = await apiRequest(
+        const statusResponse = await apiClient.put(
           `employees/${userData.id}/status`,
-          "PUT",
           { status: 'Ativo' },
-          tkn as string
+          { token: tkn as string }
         );
+        if (!statusResponse.ok) {
+          console.error("❌ ERRO ao atualizar status:", statusResponse.error);
+        }
       } catch (statusError) {
         console.error("❌ ERRO ao atualizar status:", statusError);
       
@@ -260,8 +264,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (user?.id) {
         const tokenFromStorage = localStorage.getItem("token");
-        await apiRequest(`employees/${user.id}/status`, "PUT", { status: 'Ausente' },
-          tokenFromStorage as string);
+        const res = await apiClient.put(
+          `employees/${user.id}/status`,
+          { status: 'Ausente' },
+          { token: tokenFromStorage as string }
+        );
+        if (!res.ok) {
+          console.warn("Erro ao atualizar status no logout:", res.error);
+        }
       }
     } catch (error) {
       console.warn("Erro ao atualizar status no logout:", error);

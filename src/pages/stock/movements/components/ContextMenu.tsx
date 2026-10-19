@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Eye, Warehouse, MapPin, FileText, X, Edit } from 'lucide-react';
 import { ContextMenuPosition } from '../movementsType';
-import { Products } from '../../../../service/interfaces/stock/products';
+import { Products } from '../../../../types/stock/products';
 
 interface ContextMenuProps {
   show: boolean;

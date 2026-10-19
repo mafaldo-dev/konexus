@@ -2,8 +2,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import OrderForm from "../components/OrderForm"; // Reutilize o mesmo form de criação
-import { getOrderForEdit } from "../../../../service/api/Administrador/orders";
-import { OrderResponse } from "../../../../service/interfaces";
+import { getOrderForEdit } from "../../../../services/orderService";
+import { OrderResponse } from "../../../../types";
 import Dashboard from "../../../../components/dashboard/Dashboard";
 import { motion } from "framer-motion";
 
@@ -22,8 +22,9 @@ export default function EditOrderPage() {
 
                 const orderData = await getOrderForEdit(id!);
 
-                if (orderData && orderData.order) {
-                    setOrder(orderData.order);
+                const orderRes = (orderData.ok && orderData.data) ? orderData.data : null;
+                if (orderRes) {
+                    setOrder(orderRes);
                 } else {
                     setError("Pedido não encontrado ou não pode ser editado");
                 }

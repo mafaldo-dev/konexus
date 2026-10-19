@@ -1,7 +1,7 @@
 import React from 'react';
 import { Warehouse, X, TrendingUp, TrendingDown, Clock } from 'lucide-react';
-import { Products } from '../../../../service/interfaces/stock/products';
-import { Movement } from '../../../../service/interfaces/stock/movements';
+import { Products } from '../../../../types/stock/products';
+import { Movement } from '../../../../types/stock/movements';
 
 interface KardexModalProps {
     show: boolean;
@@ -148,7 +148,7 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                                                     </div>
                                                 </td>
                                                 <td className="px-2 py-3 text-sm font-semibold text-gray-900">
-                                                    {entry.invoicenumber}
+                                                    {entry.invoicenumber || '-'}
                                                 </td>
                                                 <td className="px-10 py-3 text-sm font-semibold text-gray-900">
                                                     {entry.movementtype === 'entrada' ? '+' : '-'}

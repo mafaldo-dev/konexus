@@ -1,5 +1,5 @@
 import React from 'react';
-import { TopCustomer, CustomerRank } from '../../../../service/interfaces/reports';
+import { TopCustomer, CustomerRank } from '../../../../types/reports';
 import { Trophy, Gift } from 'lucide-react';
 
 interface TopCustomersPanelProps {

@@ -4,8 +4,11 @@ import { Menu, Transition } from "@headlessui/react";
 
 import { useAuth } from "../../../../AuthContext";
 
-import { OrderResponse } from "../../../../service/interfaces";
-import { handleAllOrders, updateOrderStatus } from "../../../../service/api/Administrador/orders";
+import { OrderResponse } from "../../../../types";
+import {
+  listOrders,
+  updateOrderStatus,
+} from "../../../../services/orderService";
 
 import { motion } from "framer-motion";
 import { Truck, MoreVertical } from "lucide-react";
@@ -32,7 +35,8 @@ export default function OrderList() {
   const loadOrders = async () => {
     try {
       setIsLoading(true);
-      const fetchedOrders = await handleAllOrders();
+      const response = await listOrders();
+      const fetchedOrders = (response.ok && response.data) ? response.data : [];
 
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
         id: order.id,
@@ -113,7 +117,7 @@ export default function OrderList() {
     extraData?: { totalVolumes?: number; totalWeight?: number }
   ) => {
     try {
-      await updateOrderStatus(orderId, newStatus, tkn as string, extraData);
+      await updateOrderStatus(orderId, newStatus, extraData);
       const updatedOrders = orders.map((order) =>
         order.id === orderId
           ? {

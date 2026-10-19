@@ -1,12 +1,11 @@
-import { getPaymentAccounts } from '../service/api/Administrador/financial/paymentAccounts';
-import { handleAllOrders } from '../service/api/Administrador/orders';
-import { OrderResponse } from '../service/interfaces';
-import { PaymentAccount, FinancialStats, PaginationResponse } from '../service/interfaces/financial/paymentAccounts';
+import { listOrders } from '../services/orderService';
+import { listPaymentAccounts } from '../services/financialService';
+import { OrderResponse, FinancialStats } from '../types';
 import { useState } from 'react';
 
 export const useFinancialData = () => {
   const [contasReceber, setContasReceber] = useState<OrderResponse[]>([]);
-  const [contasPagar, setContasPagar] = useState<PaymentAccount[]>([]);
+  const [contasPagar, setContasPagar] = useState<any[]>([]);
   const [pedidos, setPedidos] = useState<OrderResponse[]>([]);
   const [stats, setStats] = useState<FinancialStats>({
     totalReceber: 0,
@@ -23,25 +22,20 @@ export const useFinancialData = () => {
 
   const getDataAtualBrasil = (): string => {
     const agora = new Date();
-
     const dataBrasil = new Date(agora.toLocaleString('en-US', {
       timeZone: 'America/Sao_Paulo'
     }));
-
     const ano = dataBrasil.getFullYear();
     const mes = String(dataBrasil.getMonth() + 1).padStart(2, '0');
     const dia = String(dataBrasil.getDate()).padStart(2, '0');
-
     return `${ano}-${mes}-${dia}`;
   };
 
-  const calcularVencimentosHoje = (contas: PaymentAccount[]): number => {
+  const calcularVencimentosHoje = (contas: any[]): number => {
     const hojeBrasil = getDataAtualBrasil();
-
     return contas.filter(conta => {
       if (conta.payment_status !== 'pending') return false;
       if (!conta.payment_date) return false;
-
       return conta.payment_date === hojeBrasil;
     }).length;
   };
@@ -51,17 +45,18 @@ export const useFinancialData = () => {
       setIsLoadingContasReceber(true);
       setError(null);
 
-      const response = await handleAllOrders();
-      const pedidosPendentes = response.filter(order => order.orderStatus === 'pending');
+      const response = await listOrders();
+      const orders = (response.ok && response.data) ? response.data : [];
+      const pedidosPendentes = orders.filter(order => order.orderStatus === 'pending');
 
       setContasReceber(pedidosPendentes);
       setPedidos(pedidosPendentes);
 
       const totalReceber = pedidosPendentes.reduce((sum, order) =>
-        sum + (parseFloat(order.totalAmount) || 0), 0
+        sum + (Number(order.totalAmount) || 0), 0
       );
 
-      const payment_date = response.filter(order =>
+      const payment_date = orders.filter(order =>
         order.payment?.status === 'due_today'
       ).length;
 
@@ -83,20 +78,16 @@ export const useFinancialData = () => {
       setIsLoadingContasPagar(true);
       setError(null);
 
-      const response: PaginationResponse<PaymentAccount> = await getPaymentAccounts({
-        page: 1,
-        limit: 50
-      });
+      const response = await listPaymentAccounts({ page: 1, limit: 50 });
+      if (response.ok && response.data) {
+        const data = response.data.data || [];
+        setContasPagar(data);
 
-      if (response && response.data) {
-        setContasPagar(response.data);
-
-
-        const totalPagar = response.data
+        const totalPagar = data
           .filter(conta => conta.payment_status !== 'paid' && conta.payment_status !== 'cancelled')
-          .reduce((sum, conta) => sum + (parseFloat(conta.total_amount || '0')), 0);
+          .reduce((sum, conta) => sum + (Number(conta.total_amount) || 0), 0);
 
-        const payment_date = calcularVencimentosHoje(response.data);
+        const payment_date = calcularVencimentosHoje(data);
 
         setStats(prev => ({
           ...prev,
@@ -114,20 +105,15 @@ export const useFinancialData = () => {
       setIsLoadingContasPagar(false);
     }
   };
-  
+
   const loadContasPagarByStatus = async (status?: string) => {
     try {
       setIsLoadingContasPagar(true);
       setError(null);
 
-      const response: PaginationResponse<PaymentAccount> = await getPaymentAccounts({
-        payment_status: status,
-        page: 1,
-        limit: 50
-      });
-
-      if (response && response.data) {
-        setContasPagar(response.data);
+      const response = await listPaymentAccounts({ payment_status: status, page: 1, limit: 50 });
+      if (response.ok && response.data) {
+        setContasPagar(response.data.data || []);
       } else {
         setContasPagar([]);
       }
@@ -145,17 +131,12 @@ export const useFinancialData = () => {
       setIsLoadingContasPagar(true);
       setError(null);
 
-      const response: PaginationResponse<PaymentAccount> = await getPaymentAccounts({
-        date_start,
-        date_end,
-        page: 1,
-        limit: 50
-      });
+      const response = await listPaymentAccounts({ date_start, date_end, page: 1, limit: 50 });
+      if (response.ok && response.data) {
+        const data = response.data.data || [];
+        setContasPagar(data);
 
-      if (response && response.data) {
-        setContasPagar(response.data);
-
-        const totalPagar = response.data
+        const totalPagar = data
           .filter(conta => conta.payment_status !== 'paid' && conta.payment_status !== 'cancelled')
           .reduce((sum, conta) => sum + (conta.total_amount || 0), 0);
 
@@ -180,14 +161,9 @@ export const useFinancialData = () => {
       setIsLoadingContasPagar(true);
       setError(null);
 
-      const response: PaginationResponse<PaymentAccount> = await getPaymentAccounts({
-        supplier,
-        page: 1,
-        limit: 50
-      });
-
-      if (response && response.data) {
-        setContasPagar(response.data);
+      const response = await listPaymentAccounts({ supplier, page: 1, limit: 50 });
+      if (response.ok && response.data) {
+        setContasPagar(response.data.data || []);
       } else {
         setContasPagar([]);
       }

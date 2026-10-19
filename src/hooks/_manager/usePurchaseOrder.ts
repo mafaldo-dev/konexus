@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { handleProductWithCode } from '../../service/api/Administrador/products';
+import { listProducts } from '../../services/productService';
 
 // Interface para itens do pedido de compra
 export interface PurchaseOrderItem {
@@ -29,7 +29,7 @@ export const usePurchaseOrder = () => {
   const [quantity, setQuantity] = useState(1);
   const [unitCost, setUnitCost] = useState(0);
 
-  // Buscar produto pelo código
+  // Buscar produto pelo código (busca na listagem de produtos da empresa)
   const searchProduct = async () => {
     if (!productCode.trim()) {
       alert('Digite um código de produto!');
@@ -37,10 +37,22 @@ export const usePurchaseOrder = () => {
     }
 
     try {
-      const product = await handleProductWithCode(productCode);
-      
+      const response = await listProducts();
+      const products = (response.ok && response.data) ? response.data : [];
+
+      const product = products.find((p: any) =>
+        String(p.code || '').trim() === productCode.trim()
+      );
+
       if (product) {
-        setSelectedProduct(product as ProductData);
+        setSelectedProduct({
+          id: String(product.id),
+          name: product.name,
+          code: product.code,
+          location: product.location,
+          coast: product.coast,
+          price: product.price,
+        } as ProductData);
         setUnitCost(product.coast || product.price || 0);
         setQuantity(1);
       } else {
@@ -77,7 +89,7 @@ export const usePurchaseOrder = () => {
 
     if (existingIndex >= 0) {
       // Atualizar quantidade se já existir
-      setOrderItems(prev => prev.map((item, index) => 
+      setOrderItems(prev => prev.map((item, index) =>
         index === existingIndex
           ? {
               ...item,
@@ -178,13 +190,13 @@ export const usePurchaseOrder = () => {
     selectedProduct,
     quantity,
     unitCost,
-    
+
     // Setters
     setProductCode,
     setQuantity,
     setUnitCost,
     setOrderItems,
-    
+
     // Ações
     searchProduct,
     addProductToOrder,

@@ -1,6 +1,6 @@
 import { type SubmitHandler, useForm } from "react-hook-form"
-import { Employee } from "../../../service/interfaces"
-import { handleAllEmployee, insertEmployee } from "../../../service/api/Administrador/employee"
+import { Employee } from "../../../types"
+import { createEmployee, listEmployees } from "../../../services/employeeService"
 import { Lock, Loader2, CheckCircle } from "lucide-react"
 import Dashboard from "../../../components/dashboard/Dashboard"
 import { useState } from "react"
@@ -25,9 +25,10 @@ export default function EmployeeAdministration() {
         status: 'Ativo'
       }
 
-      await insertEmployee(formattedData)
+      const response = await createEmployee(formattedData)
+      if (!response.ok) throw new Error(response.error || "Erro ao criar funcionário")
       reset()
-      await handleAllEmployee()
+      await listEmployees()
       setSuccess(true)
     } finally {
       setIsSubmitting(false)

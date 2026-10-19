@@ -2,9 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { UseFormReturn, Controller } from 'react-hook-form';
 import { X, Plus, Trash2, Search, TextIcon } from 'lucide-react';
 import { CreateOSFormData } from '.';
-import { handleAllEmployee } from '../../service/api/Administrador/employee';
+import { listEmployees } from '../../services/employeeService';
 import { useAuth } from '../../AuthContext';
-import { handleAllProducts } from '../../service/api/Administrador/products';
+import { listProducts } from '../../services/productService';
 
 interface CreateOSModalProps {
   onClose: () => void;
@@ -38,10 +38,8 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
     const fetchEmployees = async () => {
       try {
         setLoadingEmployees(true);
-        const response = await handleAllEmployee();
-        const employeesData = Array.isArray(response) && Array.isArray(response[0])
-          ? response[0]
-          : response;
+        const response = await listEmployees();
+        const employeesData = (response.ok && response.data) ? response.data : [];
         setEmployees(employeesData);
       } catch (err) {
         console.error('Erro ao carregar funcionários:', err);
@@ -57,10 +55,8 @@ export const CreateOSModal: React.FC<CreateOSModalProps> = ({
     const fetchProducts = async () => {
       try {
         setLoadingProducts(true);
-        const response = await handleAllProducts();
-        const productsData = Array.isArray(response) && Array.isArray(response[0])
-          ? response[0]
-          : response;
+        const response = await listProducts();
+        const productsData = (response.ok && response.data) ? response.data : [];
         setProducts(productsData);
       } catch (err) {
         console.error('Erro ao carregar produtos:', err);

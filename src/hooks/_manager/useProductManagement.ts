@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { handleProductWithCode } from '../../service/api/Administrador/products';
-import { PurchaseOrder } from '../../service/interfaces';
+import { listProducts } from '../../services/productService';
+import { PurchaseOrder } from '../../types';
 import Swal from 'sweetalert2';
 
 interface ProductData {
@@ -28,10 +28,23 @@ export const useInvoiceProductsManagement = () => {
     }
 
     try {
-      const product = await handleProductWithCode(productCode);
-      
+      const response = await listProducts();
+      const products = (response.ok && response.data) ? response.data : [];
+
+      const product = products.find((p: any) =>
+        String(p.code || '').trim() === productCode.trim()
+      );
+
       if (product) {
-        setSelectedProduct(product as ProductData);
+        setSelectedProduct({
+          id: String(product.id),
+          name: product.name,
+          code: product.code,
+          location: product.location,
+          coast: product.coast,
+          price: product.price,
+          stock: product.stock,
+        } as ProductData);
         setUnitCost(product.coast || product.price || 0);
         setQuantity(1);
       } else {
@@ -65,7 +78,7 @@ export const useInvoiceProductsManagement = () => {
     );
 
     if (existingIndex !== -1) {
-      setOrderItems(prev => prev.map((item, index) => 
+      setOrderItems(prev => prev.map((item, index) =>
         index === existingIndex
           ? {
               ...item,
@@ -74,7 +87,7 @@ export const useInvoiceProductsManagement = () => {
             }
           : item
       ));
-      Swal.fire('Info','Quantidade do produto atualizada!', 'info');
+      Swal.fire('Info', 'Quantidade do produto atualizada!', 'info');
     } else {
       const newItem: PurchaseOrder['orderItems'][0] = {
         productid: selectedProduct.id,
@@ -90,11 +103,11 @@ export const useInvoiceProductsManagement = () => {
     clearForm();
   };
 
-  const removeItem = (productid: string) => {
+  const removeItem = (productid: string | number) => {
     setOrderItems(prev => prev.filter(item => item.productid !== productid));
   };
 
-  const updateItemQuantity = (productid: string, newQuantity: number) => {
+  const updateItemQuantity = (productid: string | number, newQuantity: number) => {
     if (newQuantity <= 0) {
       removeItem(productid);
       return;
@@ -107,7 +120,7 @@ export const useInvoiceProductsManagement = () => {
     ));
   };
 
-  const updateItemCost = (productid: string, newCost: number) => {
+  const updateItemCost = (productid: string | number, newCost: number) => {
     if (newCost < 0) return;
 
     setOrderItems(prev => prev.map(item =>
@@ -147,13 +160,13 @@ export const useInvoiceProductsManagement = () => {
     selectedProduct,
     quantity,
     unitCost,
-    
+
     // Setters
     setProductCode,
     setQuantity,
     setUnitCost,
     setOrderItems,
-    
+
     // Ações
     searchProduct,
     addProductToInvoice,

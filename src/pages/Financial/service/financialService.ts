@@ -2,9 +2,14 @@ import Swal from 'sweetalert2';
 
 import { format } from 'date-fns';
 import { getStatusLabel } from '../../../components/utils/statusLabel';
-import { updatePaymentStatus, getPaymentsByCustomer, getPayments } from '../../../service/api/Administrador/financial/payments';
-import { updateOrderStatus } from '../../../service/api/Administrador/orders';
-import { OrderStatus } from '../../../service/interfaces/financial/paymentAccounts';
+import {
+  updatePaymentStatus as apiUpdatePaymentStatus,
+  markPaymentAsPaid,
+  getPaymentsByCustomer,
+  listPayments,
+} from '../../../services/financialService';
+import { updateOrderStatus as apiUpdateOrderStatus } from '../../../services/orderService';
+import { OrderStatus } from '../../../types/financial/paymentAccounts';
 import { formatCurrency } from '../../../utils/formatters';
 import { formatDate } from '../../../utils/formatters';
 
@@ -37,11 +42,11 @@ export class FinancialService {
       });
 
       if (formValues) {
-        await updatePaymentStatus(id, {
+        await apiUpdatePaymentStatus(id, {
           payment_status: "paid",
           payment_date: new Date().toDateString(),
-          transaction_id: id,
-          notes: "Concluida transação"
+          transaction_id: formValues.transaction_id || String(id),
+          notes: formValues.notes || "Concluida transação"
         });
 
         await reloadData();
@@ -66,7 +71,7 @@ export class FinancialService {
       });
 
       if (result.isConfirmed) {
-        await updatePaymentStatus(id, {
+        await apiUpdatePaymentStatus(id, {
           payment_status: "cancelled",
           payment_date: null,
           transaction_id: null,
@@ -92,9 +97,9 @@ export class FinancialService {
     try {
       const response = await getPaymentsByCustomer(id);
 
-      const merged = response.combined || [];
+      const merged = (response.ok && response.data?.combined) || [];
 
-      merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      merged.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       setCustomerOrders(merged);
 
@@ -133,7 +138,7 @@ export class FinancialService {
       });
 
       if (result.isConfirmed) {
-        await updateOrderStatus(orderId, newStatus);
+        await apiUpdateOrderStatus(orderId, newStatus);
 
         const updatedOrders = pedidos.map((order) =>
           order.id === orderId ? { ...order, orderStatus: newStatus } : order
@@ -150,12 +155,14 @@ export class FinancialService {
 
   static async generateReport(startDate: string, endDate: string, reportType: string, setReportModalOpen: (open: boolean) => void) {
     try {
-      const response = await getPayments({
+      const response = await listPayments({
         data_inicio: startDate,
         data_fim: endDate
       });
 
-      const reportData = response.data.map((item: any) => ({
+      const payments = (response.ok && response.data) ? response.data.data : [];
+
+      const reportData = payments.map((item: any) => ({
         Pedido: item.ordernumber || `#${item.orderid}`,
         Cliente: item.customer_name || 'N/A',
         Valor: formatCurrency(item.amount || 0),
@@ -164,8 +171,8 @@ export class FinancialService {
         'Data Pagamento': item.payment_date ? formatDate(item.payment_date) : '-'
       }));
 
-      const total = response.data.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
-      const totalPagos = response.data
+      const total = payments.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
+      const totalPagos = payments
         .filter((item: any) => item.payment_status === 'paid')
         .reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
 

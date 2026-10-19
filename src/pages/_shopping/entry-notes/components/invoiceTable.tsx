@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { PurchaseOrder } from '../../../../service/interfaces';
-import { handleProductWithCode } from '../../../../service/api/Administrador/products';
+import { PurchaseOrder } from '../../../../types';
+import { listProducts } from '../../../../services/productService';
 
 interface Props {
     orderItems: PurchaseOrder['orderItems'];
@@ -30,10 +30,12 @@ const InvoiceProductTable: React.FC<Props> = ({ orderItems, setOrderItems }) => 
         }
 
         try {
-            const product = await handleProductWithCode(productCode);
+            const response = await listProducts();
+            const products = (response.ok && response.data) ? response.data : [];
+            const product = products.find(p => String(p.code).trim() === productCode.trim());
             
             if (product) {
-                setSearchedProduct(product as ProductData);
+                setSearchedProduct(product as unknown as ProductData);
                 setUnitCost(product.coast || product.price || 0);
                 setQuantity(1);
             } else {
@@ -101,7 +103,7 @@ const InvoiceProductTable: React.FC<Props> = ({ orderItems, setOrderItems }) => 
         setUnitCost(0);
     };
 
-    const handleRemoveProduct = (productid: string) => {
+    const handleRemoveProduct = (productid: string | number) => {
         setOrderItems(prev => prev.filter(item => item.productid !== productid));
     };
 

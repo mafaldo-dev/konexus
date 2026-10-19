@@ -1,5 +1,5 @@
 import { UseFormSetValue } from 'react-hook-form';
-import { PurchaseOrder } from '../../../../service/interfaces';
+import { PurchaseOrder } from '../../../../types';
 
 interface SupplierSearchFormProps {
     setValue: UseFormSetValue<any>;

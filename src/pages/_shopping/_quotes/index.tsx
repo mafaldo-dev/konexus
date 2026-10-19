@@ -4,9 +4,8 @@ import { useState } from 'react';
 import Swal from 'sweetalert2';
 import {
   updatePurchaseOrder,
-  UpdateOrderStatusPayload,
-  getOrderById
-} from '../../../service/api/Administrador/purchaseRequests';
+  getPurchaseOrderByNumber,
+} from '../../../services/purchaseService';
 import DocumentViewer from '../../../utils/screenOptions';
 import { getStatusColor, getStatusLabel, mapOrderStatus, ORDER_STATUS } from '../../../components/utils/statusLabel';
 
@@ -63,8 +62,9 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
         didOpen: () => Swal.showLoading(),
       });
 
-      const fullOrder = await getOrderById(order.ordernumber);
-      if (!fullOrder) throw new Error('Pedido não encontrado');
+      const fullOrderRes = await getPurchaseOrderByNumber(order.ordernumber);
+      if (!fullOrderRes.ok || !fullOrderRes.data) throw new Error('Pedido não encontrado');
+      const fullOrder = fullOrderRes.data;
 
       // Normalizar status usando mapOrderStatus
       const normalizedStatus = mapOrderStatus(fullOrder.orderStatus);
@@ -80,7 +80,7 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
         currency: fullOrder.currency || 'BRL',
         notes: fullOrder.notes || 'Nenhuma observação',
         companyid: fullOrder.companyId,
-        createdat: fullOrder.createdAt,
+        createdat: fullOrder.orderDate,
         items: fullOrder.orderItems?.map((item: any) => ({
           productid: item.productid,
           productname: item.productname,
@@ -100,11 +100,10 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
           cnpj: fullOrder.supplier?.cnpj || '---'
         },
         company: {
-          id: fullOrder.requestingCompany?.id,
-          name: fullOrder.requestingCompany?.name || '---',
-          buyer: fullOrder.requestingCompany?.buyer || '---'
-        },
-        requestingCompany: fullOrder.requestingCompany
+          id: fullOrder.companyId || 0,
+          name: '',
+          buyer: ''
+        }
       };
 
       setSelectedOrder(normalizedOrder);
@@ -155,7 +154,7 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
 
     if (isConfirmed && newStatus) {
       try {
-        const payload: UpdateOrderStatusPayload = {
+        const payload: { orderStatus?: string; notes?: string } = {
           orderStatus: newStatus,
           notes: order.notes || ''
         };
@@ -186,15 +185,17 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
         didOpen: () => Swal.showLoading() 
       });
 
-      const fullOrder = await getOrderById(order.orderNumber || order.ordernumber);
+      const fullOrderRes = await getPurchaseOrderByNumber(order.orderNumber || order.ordernumber);
       
-      if (!fullOrder || !Array.isArray(fullOrder.orderItems)) {
+      if (!fullOrderRes.ok || !fullOrderRes.data || !Array.isArray(fullOrderRes.data.orderItems)) {
         throw new Error('Pedido inválido');
       }
 
+      const fullOrder = fullOrderRes.data;
+
       const orderWithLowercase = {
         ...fullOrder,
-        orderItems: fullOrder.orderItems.map((item: any) => ({
+        orderItems: (fullOrder.orderItems || []).map((item: any) => ({
           productcode: item.productcode,
           productname: item.productname,
           productbrand: item.productbrand,

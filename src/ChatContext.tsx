@@ -10,8 +10,9 @@ import {
 } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
-import { fetchMessages, markMessagesReadAPI, sendMessageAPI, fetchConversationAPI } from './service/api/chat';
-import { handleAllEmployee } from './service/api/Administrador/employee';
+import { API_CONFIG } from './api/config';
+import { getRecentConversations, markAllAsRead } from './services/messageService';
+import { listEmployees } from './services/employeeService';
 
 export type UserStatus = 'online' | 'offline' | 'away';
 
@@ -135,16 +136,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      let employees = await handleAllEmployee();
+      const response = await listEmployees();
+      let employees = (response.ok && response.data) ? response.data : [];
       const onlineUsers = getOnlineUsersFromStorage();
-
-      if (employees?.data && Array.isArray(employees.data)) {
-        employees = employees.data;
-      }
-
-      if (Array.isArray(employees) && employees.length > 0 && Array.isArray(employees[0])) {
-        employees = employees[0];
-      }
 
       if (!Array.isArray(employees)) {
         console.warn("⚠ Formato inesperado de employees, normalizando para array vazio.");
@@ -169,7 +163,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const refreshMessages = useCallback(async () => {
     if (!authUser?.id) return;
     try {
-      const msgs = await fetchMessages(authUser.id);
+      const response = await getRecentConversations(authUser.id);
+      const msgs = (response.ok && response.data) ? response.data : [];
 
       const normalized = msgs.map((m: any) => ({
         ...m,
@@ -227,7 +222,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return process.env.REACT_APP_SOCKET_URL_LOCAL || 'http://localhost:3010';
       }
 
-      return process.env.REACT_APP_SOCKET_URL;
+      return process.env.REACT_APP_SOCKET_URL || API_CONFIG.BASE_URL;
     };
 
     const socketUrl = getSocketUrl();
@@ -406,35 +401,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         });
 
       } else {
-        console.warn('⚠️ [4] Socket DESCONECTADO!');
-
-        try {
-          const sentMessage = await sendMessageAPI({
-            senderId: String(msg.senderId),
-            senderName: msg.senderName,
-            recipientId: String(msg.recipientId),
-            content: msg.content,
-            sector: msg.sector,
-            timestamp: tempMessage.timestamp,
-            read: false
-          });
-
-          setMessages(prev => {
-            const filtered = prev.filter(m => m.id !== tempMessage.id);
-            return [...filtered, {
-              ...sentMessage,
-              id: String(sentMessage.id),
-              senderId: String(sentMessage.senderId),
-              recipientId: String(sentMessage.recipientId),
-            }].sort((a, b) =>
-              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-            );
-          });
-
-        } catch (apiError) {
-          console.error('❌ [ERROR] Falha ao enviar via API:', apiError);
-          throw apiError;
-        }
+        console.warn('⚠️ Socket DESCONECTADO - mensagem não pode ser enviada via API (chat usa Socket.IO).');
       }
 
       dispatchUnreadCounts({
@@ -466,8 +433,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       // reset counter locally
       dispatchUnreadCounts({ type: 'RESET_UNREAD', userId: String(senderId) });
 
-      // send to API (note: API expects /messages/:userId/read-all/:senderId where userId is the recipient)
-      await markMessagesReadAPI(String(recipientId), String(senderId));
+      // send to API (note: API expects /message/:recipientId/read-all/:senderId)
+      await markAllAsRead(senderId, recipientId);
 
       // notify sender via socket for read receipt
       if (socketRef.current?.connected) {

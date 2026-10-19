@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Edit, Trash2, Calendar, User, AlertTriangle } from 'lucide-react';
-import { GoalsData } from '../../../../service/interfaces';
+import { GoalsData } from '../../../../types';
 
 
 type Unit = 'reais' | 'porcentagem' | 'pessoas' | 'unidades' | string

@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, FileText, Eye, Play, Loader2 } from 'lucide-react';
 import { useAuth } from '../../AuthContext';
-import { OrderService } from '../../service/interfaces/stock/service';
-import { handleAllOrderServices } from '../../service/api/Administrador/orderService/service';
+import { OrderService } from '../../types/stock/service';
+import { listServiceOrders } from '../../services/serviceOrderService';
 
 interface NotificationBadgeProps {
   onOrderStart?: (osId: number) => void;
@@ -32,12 +32,12 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({ onOrderSta
     if (!user) return;
     
     try {
-      const response = await handleAllOrderServices();
+      const response = await listServiceOrders();
       
       // Trata a resposta - pode vir como array direto ou array dentro de array
-      let data: OrderService[] = [];
-      if (Array.isArray(response)) {
-        data = Array.isArray(response[0]) ? response[0] : response;
+      let data: OrderService[] = (response.ok && response.data) ? response.data : [];
+      if (Array.isArray(data) && Array.isArray(data[0])) {
+        data = data[0];
       }
       
       // Filtra apenas ordens initialized (pendentes)

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Products, Supplier } from '../../service/interfaces';
-import { handleAllProducts } from '../../service/api/Administrador/products';
-import { handleAllSuppliers } from '../../service/api/Administrador/suppliers/supplier';
+import { Products } from '../../types';
+import { Supplier } from '../../types';
+import { listProducts } from '../../services/productService';
+import { listSuppliers } from '../../services/supplierService';
 
 
 interface PurchaseData {
@@ -22,8 +23,12 @@ export const usePurchaseData = (): PurchaseData => {
     setIsLoading(true);
     setError(null);
     try {
-      const productsData = await handleAllProducts();
-      const suppliersData = await handleAllSuppliers();
+      const productsResponse = await listProducts();
+      const suppliersResponse = await listSuppliers();
+
+      const productsData = (productsResponse.ok && productsResponse.data) ? productsResponse.data : [];
+      const suppliersData = (suppliersResponse.ok && suppliersResponse.data) ? (suppliersResponse.data.data || []) : [];
+
       setProducts(productsData);
       setSuppliers(suppliersData);
     } catch (err) {

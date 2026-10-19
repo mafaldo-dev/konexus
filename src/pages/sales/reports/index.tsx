@@ -3,17 +3,16 @@ import DynamicReportPanel from './components/DynamicReportPanel';
 import TopProductsList from './components/TopProductsList';
 import TopCustomersPanel from './components/TopCustomersPanel';
 import {
-  getSalesReports,
-  getPurchaseReports,
+  getSalesReport,
+  getPurchaseReport,
   getTopProducts,
-  getTopCustomers,
-} from '../../../service/api/Administrador/reports';
+} from '../../../services/reportService';
 import {
   SalesReport,
   PurchaseReport,
   TopCustomer,
   CustomerRank
-} from '../../../service/interfaces/reports';
+} from '../../../types/reports';
 import Dashboard from '../../../components/dashboard/Dashboard';
 import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 
@@ -47,17 +46,15 @@ const ReportsDashboard: React.FC = () => {
         salesData, 
         purchaseData, 
         productsData, 
-        //customersData, 
-        //rankData
       ] = await Promise.all([
-        getSalesReports(),
-        getPurchaseReports(),
+        getSalesReport(),
+        getPurchaseReport(),
         getTopProducts(),
       ]);
 
-      setSalesReport(salesData);
-      setPurchaseReport(purchaseData);
-      setTopProducts(productsData);
+      setSalesReport((salesData.ok && salesData.data) || { totalSales: 0, numberOfOrders: 0, averageOrderValue: 0 });
+      setPurchaseReport((purchaseData.ok && purchaseData.data) || { totalPurchases: 0, numberOfInvoices: 0, averageInvoiceValue: 0 });
+      setTopProducts((productsData.ok && productsData.data) || []);
       //setTopCustomers(customersData);
       //setCustomerRank(rankData);
       

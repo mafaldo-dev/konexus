@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Employee } from '../../../service/interfaces/humanResources/employees';
+import { Employee } from '../../../types/humanResources/employees';
 import { motion } from 'framer-motion';
 
-import { handleAllEmployee } from '../../../service/api/Administrador/employee';
-import { handleAllOrders } from '../../../service/api/Administrador/orders';
+import { listEmployees } from '../../../services/employeeService';
+import { listOrders } from '../../../services/orderService';
 
 import { Award } from 'lucide-react';
 
@@ -61,8 +61,8 @@ export default function Commissions() {
       try {
         setLoading(true);
         const [employees, orders] = await Promise.all([
-          handleAllEmployee(),
-          handleAllOrders()
+          (await listEmployees()).data || [],
+          (await listOrders()).data || []
         ]);
 
         const completedSales = orders.filter(order => order.orderStatus === "Enviado");

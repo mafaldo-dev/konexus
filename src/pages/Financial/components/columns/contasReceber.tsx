@@ -2,7 +2,7 @@ import React from 'react';
 import { CheckCircle } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../../../utils/formatters';
 
-import { OrderResponse } from '../../../../service/interfaces';
+import { OrderResponse } from '../../../../types';
 import { safeFormatDate } from '../../../../utils/dateTime';
 
 interface ContasReceberColumnsProps {

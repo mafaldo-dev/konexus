@@ -1,11 +1,11 @@
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { Products } from '../../../service/interfaces';
+import { Products } from '../../../types';
 import { useEffect, useCallback, useState } from 'react';
-import { updateProduct } from '../../../service/api/Administrador/products';
-import { handleAllSuppliers } from '../../../service/api/Administrador/suppliers/supplier';
+import { updateProduct } from '../../../services/productService';
+import { listSuppliers } from '../../../services/supplierService';
 import Swal from 'sweetalert2';
 import { Save, X, Eye, Edit } from 'lucide-react';
-import { useAuth } from '../../../AuthContext' // Ajuste o caminho conforme sua estrutura
+import { useAuth } from '../../../AuthContext'
 
 type Props = {
   product: Products | any;
@@ -36,8 +36,9 @@ const UpdatedProduct = ({ product, onClose }: Props) => {
 
   const handleSearchSupplier = async () => {
     try {
-      const suppliers = await handleAllSuppliers();
-      const found = suppliers.find(
+      const response = await listSuppliers();
+      if (!response.ok || !response.data) return;
+      const found = (response.data.data || []).find(
         (s) => s.code?.toLowerCase() === searchCode.toLowerCase()
       );
 
@@ -68,7 +69,8 @@ const UpdatedProduct = ({ product, onClose }: Props) => {
     async (data) => {
       if (!product?.id) return;
       try {
-        await updateProduct(product.id, { ...data, updated_at: new Date() });
+        const response = await updateProduct(product.id, { ...data, updated_at: new Date() });
+        if (!response.ok) throw new Error(response.error || "Erro ao atualizar");
         await showAlert('Sucesso!', 'Produto atualizado com sucesso!', 'success');
         setIsEditing(false);
         onClose();

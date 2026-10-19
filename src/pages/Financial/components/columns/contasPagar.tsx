@@ -1,4 +1,4 @@
-import { PaymentAccount } from '../../../../service/interfaces/financial/paymentAccounts';
+import { PaymentAccount } from '../../../../types/financial/paymentAccounts';
 import { formatCurrency, formatDate } from '../../../../utils/formatters';
 import { formatPostgresDate } from '../../../../utils/dateTime';
 import { ORDER_STATUS } from '../../../../components/utils/statusLabel';

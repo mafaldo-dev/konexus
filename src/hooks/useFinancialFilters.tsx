@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FilterState } from '../service/interfaces/financial/paymentAccounts';
+import { FilterState } from '../types/financial/paymentAccounts';
 
 
 export const useFinancialFilters = () => {

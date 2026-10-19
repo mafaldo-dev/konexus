@@ -3,8 +3,8 @@ import { User as UserIcon } from 'lucide-react';
 
 import UserFormModal from './components/UserFormModal';
 import Dashboard from '../../../components/dashboard/Dashboard';
-import { handleAllEmployee, updatedEmployee } from '../../../service/api/Administrador/employee';
-import { Employee } from '../../../service/interfaces';
+import { listEmployees, updateEmployee } from '../../../services/employeeService';
+import { Employee } from '../../../types';
 import Swal from 'sweetalert2';
 
 export default function UserManagementPage() {
@@ -16,8 +16,8 @@ export default function UserManagementPage() {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const data = await handleAllEmployee();
-      setUsers(data);
+      const data = await listEmployees();
+      setUsers(data.data || []);
     } catch (error) {
       console.error("Failed to fetch users:", error);
     } finally {
@@ -32,7 +32,7 @@ export default function UserManagementPage() {
     }
 
     try {
-      await updatedEmployee(user.id, user);
+      await updateEmployee(user.id, user);
       Swal.fire("Sucesso...","Informações atualizadas com sucesso!", 'success')
       setIsModalOpen(false);
       fetchUsers(); // Recarrega a lista de usuários

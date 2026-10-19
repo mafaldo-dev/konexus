@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Package, Calendar, User, CreditCard, FileText } from "lucide-react";
-import { Order, OrderResponse } from "../../../../service/interfaces";
+import { Order, OrderResponse } from "../../../../types";
 
 
 interface SalesTableProps {
