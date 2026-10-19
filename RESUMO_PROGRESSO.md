@@ -127,4 +127,7 @@
 - **Documentação:** `konexus-back/docs/SCHEMA_NEON.md`,
   `konexus-back/docs/ENVIRONMENT.md` e `konexus-back/docs/RELEASE_CHECKLIST.md`.
 - **Publicação:** backend commitado/push em `b9d12e1` (`main`); frontend
-  commitado/push em `1754913` (`main`). Deploy, tag e release ainda não executados.
+  commitado/push em `1754913` (`main`) e versão `1.2.0` em `deacff6`. Release
+  [`v1.2.0`](https://github.com/mafaldo-dev/konexus/releases/tag/v1.2.0) publicada
+  com instalador Windows, `.blockmap` e `latest.yml`. Deploy do backend no Render
+  ainda não executado.
