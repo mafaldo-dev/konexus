@@ -126,4 +126,5 @@
   cleanup); limpeza **não executada**.
 - **Documentação:** `konexus-back/docs/SCHEMA_NEON.md`,
   `konexus-back/docs/ENVIRONMENT.md` e `konexus-back/docs/RELEASE_CHECKLIST.md`.
-- **Publicação:** nenhum commit, deploy ou release publicado.
+- **Publicação:** backend commitado/push em `b9d12e1` (`main`); frontend
+  commitado/push em `1754913` (`main`). Deploy, tag e release ainda não executados.
