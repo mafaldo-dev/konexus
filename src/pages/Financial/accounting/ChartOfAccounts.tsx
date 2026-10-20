@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
 
 import {
@@ -77,6 +77,15 @@ export default function ChartOfAccountsPage() {
   const [editing, setEditing] = useState<AccountingAccount | null>(null);
   const [form, setForm] = useState<any>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+  // Contas do modelo de demonstracao (carregado pelo seed de demonstracao).
+  const demoAccounts = useMemo(
+    () =>
+      accounts.filter((account) =>
+        /demonstracao/i.test(account.description || "")
+      ),
+    [accounts]
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -182,7 +191,7 @@ export default function ChartOfAccountsPage() {
   return (
     <AccountingPage
       title="Plano de contas"
-      description="Hierarquia de contas da empresa. Contas sintéticas organizam o plano; apenas as analíticas recebem lançamentos."
+      description="Plano de contas da sua empresa, mantido pelo seu contador responsável. Contas sintéticas organizam o plano; apenas as analíticas recebem lançamentos."
       actions={
         <ActionButton variant="primary" onClick={openCreate}>
           <Plus className="h-4 w-4" />
@@ -191,6 +200,18 @@ export default function ChartOfAccountsPage() {
       }
     >
       <ErrorState message={error} />
+
+      {demoAccounts.length > 0 ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="font-semibold">Plano de demonstração</p>
+          <p className="mt-1">
+            {demoAccounts.length} conta(s) pertencem ao modelo de demonstração
+            carregado para teste. O contador responsável deve desativá-las e
+            cadastrar o plano de contas real da empresa — cada empresa tem o
+            seu próprio plano, isolado por empresa.
+          </p>
+        </div>
+      ) : null}
 
       <Card>
         <div className="mb-3 flex flex-wrap gap-2">

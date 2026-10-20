@@ -3,6 +3,11 @@ name: Release Windows installer
 on:
   release:
     types: [published]
+  # Publicar a release empurrando a tag: o proprio workflow cria a release,
+  # gera o instalador e publica os assets (exe, blockmap e latest.yml).
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
@@ -14,11 +19,11 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  group: release-${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 env:
-  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
   # O CRA trata avisos do ESLint como erro quando CI=true. O projeto possui
   # avisos legados; um aviso de estilo não deve impedir a geração do instalador.
   # A validação de tipos continua obrigatória no passo "Verificar TypeScript".
@@ -75,16 +80,35 @@ jobs:
           }
           Write-Host "Versão validada: $($package.version)"
 
-      - name: Validar release publicada
+      - name: Preparar a release
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $release = gh release view $env:RELEASE_TAG --json tagName,isDraft | ConvertFrom-Json
-          if ($release.isDraft) {
-            throw "A release $env:RELEASE_TAG está como rascunho e não pode receber assets."
+          # A release pode ja existir (fluxo manual) ou ser criada agora
+          # (disparo por tag). Nesse segundo caso ela nasce como rascunho e
+          # so e publicada depois que os tres assets estiverem no ar.
+          $existing = gh release view $env:RELEASE_TAG --json tagName,isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $release = $existing | ConvertFrom-Json
+            Write-Host "Release existente: $($release.tagName) (rascunho: $($release.isDraft))"
+            if (-not $release.isDraft) {
+              Write-Host "A release ja esta publicada; os assets serao atualizados."
+            }
+          } else {
+            $notes = @"
+            ## Konexus $($env:RELEASE_TAG)
+
+            Esta release inclui o modulo de Contabilidade (adicional contratado do
+            Financeiro), a aba de auditoria no painel administrativo global e o
+            fluxo de reautenticacao por senha nas operacoes protegidas.
+
+            **Atualizacao automatica:** baixe o instalador `Konexus-Setup-$($env:RELEASE_TAG.Substring(1)).exe`
+            ou deixe o aplicativo instalado buscar a nova versao sozinho.
+            "@@
+            gh release create $env:RELEASE_TAG --draft --title "Konexus $($env:RELEASE_TAG)" --notes $notes --target $env:RELEASE_TAG
+            Write-Host "Release criada como rascunho: $env:RELEASE_TAG"
           }
-          Write-Host "Release publicada encontrada: $($release.tagName)"
 
       - name: Instalar dependências (lockfile)
         run: npm ci --legacy-peer-deps --no-audit --no-fund
@@ -172,3 +196,18 @@ jobs:
           }
 
           Write-Host "latest.yml publicado e validado (versão $($manifest.version))."
+
+      - name: Publicar a release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Se a release nasceu como rascunho (disparo por tag), ela e
+          # publicada agora, com o instalador ja disponivel.
+          $release = gh release view $env:RELEASE_TAG --json tagName,isDraft | ConvertFrom-Json
+          if ($release.isDraft) {
+            gh release edit $env:RELEASE_TAG --draft=false
+            Write-Host "Release publicada: $env:RELEASE_TAG"
+          } else {
+            Write-Host "A release ja estava publicada: $env:RELEASE_TAG"
+          }

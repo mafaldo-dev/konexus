@@ -30,6 +30,18 @@ O grupo **Contabilidade** fica dentro de **Financeiro** no menu lateral
 empresa tem o adicional contratado e o usuário tem a permissão — a mesma
 regra aplicada pelo backend.
 
+## Contador da empresa
+
+Cada empresa usa o módulo com o **seu contador responsável**: o plano de contas
+é da empresa (isolado por `companyId`) e o acesso depende das permissões
+concedidas em **Configurações → Usuários e Permissões** (`manage_plan`,
+`create`, `post`, `reverse`, `reports`, `reconcile`, `run_depreciation`,
+`settings`).
+
+O plano entregue pela carga de demonstração é um **modelo**: a tela do plano de
+contas sinaliza as contas que ainda pertencem a ele — elas devem ser
+desativadas e substituídas pelo plano real do contador.
+
 ## Contratação
 
 O módulo é um **extra do Financeiro**: a tela só aparece para empresas com a
