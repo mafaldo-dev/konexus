@@ -77,11 +77,34 @@ Isso iniciará o servidor de desenvolvimento do React e, em seguida, o aplicativ
 Para gerar uma versão de produção do aplicativo Electron:
 
 ```bash
-npm run electron:build
-# ou yarn electron:build
+npm ci --legacy-peer-deps --no-audit --no-fund
+CI=false npm run electron:build -- --win nsis --publish never
 ```
 
-Os artefatos de build serão gerados na pasta `dist` (ou similar, configurada no `electron-builder`).
+Os artefatos são gerados em `dist/`: instalador NSIS
+(`Konexus-Setup-X.Y.Z.exe`), arquivo de download diferencial
+(`.exe.blockmap`) e metadados de atualização (`latest.yml`).
+
+### Releases e atualização automática
+
+O processo oficial de release é o workflow do GitHub Actions
+[`.github/workflows/release.yml`](.github/workflows/release.yml). Ao publicar
+uma release com tag `vX.Y.Z` correspondente ao `package.json`, o workflow:
+
+1. faz checkout da tag exata;
+2. valida versão, release, TypeScript e artefatos;
+3. gera o instalador Windows com Electron Builder + NSIS;
+4. publica `Konexus-Setup-X.Y.Z.exe`, `Konexus-Setup-X.Y.Z.exe.blockmap` e
+   `latest.yml` na própria GitHub Release.
+
+O aplicativo instalado usa `electron-updater` para consultar o `latest.yml`,
+baixar a nova versão em segundo plano e instalar após o reinício. As instruções
+completas, incluindo versionamento, diagnóstico e limitações de assinatura
+digital, estão em [`docs/RELEASES.md`](docs/RELEASES.md).
+
+> O instalador não é assinado digitalmente; o Windows pode exibir aviso do
+> SmartScreen. O teste ponta a ponta de atualização precisa ser feito em uma
+> instalação Windows real.
 
 ## Estrutura do Projeto
 
