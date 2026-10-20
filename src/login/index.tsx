@@ -28,10 +28,10 @@ function useAutoUpdater() {
     ipcRenderer.on("update_available", () => {
       setDownloading(true);
       setProgress(0);
-      
+
       Swal.fire({
         title: "Atualização disponível!",
-        text: "Uma nova versão está sendo baixada...",
+        text: "Baixando nova versão em segundo plano...",
         icon: "info",
         showConfirmButton: false,
         allowOutsideClick: false,
@@ -50,8 +50,8 @@ function useAutoUpdater() {
         Swal.update({
           html: `
             <div style="text-align: center;">
-              <h3>Atualizando Sistema</h3>
-              <p>Baixando nova versão...</p>
+              <h3>Baixando atualização</h3>
+              <p>O download está ocorrendo em segundo plano.</p>
               <div style="width: 300px; background: #e0e0e0; border-radius: 10px; overflow: hidden; height: 20px; margin: 10px auto;">
                 <div style="width: ${percent}%; background: #4CAF50; height: 100%; transition: width 0.3s;"></div>
               </div>
@@ -67,10 +67,10 @@ function useAutoUpdater() {
       console.info("✅ Download da atualização concluído");
       setDownloading(false);
       setProgress(100);
-      
+
       Swal.fire({
         title: "Download concluído!",
-        text: "A atualização será aplicada após o reinício.",
+        text: "A atualização será aplicada após o reinício do aplicativo.",
         icon: "success",
         showCancelButton: true,
         confirmButtonText: "Reiniciar agora",
@@ -89,14 +89,14 @@ function useAutoUpdater() {
       console.info("ℹ️ Nenhuma atualização disponível");
     });
 
-    ipcRenderer.on("update_error", (_:any, error: any) => {
+    ipcRenderer.on("update_error", (_: any, error: any) => {
       console.error("❌ Erro na atualização:", error);
       setDownloading(false);
       Swal.fire({
         title: "Erro na atualização",
-        text: "Não foi possível baixar a atualização.",
+        text: "Não foi possível baixar a atualização automaticamente. Tente novamente mais tarde.",
         icon: "error",
-        confirmButtonText: "OK"
+        confirmButtonText: "OK",
       });
     });
 
@@ -109,7 +109,7 @@ function useAutoUpdater() {
     };
   }, [downloading]);
 
-  return { downloading, progress };
+  return { downloading, progress, setDownloading, setProgress };
 }
 
 /**
@@ -161,7 +161,7 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
 
-  const { downloading, progress } = useAutoUpdater();
+  const { downloading, progress, setDownloading, setProgress } = useAutoUpdater();
 
   // Verifica atualização ao carregar a tela de login
   useEffect(() => {
@@ -182,29 +182,27 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     const isElectron = typeof (window as any).require !== 'undefined';
-    
+
     if (isElectron) {
-   
       const { ipcRenderer } = (window as any).require('electron');
-      
+
       const handleF1Shortcut = () => {
         setShowAdminLogin(true);
       };
-      
+
       ipcRenderer.on('global-shortcut-f1', handleF1Shortcut);
-      
+
       return () => {
         ipcRenderer.removeListener('global-shortcut-f1', handleF1Shortcut);
       };
     } else {
-
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "F1") {
           e.preventDefault();
           setShowAdminLogin(true);
         }
       };
-      
+
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
@@ -250,25 +248,38 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // Se há atualização disponível, bloqueia o login e mostra modal obrigatório
+  // Inicia o download da atualização via Electron (em segundo plano)
+  const handleDownloadUpdate = () => {
+    setDownloading(true);
+    setProgress(0);
+
+    const isElectron = typeof (window as any).require !== 'undefined';
+    if (isElectron) {
+      const { ipcRenderer } = (window as any).require("electron");
+      // Solicita ao main process que inicie o download da atualização
+      ipcRenderer.send("download_update");
+    }
+  };
+
+  // Se há atualização disponível, mostra modal para download automático
   if (updateAvailable) {
     return (
       <section className="flex h-screen w-full bg-gray-50">
         <Branding />
         <div className="flex flex-col items-center justify-center h-full w-full max-w-md mx-auto p-6">
-          <div className="bg-orange-100 border border-orange-300 rounded-xl p-6 text-center">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
             <div className="flex justify-center mb-4">
-              <div className="bg-orange-500 rounded-full p-3">
+              <div className="bg-blue-500 rounded-full p-3">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
-            <h2 className="text-xl font-bold text-orange-900 mb-2">Atualização Obrigatória</h2>
-            <p className="text-orange-800 mb-4 text-sm">
+            <h2 className="text-xl font-bold text-blue-900 mb-2">Nova versão disponível</h2>
+            <p className="text-blue-800 mb-4 text-sm">
               Uma nova versão do Konexus está disponível: <strong>{updateAvailable}</strong><br/>
               Sua versão atual: <strong>v{CURRENT_VERSION}</strong><br/><br/>
-              É necessário atualizar antes de acessar o sistema.
+              O download será iniciado automaticamente em segundo plano.
             </p>
             <div className="flex gap-3">
               <button
@@ -276,17 +287,16 @@ const LoginPage: React.FC = () => {
                   setUpdateAvailable(null);
                   setUpdateChecking(false);
                 }}
-                className="px-4 py-2 bg-white border border-orange-300 rounded-lg text-orange-700 font-medium hover:bg-orange-200 transition"
+                className="px-4 py-2 bg-white border border-blue-200 rounded-lg text-blue-700 font-medium hover:bg-blue-100 transition"
               >
-                Tentar novamente
+                Ignorar por enquanto
               </button>
               <button
-                onClick={() => {
-                  window.open("https://github.com/mafaldo-dev/konexus/releases/latest", "_blank");
-                }}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition"
+                onClick={handleDownloadUpdate}
+                disabled={downloading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Baixar Atualização
+                {downloading ? "Baixando..." : "Baixar Atualização"}
               </button>
             </div>
           </div>
@@ -302,12 +312,12 @@ const LoginPage: React.FC = () => {
     <section className="flex h-screen w-full">
       <Branding />
 
-      {/* ✅ Indicador de Download (opcional - pode remover se preferir apenas o SweetAlert) */}
+      {/* ✅ Indicador de Download */}
       {downloading && (
         <div className="absolute top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>Atualizando... {progress}%</span>
+            <span>Baixando atualização... {progress}%</span>
           </div>
         </div>
       )}
@@ -330,11 +340,11 @@ const LoginPage: React.FC = () => {
             <div className="absolute top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Atualizando... {progress}%</span>
+                <span>Baixando atualização... {progress}%</span>
               </div>
             </div>
           )}
-          
+
           <h2 className="mb-4 text-xl font-bold">Login Administrador do Sistema</h2>
           <form className="flex flex-col gap-2 w-64" onSubmit={handleAdminLg}>
             <input

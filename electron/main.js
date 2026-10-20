@@ -187,3 +187,9 @@ autoUpdater.on('update-downloaded', () => {
 ipcMain.on('restart_app', () => {
   autoUpdater.quitAndInstall();
 });
+
+// Handler para iniciar download de atualização solicitado pelo usuário
+ipcMain.on('download_update', () => {
+  log.info('Usuário solicitou download de atualização');
+  autoUpdater.downloadUpdate();
+});
