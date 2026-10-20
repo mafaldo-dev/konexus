@@ -112,32 +112,32 @@ const AdministrationScreen = () => {
   const [news, setNews] = useState<NewsItem[]>([
     {
       id: 1,
-      title: 'Release 1.2.1 - Gestão de Colaboradores e Cargos',
-      description: 'Novo módulo de colaboradores com cargos personalizados, permissões granulares por módulo/ação e limites comerciais de contas e redefinições de senha.',
+      title: 'Sua empresa está mais segura',
+      description: 'O sistema trabalha o tempo todo para proteger os seus dados. Nesta atualização, melhoramos a forma como as informações são tratadas para ficar ainda mais seguro.',
       date: 'Hoje',
       category: 'feature',
       read: false
     },
     {
       id: 2,
-      title: 'Módulos Extras Independentes',
-      description: 'CRM, Financeiro e NF-e agora são módulos extras contratados separadamente. Acesse o painel administrativo (F1) para gerenciar contratações.',
+      title: 'Novos módulos disponíveis',
+      description: 'Agora você pode contratar módulos extras como CRM, NF-e e Contabilidade para o seu negócio. O Financeiro continua grátis para todas as empresas.',
       date: 'Hoje',
       category: 'update',
       read: false
     },
     {
       id: 3,
-      title: 'Segurança e Auditoria',
-      description: 'Auditoria sem senhas/tokens, invalidação de sessão na troca de senha e bloqueio de manipulação de companyId, role e permissões pelo cliente.',
+      title: 'Melhorias no atendimento',
+      description: 'Ajustamos o sistema para que você gerencie clientes, fornecedores e pedidos de forma mais simples e rápida.',
       date: 'Hoje',
       category: 'maintenance',
       read: false
     },
     {
       id: 4,
-      title: 'Limites Comerciais',
-      description: 'Franquia de 5 contas ativas por empresa e 3 redefinições de senha gratuitas por mês. Operações adicionais requerem autorização do suporte.',
+      title: 'Controle de acesso mais simples',
+      description: 'Agora você decide quem pode ver cada parte do sistema. As permissões ficam mais claras e fáceis de configurar.',
       date: 'Hoje',
       category: 'announcement',
       read: false

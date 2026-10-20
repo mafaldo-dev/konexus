@@ -12,6 +12,7 @@ import {
   BadgeCheck,
   CheckCircle2,
   CreditCard,
+  FileText,
   Headphones,
   KeyRound,
   Loader2,
@@ -59,8 +60,9 @@ function moduleIcon(moduleKey: string) {
   if (moduleKey === "finance") return CreditCard;
   if (moduleKey === "nfe") return Package;
   if (moduleKey === "rh") return Users;
-  if (moduleKey === "dashboard") return Sparkles;
   if (moduleKey === "crm") return BadgeCheck;
+  if (moduleKey === "contabil") return FileText;
+  if (moduleKey === "dashboard") return Sparkles;
   if (moduleKey === "estoque") return WalletCards;
   return ShieldCheck;
 }
@@ -117,7 +119,7 @@ export default function PlanosPage() {
               </h1>
               <p className="mt-1 max-w-2xl text-sm text-slate-500">
                 Módulos padrão estão incluídos para todas as empresas. CRM,
-                Financeiro e NF-e são extras independentes, contratados
+                NF-e e Contabilidade são extras independentes, contratados
                 separadamente.
               </p>
             </div>

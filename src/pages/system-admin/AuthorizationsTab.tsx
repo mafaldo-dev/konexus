@@ -42,6 +42,7 @@ const moduleLabels: Record<ExtraModuleKey, string> = {
   finance: "Financeiro",
   nfe: "NF-e",
   crm: "CRM",
+  contabil: "Contabilidade",
 };
 
 function statusTone(status: AuthorizationStatus): string {

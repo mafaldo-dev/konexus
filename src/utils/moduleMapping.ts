@@ -5,11 +5,13 @@
  * exibir menus/rotas que o usuário não pode usar e mantém a navegação coerente
  * com o catálogo de permissões retornado pelo servidor.
  *
- * Regras do modelo 1.2.1:
- *  - Módulos padrão são universais (dashboard, gestao, vendas, compras,
- *    estoque e rh).
- *  - CRM, Financeiro e NF-e são extras independentes e pagos; a permissão
- *    individual só libera o acesso quando o módulo também está contratado.
+ * Regras do modelo 1.2.2:
+ *  - Módulos padrão (gratuitos/freemium): dashboard, gestao, vendas,
+ *    compras, estoque, rh e financeiro (Financeiro está liberado no freemium).
+ *  - Módulos extras pagos: crm, nfe e contabilidade; só aparecem no menu
+ *    quando a empresa possui contratação ativa.
+ *  - O Financeiro controla a liberação de pedidos de venda (análise de
+ *    crédito).
  *  - O nome do cargo não concede acesso. O que vale são as permissões
  *    efetivas (cargo + exceções) e o cargo administrativo da empresa.
  */
@@ -32,6 +34,8 @@ export const MODULE_MAPPING: Record<string, string> = {
   financeiro: "finance",
   finance: "finance",
   nfe: "nfe",
+  contabilidade: "contabil",
+  contabil: "contabil",
   config: "dashboard",
   planos: "dashboard",
   relatorios: "dashboard",
@@ -42,6 +46,7 @@ export const REVERSE_MODULE_MAPPING: Record<string, string[]> = {
   finance: ["financeiro"],
   nfe: ["financeiro"],
   crm: ["crm"],
+  contabil: ["contabilidade"],
   estoque: ["estoque"],
   vendas: ["vendas"],
   gestao: ["gestao"],
@@ -272,8 +277,8 @@ export function filterSubmenuItems<
 
 export function getAvailableModulesForPlan(planType: string): string[] {
   const plans: Record<string, string[]> = {
-    free: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh"],
-    starter: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh"],
+    free: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "finance"],
+    starter: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "finance"],
     professional: [
       "dashboard",
       "gestao",

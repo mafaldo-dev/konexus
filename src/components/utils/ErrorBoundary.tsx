@@ -1,6 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { StatusMessageType, useSystemStatus, StatusMessage } from '../../SystemStatusContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, RefreshCw, Layout } from 'lucide-react';
 
 interface Props {
@@ -39,6 +39,11 @@ class ErrorBoundaryComponent extends Component<Props, State> {
     this.props.clearMessages();
   };
 
+  // Hot reload: recarrega a página inteira para limpar o estado de erro
+  handleGoToDashboard = () => {
+    window.location.reload();
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -56,13 +61,13 @@ class ErrorBoundaryComponent extends Component<Props, State> {
               <RefreshCw className="w-4 h-4" />
               Tentar novamente
             </button>
-            <Link
-              to="/dashboard"
+            <button
+              onClick={this.handleGoToDashboard}
               className="px-6 py-2 border border-slate-200 bg-white text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition flex items-center justify-center gap-2 sm:mx-auto"
             >
               <Layout className="w-4 h-4" />
               Voltar para o dashboard
-            </Link>
+            </button>
           </div>
         </div>
       );
