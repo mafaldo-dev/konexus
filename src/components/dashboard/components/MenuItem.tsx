@@ -16,6 +16,13 @@ interface MenuItemProps {
       to: string;
       icon: any;
       access?: string[];
+      /** Grupo de terceiro nivel (ex.: Financeiro > Contabilidade > ...). */
+      children?: Array<{
+        title: string;
+        to: string;
+        icon: any;
+        access?: string[];
+      }>;
     }>;
   };
   sidebarCollapsed: boolean;
@@ -33,9 +40,26 @@ export default function MenuItem({ item, sidebarCollapsed }: MenuItemProps) {
   const isActive = location.pathname === item.to;
   const hasSubmenu = item.submenu && item.submenu.length > 0;
 
-  const accessibleSubmenu = item.submenu?.filter(subItem => 
-    canAccessSubmenuItem(subItem.to, subItem.access)
-  ) || [];
+  const accessibleSubmenu = (item.submenu || [])
+    .filter((subItem) => {
+      if (subItem.children?.length) {
+        // Grupo: mantem se ao menos um filho estiver liberado.
+        return subItem.children.some((child) =>
+          canAccessSubmenuItem(child.to, child.access)
+        );
+      }
+      return canAccessSubmenuItem(subItem.to, subItem.access);
+    })
+    .map((subItem) =>
+      subItem.children?.length
+        ? {
+            ...subItem,
+            children: subItem.children.filter((child) =>
+              canAccessSubmenuItem(child.to, child.access)
+            ),
+          }
+        : subItem
+    );
 
   if (hasSubmenu && accessibleSubmenu.length === 0) {
     return null;
@@ -74,16 +98,44 @@ export default function MenuItem({ item, sidebarCollapsed }: MenuItemProps) {
       {hasSubmenu && isOpen && !sidebarCollapsed && (
         <div className="ml-6 mt-1 space-y-1">
           {accessibleSubmenu.map((subItem) => (
-            <Link
-              key={subItem.to}
-              to={subItem.to}
-              className={`flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-slate-800 ${
-                location.pathname === subItem.to ? 'bg-slate-800 text-white' : 'text-slate-400'
-              }`}
-            >
-              <subItem.icon className="w-4 h-4" />
-              <span className="text-sm">{subItem.title}</span>
-            </Link>
+            <div key={subItem.to || subItem.title}>
+              {subItem.children?.length ? (
+                <details className="group" open={subItem.children.some((child) => location.pathname === child.to)}>
+                  <summary className="flex cursor-pointer list-none items-center gap-3 p-2 rounded-lg text-slate-400 hover:bg-slate-800">
+                    <subItem.icon className="w-4 h-4" />
+                    <span className="text-sm">{subItem.title}</span>
+                  </summary>
+                  <div className="ml-5 space-y-1 border-l border-slate-700 pl-3">
+                    {subItem.children.map((child) => (
+                      <Link
+                        key={child.to}
+                        to={child.to}
+                        className={`flex items-center gap-2 p-1.5 rounded-lg transition-colors hover:bg-slate-800 ${
+                          location.pathname === child.to
+                            ? 'bg-slate-800 text-white'
+                            : 'text-slate-500'
+                        }`}
+                      >
+                        <child.icon className="w-3.5 h-3.5" />
+                        <span className="text-xs">{child.title}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </details>
+              ) : (
+                <Link
+                  to={subItem.to}
+                  className={`flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-slate-800 ${
+                    location.pathname === subItem.to
+                      ? 'bg-slate-800 text-white'
+                      : 'text-slate-400'
+                  }`}
+                >
+                  <subItem.icon className="w-4 h-4" />
+                  <span className="text-sm">{subItem.title}</span>
+                </Link>
+              )}
+            </div>
           ))}
         </div>
       )}
