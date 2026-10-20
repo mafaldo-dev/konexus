@@ -21,7 +21,7 @@ jobs:
           cache: 'npm'
 
       - name: Instalar dependências
-        run: npm install
+        run: npm install --legacy-peer-deps --no-fund --no-audit
 
       - name: Build do React
         run: npm run build
