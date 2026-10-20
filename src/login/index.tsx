@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Branding from "./components/Branding";
@@ -11,174 +11,133 @@ import { version } from "../version";
 
 // Versão atual do aplicativo
 const CURRENT_VERSION = version || "1.2.0";
-const GITHUB_API = "https://api.github.com/repos/mafaldo-dev/konexus/releases/latest";
 
-// ✅ Hook do Auto-Updater funcionando
+type UpdateState =
+  | { status: "idle" }
+  | { status: "checking" }
+  | { status: "not-available" }
+  | { status: "available"; version?: string }
+  | {
+      status: "downloading";
+      version?: string;
+      percent: number;
+      bytesPerSecond?: number;
+      transferred?: number;
+      total?: number;
+    }
+  | { status: "downloaded"; version?: string }
+  | { status: "error"; message?: string };
+
+// Acompanha o estado real do electron-updater. O processo principal envia
+// eventos e também mantém o último estado disponível para quem abrir a tela
+// depois do início da verificação.
 function useAutoUpdater() {
-  const [downloading, setDownloading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [updateState, setUpdateState] = useState<UpdateState>({ status: "idle" });
+  const updateVersionRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    // Verifica se está no Electron
-    const isElectron = typeof (window as any).require !== 'undefined';
+    const isElectron = typeof (window as any).require !== "undefined";
     if (!isElectron) return;
 
     const { ipcRenderer } = (window as any).require("electron");
 
-    ipcRenderer.on("update_available", () => {
-      setDownloading(true);
-      setProgress(0);
+    const applyStatus = (state: UpdateState) => {
+      if (!state || typeof state.status !== "string") return;
 
-      Swal.fire({
-        title: "Atualização disponível!",
-        text: "Baixando nova versão em segundo plano...",
-        icon: "info",
-        showConfirmButton: false,
-        allowOutsideClick: false,
-        didOpen: () => {
-          console.info("📥 Iniciando download da atualização...");
-        },
-      });
-    });
-
-    ipcRenderer.on("download_progress", (_: any, progressObj: any) => {
-      const percent = Math.round(progressObj.percent);
-      setProgress(percent);
-      console.info(`📊 Progresso do download: ${percent}%`);
-
-      if (Swal.isVisible() && downloading) {
-        Swal.update({
-          html: `
-            <div style="text-align: center;">
-              <h3>Baixando atualização</h3>
-              <p>O download está ocorrendo em segundo plano.</p>
-              <div style="width: 300px; background: #e0e0e0; border-radius: 10px; overflow: hidden; height: 20px; margin: 10px auto;">
-                <div style="width: ${percent}%; background: #4CAF50; height: 100%; transition: width 0.3s;"></div>
-              </div>
-              <p style="margin-top: 10px; font-weight: bold;">${percent}% concluído</p>
-              <p style="font-size: 12px; color: #666;">Velocidade: ${(progressObj.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s</p>
-            </div>
-          `
-        });
+      if (
+        (state.status === "available" ||
+          state.status === "downloading" ||
+          state.status === "downloaded") &&
+        state.version
+      ) {
+        updateVersionRef.current = state.version;
       }
-    });
 
-    ipcRenderer.on("update_downloaded", () => {
-      console.info("✅ Download da atualização concluído");
-      setDownloading(false);
-      setProgress(100);
+      setUpdateState(state);
+    };
 
-      Swal.fire({
-        title: "Download concluído!",
-        text: "A atualização será aplicada após o reinício do aplicativo.",
-        icon: "success",
-        showCancelButton: true,
-        confirmButtonText: "Reiniciar agora",
-        cancelButtonText: "Mais tarde",
-        confirmButtonColor: "#4CAF50",
-        cancelButtonColor: "#6c757d",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          console.info("🔄 Reiniciando aplicação para instalar atualização...");
-          ipcRenderer.send("restart_app");
-        }
+    const handleAvailable = (_: any, info: any) => {
+      updateVersionRef.current = info?.version || updateVersionRef.current;
+      setUpdateState({
+        status: "available",
+        version: updateVersionRef.current,
       });
-    });
+    };
 
-    ipcRenderer.on("update_not_available", () => {
-      console.info("ℹ️ Nenhuma atualização disponível");
-    });
+    const handleProgress = (_: any, progressObj: any) => {
+      const percent = Number.isFinite(progressObj?.percent)
+        ? Math.round(progressObj.percent)
+        : 0;
 
-    ipcRenderer.on("update_error", (_: any, error: any) => {
-      console.error("❌ Erro na atualização:", error);
-      setDownloading(false);
-      Swal.fire({
-        title: "Erro na atualização",
-        text: "Não foi possível baixar a atualização automaticamente. Tente novamente mais tarde.",
-        icon: "error",
-        confirmButtonText: "OK",
+      setUpdateState({
+        status: "downloading",
+        version: updateVersionRef.current,
+        percent,
+        bytesPerSecond: progressObj?.bytesPerSecond,
+        transferred: progressObj?.transferred,
+        total: progressObj?.total,
       });
-    });
+    };
+
+    const handleDownloaded = (_: any, info: any) => {
+      updateVersionRef.current = info?.version || updateVersionRef.current;
+      setUpdateState({
+        status: "downloaded",
+        version: updateVersionRef.current,
+      });
+    };
+
+    const handleNotAvailable = () => setUpdateState({ status: "not-available" });
+    const handleError = (_: any, message: string) =>
+      setUpdateState({ status: "error", message });
+    const handleChecking = () => setUpdateState({ status: "checking" });
+    const handleStatus = (_: any, state: UpdateState) => applyStatus(state);
+
+    ipcRenderer.on("update_available", handleAvailable);
+    ipcRenderer.on("download_progress", handleProgress);
+    ipcRenderer.on("update_downloaded", handleDownloaded);
+    ipcRenderer.on("update_not_available", handleNotAvailable);
+    ipcRenderer.on("update_error", handleError);
+    ipcRenderer.on("update_checking", handleChecking);
+    ipcRenderer.on("update_status", handleStatus);
+
+    ipcRenderer
+      .invoke("get_update_status")
+      .then((state: UpdateState) => {
+        if (state && state.status !== "idle") applyStatus(state);
+      })
+      .catch(() => {
+        // Versões antigas do processo principal não possuem esse handler.
+      });
 
     return () => {
-      ipcRenderer.removeAllListeners("update_available");
-      ipcRenderer.removeAllListeners("download_progress");
-      ipcRenderer.removeAllListeners("update_downloaded");
-      ipcRenderer.removeAllListeners("update_not_available");
-      ipcRenderer.removeAllListeners("update_error");
+      ipcRenderer.removeListener("update_available", handleAvailable);
+      ipcRenderer.removeListener("download_progress", handleProgress);
+      ipcRenderer.removeListener("update_downloaded", handleDownloaded);
+      ipcRenderer.removeListener("update_not_available", handleNotAvailable);
+      ipcRenderer.removeListener("update_error", handleError);
+      ipcRenderer.removeListener("update_checking", handleChecking);
+      ipcRenderer.removeListener("update_status", handleStatus);
     };
-  }, [downloading]);
+  }, []);
 
-  return { downloading, progress, setDownloading, setProgress };
-}
-
-/**
- * Verifica se há uma nova versão disponível no GitHub.
- * Retorna a tag da release mais recente ou null se não houver.
- */
-async function checkForUpdate(): Promise<string | null> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    const response = await fetch(GITHUB_API, {
-      signal: controller.signal,
-      headers: {
-        Accept: "application/vnd.github+json",
-        "User-Agent": "konexus-update-check",
-      },
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const latestTag = data.tag_name;
-
-    if (!latestTag) return null;
-
-    // Remove prefixo 'v' se existir para comparar
-    const cleanLatest = latestTag.replace(/^v/, "");
-    const cleanCurrent = CURRENT_VERSION.replace(/^v/, "");
-
-    if (cleanLatest !== cleanCurrent) {
-      return latestTag;
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
+  return updateState;
 }
 
 const LoginPage: React.FC = () => {
   const [credentials, setCredentials] = useState({ user: "", pass: "" });
   const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
-  const [updateChecking, setUpdateChecking] = useState(false);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
+  const [retryingUpdate, setRetryingUpdate] = useState(false);
   const { loading, error, handleLogin } = useAuthService();
   const navigate = useNavigate();
+  const updateState = useAutoUpdater();
 
-
-  const { downloading, progress, setDownloading, setProgress } = useAutoUpdater();
-
-  // Verifica atualização ao carregar a tela de login
   useEffect(() => {
-    const check = async () => {
-      setUpdateChecking(true);
-      try {
-        const latest = await checkForUpdate();
-        if (latest) {
-          setUpdateAvailable(latest);
-        }
-      } finally {
-        setUpdateChecking(false);
-      }
-    };
-    check();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (updateState.status !== "checking") {
+      setRetryingUpdate(false);
+    }
+  }, [updateState.status]);
 
   useEffect(() => {
     const isElectron = typeof (window as any).require !== 'undefined';
@@ -248,61 +207,153 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // Inicia o download da atualização via Electron (em segundo plano)
-  const handleDownloadUpdate = () => {
-    setDownloading(true);
-    setProgress(0);
-
-    const isElectron = typeof (window as any).require !== 'undefined';
+  const restartForUpdate = () => {
+    const isElectron = typeof (window as any).require !== "undefined";
     if (isElectron) {
       const { ipcRenderer } = (window as any).require("electron");
-      // Solicita ao main process que inicie o download da atualização
-      ipcRenderer.send("download_update");
+      ipcRenderer.send("restart_app");
     }
   };
 
-  // Se há atualização disponível, mostra modal para download automático
-  if (updateAvailable) {
+  const retryUpdate = () => {
+    setRetryingUpdate(true);
+    setUpdateDismissed(false);
+
+    const isElectron = typeof (window as any).require !== "undefined";
+    if (isElectron) {
+      const { ipcRenderer } = (window as any).require("electron");
+      ipcRenderer.send("check_for_update");
+    }
+  };
+
+  const dismissUpdate = () => {
+    setRetryingUpdate(false);
+    setUpdateDismissed(true);
+  };
+
+  const showUpdateScreen =
+    !updateDismissed &&
+    (updateState.status === "available" ||
+      updateState.status === "downloading" ||
+      updateState.status === "downloaded" ||
+      updateState.status === "error" ||
+      (retryingUpdate && updateState.status === "checking"));
+
+  // Se o electron-updater encontrou uma atualização, a tela de login fica
+  // bloqueada até o download terminar. O download é iniciado automaticamente
+  // pelo processo principal (autoDownload = true).
+  if (showUpdateScreen) {
+    const percent =
+      updateState.status === "downloading"
+        ? updateState.percent
+        : updateState.status === "downloaded"
+          ? 100
+          : 0;
+    const speed =
+      updateState.status === "downloading" && updateState.bytesPerSecond
+        ? `${(updateState.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s`
+        : null;
+    const newVersion = "version" in updateState ? updateState.version : undefined;
+
     return (
       <section className="flex h-screen w-full bg-gray-50">
         <Branding />
         <div className="flex flex-col items-center justify-center h-full w-full max-w-md mx-auto p-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center w-full">
             <div className="flex justify-center mb-4">
-              <div className="bg-blue-500 rounded-full p-3">
+              <div
+                className={`rounded-full p-3 ${
+                  updateState.status === "error" ? "bg-rose-500" : "bg-blue-500"
+                }`}
+              >
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
-            <h2 className="text-xl font-bold text-blue-900 mb-2">Nova versão disponível</h2>
-            <p className="text-blue-800 mb-4 text-sm">
-              Uma nova versão do Konexus está disponível: <strong>{updateAvailable}</strong><br/>
-              Sua versão atual: <strong>v{CURRENT_VERSION}</strong><br/><br/>
-              O download será iniciado automaticamente em segundo plano.
+
+            <h2 className="text-xl font-bold text-blue-900 mb-2">
+              {updateState.status === "error"
+                ? "Não foi possível atualizar"
+                : updateState.status === "downloaded"
+                  ? "Atualização pronta"
+                  : updateState.status === "checking"
+                    ? "Verificando atualizações"
+                    : "Atualizando o Konexus"}
+            </h2>
+
+            <p className="text-blue-800 mb-3 text-sm">
+              {updateState.status === "error"
+                ? updateState.message || "Ocorreu um erro ao baixar a atualização."
+                : updateState.status === "downloaded"
+                  ? "O download foi concluído. Reinicie o aplicativo para aplicar a nova versão."
+                  : updateState.status === "checking"
+                    ? "Aguarde enquanto verificamos a versão mais recente."
+                    : "O download está sendo feito automaticamente em segundo plano."}
             </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setUpdateAvailable(null);
-                  setUpdateChecking(false);
-                }}
-                className="px-4 py-2 bg-white border border-blue-200 rounded-lg text-blue-700 font-medium hover:bg-blue-100 transition"
-              >
-                Ignorar por enquanto
-              </button>
-              <button
-                onClick={handleDownloadUpdate}
-                disabled={downloading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {downloading ? "Baixando..." : "Baixar Atualização"}
-              </button>
-            </div>
+
+            {newVersion && (
+              <p className="text-blue-800 mb-2 text-sm">
+                Nova versão: <strong>{newVersion}</strong>
+              </p>
+            )}
+
+            <p className="text-blue-800 mb-4 text-sm">
+              Sua versão atual: <strong>v{CURRENT_VERSION}</strong>
+            </p>
+
+            {(updateState.status === "available" ||
+              updateState.status === "downloading") && (
+              <>
+                <div className="w-full bg-blue-100 rounded-full h-4 overflow-hidden mb-2">
+                  <div
+                    className="bg-blue-600 h-4 rounded-full transition-all duration-300"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+                <p className="text-sm font-semibold text-blue-900">{percent}% concluído</p>
+                {speed && <p className="text-xs text-blue-700 mt-1">Velocidade: {speed}</p>}
+              </>
+            )}
+
+            {updateState.status === "checking" && (
+              <p className="text-sm text-blue-700">Aguarde...</p>
+            )}
+
+            {updateState.status === "downloaded" && (
+              <div className="flex gap-3 justify-center mt-4">
+                <button
+                  onClick={restartForUpdate}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                >
+                  Reiniciar agora
+                </button>
+                <button
+                  onClick={dismissUpdate}
+                  className="px-4 py-2 bg-white border border-blue-200 rounded-lg text-blue-700 font-medium hover:bg-blue-100 transition"
+                >
+                  Mais tarde
+                </button>
+              </div>
+            )}
+
+            {updateState.status === "error" && (
+              <div className="flex gap-3 justify-center mt-4">
+                <button
+                  onClick={retryUpdate}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                >
+                  Tentar novamente
+                </button>
+                <button
+                  onClick={dismissUpdate}
+                  className="px-4 py-2 bg-white border border-blue-200 rounded-lg text-blue-700 font-medium hover:bg-blue-100 transition"
+                >
+                  Continuar sem atualizar
+                </button>
+              </div>
+            )}
           </div>
-          {updateChecking && (
-            <div className="mt-4 text-sm text-gray-500">Verificando atualizações...</div>
-          )}
         </div>
       </section>
     );
@@ -311,16 +362,6 @@ const LoginPage: React.FC = () => {
   return (
     <section className="flex h-screen w-full">
       <Branding />
-
-      {/* ✅ Indicador de Download */}
-      {downloading && (
-        <div className="absolute top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>Baixando atualização... {progress}%</span>
-          </div>
-        </div>
-      )}
 
       {/* Login normal */}
       {!showAdminLogin && (
@@ -335,16 +376,6 @@ const LoginPage: React.FC = () => {
       {/* Tela secreta login admin do sistema */}
       {showAdminLogin && (
         <div className="flex flex-col justify-center items-center w-full h-full bg-gray-100 relative">
-          {/* ✅ Indicador de Download também na tela admin */}
-          {downloading && (
-            <div className="absolute top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Baixando atualização... {progress}%</span>
-              </div>
-            </div>
-          )}
-
           <h2 className="mb-4 text-xl font-bold">Login Administrador do Sistema</h2>
           <form className="flex flex-col gap-2 w-64" onSubmit={handleAdminLg}>
             <input

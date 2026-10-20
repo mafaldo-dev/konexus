@@ -9,6 +9,7 @@ interface Props {
   messages: StatusMessage[];
   clearMessages: () => void;
   removeMessage: (id: number) => void;
+  onGoToDashboard: () => void;
 }
 
 interface State {
@@ -39,9 +40,10 @@ class ErrorBoundaryComponent extends Component<Props, State> {
     this.props.clearMessages();
   };
 
-  // Hot reload: recarrega a página inteira para limpar o estado de erro
+  // Hot reload: volta ao dashboard e recarrega a página inteira para limpar
+  // o estado de erro sem criar um novo botão.
   handleGoToDashboard = () => {
-    window.location.reload();
+    this.props.onGoToDashboard();
   };
 
   render() {
@@ -81,12 +83,18 @@ export function ErrorBoundary({ children }: { children: ReactNode }) {
   const { addMessage, messages, clearMessages, removeMessage } = useSystemStatus();
   const navigate = useNavigate();
 
+  const goToDashboard = () => {
+    navigate('/dashboard');
+    window.location.reload();
+  };
+
   return (
     <ErrorBoundaryComponent
       addMessage={addMessage}
       messages={messages}
       clearMessages={clearMessages}
       removeMessage={removeMessage}
+      onGoToDashboard={goToDashboard}
     >
       {children}
     </ErrorBoundaryComponent>
