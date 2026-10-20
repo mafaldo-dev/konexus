@@ -71,6 +71,18 @@ export const UPDATE_MODULE_LABELS: Record<ProductUpdateModuleKey, string> = {
  */
 export const PRODUCT_UPDATES: ProductUpdate[] = [
   {
+    id: "1.3.3-entrada-e-saida-sem-confirmacao",
+    module: "gestao",
+    version: "1.3.3",
+    title: "Entrar e sair sem pedir a senha de novo",
+    description:
+      "Ao entrar ou sair do sistema, o aplicativo não pede a confirmação de senha novamente. A marcação de presença continua registrada no histórico de ações.",
+    releasedAt: "2026-10-20",
+    visibility: "standard",
+    status: "published",
+    evidence: "Release 1.3.3 (presença do próprio usuário como autoatendimento, sem nova senha)",
+  },
+  {
     id: "1.3.2-conferencia-com-senha",
     module: "vendas",
     version: "1.3.2",
