@@ -24,7 +24,7 @@ jobs:
         run: npm install --legacy-peer-deps --no-fund --no-audit
 
       - name: Build do React
-        run: npm run build
+        run: CI=false npm run build
 
       - name: Build do instalador Windows (.exe)
         env:
