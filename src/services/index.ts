@@ -22,6 +22,7 @@ export * from "./messageService";
 export * from "./reportService";
 export * from "./systemAdminService";
 export * from "./collaboratorService";
+export * from "./mockDataService";
 
 export {
   apiClient,

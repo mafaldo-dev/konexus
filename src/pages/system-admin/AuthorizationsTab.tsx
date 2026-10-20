@@ -41,6 +41,7 @@ const typeLabels: Record<AuthorizationType, string> = {
 const moduleLabels: Record<ExtraModuleKey, string> = {
   finance: "Financeiro",
   nfe: "NF-e",
+  crm: "CRM",
 };
 
 function statusTone(status: AuthorizationStatus): string {

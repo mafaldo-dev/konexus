@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
+  BadgeCheck,
   CalendarDays,
   FileClock,
   Pencil,
@@ -34,6 +35,7 @@ import { formatDateOnly, formatDateTime, toDateInputValue } from "./utils";
 const moduleLabels: Record<ExtraModuleKey, string> = {
   finance: "Financeiro",
   nfe: "NF-e",
+  crm: "CRM",
 };
 
 const statusLabels: Record<ExtraModuleStatus, string> = {
@@ -122,7 +124,10 @@ export default function ExtraModulesTab({
   const activeNfe = rows.filter(
     (row) => row.module_key === "nfe" && row.status === "active"
   ).length;
-  const activeTotal = activeFinance + activeNfe;
+  const activeCrm = rows.filter(
+    (row) => row.module_key === "crm" && row.status === "active"
+  ).length;
+  const activeTotal = activeFinance + activeNfe + activeCrm;
 
   const openEvents = async (row: SystemAdminExtraModule) => {
     setEventsRow(row);
@@ -178,11 +183,19 @@ export default function ExtraModulesTab({
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <BadgeCheck className="h-4 w-4 text-purple-600" />
+            CRM ativo
+          </div>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{activeCrm}</p>
+          <p className="text-xs text-slate-500">empresa(s) com contratação ativa</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <FileClock className="h-4 w-4 text-emerald-600" />
             Contratações ativas
           </div>
           <p className="mt-2 text-2xl font-bold text-slate-900">{activeTotal}</p>
-          <p className="text-xs text-slate-500">Financeiro + NF-e</p>
+          <p className="text-xs text-slate-500">Financeiro + NF-e + CRM</p>
         </div>
       </div>
 
@@ -204,6 +217,7 @@ export default function ExtraModulesTab({
             <option value="">Todos os módulos</option>
             <option value="finance">Financeiro</option>
             <option value="nfe">NF-e</option>
+            <option value="crm">CRM</option>
           </Select>
           <Select
             value={statusFilter}

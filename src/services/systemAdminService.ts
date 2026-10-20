@@ -3,7 +3,7 @@ import { apiRequest } from "../api/client";
 export type SubscriptionStatus = "active" | "cancelled" | "expired" | "pending";
 export type SupportStatus = "active" | "pending" | "suspended" | "cancelled";
 export type PlanType = "monthly" | "yearly";
-export type ExtraModuleKey = "finance" | "nfe";
+export type ExtraModuleKey = "finance" | "nfe" | "crm";
 export type ExtraModuleStatus = "pending" | "active" | "suspended" | "cancelled";
 export type AuthorizationType = "extra_user" | "password_reset" | "extra_module";
 export type AuthorizationStatus = "active" | "consumed" | "revoked" | "expired";

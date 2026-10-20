@@ -112,23 +112,54 @@ const AdministrationScreen = () => {
   const [news, setNews] = useState<NewsItem[]>([
     {
       id: 1,
-      title: 'Nova funcionalidade: Exportar xls de relatorios para Excel',
-      description: 'Agora é possível realizar a exportarção de relatorios para excel atraves do botão no menu do documentViewer.',
+      title: 'Release 1.2.1 - Gestão de Colaboradores e Cargos',
+      description: 'Novo módulo de colaboradores com cargos personalizados, permissões granulares por módulo/ação e limites comerciais de contas e redefinições de senha.',
       date: 'Hoje',
       category: 'feature',
       read: false
     },
     {
       id: 2,
-      title: 'Manutenção programada',
-      description: 'Nova atualização disponivel!!!.',
+      title: 'Módulos Extras Independentes',
+      description: 'CRM, Financeiro e NF-e agora são módulos extras contratados separadamente. Acesse o painel administrativo (F1) para gerenciar contratações.',
+      date: 'Hoje',
+      category: 'update',
+      read: false
+    },
+    {
+      id: 3,
+      title: 'Segurança e Auditoria',
+      description: 'Auditoria sem senhas/tokens, invalidação de sessão na troca de senha e bloqueio de manipulação de companyId, role e permissões pelo cliente.',
       date: 'Hoje',
       category: 'maintenance',
+      read: false
+    },
+    {
+      id: 4,
+      title: 'Limites Comerciais',
+      description: 'Franquia de 5 contas ativas por empresa e 3 redefinições de senha gratuitas por mês. Operações adicionais requerem autorização do suporte.',
+      date: 'Hoje',
+      category: 'announcement',
       read: false
     }
   ]);
 
   const [systemUpdates] = useState<SystemUpdate[]>([
+    {
+      version: 'v1.2.1',
+      date: '20/10/2026',
+      changes: [
+        'Gestão completa de colaboradores com cargos personalizados por empresa',
+        'Permissões granulares por módulo/ação com validação no backend',
+        'CRM, Financeiro e NF-e como módulos extras independentes e pagos',
+        'Franquia de 5 contas ativas por empresa (1 admin + 4 colaboradores)',
+        'Franquia de 3 redefinições de senha gratuitas por empresa/mês',
+        'Contas adicionais e redefinições extras custam R$ 5,00 e R$ 3,50 com autorização do suporte',
+        'Remoção lógica de colaborador com revogação imediata de sessão',
+        'Auditoria sem senhas, tokens ou credenciais',
+        'Testes automatizados de autorização, isolamento, limites e concorrência',
+      ]
+    },
     {
       version: 'v1.1.9',
       date: '05/12/2025',

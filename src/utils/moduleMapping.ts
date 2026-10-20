@@ -7,9 +7,9 @@
  *
  * Regras do modelo 1.2.1:
  *  - Módulos padrão são universais (dashboard, gestao, vendas, compras,
- *    estoque, rh e crm).
- *  - Financeiro e NF-e são extras independentes; a permissão individual só
- *    libera o acesso quando o módulo também está contratado.
+ *    estoque e rh).
+ *  - CRM, Financeiro e NF-e são extras independentes e pagos; a permissão
+ *    individual só libera o acesso quando o módulo também está contratado.
  *  - O nome do cargo não concede acesso. O que vale são as permissões
  *    efetivas (cargo + exceções) e o cargo administrativo da empresa.
  */
@@ -52,6 +52,7 @@ export const REVERSE_MODULE_MAPPING: Record<string, string[]> = {
 export const SUBMENU_MODULE_DEPENDENCIES: Record<string, string> = {
   "financer/financial": "finance",
   "financial/order-nfe": "nfe",
+  "crm/dashboard": "crm",
   "sales/goals": "crm",
   "sales/completed": "vendas",
   "sales/comissions": "rh",
@@ -67,7 +68,6 @@ export const SUBMENU_MODULE_DEPENDENCIES: Record<string, string> = {
   "sales/order-list": "vendas",
   "rh/employee": "rh",
   "rh/infos": "rh",
-  "crm/dashboard": "crm",
 };
 
 export const REPORT_ENABLED_MODULES = ["vendas", "estoque", "finance", "compras"];
@@ -272,10 +272,29 @@ export function filterSubmenuItems<
 
 export function getAvailableModulesForPlan(planType: string): string[] {
   const plans: Record<string, string[]> = {
-    free: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "crm"],
-    starter: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "crm"],
-    professional: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "crm", "finance"],
-    enterprise: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "crm", "finance", "nfe"],
+    free: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh"],
+    starter: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh"],
+    professional: [
+      "dashboard",
+      "gestao",
+      "vendas",
+      "compras",
+      "estoque",
+      "rh",
+      "finance",
+      "crm",
+    ],
+    enterprise: [
+      "dashboard",
+      "gestao",
+      "vendas",
+      "compras",
+      "estoque",
+      "rh",
+      "finance",
+      "crm",
+      "nfe",
+    ],
   };
   return plans[planType] || plans.free;
 }

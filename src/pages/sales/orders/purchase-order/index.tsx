@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../../AuthContext";
 
-import { Search, Plus, Eye, Package, TrendingUp, Clock, MoreVertical, Edit, Trash2 } from "lucide-react";
+import { Search, Plus, Eye, Package, TrendingUp, Clock, MoreVertical, Edit, Trash2, ShieldAlert, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { format, isValid } from "date-fns";
@@ -28,7 +28,10 @@ export default function OrdersPage() {
   const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
 
   const { company } = useAuth();
+  const { hasModule } = useAuth();
   const navigate = useNavigate();
+
+  const financeModuleActive = hasModule("finance");
 
   const safeFormatDate = (dateString?: string | null): string => {
     if (!dateString) return "Data inválida";
@@ -199,7 +202,11 @@ export default function OrdersPage() {
   // ============================================
   // DEFINIÇÃO DAS COLUNAS DA TABELA DINÂMICA
   // ============================================
-  const columns = [
+  const baseColumns: Array<{
+    key: string;
+    header: string;
+    render: (order: OrderResponse) => React.ReactNode;
+  }> = [
     {
       key: 'orderNumber',
       header: 'Pedido',
@@ -263,11 +270,47 @@ export default function OrdersPage() {
         </span>
       ),
     },
+  ];
+
+  const creditColumn: Array<{
+    key: string;
+    header: string;
+    render: (order: OrderResponse) => React.ReactNode;
+  }> = financeModuleActive ? [
     {
+      key: 'creditStatus',
+      header: 'Crédito',
+      render: (order: OrderResponse) => {
+        const credit = order.creditAnalysis;
+        if (!credit || credit.status === "exempt") {
+          return (
+            <span className="text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-600 font-semibold">
+              Isento
+            </span>
+          );
+        }
+        const tone = credit.status === "approved"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : credit.status === "rejected"
+            ? "border-rose-200 bg-rose-50 text-rose-700"
+            : "border-amber-200 bg-amber-50 text-amber-700";
+        return (
+          <span className={`text-xs px-3 py-1.5 rounded-full border ${tone} font-semibold`}>
+            {credit.status === "approved" ? "Aprovado" : credit.status === "rejected" ? "Bloqueado" : "Pendente"}
+          </span>
+        );
+      }
+    },
+  ] : [];
+
+  const columns = [...baseColumns, ...creditColumn, {
       key: 'actions',
       header: 'Ações',
       render: (order: OrderResponse) => {
         const canEdit = order.orderStatus === "pending" || order.orderStatus === "backout";
+        
+        // Bloqueia edição se crédito não aprovado e módulo financeiro ativo
+        const creditBlocked = financeModuleActive && order.creditAnalysis && order.creditAnalysis.status !== "approved" && order.creditAnalysis.status !== "exempt";
 
         return (
           <div className="flex items-center gap-4">
@@ -291,7 +334,7 @@ export default function OrdersPage() {
                     Ver PDF
                   </button>
 
-                  {canEdit ? (
+                  {canEdit && !creditBlocked ? (
                     <button
                       onClick={() => handleEditOrder(order)}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
@@ -300,6 +343,14 @@ export default function OrdersPage() {
                       <Edit className="w-4 h-4" />
                       Editar Pedido
                     </button>
+                  ) : creditBlocked ? (
+                    <div
+                      className="w-full text-left px-4 py-2 text-sm text-amber-600 flex items-center gap-3 cursor-not-allowed"
+                      title="Pedido bloqueado por análise de crédito pendente"
+                    >
+                      <ShieldAlert className="w-4 h-4" />
+                      Crédito não aprovado
+                    </div>
                   ) : (
                     <div
                       className="w-full text-left px-4 py-2 text-sm text-gray-400 flex items-center gap-3 cursor-not-allowed"
@@ -310,7 +361,7 @@ export default function OrdersPage() {
                     </div>
                   )}
 
-                  {canEdit && (
+                  {canEdit && !creditBlocked && (
                     <button
                       onClick={() => handleCancelOrderClick(order)}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"

@@ -52,6 +52,15 @@ export interface OrderResponse {
     due_date?: string | any;
     amount?: string;
   };
+  // Análise de crédito (aplica-se quando módulo Financeiro está ativo)
+  creditAnalysis?: {
+    status: "pending" | "approved" | "rejected" | "exempt";
+    score?: number;
+    limit?: number;
+    analyzedAt?: string | any;
+    analyzedBy?: string;
+    notes?: string;
+  };
   customer: {
     id: number | any;
     name: string;
@@ -60,6 +69,9 @@ export interface OrderResponse {
     email?: string;
     status?: string;
     cpf_cnpj?: string;
+    // Limite de crédito do cliente
+    creditLimit?: number;
+    creditStatus?: "active" | "blocked" | "exempt";
   };
   shipping?: Address;
   billing?: Address;

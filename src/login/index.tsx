@@ -7,6 +7,11 @@ import useAuthService from "./useAuthService";
 import Swal from "sweetalert2";
 import { loginAdmin } from "../services/authService";
 import { saveSystemAdminSession } from "../services/systemAdminService";
+import { version } from "../version";
+
+// Versão atual do aplicativo
+const CURRENT_VERSION = version || "1.2.0";
+const GITHUB_API = "https://api.github.com/repos/mafaldo-dev/konexus/releases/latest";
 
 // ✅ Hook do Auto-Updater funcionando
 function useAutoUpdater() {
@@ -107,14 +112,73 @@ function useAutoUpdater() {
   return { downloading, progress };
 }
 
+/**
+ * Verifica se há uma nova versão disponível no GitHub.
+ * Retorna a tag da release mais recente ou null se não houver.
+ */
+async function checkForUpdate(): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(GITHUB_API, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "konexus-update-check",
+      },
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const latestTag = data.tag_name;
+
+    if (!latestTag) return null;
+
+    // Remove prefixo 'v' se existir para comparar
+    const cleanLatest = latestTag.replace(/^v/, "");
+    const cleanCurrent = CURRENT_VERSION.replace(/^v/, "");
+
+    if (cleanLatest !== cleanCurrent) {
+      return latestTag;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const LoginPage: React.FC = () => {
   const [credentials, setCredentials] = useState({ user: "", pass: "" });
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
+  const [updateChecking, setUpdateChecking] = useState(false);
   const { loading, error, handleLogin } = useAuthService();
   const navigate = useNavigate();
 
 
   const { downloading, progress } = useAutoUpdater();
+
+  // Verifica atualização ao carregar a tela de login
+  useEffect(() => {
+    const check = async () => {
+      setUpdateChecking(true);
+      try {
+        const latest = await checkForUpdate();
+        if (latest) {
+          setUpdateAvailable(latest);
+        }
+      } finally {
+        setUpdateChecking(false);
+      }
+    };
+    check();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const isElectron = typeof (window as any).require !== 'undefined';
@@ -186,6 +250,54 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  // Se há atualização disponível, bloqueia o login e mostra modal obrigatório
+  if (updateAvailable) {
+    return (
+      <section className="flex h-screen w-full bg-gray-50">
+        <Branding />
+        <div className="flex flex-col items-center justify-center h-full w-full max-w-md mx-auto p-6">
+          <div className="bg-orange-100 border border-orange-300 rounded-xl p-6 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="bg-orange-500 rounded-full p-3">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-xl font-bold text-orange-900 mb-2">Atualização Obrigatória</h2>
+            <p className="text-orange-800 mb-4 text-sm">
+              Uma nova versão do Konexus está disponível: <strong>{updateAvailable}</strong><br/>
+              Sua versão atual: <strong>v{CURRENT_VERSION}</strong><br/><br/>
+              É necessário atualizar antes de acessar o sistema.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setUpdateAvailable(null);
+                  setUpdateChecking(false);
+                }}
+                className="px-4 py-2 bg-white border border-orange-300 rounded-lg text-orange-700 font-medium hover:bg-orange-200 transition"
+              >
+                Tentar novamente
+              </button>
+              <button
+                onClick={() => {
+                  window.open("https://github.com/mafaldo-dev/konexus/releases/latest", "_blank");
+                }}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition"
+              >
+                Baixar Atualização
+              </button>
+            </div>
+          </div>
+          {updateChecking && (
+            <div className="mt-4 text-sm text-gray-500">Verificando atualizações...</div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="flex h-screen w-full">
       <Branding />
@@ -247,7 +359,6 @@ const LoginPage: React.FC = () => {
           </form>
         </div>
       )}
-
     </section>
   );
 };
