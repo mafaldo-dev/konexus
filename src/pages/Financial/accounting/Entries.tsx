@@ -224,12 +224,12 @@ export default function AccountingEntriesPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar por número, histórico ou origem"
-            className="flex-1 min-w-[220px] rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+            className={`${inputClass} flex-1 min-w-[220px]`}
           />
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+            className={inputClass}
           >
             <option value="">Todas as situações</option>
             <option value="draft">Rascunho</option>

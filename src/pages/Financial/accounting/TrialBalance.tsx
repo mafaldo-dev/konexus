@@ -13,6 +13,7 @@ import {
   inputClass,
 } from "./components";
 import { downloadCsv } from "./Journal";
+import { Button } from "../../../components/dashboard/components/ui/Button";
 
 /**
  * Balancete de verificação: saldos e movimentos por conta, com verificação
@@ -47,8 +48,10 @@ export default function TrialBalancePage() {
       title="Balancete de verificação"
       description="Saldos, movimentos e saldo final por conta no período. Relatório gerencial."
       actions={
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() =>
             data &&
             downloadCsv(
@@ -71,11 +74,10 @@ export default function TrialBalancePage() {
               ])
             )
           }
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
         >
           <Download className="h-4 w-4" />
           Exportar CSV
-        </button>
+        </Button>
       }
     >
       <ErrorState message={error} />

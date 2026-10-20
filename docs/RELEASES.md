@@ -243,6 +243,15 @@ gh release upload v1.2.12 dist/latest.yml `
 
 O script `BUILD_AND_RELEASE.bat` é legado e não deve ser usado para publicar.
 
+## Release 1.3.1 (20/10/2026)
+
+- Correção do módulo de Contabilidade: as telas passaram a ficar **dentro do
+  layout base do ERP** (menu lateral + cabeçalho), com trilha de navegação de
+  volta ao Financeiro, e as listagens passaram a usar a tabela padrão do
+  projeto (`DynamicTable`).
+- Teste de regressão de layout garante que nenhuma tela do módulo fique fora
+  do layout base.
+
 ## Release 1.3.0 (20/10/2026)
 
 - Publicada em `v1.3.0` com `Konexus-Setup-1.3.0.exe` (214.896.837 bytes),

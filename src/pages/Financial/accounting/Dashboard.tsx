@@ -11,6 +11,7 @@ import {
   LoadingState,
   StatCard,
   formatMoney,
+  linkButtonClass,
 } from "./components";
 
 /**
@@ -202,28 +203,28 @@ export default function AccountingDashboardPage() {
             <div className="flex flex-wrap gap-2">
               <Link
                 to="/financer/contabilidade/lancamentos"
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                className={`${linkButtonClass} bg-blue-600 text-white hover:bg-blue-700 border-blue-600`}
               >
                 <PlusCircle className="h-4 w-4" />
                 Novo lançamento
               </Link>
               <Link
                 to="/financer/contabilidade/livro-diario"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                className={linkButtonClass}
               >
                 <FileText className="h-4 w-4" />
                 Livro diário
               </Link>
               <Link
                 to="/financer/contabilidade/balancete"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                className={linkButtonClass}
               >
                 <FileText className="h-4 w-4" />
                 Balancete
               </Link>
               <Link
                 to="/financer/contabilidade/exercicios"
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                className={linkButtonClass}
               >
                 <FileText className="h-4 w-4" />
                 Exercícios e períodos

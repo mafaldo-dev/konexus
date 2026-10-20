@@ -163,7 +163,7 @@ export default function AccountingPeriodsPage() {
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+            className={inputClass}
           >
             <option value="">Todos</option>
             <option value="open">Abertos</option>

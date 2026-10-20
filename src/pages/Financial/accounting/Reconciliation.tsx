@@ -19,6 +19,7 @@ import {
   StatusBadge,
   formatDate,
   formatMoney,
+  inputClass,
 } from "./components";
 
 const STATUS_LABELS: Record<string, { text: string; className: string }> = {
@@ -229,7 +230,7 @@ export default function ReconciliationPage() {
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+            className={inputClass}
           >
             <option value="">Todas</option>
             <option value="pending">Pendentes</option>

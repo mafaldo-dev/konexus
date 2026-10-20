@@ -53,7 +53,7 @@ export default function AccountingReportsPage() {
           <Link
             key={report.to}
             to={report.to}
-            className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-blue-300 hover:shadow-sm"
+            className="rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-sm"
           >
             <report.icon className="h-5 w-5 text-blue-700" />
             <h2 className="mt-2 text-sm font-semibold text-slate-900">

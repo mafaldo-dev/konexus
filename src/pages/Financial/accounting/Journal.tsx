@@ -6,6 +6,7 @@ import {
   listAccountingAccounts,
   AccountingJournalRow,
 } from "../../../services/accountingService";
+import { Button } from "../../../components/dashboard/components/ui/Button";
 import {
   AccountingPage,
   Card,
@@ -91,8 +92,10 @@ export default function JournalBookPage() {
       title="Livro diário"
       description="Movimentos contabilizados do período, agrupados por lançamento. Relatório gerencial."
       actions={
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() =>
             downloadCsv(
               `livro-diario-${from}-a-${to}.csv`,
@@ -107,11 +110,10 @@ export default function JournalBookPage() {
               ])
             )
           }
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
         >
           <Download className="h-4 w-4" />
           Exportar CSV
-        </button>
+        </Button>
       }
     >
       <ErrorState message={error} />

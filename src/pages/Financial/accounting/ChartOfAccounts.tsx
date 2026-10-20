@@ -202,7 +202,7 @@ export default function ChartOfAccountsPage() {
       <ErrorState message={error} />
 
       {demoAccounts.length > 0 ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <p className="font-semibold">Plano de demonstração</p>
           <p className="mt-1">
             {demoAccounts.length} conta(s) pertencem ao modelo de demonstração
@@ -221,13 +221,13 @@ export default function ChartOfAccountsPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por código ou nome"
-              className="w-full rounded-lg border border-slate-300 py-1.5 pl-8 pr-2 text-sm"
+              className={`${inputClass} pl-8`}
             />
           </div>
           <select
             value={groupKey}
             onChange={(event) => setGroupKey(event.target.value)}
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+            className={inputClass}
           >
             {GROUPS.map((group) => (
               <option key={group.value} value={group.value}>
