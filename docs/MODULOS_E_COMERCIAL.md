@@ -107,12 +107,25 @@ comercial do acesso.
   `company_module_events` (histórico preservado, nada apagado);
 - plano gratuito legado alinhado ao conjunto padrão.
 
-Aplicação (requer backup e autorização):
+Aplicação (backup recomendado):
 
 ```bash
 cd konexus-back
 node run_migration.js migrations/006_module_classification_freemium.sql
 ```
+
+**Status:** aplicada em 20/10/2026 no banco de produção (Neon), após validação
+em transação com `ROLLBACK` (9 statements, 0 falhas) e conferência do estado
+resultante:
+
+```
+modules: compras=false, contabil=true, crm=true, dashboard=false, estoque=false,
+         finance=false, gestao=false, nfe=true, rh=false, vendas=false
+constraint: CHECK (module_key IN ('crm','contabil','nfe','finance'))
+contratos antigos de Financeiro: 4 encerrados (com nota e evento de histórico)
+```
+
+A migração é idempotente: pode ser reexecutada sem efeito colateral.
 
 ## Testes relacionados
 
