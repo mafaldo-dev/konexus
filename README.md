@@ -98,9 +98,12 @@ uma release com tag `vX.Y.Z` correspondente ao `package.json`, o workflow:
    `latest.yml` na própria GitHub Release.
 
 O aplicativo instalado usa `electron-updater` para consultar o `latest.yml`,
-baixar a nova versão em segundo plano e instalar após o reinício. As instruções
+validar o instalador Windows correto e baixar a nova versão em segundo plano. O
+botão **Baixar atualização** da tela de login inicia o download diretamente pelo
+atualizador, sem abrir a página da release no navegador. As instruções
 completas, incluindo versionamento, diagnóstico e limitações de assinatura
-digital, estão em [`docs/RELEASES.md`](docs/RELEASES.md).
+digital, estão em [`docs/RELEASES.md`](docs/RELEASES.md); o fluxo detalhado e a
+auditoria estão em [`docs/UPDATE_FLOW.md`](docs/UPDATE_FLOW.md).
 
 > O instalador não é assinado digitalmente; o Windows pode exibir aviso do
 > SmartScreen. O teste ponta a ponta de atualização precisa ser feito em uma

@@ -8,25 +8,19 @@ import Swal from "sweetalert2";
 import { loginAdmin } from "../services/authService";
 import { saveSystemAdminSession } from "../services/systemAdminService";
 import { version } from "../version";
+import {
+  getInstallerLabel,
+  getPrimaryAction,
+  getProgress,
+  getSpeedLabel,
+  getUpdateMessage,
+  getUpdateTitle,
+  shouldShowUpdateScreen,
+} from "./updateFlow";
+import type { UpdateAsset, UpdateState } from "./updateFlow";
 
 // Versão atual do aplicativo
 const CURRENT_VERSION = version || "1.2.0";
-
-type UpdateState =
-  | { status: "idle" }
-  | { status: "checking" }
-  | { status: "not-available" }
-  | { status: "available"; version?: string }
-  | {
-      status: "downloading";
-      version?: string;
-      percent: number;
-      bytesPerSecond?: number;
-      transferred?: number;
-      total?: number;
-    }
-  | { status: "downloaded"; version?: string }
-  | { status: "error"; message?: string };
 
 // Acompanha o estado real do electron-updater. O processo principal envia
 // eventos e também mantém o último estado disponível para quem abrir a tela
@@ -34,6 +28,7 @@ type UpdateState =
 function useAutoUpdater() {
   const [updateState, setUpdateState] = useState<UpdateState>({ status: "idle" });
   const updateVersionRef = useRef<string | undefined>(undefined);
+  const updateAssetRef = useRef<UpdateAsset | undefined>(undefined);
 
   useEffect(() => {
     const isElectron = typeof (window as any).require !== "undefined";
@@ -53,14 +48,25 @@ function useAutoUpdater() {
         updateVersionRef.current = state.version;
       }
 
+      if (
+        (state.status === "available" ||
+          state.status === "downloading" ||
+          state.status === "downloaded") &&
+        state.asset
+      ) {
+        updateAssetRef.current = state.asset;
+      }
+
       setUpdateState(state);
     };
 
     const handleAvailable = (_: any, info: any) => {
       updateVersionRef.current = info?.version || updateVersionRef.current;
+      updateAssetRef.current = info?.asset || updateAssetRef.current;
       setUpdateState({
         status: "available",
         version: updateVersionRef.current,
+        asset: updateAssetRef.current,
       });
     };
 
@@ -69,9 +75,13 @@ function useAutoUpdater() {
         ? Math.round(progressObj.percent)
         : 0;
 
+      updateVersionRef.current = progressObj?.version || updateVersionRef.current;
+      updateAssetRef.current = progressObj?.asset || updateAssetRef.current;
+
       setUpdateState({
         status: "downloading",
         version: updateVersionRef.current,
+        asset: updateAssetRef.current,
         percent,
         bytesPerSecond: progressObj?.bytesPerSecond,
         transferred: progressObj?.transferred,
@@ -81,9 +91,11 @@ function useAutoUpdater() {
 
     const handleDownloaded = (_: any, info: any) => {
       updateVersionRef.current = info?.version || updateVersionRef.current;
+      updateAssetRef.current = info?.asset || updateAssetRef.current;
       setUpdateState({
         status: "downloaded",
         version: updateVersionRef.current,
+        asset: updateAssetRef.current,
       });
     };
 
@@ -231,29 +243,41 @@ const LoginPage: React.FC = () => {
     setUpdateDismissed(true);
   };
 
-  const showUpdateScreen =
-    !updateDismissed &&
-    (updateState.status === "available" ||
-      updateState.status === "downloading" ||
-      updateState.status === "downloaded" ||
-      updateState.status === "error" ||
-      (retryingUpdate && updateState.status === "checking"));
+  const downloadUpdate = () => {
+    const isElectron = typeof (window as any).require !== "undefined";
+    if (!isElectron) return;
+
+    const { ipcRenderer } = (window as any).require("electron");
+    // O processo principal resolve o asset e a URL oficial. O renderer não
+    // envia URL, tag ou nome de arquivo.
+    ipcRenderer.send("download_update");
+  };
+
+  const primaryAction = getPrimaryAction(updateState);
+
+  const handlePrimaryAction = () => {
+    if (primaryAction.channel === "download_update") {
+      downloadUpdate();
+    } else if (primaryAction.channel === "restart_app") {
+      restartForUpdate();
+    } else if (primaryAction.channel === "check_for_update") {
+      retryUpdate();
+    }
+  };
+
+  const showUpdateScreen = shouldShowUpdateScreen(updateState, {
+    dismissed: updateDismissed,
+    retrying: retryingUpdate,
+  });
 
   // Se o electron-updater encontrou uma atualização, a tela de login fica
-  // bloqueada até o download terminar. O download é iniciado automaticamente
-  // pelo processo principal (autoDownload = true).
+  // bloqueada até o download terminar. O processo principal valida o asset e
+  // inicia o download automático; o botão permite iniciar imediatamente.
   if (showUpdateScreen) {
-    const percent =
-      updateState.status === "downloading"
-        ? updateState.percent
-        : updateState.status === "downloaded"
-          ? 100
-          : 0;
-    const speed =
-      updateState.status === "downloading" && updateState.bytesPerSecond
-        ? `${(updateState.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s`
-        : null;
+    const percent = getProgress(updateState);
+    const speed = getSpeedLabel(updateState);
     const newVersion = "version" in updateState ? updateState.version : undefined;
+    const installer = getInstallerLabel(updateState);
 
     return (
       <section className="flex h-screen w-full bg-gray-50">
@@ -273,23 +297,11 @@ const LoginPage: React.FC = () => {
             </div>
 
             <h2 className="text-xl font-bold text-blue-900 mb-2">
-              {updateState.status === "error"
-                ? "Não foi possível atualizar"
-                : updateState.status === "downloaded"
-                  ? "Atualização pronta"
-                  : updateState.status === "checking"
-                    ? "Verificando atualizações"
-                    : "Atualizando o Konexus"}
+              {getUpdateTitle(updateState)}
             </h2>
 
-            <p className="text-blue-800 mb-3 text-sm">
-              {updateState.status === "error"
-                ? updateState.message || "Ocorreu um erro ao baixar a atualização."
-                : updateState.status === "downloaded"
-                  ? "O download foi concluído. Reinicie o aplicativo para aplicar a nova versão."
-                  : updateState.status === "checking"
-                    ? "Aguarde enquanto verificamos a versão mais recente."
-                    : "O download está sendo feito automaticamente em segundo plano."}
+            <p className="text-blue-800 mb-3 text-sm" aria-live="polite">
+              {getUpdateMessage(updateState)}
             </p>
 
             {newVersion && (
@@ -302,10 +314,22 @@ const LoginPage: React.FC = () => {
               Sua versão atual: <strong>v{CURRENT_VERSION}</strong>
             </p>
 
-            {(updateState.status === "available" ||
-              updateState.status === "downloading") && (
+            {installer && (
+              <p className="text-blue-800 mb-4 text-xs break-all">
+                Arquivo: <strong>{installer}</strong>
+              </p>
+            )}
+
+            {(updateState.status === "downloading" || updateState.status === "downloaded") && (
               <>
-                <div className="w-full bg-blue-100 rounded-full h-4 overflow-hidden mb-2">
+                <div
+                  className="w-full bg-blue-100 rounded-full h-4 overflow-hidden mb-2"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={percent}
+                  aria-label="Progresso do download da atualização"
+                >
                   <div
                     className="bg-blue-600 h-4 rounded-full transition-all duration-300"
                     style={{ width: `${percent}%` }}
@@ -316,6 +340,23 @@ const LoginPage: React.FC = () => {
               </>
             )}
 
+            {(updateState.status === "available" || updateState.status === "downloading") && (
+              <button
+                onClick={handlePrimaryAction}
+                disabled={primaryAction.disabled}
+                data-testid={primaryAction.testId}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {primaryAction.label}
+              </button>
+            )}
+
+            {updateState.status === "available" && (
+              <p className="text-xs text-blue-700 mt-2">
+                O download também é iniciado automaticamente em segundo plano.
+              </p>
+            )}
+
             {updateState.status === "checking" && (
               <p className="text-sm text-blue-700">Aguarde...</p>
             )}
@@ -323,10 +364,11 @@ const LoginPage: React.FC = () => {
             {updateState.status === "downloaded" && (
               <div className="flex gap-3 justify-center mt-4">
                 <button
-                  onClick={restartForUpdate}
+                  onClick={handlePrimaryAction}
+                  data-testid={primaryAction.testId}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
                 >
-                  Reiniciar agora
+                  {primaryAction.label}
                 </button>
                 <button
                   onClick={dismissUpdate}
@@ -340,10 +382,11 @@ const LoginPage: React.FC = () => {
             {updateState.status === "error" && (
               <div className="flex gap-3 justify-center mt-4">
                 <button
-                  onClick={retryUpdate}
+                  onClick={handlePrimaryAction}
+                  data-testid={primaryAction.testId}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
                 >
-                  Tentar novamente
+                  {primaryAction.label}
                 </button>
                 <button
                   onClick={dismissUpdate}

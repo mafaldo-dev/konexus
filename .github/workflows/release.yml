@@ -89,6 +89,17 @@ jobs:
       - name: Instalar dependências (lockfile)
         run: npm ci --legacy-peer-deps --no-audit --no-fund
 
+      - name: Testar seleção do instalador de atualização
+        run: npm run test:update
+
+      - name: Auditar fluxo de atualização (sem rede)
+        run: node scripts/audit-update-flow.mjs --skip-network
+
+      - name: Testar estados da tela de atualização
+        env:
+          CI: "true"
+        run: npm run test:frontend
+
       - name: Verificar TypeScript
         run: npx tsc --noEmit
 

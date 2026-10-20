@@ -5,6 +5,9 @@ workflow [`.github/workflows/release.yml`](../.github/workflows/release.yml)
 é disparado quando uma release é **publicada** no GitHub e envia o instalador
 Windows, o `latest.yml` e o `.blockmap` para a própria release.
 
+O funcionamento detalhado da verificação, seleção do `.exe` e botão de download
+está em [`docs/UPDATE_FLOW.md`](./UPDATE_FLOW.md).
+
 ## Regra de versão e tag
 
 A tag da release **precisa** seguir o formato `vX.Y.Z` e ser exatamente igual
@@ -42,9 +45,16 @@ versão (por exemplo, `1.2.11` → `1.2.12`) e crie uma nova tag/release.
 
    ```bash
    npm ci --legacy-peer-deps --no-audit --no-fund
+   npm run test:update
+   CI=true npm run test:frontend
    npx tsc --noEmit
    CI=false npm run build
+   node scripts/audit-update-flow.mjs
    ```
+
+   A auditoria de rede consulta a release publicada e confere o
+   `browser_download_url` do `.exe` contra o `latest.yml`. Use
+   `--skip-network` para validar apenas as regras estáticas do código.
 
 3. Commit e push na `main`:
 
@@ -79,6 +89,8 @@ versão (por exemplo, `1.2.11` → `1.2.12`) e crie uma nova tag/release.
 - `package.json` compatível com a tag;
 - existência da release publicada;
 - instalação com `npm ci` a partir do `package-lock.json`;
+- testes de seleção do instalador, estados da tela e regras contra
+  `window.open`/`html_url`;
 - `npx tsc --noEmit`;
 - geração do instalador com Electron Builder + NSIS;
 - presença do `.exe`, do `.exe.blockmap` e do `latest.yml`;
@@ -115,26 +127,36 @@ esteja anexado à release.
 O processo principal (`electron/main.js`) configura:
 
 ```js
-autoUpdater.autoDownload = true;
+autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.allowPrerelease = false;
+autoUpdater.allowDowngrade = false;
 ```
 
-Depois que a janela termina de carregar, o aplicativo empacotado verifica
-atualizações. O `electron-updater`:
+O download é controlado pelo processo principal para que o instalador seja
+validado antes de qualquer transferência. O `electron-updater`:
 
-1. consulta a release mais recente do repositório configurado;
+1. consulta a release estável do repositório configurado;
 2. baixa o `latest.yml`;
 3. compara a versão com a versão instalada;
-4. baixa o `.exe` em segundo plano (e usa o `.blockmap` para download
-   diferencial quando possível);
-5. valida o SHA-512 e, ao final, permite reiniciar e instalar.
+4. emite `update-available` com `info.files`;
+5. tem o asset validado por `electron/updateAssets.js` — o nome exato
+   `Konexus-Setup-X.Y.Z.exe`, `sha512` e tamanho precisam existir;
+6. inicia `downloadUpdate()` automaticamente 1,5 s depois da validação (o
+   botão **Baixar atualização** inicia imediatamente);
+7. usa o `.blockmap` para download diferencial quando possível;
+8. valida o SHA-512 do arquivo baixado e emite `update-downloaded`.
 
-A tela de login mostra o progresso do download e o botão **Reiniciar agora**
-quando o download termina. Se o usuário já tiver entrado no sistema, o
-`electron-updater` mantém o download em segundo plano; a instalação ocorre no
-fechamento do aplicativo (`autoInstallOnAppQuit`).
+A tela de login mostra **Baixar atualização**, o progresso, o nome do arquivo e
+**Reiniciar agora** quando o download termina. O botão não abre o navegador:
+ele envia `ipcRenderer.send("download_update")` sem URL e o processo principal
+chama o mesmo `downloadUpdate()` do `electron-updater`. Chamadas repetidas
+enquanto o download está em andamento são ignoradas.
 
-O arquivo `resources/app-update.yml` gerado dentro do instalador aponta para:
+Se o usuário já tiver entrado no sistema, o `electron-updater` mantém o
+download em segundo plano; a instalação ocorre no fechamento do aplicativo
+(`autoInstallOnAppQuit`). O arquivo `resources/app-update.yml` gerado dentro do
+instalador aponta para:
 
 ```yaml
 owner: mafaldo-dev
@@ -149,12 +171,16 @@ updaterCacheDirName: konexus-updater
 O teste ponta a ponta precisa ser feito em Windows com uma versão anterior já
 instalada:
 
-1. instale uma versão anterior (por exemplo, `1.2.2`);
+1. instale uma versão anterior (por exemplo, `1.2.11`);
 2. publique uma release nova com os três assets;
 3. abra o aplicativo e aguarde a verificação automática;
-4. confirme a barra de progresso e o botão de reinício;
-5. reinicie e confirme a nova versão em **Ajuda/Sobre** ou na tela de login;
-6. consulte o log do `electron-log` em
+4. confirme o botão **Baixar atualização**, a barra de progresso e o nome do
+   arquivo `.exe`;
+5. clique no botão e confirme que nenhuma página do GitHub é aberta e que o
+   download continua no aplicativo;
+6. confirme que cliques repetidos não começam um segundo download;
+7. reinicie e confirme a nova versão em **Ajuda/Sobre** ou na tela de login;
+8. consulte o log do `electron-log` em
    `%APPDATA%\konexus\logs\main.log` se houver erro.
 
 Esse teste não é executado no ambiente Linux/WSL usado para desenvolver o
@@ -188,6 +214,13 @@ comite certificados nem senhas no repositório.
   SHA-512 divergente ou `app-update.yml` com configuração errada.
 - **Release sem `latest.yml`:** o `electron-updater` não encontra a atualização.
   Rode novamente o workflow ou faça o upload manual dos três assets.
+- **Botão abre o GitHub:** isso indica uma build antiga (linha 1.2.1–1.2.3).
+  O código atual não usa `window.open` no fluxo de update. Atualize a instalação
+  e confira o log; a release precisa conter o instalador correto.
+- **Erro "não contém o instalador Windows esperado":** o `latest.yml` aponta
+  para um asset cujo nome não é `Konexus-Setup-X.Y.Z.exe` ou faltam
+  `sha512`/tamanho. O download é cancelado de propósito para não baixar
+  `latest.yml`, `.blockmap` ou arquivo de outra arquitetura.
 - **Erro 403 no upload:** confira `permissions: contents: write` no workflow e
   se o token usado pela release tem permissão de escrita.
 - **Repositório privado:** o updater precisaria de autenticação; o fluxo atual
@@ -217,3 +250,10 @@ O script `BUILD_AND_RELEASE.bat` é legado e não deve ser usado para publicar.
   pelo workflow.
 - As tags `v1.2.4` a `v1.2.10` foram usadas em testes do workflow e não possuem
   releases publicadas. Elas não são consideradas pelo `electron-updater`.
+- As builds `1.2.1`–`1.2.3` continham um `window.open` fixo para
+  `/releases/latest`. A `v1.2.11` já removeu esse comportamento; a `1.2.12`
+  adiciona o botão explícito **Baixar atualização**, valida o asset e cobre o
+  fluxo com testes. Consulte [`UPDATE_FLOW.md`](./UPDATE_FLOW.md).
+- A `v1.2.12` ainda não foi publicada nesta auditoria. O código está pronto,
+  mas a entrega aos usuários depende da criação da tag/release e do build
+  Windows no CI.

@@ -3,11 +3,31 @@ const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 const fs = require("fs");
+const {
+  DEFAULT_ARTIFACT_NAME_TEMPLATE,
+  DEFAULT_PRODUCT_NAME,
+  selectWindowsInstallerFromUpdateInfo,
+  toRendererAsset,
+} = require('./updateAssets');
+const packageJson = require('../package.json');
+
+const APP_PRODUCT_NAME = packageJson.productName || DEFAULT_PRODUCT_NAME;
+const ARTIFACT_NAME_TEMPLATE =
+  packageJson.build && packageJson.build.win && packageJson.build.win.artifactName
+    ? packageJson.build.win.artifactName
+    : DEFAULT_ARTIFACT_NAME_TEMPLATE;
+const AUTO_DOWNLOAD_DELAY_MS = 1500;
 
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
-autoUpdater.autoDownload = true;
+
+// O download só é iniciado depois que o instalador declarado no latest.yml é
+// validado. A biblioteca continua sendo a responsável por baixar e validar o
+// SHA-512; o processo principal apenas controla o momento e o asset escolhido.
+autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.allowPrerelease = false;
+autoUpdater.allowDowngrade = false;
 
 let mainWindow;
 let updateState = { status: 'idle' };
@@ -16,6 +36,8 @@ let updateCheckScheduled = false;
 let updateFlowStarted = false;
 let manualUpdateCheck = false;
 let lastUpdateErrorAt = 0;
+let automaticDownloadTimer = null;
+let updateDownloadPromise = null;
 
 function sendToRenderer(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -28,7 +50,16 @@ function setUpdateState(state) {
   sendToRenderer('update_status', state);
 }
 
+function clearAutomaticDownload() {
+  if (automaticDownloadTimer) {
+    clearTimeout(automaticDownloadTimer);
+    automaticDownloadTimer = null;
+  }
+}
+
 function handleUpdaterError(err) {
+  clearAutomaticDownload();
+
   const message = err && err.message ? err.message : String(err);
   const now = Date.now();
 
@@ -47,6 +78,51 @@ function handleUpdaterError(err) {
   }
 }
 
+// Chamado pelo timer automático e pelo botão "Baixar atualização". Não recebe
+// nenhuma URL do renderer: o electron-updater usa o latest.yml já verificado.
+function startUpdateDownload(origin = 'manual') {
+  clearAutomaticDownload();
+
+  if (updateState.status === 'downloaded') {
+    log.info('Download de atualização ignorado: a atualização já foi baixada.');
+    return null;
+  }
+
+  if (updateState.status !== 'available' && updateState.status !== 'downloading') {
+    log.info(`Download de atualização ignorado: nenhuma atualização disponível (estado: ${updateState.status}).`);
+    return null;
+  }
+
+  if (updateDownloadPromise) {
+    log.info('Download de atualização ignorado: já existe um download em andamento.');
+    return updateDownloadPromise;
+  }
+
+  const assetName = updateState.asset && updateState.asset.name
+    ? updateState.asset.name
+    : 'instalador';
+
+  log.info(`Iniciando download da atualização (${origin}): ${assetName}`);
+
+  updateDownloadPromise = autoUpdater
+    .downloadUpdate()
+    .catch(handleUpdaterError)
+    .finally(() => {
+      updateDownloadPromise = null;
+    });
+
+  return updateDownloadPromise;
+}
+
+function scheduleAutomaticDownload() {
+  clearAutomaticDownload();
+
+  automaticDownloadTimer = setTimeout(() => {
+    automaticDownloadTimer = null;
+    startUpdateDownload('automatic');
+  }, AUTO_DOWNLOAD_DELAY_MS);
+}
+
 function startUpdateCheck(isManual = false) {
   if (!app.isPackaged || updateCheckInProgress) return;
 
@@ -56,7 +132,7 @@ function startUpdateCheck(isManual = false) {
 
   try {
     autoUpdater
-      .checkForUpdatesAndNotify()
+      .checkForUpdates()
       .catch(handleUpdaterError)
       .finally(() => {
         updateCheckInProgress = false;
@@ -197,6 +273,7 @@ app.on('activate', () => {
 });
 
 app.on('will-quit', () => {
+  clearAutomaticDownload();
   globalShortcut.unregisterAll();
 });
 
@@ -218,13 +295,50 @@ autoUpdater.on('checking-for-update', () => {
 
 autoUpdater.on('update-available', (info) => {
   updateFlowStarted = true;
-  log.info(`Update available: ${info?.version || 'versão desconhecida'}`);
-  setUpdateState({ status: 'available', version: info?.version });
-  sendToRenderer('update_available', { version: info?.version });
+  clearAutomaticDownload();
+
+  let asset;
+  try {
+    asset = selectWindowsInstallerFromUpdateInfo(info, {
+      version: info && info.version,
+      artifactNameTemplate: ARTIFACT_NAME_TEMPLATE,
+      productName: APP_PRODUCT_NAME,
+      arch: process.arch,
+    });
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err);
+    const code = err && err.code ? err.code : 'INVALID_UPDATE_ASSET';
+    log.error(`Atualização rejeitada (${code}): ${message}`);
+    setUpdateState({
+      status: 'error',
+      message: `Atualização cancelada: ${message}`,
+    });
+    sendToRenderer('update_error', message);
+    return;
+  }
+
+  const rendererAsset = toRendererAsset(asset);
+  log.info(
+    `Update available: ${info.version} (${asset.name}, ${asset.size} bytes, sha512=${asset.sha512.slice(0, 12)}...)`
+  );
+  setUpdateState({
+    status: 'available',
+    version: info.version,
+    asset: rendererAsset,
+  });
+  sendToRenderer('update_available', {
+    version: info.version,
+    asset: rendererAsset,
+  });
+
+  // Mantém o download automático já existente, mas somente depois de validar
+  // que o feed aponta para o instalador Windows esperado.
+  scheduleAutomaticDownload();
 });
 
 autoUpdater.on('update-not-available', (info) => {
   updateFlowStarted = false;
+  clearAutomaticDownload();
   log.info(`Update not available (latest: ${info?.version || 'desconhecida'}).`);
   setUpdateState({ status: 'not-available' });
   sendToRenderer('update_not_available', { version: info?.version });
@@ -235,36 +349,52 @@ autoUpdater.on('error', (err) => {
 });
 
 autoUpdater.on('download-progress', (progressObj) => {
-  const percent = Math.round(progressObj.percent);
+  const percent = Number.isFinite(progressObj?.percent)
+    ? Math.max(0, Math.min(100, Math.round(progressObj.percent)))
+    : 0;
   log.info(`Download: ${percent}% (${progressObj.transferred}/${progressObj.total})`);
 
-  updateState = {
+  const state = {
     status: 'downloading',
     version: updateState.version,
+    asset: updateState.asset,
     percent,
     bytesPerSecond: progressObj.bytesPerSecond,
     transferred: progressObj.transferred,
     total: progressObj.total,
   };
-  sendToRenderer('download_progress', progressObj);
+  setUpdateState(state);
+  sendToRenderer('download_progress', {
+    ...progressObj,
+    percent,
+    version: state.version,
+    asset: state.asset,
+  });
 });
 
 autoUpdater.on('update-downloaded', (info) => {
+  clearAutomaticDownload();
   log.info('Update downloaded; waiting for user to install');
   setUpdateState({
     status: 'downloaded',
     version: info?.version || updateState.version,
+    asset: updateState.asset,
   });
-  sendToRenderer('update_downloaded', { version: info?.version });
+  sendToRenderer('update_downloaded', {
+    version: info?.version || updateState.version,
+    asset: updateState.asset,
+  });
 });
 
 ipcMain.handle('get_update_status', () => updateState);
 
 ipcMain.on('check_for_update', () => {
+  clearAutomaticDownload();
   startUpdateCheck(true);
 });
 
 ipcMain.on('restart_app', () => {
+  clearAutomaticDownload();
   if (updateState.status === 'downloaded') {
     autoUpdater.quitAndInstall();
   } else {
@@ -272,12 +402,9 @@ ipcMain.on('restart_app', () => {
   }
 });
 
-// Compatibilidade com telas antigas que solicitavam o download manualmente.
+// O renderer não envia URL, nome de arquivo nem tag. A seleção do asset e a
+// resolução da URL oficial ficam no processo principal/electron-updater.
 ipcMain.on('download_update', () => {
-  if (updateState.status === 'available' || updateState.status === 'downloading') {
-    log.info('Download de atualização solicitado pela interface');
-    autoUpdater.downloadUpdate().catch(handleUpdaterError);
-  } else {
-    log.info('download_update ignorado: nenhuma atualização disponível');
-  }
+  log.info('Download de atualização solicitado pela interface');
+  startUpdateDownload('manual');
 });
