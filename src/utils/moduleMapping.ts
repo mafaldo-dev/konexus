@@ -115,6 +115,8 @@ const SUBMENU_REQUIREMENTS: Array<{
   { prefix: "/sales/comissions", anyOf: [["rh", "view"], ["finance", "view"]] },
   { prefix: "/sales/reports", anyOf: [["vendas", "view"]] },
   { prefix: "/shopping", anyOf: [["compras", "view"], ["estoque", "view"]] },
+  { prefix: "/config/audit-log", anyOf: [["audit", "view"]] },
+  { prefix: "/config/stations", anyOf: [["audit", "manage_stations"]] },
   { prefix: "/financer", anyOf: [["finance", "view"]] },
   { prefix: "/financial/order-nfe", anyOf: [["nfe", "view"]] },
   { prefix: "/rh", anyOf: [["rh", "view"]] },
@@ -122,11 +124,13 @@ const SUBMENU_REQUIREMENTS: Array<{
   { prefix: "/crm", anyOf: [["crm", "view"]] },
 ];
 
-const ROUTE_REQUIREMENTS: Array<{
+  const ROUTE_REQUIREMENTS: Array<{
   prefix: string;
   anyOf: PermissionRequirement[];
 }> = [
   { prefix: "/dashboard", anyOf: [["dashboard", "view"]] },
+  { prefix: "/config/audit-log", anyOf: [["audit", "view"]] },
+  { prefix: "/config/stations", anyOf: [["audit", "manage_stations"]] },
   ...SUBMENU_REQUIREMENTS,
 ];
 
@@ -211,6 +215,20 @@ export function canAccessSubmenuWithPermissions(
         (isCompanyAdmin || hasPermission(permissions, "nfe", "configure"))
       );
     }
+
+    // Historico de auditoria e estacoes de trabalho tem regras proprias.
+    const auditRule = SUBMENU_REQUIREMENTS.find(
+      (item) => path === item.prefix || path.startsWith(`${item.prefix}/`)
+    );
+    if (auditRule) {
+      return requirementsAllowed(
+        auditRule.anyOf,
+        availableModules,
+        permissions,
+        isCompanyAdmin
+      );
+    }
+
     return isCompanyAdmin;
   }
   if (path === "/planos") return true;
@@ -328,6 +346,19 @@ export function canAccessRoute(
         (isCompanyAdmin || hasPermission(permissions, "nfe", "configure"))
       );
     }
+
+    const auditRule = ROUTE_REQUIREMENTS.find(
+      (item) => normalized === item.prefix || normalized.startsWith(`${item.prefix}/`)
+    );
+    if (auditRule) {
+      return requirementsAllowed(
+        auditRule.anyOf,
+        availableModules,
+        permissions,
+        isCompanyAdmin
+      );
+    }
+
     return isCompanyAdmin;
   }
 

@@ -1,0 +1,157 @@
+import { apiRequest } from "./client";
+import { setReauthHandler } from "./reauth";
+
+/**
+ * O fluxo de reautenticacao e comandado pelo backend: quando a rota
+ * protegida responde 403/REAUTH_REQUIRED, o cliente pede a confirmacao de
+ * senha e repete a requisicao com a concessao. Nunca repete em laco.
+ */
+describe("fluxo de reautenticacao do cliente HTTP", () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    setReauthHandler(null);
+    jest.restoreAllMocks();
+  });
+
+  function mockFetch(responses: Array<{ status: number; body: any }>) {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    let index = 0;
+
+    global.fetch = jest.fn(async (url: any, init: any) => {
+      calls.push({ url: String(url), init });
+      const response = responses[Math.min(index, responses.length - 1)];
+      index += 1;
+      return {
+        status: response.status,
+        ok: response.status >= 200 && response.status < 300,
+        text: async () => JSON.stringify(response.body),
+      } as any;
+    }) as any;
+
+    return calls;
+  }
+
+  it("pede a confirmacao e repete a requisicao com a concessao", async () => {
+    const calls = mockFetch([
+      {
+        status: 403,
+        body: {
+          success: false,
+          code: "REAUTH_REQUIRED",
+          message: "Confirme sua identidade para concluir esta alteração.",
+          reauth: {
+            moduleKey: "vendas",
+            action: "update",
+            entityType: "order",
+            entityId: "123",
+            description: "alterar o pedido de venda",
+          },
+        },
+      },
+      { status: 200, body: { success: true, data: { id: 99 } } },
+    ]);
+
+    const handler = jest.fn(async (_intent: any, _payload: any) => "grant-123");
+    setReauthHandler(handler as any);
+
+    const response = await apiRequest("orders/123", "PUT", {
+      orderStatus: "approved",
+    });
+
+    expect(response.ok).toBe(true);
+    expect(response.data).toEqual({ success: true, data: { id: 99 } });
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler.mock.calls[0][0]).toMatchObject({
+      moduleKey: "vendas",
+      entityId: "123",
+    });
+    expect(calls).toHaveLength(2);
+
+    const headers = (calls[1].init.headers || {}) as Record<string, string>;
+    expect(headers["X-Reauth-Grant"]).toBe("grant-123");
+    expect(calls[1].init.body).toBe(JSON.stringify({ orderStatus: "approved" }));
+  });
+
+  it("nao repete a requisicao quando o usuario cancela", async () => {
+    const calls = mockFetch([
+      {
+        status: 403,
+        body: {
+          success: false,
+          code: "REAUTH_REQUIRED",
+          message: "Confirme sua identidade para concluir esta alteração.",
+          reauth: { moduleKey: "vendas", action: "update" },
+        },
+      },
+    ]);
+
+    setReauthHandler(async () => null);
+
+    const response = await apiRequest("orders/123", "PUT", { status: "x" });
+
+    expect(response.ok).toBe(false);
+    expect(response.status).toBe(403);
+    expect(response.code).toBe("REAUTH_REQUIRED");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("nao entra em laco quando a repeticao volta a ser negada", async () => {
+    const calls = mockFetch([
+      {
+        status: 403,
+        body: {
+          success: false,
+          code: "REAUTH_REQUIRED",
+          message: "Confirme sua identidade.",
+          reauth: { moduleKey: "vendas", action: "update" },
+        },
+      },
+    ]);
+
+    const handler = jest.fn(async (_intent: any, _payload: any) => "grant-123");
+    setReauthHandler(handler as any);
+
+    const response = await apiRequest("orders/123", "PUT", { status: "x" });
+
+    expect(response.ok).toBe(false);
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("nao dispara reautenticacao em outros erros 403", async () => {
+    const calls = mockFetch([
+      {
+        status: 403,
+        body: {
+          success: false,
+          code: "PERMISSION_DENIED",
+          message: "Você não possui permissão para executar esta ação.",
+        },
+      },
+    ]);
+
+    const handler = jest.fn(async (_intent: any, _payload: any) => "grant-123");
+    setReauthHandler(handler as any);
+
+    const response = await apiRequest("orders/123", "PUT", { status: "x" });
+
+    expect(response.ok).toBe(false);
+    expect(response.code).toBe("PERMISSION_DENIED");
+    expect(handler).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(1);
+  });
+
+  it("envia o codigo da estacao de trabalho quando ele existe", async () => {
+    localStorage.setItem("konexus.stationToken", "CODIGO-ESTACAO");
+    const calls = mockFetch([{ status: 200, body: { success: true } }]);
+
+    await apiRequest("orders/all", "GET");
+
+    const headers = (calls[0].init.headers || {}) as Record<string, string>;
+    expect(headers["X-Station-Token"]).toBe("CODIGO-ESTACAO");
+
+    localStorage.removeItem("konexus.stationToken");
+  });
+});

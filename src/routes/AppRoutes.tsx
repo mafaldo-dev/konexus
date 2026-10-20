@@ -26,6 +26,8 @@ import NfeList from '../pages/Financial/nfe-list';
 import OSSystem from '../pages/ServiceOrder';
 import CRMModule from '../pages/CRM';
 import SecuritySettingsPage from '../pages/configurations/security';
+import AuditLogPage from '../pages/configurations/audit';
+import WorkStationsPage from '../pages/configurations/stations';
 import NotificationPreferences from '../pages/configurations/notifications';
 import UserManagementPage from '../pages/configurations/users&permissions';
 import CompanyManagement from '../pages/configurations/companies';
@@ -274,6 +276,24 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={['Administrador']}>
             <SecuritySettingsPage />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
+        path="/config/audit-log"
+        element={
+          <DesignationCheck allowed={['Administrador']}>
+            <AuditLogPage />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
+        path="/config/stations"
+        element={
+          <DesignationCheck allowed={['Administrador']}>
+            <WorkStationsPage />
           </DesignationCheck>
         }
       />

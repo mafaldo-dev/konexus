@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Users, Truck, DollarSign, Warehouse, ShoppingCart, Archive, ShoppingBag, UserCheck, Settings, Package2, Target, Award, Calculator, FileText, TrendingUp, BarChart3, Clipboard, AlertTriangle, CreditCard, Building, FileBarChart, Clock, Calendar, Bell, Shield, Database, Printer, FileTextIcon } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Truck, DollarSign, Warehouse, ShoppingCart, Archive, ShoppingBag, UserCheck, Settings, Package2, Target, Award, Calculator, FileText, TrendingUp, BarChart3, Clipboard, AlertTriangle, CreditCard, Building, FileBarChart, Clock, Calendar, Bell, Shield, Database, Printer, FileTextIcon, ClipboardList, Monitor } from 'lucide-react';
 
 export const menuItems = [
     {
@@ -101,6 +101,8 @@ export const menuItems = [
         { title: 'Usuários e Permissões', to: '/config/users-permissions', icon: Users, access: ['Administrador'] },
         { title: 'Parâmetros do Sistema', to: '/config/system', icon: Database, access: ['Administrador'] },
         { title: 'Notificações', to: '/config/notifications', icon: Bell, access: ['Administrador'] },
+        { title: 'Histórico de ações', to: '/config/audit-log', icon: ClipboardList, access: ['Administrador'] },
+        { title: 'Estações de trabalho', to: '/config/stations', icon: Monitor, access: ['Administrador'] },
         { title: 'Segurança', to: '/config/security-area', icon: Shield, access: ['Administrador'] },
         { title: 'Ajustes', to: '/dashboard', icon: Settings, access: ['Administrador'] },
       ]

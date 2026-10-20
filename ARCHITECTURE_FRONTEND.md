@@ -143,6 +143,27 @@ Componente/Página -> Hook (opcional) -> Service (domínio) -> api/client.ts (fe
 
 ---
 
+## 6.3 Reautenticação e rastreabilidade
+
+- `components/Reauth/` — modal e provider de confirmação de identidade. O
+  provider registra o manipulador usado pelo `api/client.ts`.
+- `api/client.ts` — quando o backend responde `403 REAUTH_REQUIRED`, o cliente
+  pede a senha, obtém a concessão (`POST /audit/reauth`) e repete **uma vez**
+  a requisição original com o cabeçalho `X-Reauth-Grant`. Nunca há laço.
+- `api/reauth.ts` — registro do manipulador (evita dependência circular).
+- `services/auditService.ts` — histórico, estações de trabalho e pareamento.
+- `pages/configurations/audit/` — tela de histórico com filtros, paginação e
+  tradução dos eventos para linguagem de negócio (`audit/format.ts`).
+- `pages/configurations/stations/` — cadastro de estações e vínculo do
+  computador (código de pareamento guardado no `localStorage`).
+- A estação é enviada no cabeçalho `X-Station-Token`; identifica o
+  **ambiente** de trabalho, nunca a pessoa.
+
+Detalhes, matriz de rotas e limitações:
+[`konexus-back/docs/AUDITORIA_RASTREABILIDADE.md`](../konexus-back/docs/AUDITORIA_RASTREABILIDADE.md).
+
+---
+
 ## 7. Convenções
 
 - Nenhuma chamada `fetch`/`axios` direta em páginas/componentes: usar sempre os serviços de `src/services/`.

@@ -368,6 +368,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.warn("Erro ao atualizar status no logout:", error);
     }
 
+    // Encerramento de sessao no servidor: registra o evento de saida.
+    try {
+      await apiClient.post("login/logout", undefined, {
+        token: localStorage.getItem("token") || undefined,
+        reauth: false,
+      });
+    } catch (error) {
+      console.warn("Erro ao encerrar a sessao no servidor:", error);
+    }
+
     setUser(null);
     setCompany(null);
     setToken(null);

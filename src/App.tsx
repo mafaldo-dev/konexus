@@ -6,6 +6,7 @@ import AppRoutes from "./routes/AppRoutes";
 import "react-toastify/dist/ReactToastify.css";
 import { NetworkProvider } from "./NetWorkContext";
 import { NetworkToastManager } from "./utils/NetWorkToastManager";
+import { ReauthProvider } from "./components/Reauth";
 
 
 const App = () => {
@@ -15,8 +16,10 @@ const App = () => {
       <SystemStatusProvider>
         <ErrorBoundary>      
           <ChatProvider>  
-            <ToastContainer />
-            <AppRoutes />
+            <ReauthProvider>
+              <ToastContainer />
+              <AppRoutes />
+            </ReauthProvider>
           </ChatProvider>
         </ErrorBoundary>
       </SystemStatusProvider>

@@ -13,12 +13,17 @@
  */
 
 import { API_CONFIG } from "./config";
+import { getReauthHandler } from "./reauth";
+
+const STATION_TOKEN_KEY = "konexus.stationToken";
 
 export interface ApiResponse<T = any> {
   data: T | null;
   error: string | null;
   status: number;
   ok: boolean;
+  /** Codigo de erro padronizado devolvido pelo backend (ex.: REAUTH_REQUIRED). */
+  code?: string | null;
 }
 
 interface ClientOptions {
@@ -26,6 +31,13 @@ interface ClientOptions {
   companyId?: number | string;
   signal?: AbortSignal;
   headers?: Record<string, string>;
+  /**
+   * Quando false, a requisicao nao dispara o fluxo de reautenticacao.
+   * Usado pelas proprias chamadas de confirmacao de identidade.
+   */
+  reauth?: boolean;
+  /** Uso interno: impede laco infinito de reautenticacao. */
+  __reauthAttempted?: boolean;
 }
 
 /**
@@ -121,6 +133,14 @@ export async function apiRequest<T = any>(
     }
   }
 
+  // Estacao de trabalho da sessao (rotulo do ambiente, nunca prova de identidade).
+  if (typeof localStorage !== "undefined" && !headers["X-Station-Token"]) {
+    const stationToken = localStorage.getItem(STATION_TOKEN_KEY);
+    if (stationToken) {
+      headers["X-Station-Token"] = stationToken;
+    }
+  }
+
   const requestBody = normalizeBody(method, body);
   const requestHeaders = normalizeHeaders(method, requestBody, headers);
 
@@ -157,6 +177,27 @@ export async function apiRequest<T = any>(
 
     // 403: autorização / empresa não permitida
     if (response.status === 403) {
+      // O backend pediu confirmacao de identidade: pedimos a senha, obtemos
+      // a concessao e repetimos a mesma requisicao uma unica vez.
+      const needsReauth =
+        responseBody?.code === "REAUTH_REQUIRED" &&
+        options.reauth !== false &&
+        !options.__reauthAttempted;
+
+      if (needsReauth) {
+        const handler = getReauthHandler();
+        if (handler) {
+          const grantId = await handler(responseBody.reauth, body);
+          if (grantId) {
+            return apiRequest<T>(endpoint, method, body, {
+              ...options,
+              __reauthAttempted: true,
+              headers: { ...extraHeaders, "X-Reauth-Grant": grantId },
+            });
+          }
+        }
+      }
+
       return {
         data: null,
         error:
@@ -164,6 +205,7 @@ export async function apiRequest<T = any>(
           responseBody?.error ||
           "Você não possui acesso a este recurso.",
         status: 403,
+        code: responseBody?.code || null,
         ok: false,
       };
     }
@@ -190,6 +232,7 @@ export async function apiRequest<T = any>(
           responseBody?.error ||
           `Erro HTTP ${response.status}`,
         status: response.status,
+        code: responseBody?.code || null,
         ok: false,
       };
     }
