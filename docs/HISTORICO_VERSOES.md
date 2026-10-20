@@ -23,6 +23,22 @@ abaixo.
 ## Histórico técnico original (preservado)
 
 ```text
+v1.3.2 — 20/10/2026
+- Conferência final do pedido de venda exige a senha do usuário logado
+- Pedido grava o rastro da conferência (usuário autenticado, conferente
+  declarado, separador, peso, volumes, data e sessão)
+- Evento de auditoria passa a carregar os dados da conferência
+- Listagem de pedidos exibe a coluna "Conferência"
+- Correção da liberação de pedidos, que respondia erro do servidor
+- Módulo de auditoria habilitado para o administrador da empresa
+- Erros de regra de negócio passam a responder 400/403/404/409 em vez de 500
+- Auditoria geral do fluxo: 97 operações mapeadas, 76 protegidas por senha
+- README com o estado atual do sistema
+
+v1.3.1 — 20/10/2026
+- Módulo de Contabilidade dentro do layout base do ERP
+- Liberação de pedidos de venda corrigida (o fluxo retornava erro do servidor)
+
 v1.2.1 — 20/10/2026
 - Gestão completa de colaboradores com cargos personalizados por empresa
 - Permissões granulares por módulo/ação com validação no backend
