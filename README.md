@@ -63,7 +63,13 @@ Ver [`docs/MODULOS_E_COMERCIAL.md`](docs/MODULOS_E_COMERCIAL.md) e
   fornecedores, clientes, pedidos de venda/compra, Kardex, ordens de serviço,
   contabilidade, financeiro, TROUX collaborative/cargos/permissões e ações
   sensíveis do painel global.
-- **Login e logout são livres** — o usuário acabou de se autenticar.
+- **Login e logout são livres** — o usuário acabou de se autenticar. Pelo
+  mesmo motivo, o próprio colaborador marcando a **própria presença**
+  ("Ativo" no login, "Ausente" no logout) **não** abre o modal de senha: é
+  parte do ciclo de sessão, não uma alteração de negócio. A ação continua
+  registrada na auditoria (`reauth_outcome = self_service`). Quando um
+  administrador altera a situação de **outro** colaborador, a senha continua
+  sendo exigida.
 - A senha é validada **no backend**; o frontend apenas orquestra o modal
   (`ReauthProvider` + `ReauthModal`).
 - A concessão é de **uso único**, dura 2 minutos e fica vinculada a
