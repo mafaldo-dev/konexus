@@ -78,6 +78,19 @@ export interface OrderResponse {
   orderItems: OrderItemResponse[];
   totalVolumes?: number;
   totalWeight?: number;
+  /**
+   * Rastro da conferencia final (liberacao para expedicao).
+   * `user` e o usuario autenticado que confirmou a senha: dado imutavel,
+   * gravado pelo backend. `checkedBy` e o conferente declarado na tela.
+   */
+  conference?: {
+    user?: string;
+    checkedBy?: string;
+    separator?: string;
+    weight?: number;
+    volumes?: number;
+    at?: string;
+  } | null;
 }
 
 export interface OrderItemResponse {
