@@ -85,30 +85,39 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # No PowerShell do GitHub Actions, um comando nativo que falha
-          # interrompe o script. A consulta abaixo e tolerante a "release
-          # inexistente".
-          $ErrorActionPreference = "Continue"
-          $PSNativeCommandUseErrorActionPreference = $false
-
           # A release pode ja existir (fluxo manual) ou ser criada agora
-          # (disparo por tag). Nesse segundo caso ela nasce como rascunho e
-          # so e publicada depois que os tres assets estiverem no ar.
-          $existingJson = gh release view $env:RELEASE_TAG --json tagName,isDraft 2>&1
-          if ($LASTEXITCODE -eq 0) {
-            $release = ($existingJson | Out-String) | ConvertFrom-Json
-            Write-Host "Release existente: $($release.tagName) (rascunho: $($release.isDraft))"
-            if (-not $release.isDraft) {
-              Write-Host "A release ja esta publicada; os assets serao atualizados."
-            }
+          # (disparo por tag). A API do GitHub e usada para nao depender do
+          # comportamento da CLI `gh` (que aborta o script quando o release
+          # ainda nao existe).
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          $api = "https://api.github.com/repos/$env:GITHUB_REPOSITORY/releases"
+
+          $existing = $null
+          try {
+            $existing = Invoke-RestMethod -Uri "$api/tags/$env:RELEASE_TAG" -Headers $headers -Method Get -ErrorAction Stop
+          } catch {
+            Write-Host "Release ainda nao existe: $($_.Exception.Message)"
+          }
+
+          if ($existing) {
+            Write-Host "Release existente: $($existing.tag_name) (rascunho: $($existing.draft))"
           } else {
             $versao = $env:RELEASE_TAG.Substring(1)
-            $notas = "Konexus $versao. Release com o modulo de Contabilidade (adicional contratado do Financeiro), a aba de auditoria no painel administrativo global e o fluxo de reautenticacao por senha nas operacoes protegidas. Atualizacao automatica: baixe o instalador Konexus-Setup-$versao.exe ou deixe o aplicativo instalado buscar a nova versao sozinho."
-            $createOutput = gh release create $env:RELEASE_TAG --draft --title "Konexus $versao" --notes $notas --target $env:RELEASE_TAG 2>&1
-            if ($LASTEXITCODE -ne 0) {
-              throw "Nao foi possivel criar a release $env:RELEASE_TAG. Saida: $($createOutput | Out-String)"
-            }
-            Write-Host "Release criada como rascunho: $env:RELEASE_TAG"
+            $notas = "Konexus $versao. Inclui o modulo de Contabilidade (adicional contratado do Financeiro), a aba de auditoria no painel administrativo global e o fluxo de reautenticacao por senha. Atualizacao automatica: baixe o instalador Konexus-Setup-$versao.exe ou deixe o aplicativo instalado buscar a nova versao sozinho."
+            $body = @{
+              tag_name = $env:RELEASE_TAG
+              name = "Konexus $versao"
+              body = $notas
+              draft = $false
+              prerelease = $false
+              target_commitish = $env:RELEASE_TAG
+            } | ConvertTo-Json
+            $created = Invoke-RestMethod -Uri $api -Headers $headers -Method Post -Body $body -ContentType "application/json" -ErrorAction Stop
+            Write-Host "Release criada e publicada: $($created.html_url)"
           }
 
       - name: Instalar dependências (lockfile)
@@ -198,23 +207,4 @@ jobs:
 
           Write-Host "latest.yml publicado e validado (versão $($manifest.version))."
 
-      - name: Publicar a release
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $ErrorActionPreference = "Continue"
-          $PSNativeCommandUseErrorActionPreference = $false
-
-          # Se a release nasceu como rascunho (disparo por tag), ela e
-          # publicada agora, com o instalador ja disponivel.
-          $release = (gh release view $env:RELEASE_TAG --json tagName,isDraft 2>&1 | Out-String) | ConvertFrom-Json
-          if ($release.isDraft) {
-            gh release edit $env:RELEASE_TAG --draft=false
-            if ($LASTEXITCODE -ne 0) {
-              throw "Nao foi possivel publicar a release $env:RELEASE_TAG."
-            }
-            Write-Host "Release publicada: $env:RELEASE_TAG"
-          } else {
-            Write-Host "A release ja estava publicada: $env:RELEASE_TAG"
           }
