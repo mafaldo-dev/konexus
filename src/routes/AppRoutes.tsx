@@ -36,6 +36,18 @@ import PlanosPage from '../pages/planos';
 import NotFound from '../pages/NOT-FOUND';
 import DesignationCheck from '../PermissionCheck';
 import PlugNotasConfigDashboard from '../pages/configurations/system/plugnotasConfig';
+import AccountingDashboardPage from '../pages/Financial/accounting/Dashboard';
+import ChartOfAccountsPage from '../pages/Financial/accounting/ChartOfAccounts';
+import AccountingEntriesPage from '../pages/Financial/accounting/Entries';
+import JournalBookPage from '../pages/Financial/accounting/Journal';
+import LedgerBookPage from '../pages/Financial/accounting/Ledger';
+import TrialBalancePage from '../pages/Financial/accounting/TrialBalance';
+import { BalanceSheetPage, IncomeStatementPage } from '../pages/Financial/accounting/Statements';
+import ReconciliationPage from '../pages/Financial/accounting/Reconciliation';
+import AccountingPeriodsPage from '../pages/Financial/accounting/Periods';
+import FixedAssetsPage from '../pages/Financial/accounting/FixedAssets';
+import AccountingReportsPage from '../pages/Financial/accounting/Reports';
+import AccountingSettingsPage from '../pages/Financial/accounting/Settings';
 
 const AppRoutes = () => {
   return (
@@ -267,6 +279,112 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={['Administrador']}>
             <UserManagementPage />
+          </DesignationCheck>
+        }
+      />
+
+      {/* ==================== CONTABILIDADE (extra do Financeiro) ==================== */}
+      <Route
+        path="/financer/contabilidade/painel"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <AccountingDashboardPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/plano-de-contas"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <ChartOfAccountsPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/lancamentos"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <AccountingEntriesPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/livro-diario"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <JournalBookPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/livro-razao"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <LedgerBookPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/balancete"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <TrialBalancePage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/balanco-patrimonial"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <BalanceSheetPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/demonstracao-resultado"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <IncomeStatementPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/conciliacao"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <ReconciliationPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/exercicios"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <AccountingPeriodsPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/ativos"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <FixedAssetsPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/relatorios"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <AccountingReportsPage />
+          </DesignationCheck>
+        }
+      />
+      <Route
+        path="/financer/contabilidade/configuracoes"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Gestor', 'Gerente', 'Financeiro']}>
+            <AccountingSettingsPage />
           </DesignationCheck>
         }
       />

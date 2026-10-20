@@ -169,6 +169,17 @@ Detalhes, matriz de rotas e limitações:
 
 ---
 
+## 6.4 Modulo de Contabilidade
+
+- Telas em `src/pages/Financial/accounting/`, servico em
+  `src/services/accountingService.ts`.
+- Grupo "Contabilidade" dentro de Financeiro no menu lateral (terceiro nivel).
+- O modulo e um extra contratado: a navegacao e as rotas exigem contrato ativo
+  e permissao (mesma regra do backend).
+- Detalhes: [`docs/MODULO_CONTABILIDADE.md`](docs/MODULO_CONTABILIDADE.md).
+
+---
+
 ## 7. Convenções
 
 - Nenhuma chamada `fetch`/`axios` direta em páginas/componentes: usar sempre os serviços de `src/services/`.

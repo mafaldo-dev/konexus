@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Users, Truck, DollarSign, Warehouse, ShoppingCart, Archive, ShoppingBag, UserCheck, Settings, Package2, Target, Award, Calculator, FileText, TrendingUp, BarChart3, Clipboard, AlertTriangle, CreditCard, Building, FileBarChart, Clock, Calendar, Bell, Shield, Database, Printer, FileTextIcon, ClipboardList, Monitor } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Truck, DollarSign, Warehouse, ShoppingCart, Archive, ShoppingBag, UserCheck, Settings, Package2, Target, Award, Calculator, FileText, TrendingUp, BarChart3, Clipboard, AlertTriangle, CreditCard, Building, FileBarChart, Clock, Calendar, Bell, Shield, Database, Printer, FileTextIcon, ClipboardList, Monitor, BookOpen, BookOpenCheck, Scale, FileSpreadsheet, CalendarDays, Building2 } from 'lucide-react';
 
 export const menuItems = [
     {
@@ -60,7 +60,28 @@ export const menuItems = [
       access: ['Administrador','Vendedor','Conferente', 'Estoquista', 'Gestor', 'Compras', 'Gerente', 'Financeiro', 'Encarregado'],
       submenu: [
         { title: 'Dashboard', to: '/financer/financial', icon: CreditCard, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro', 'Encarregado'] },
-        { title: "NF-e", to: '/financial/order-nfe', icon: FileTextIcon, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro']}
+        { title: "NF-e", to: '/financial/order-nfe', icon: FileTextIcon, access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro']},
+        {
+          title: 'Contabilidade',
+          to: '/financer/contabilidade',
+          icon: BookOpenCheck,
+          access: ['Administrador', 'Gestor', 'Gerente', 'Financeiro'],
+          children: [
+            { title: 'Painel contábil', to: '/financer/contabilidade/painel', icon: LayoutDashboard },
+            { title: 'Plano de contas', to: '/financer/contabilidade/plano-de-contas', icon: BookOpen },
+            { title: 'Lançamentos', to: '/financer/contabilidade/lancamentos', icon: FileText },
+            { title: 'Livro diário', to: '/financer/contabilidade/livro-diario', icon: BookOpen },
+            { title: 'Livro razão', to: '/financer/contabilidade/livro-razao', icon: BookOpen },
+            { title: 'Balancete', to: '/financer/contabilidade/balancete', icon: Scale },
+            { title: 'Balanço patrimonial', to: '/financer/contabilidade/balanco-patrimonial', icon: BarChart3 },
+            { title: 'Demonstração do resultado', to: '/financer/contabilidade/demonstracao-resultado', icon: FileSpreadsheet },
+            { title: 'Conciliação', to: '/financer/contabilidade/conciliacao', icon: Scale },
+            { title: 'Exercícios e períodos', to: '/financer/contabilidade/exercicios', icon: CalendarDays },
+            { title: 'Ativos imobilizados', to: '/financer/contabilidade/ativos', icon: Building2 },
+            { title: 'Relatórios', to: '/financer/contabilidade/relatorios', icon: FileBarChart },
+            { title: 'Configurações', to: '/financer/contabilidade/configuracoes', icon: Settings },
+          ]
+        }
       ]
     },
     {
