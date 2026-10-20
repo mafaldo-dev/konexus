@@ -1,33 +1,163 @@
-name: Build and Release Windows (.exe)
+name: Release Windows installer
 
 on:
-  push:
-    tags:
-      - 'v*'
-      - '*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag da release no formato vX.Y.Z"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  # O CRA trata avisos do ESLint como erro quando CI=true. O projeto possui
+  # avisos legados; um aviso de estilo não deve impedir a geração do instalador.
+  # A validação de tipos continua obrigatória no passo "Verificar TypeScript".
+  CI: "false"
 
 jobs:
   build-windows:
+    name: Build Windows NSIS
     runs-on: windows-latest
+    timeout-minutes: 45
 
     steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
+      - name: Validar tag da release
+        shell: pwsh
+        run: |
+          if (-not $env:RELEASE_TAG) {
+            throw "Tag da release não informada."
+          }
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "A tag deve seguir o formato vX.Y.Z (recebida: $env:RELEASE_TAG)."
+          }
+          Write-Host "Tag da release: $env:RELEASE_TAG"
+
+      - name: Checkout da tag exata
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Confirmar commit da tag
+        shell: pwsh
+        run: |
+          $head = (git rev-parse HEAD).Trim()
+          $tagCommit = (git rev-parse "$env:RELEASE_TAG^{commit}").Trim()
+          if ($head -ne $tagCommit) {
+            throw "O checkout ($head) não corresponde ao commit da tag $env:RELEASE_TAG ($tagCommit)."
+          }
+          Write-Host "Commit validado: $head"
 
       - name: Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - name: Instalar dependências
-        run: npm install --legacy-peer-deps --no-fund --no-audit
-
-      - name: Build do React
+      - name: Validar versão da tag x package.json
         shell: pwsh
-        run: $env:CI=false; npm run build
+        run: |
+          $package = Get-Content package.json -Raw | ConvertFrom-Json
+          $expected = "v$($package.version)"
+          if ($env:RELEASE_TAG -ne $expected) {
+            throw "A tag $env:RELEASE_TAG não corresponde à versão $($package.version) do package.json (esperado: $expected)."
+          }
+          Write-Host "Versão validada: $($package.version)"
 
-      - name: Build do instalador Windows (.exe)
+      - name: Validar release publicada
+        shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run electron:build -- --publish always
+        run: |
+          $release = gh release view $env:RELEASE_TAG --json tagName,isDraft | ConvertFrom-Json
+          if ($release.isDraft) {
+            throw "A release $env:RELEASE_TAG está como rascunho e não pode receber assets."
+          }
+          Write-Host "Release publicada encontrada: $($release.tagName)"
+
+      - name: Instalar dependências (lockfile)
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
+
+      - name: Verificar TypeScript
+        run: npx tsc --noEmit
+
+      - name: Gerar instalador Windows
+        run: npm run electron:build -- --win nsis --publish never
+
+      - name: Validar artefatos obrigatórios
+        run: node scripts/verify-release-artifacts.mjs --version "${{ env.RELEASE_TAG }}" --dist dist
+
+      - name: Publicar assets na release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $manifestPath = Join-Path (Get-Location) "dist/release-assets.json"
+          if (-not (Test-Path $manifestPath)) {
+            throw "Manifesto de assets não encontrado: $manifestPath"
+          }
+
+          $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+          $assets = @()
+          foreach ($file in $manifest.files) {
+            $assetPath = Join-Path (Get-Location) "dist/$file"
+            if (-not (Test-Path $assetPath)) {
+              throw "Asset não encontrado: $assetPath"
+            }
+            $assets += $assetPath
+          }
+
+          if ($assets.Count -ne 3) {
+            throw "Esperados 3 assets (.exe, .exe.blockmap e latest.yml); encontrados $($assets.Count)."
+          }
+
+          gh release view $env:RELEASE_TAG --json tagName | Out-Null
+          gh release upload $env:RELEASE_TAG $assets --clobber
+          Write-Host "Upload concluído para a release $env:RELEASE_TAG."
+
+      - name: Confirmar assets publicados
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $manifestPath = Join-Path (Get-Location) "dist/release-assets.json"
+          $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+          $release = gh release view $env:RELEASE_TAG --json assets | ConvertFrom-Json
+          $published = @($release.assets | ForEach-Object { $_.name })
+
+          foreach ($file in $manifest.files) {
+            $asset = $release.assets | Where-Object { $_.name -eq $file } | Select-Object -First 1
+            if (-not $asset) {
+              throw "Asset ausente na release: $file"
+            }
+
+            $localPath = Join-Path (Get-Location) "dist/$file"
+            $localSize = (Get-Item $localPath).Length
+            if ($asset.size -ne $localSize) {
+              throw "Tamanho divergente para $file (local: $localSize, publicado: $($asset.size))."
+            }
+
+            Write-Host "Asset publicado: $file ($localSize bytes)"
+          }
+
+          $downloadDir = Join-Path $env:RUNNER_TEMP "release-verify"
+          New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
+          gh release download $env:RELEASE_TAG --pattern latest.yml --dir $downloadDir --clobber
+
+          $downloadedLatest = Get-Content (Join-Path $downloadDir "latest.yml") -Raw
+          if ($downloadedLatest -notmatch "(?m)^version:\s*$($manifest.version)\s*$") {
+            throw "O latest.yml publicado não declara a versão $($manifest.version)."
+          }
+
+          Write-Host "latest.yml publicado e validado (versão $($manifest.version))."
