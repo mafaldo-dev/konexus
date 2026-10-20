@@ -85,12 +85,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # No PowerShell do GitHub Actions, um comando nativo que falha
+          # interrompe o script. A consulta abaixo e tolerante a "release
+          # inexistente".
+          $ErrorActionPreference = "Continue"
+          $PSNativeCommandUseErrorActionPreference = $false
+
           # A release pode ja existir (fluxo manual) ou ser criada agora
           # (disparo por tag). Nesse segundo caso ela nasce como rascunho e
           # so e publicada depois que os tres assets estiverem no ar.
-          $existing = gh release view $env:RELEASE_TAG --json tagName,isDraft 2>$null
+          $existingJson = gh release view $env:RELEASE_TAG --json tagName,isDraft 2>&1
           if ($LASTEXITCODE -eq 0) {
-            $release = $existing | ConvertFrom-Json
+            $release = ($existingJson | Out-String) | ConvertFrom-Json
             Write-Host "Release existente: $($release.tagName) (rascunho: $($release.isDraft))"
             if (-not $release.isDraft) {
               Write-Host "A release ja esta publicada; os assets serao atualizados."
@@ -107,6 +113,9 @@ jobs:
             ou deixe o aplicativo instalado buscar a nova versao sozinho.
             "@@
             gh release create $env:RELEASE_TAG --draft --title "Konexus $($env:RELEASE_TAG)" --notes $notes --target $env:RELEASE_TAG
+            if ($LASTEXITCODE -ne 0) {
+              throw "Nao foi possivel criar a release $env:RELEASE_TAG."
+            }
             Write-Host "Release criada como rascunho: $env:RELEASE_TAG"
           }
 
@@ -202,11 +211,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          $ErrorActionPreference = "Continue"
+          $PSNativeCommandUseErrorActionPreference = $false
+
           # Se a release nasceu como rascunho (disparo por tag), ela e
           # publicada agora, com o instalador ja disponivel.
-          $release = gh release view $env:RELEASE_TAG --json tagName,isDraft | ConvertFrom-Json
+          $release = (gh release view $env:RELEASE_TAG --json tagName,isDraft 2>&1 | Out-String) | ConvertFrom-Json
           if ($release.isDraft) {
             gh release edit $env:RELEASE_TAG --draft=false
+            if ($LASTEXITCODE -ne 0) {
+              throw "Nao foi possivel publicar a release $env:RELEASE_TAG."
+            }
             Write-Host "Release publicada: $env:RELEASE_TAG"
           } else {
             Write-Host "A release ja estava publicada: $env:RELEASE_TAG"
