@@ -199,8 +199,38 @@ export interface CreateSubscriptionPayload {
   status?: SubscriptionStatus;
 }
 
-export interface UpdateSubscriptionPayload {
-  plan_id?: number;
+export interface SystemAdminAuditEvent {
+  id: number;
+  company_id: number | null;
+  user_id: number | null;
+  username: string | null;
+  session_id: string | null;
+  station_id: number | null;
+  station_name: string | null;
+  module_key: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  action: string;
+  outcome: string;
+  reauth_outcome: string | null;
+  reason: string | null;
+  correlation_id: string | null;
+  metadata: Record<string, unknown> | null;
+  changes: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
+export interface SystemAdminAuditPage {
+  data: SystemAdminAuditEvent[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface UpdateSubscriptionPayload {  plan_id?: number;
   status?: SubscriptionStatus;
   ended_at?: string | null;
 }
@@ -280,6 +310,25 @@ async function request<T>(
 
 export const systemAdminService = {
   getDashboard: () => request<SystemAdminDashboard>("admin/system/dashboard"),
+
+  /**
+   * Historico de acoes para o administrador global.
+   *
+   * `companyId` nulo consulta todas as empresas; com o id, apenas os logs da
+   * empresa escolhida. O backend isola os logs por empresa: um usuario comum
+   * nunca alcanca os eventos de outra empresa.
+   */
+  listAuditEvents: async (filters: Record<string, string | number | undefined> = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === "") return;
+      params.set(key, String(value));
+    });
+    const query = params.toString();
+    return request<SystemAdminAuditPage>(
+      `audit/events${query ? `?${query}` : ""}`
+    );
+  },
 
   listCompanies: async () => {
     const data = await request<{ companies: SystemAdminCompany[] }>("admin/system/companies");

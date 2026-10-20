@@ -14,6 +14,7 @@ import {
   WalletCards,
   FileCheck2,
   X,
+  ClipboardList,
 } from "lucide-react";
 import {
   clearSystemAdminSession,
@@ -31,6 +32,7 @@ import SubscriptionsTab from "./SubscriptionsTab";
 import SupportTab from "./SupportTab";
 import ExtraModulesTab from "./ExtraModulesTab";
 import AuthorizationsTab from "./AuthorizationsTab";
+import AuditTab from "./AuditTab";
 
 type TabKey =
   | "dashboard"
@@ -39,7 +41,8 @@ type TabKey =
   | "support"
   | "plans"
   | "extraModules"
-  | "authorizations";
+  | "authorizations"
+  | "audit";
 
 const navigation: Array<{
   key: TabKey;
@@ -89,6 +92,12 @@ const navigation: Array<{
     description: "Liberações comerciais",
     icon: FileCheck2,
   },
+  {
+    key: "audit",
+    label: "Auditoria",
+    description: "Histórico de ações por empresa",
+    icon: ClipboardList,
+  },
 ];
 
 const tabTitles: Record<TabKey, string> = {
@@ -99,6 +108,7 @@ const tabTitles: Record<TabKey, string> = {
   plans: "Planos e módulos",
   extraModules: "Módulos extras",
   authorizations: "Autorizações comerciais",
+  audit: "Auditoria e rastreabilidade",
 };
 
 function getInitials(name: string) {
@@ -401,6 +411,14 @@ export default function SystemAdminWorkspace() {
                 initialCompanyId={focusCompanyId}
                 onPresetConsumed={() => setFocusCompanyId(null)}
                 onDataChanged={refresh}
+              />
+            ) : null}
+
+            {activeTab === "audit" ? (
+              <AuditTab
+                refreshKey={refreshKey}
+                initialCompanyId={focusCompanyId}
+                onPresetConsumed={() => setFocusCompanyId(null)}
               />
             ) : null}
 

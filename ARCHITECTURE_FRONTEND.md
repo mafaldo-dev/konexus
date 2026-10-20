@@ -152,10 +152,15 @@ Componente/Página -> Hook (opcional) -> Service (domínio) -> api/client.ts (fe
   a requisição original com o cabeçalho `X-Reauth-Grant`. Nunca há laço.
 - `api/reauth.ts` — registro do manipulador (evita dependência circular).
 - `services/auditService.ts` — histórico, estações de trabalho e pareamento.
-- `pages/configurations/audit/` — tela de histórico com filtros, paginação e
-  tradução dos eventos para linguagem de negócio (`audit/format.ts`).
+- `components/Audit/AuditEventsView.tsx` — visão compartilhada do histórico
+  (filtros, tabela, paginação e detalhe em linguagem de negócio), usada pela
+  tela da empresa e pela aba de auditoria do painel global.
+- `pages/configurations/audit/` — tela de histórico da empresa.
 - `pages/configurations/stations/` — cadastro de estações e vínculo do
   computador (código de pareamento guardado no `localStorage`).
+- `pages/system-admin/AuditTab.tsx` — aba **Auditoria** do painel
+  administrativo global, com seletor de empresa (cada empresa tem o seu
+  próprio histórico).
 - A estação é enviada no cabeçalho `X-Station-Token`; identifica o
   **ambiente** de trabalho, nunca a pessoa.
 

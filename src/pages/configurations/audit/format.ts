@@ -9,6 +9,22 @@
 
 import { AuditEvent } from "../../../services/auditService";
 
+/**
+ * Campos minimos de um evento para a descricao em linguagem de negocio.
+ * Permite reutilizar o mesmo texto na tela da empresa e no painel global.
+ */
+export interface DescribableAuditEvent {
+  action: string;
+  outcome: string;
+  reauth_outcome: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  module_key: string | null;
+  username: string | null;
+  station_name: string | null;
+  created_at: string;
+}
+
 const ACTION_VERBS: Record<string, string> = {
   create: "cadastrar",
   update: "alterar",
@@ -144,7 +160,7 @@ export function getReauthLabel(reauthOutcome?: string | null): string {
 /**
  * Texto em linguagem de negocio do evento.
  */
-export function describeAuditEvent(event: AuditEvent): string {
+export function describeAuditEvent(event: DescribableAuditEvent): string {
   const when = formatDateTime(event.created_at);
   const who = event.username ? `a sessão de ${event.username}` : "uma sessão";
   const where = event.station_name
