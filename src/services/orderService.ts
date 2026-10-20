@@ -156,10 +156,25 @@ export async function updateOrder(
 /**
  * Atualiza o status de um pedido.
  */
+export interface OrderConferenceData {
+  /** Quem foi declarado como conferente na tela de conferencia. */
+  conferente: string;
+  /** Separador utilizado na conferencia. */
+  separador: string;
+  /** Peso conferido. */
+  peso: number | string;
+  /** Volumes conferidos. */
+  volumes: number | string;
+}
+
 export async function updateOrderStatus(
   id: number | string,
   orderStatus: string,
-  extraData?: { totalVolumes?: number; totalWeight?: number }
+  extraData?: {
+    totalVolumes?: number;
+    totalWeight?: number;
+    conference?: OrderConferenceData;
+  }
 ): Promise<ApiResponse<Order>> {
   return apiClient.put<Order>(`orders/${id}/status`, {
     orderStatus,

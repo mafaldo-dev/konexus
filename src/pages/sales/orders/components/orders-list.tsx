@@ -51,6 +51,22 @@ export default function OrderList() {
         companyCnpj: company?.cnpj || order.companyCnpj,
         totalVolumes: order.totalVolumes || order.total_volume || 0,
         totalWeight: order.totalWeight || order.total_weight || 0,
+        conference: order.conference
+          ? {
+              user: order.conference.user,
+              checkedBy: order.conference.checkedBy,
+              separator: order.conference.separator,
+              weight:
+                parseFloat(order.conference.weight) ||
+                order.conference.weight ||
+                0,
+              volumes:
+                parseInt(order.conference.volumes) ||
+                order.conference.volumes ||
+                0,
+              at: order.conference.at,
+            }
+          : null,
         customer: {
           id: order.customer?.id || 0,
           name: order.customer?.name || "",
@@ -114,7 +130,16 @@ export default function OrderList() {
   const updateOrderStatusInDb = async (
     orderId: number | string,
     newStatus: OrderStatus,
-    extraData?: { totalVolumes?: number; totalWeight?: number }
+    extraData?: {
+      totalVolumes?: number;
+      totalWeight?: number;
+      conference?: {
+        conferente: string;
+        separador: string;
+        peso: number | string;
+        volumes: number | string;
+      };
+    }
   ) => {
     try {
       await updateOrderStatus(orderId, newStatus, extraData);
@@ -200,10 +225,19 @@ export default function OrderList() {
 
     setIsLoading(true);
     try {
-      // Chama sua API
+      // A liberacao final exige confirmacao de senha (o backend devolve
+      // REAUTH_REQUIRED e o modal de confirmacao de identidade aparece).
+      // Os dados da conferencia vao junto para o registro do pedido e da
+      // auditoria (quem conferiu, separador, peso e volumes).
       await updateOrderStatusInDb(selectedOrder.id, "shipped", {
         totalVolumes: data.volumes,
-        totalWeight: data.peso
+        totalWeight: data.peso,
+        conference: {
+          conferente: data.conferente,
+          separador: data.separador,
+          peso: data.peso,
+          volumes: data.volumes,
+        },
       });
 
       // Feedback de sucesso (pode usar toast ou algo similar)
@@ -409,6 +443,34 @@ export default function OrderList() {
         }
       );
     }
+
+    // Coluna de conferencia final: quem liberou (usuario que confirmou a
+    // senha), o conferente declarado, o separador e quando tudo isso ocorreu.
+    baseColumns.push({
+      key: 'conference',
+      header: 'Conferência',
+      render: (order: OrderResponse) =>
+        order.conference ? (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-gray-800 font-medium">
+              {order.conference.checkedBy || order.conference.user || '—'}
+            </span>
+            <span className="text-xs text-gray-500">
+              {order.conference.user
+                ? `liberado por ${order.conference.user}`
+                : 'liberado'}
+              {order.conference.separator
+                ? ` · sep. ${order.conference.separator}`
+                : ''}
+              {order.conference.at
+                ? ` · ${new Date(order.conference.at).toLocaleString('pt-BR')}`
+                : ''}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-gray-400">Não conferido</span>
+        ),
+    });
 
     // Adiciona coluna de status (usando função importada)
     baseColumns.push({

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { OrderResponse } from '../../../../types/sales/orders';
-import { CheckCheck } from 'lucide-react';
+import { CheckCheck, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../../../AuthContext';
 
 interface ConferenceModalProps {
@@ -31,12 +31,15 @@ const ConferenceModal: React.FC<ConferenceModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Preenche automaticamente o conferente se for conferente do estoque
+  // O conferente padrao e o usuario logado: e ele quem confirma a senha na
+  // liberacao final. Quando o proprio conferente do estoque preenche, o
+  // campo fica bloqueado. O backend registra sempre o usuario autenticado
+  // (imutavel) e, em separado, o conferente declarado aqui.
   useEffect(() => {
-    if (isOpen && user?.role === "Conferente" && user?.sector === "Estoque") {
+    if (isOpen && user?.username) {
       setFormData(prev => ({
         ...prev,
-        conferente: user.username
+        conferente: prev.conferente || user.username,
       }));
     }
   }, [isOpen, user]);
@@ -163,6 +166,16 @@ const ConferenceModal: React.FC<ConferenceModalProps> = ({
               </div>
 
               <div className="space-y-4">
+                <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-3 border border-amber-200">
+                  <ShieldCheck size={18} className="text-amber-700 mt-0.5 shrink-0" />
+                  <p className="text-xs text-amber-800">
+                    Ao finalizar, sera solicitada a <strong>senha do usuario logado</strong>{" "}
+                    ({user?.username}). A liberacao so e concluida com a
+                    confirmacao de identidade, e o registro de quem efetuou a
+                    conferencia fica gravado no pedido e na auditoria.
+                  </p>
+                </div>
+
                 <div>
                   <label
                     htmlFor="separador"
