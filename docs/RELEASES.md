@@ -213,6 +213,7 @@ O script `BUILD_AND_RELEASE.bat` é legado e não deve ser usado para publicar.
 ## Histórico recente
 
 - A release `1.2.3` foi publicada sem assets e não é uma fonte válida de
-  atualização. Ela foi substituída pela primeira release gerada pelo workflow.
+  atualização. Ela foi substituída pela `v1.2.11`, a primeira release gerada
+  pelo workflow.
 - As tags `v1.2.4` a `v1.2.10` foram usadas em testes do workflow e não possuem
   releases publicadas. Elas não são consideradas pelo `electron-updater`.

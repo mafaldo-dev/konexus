@@ -42,8 +42,8 @@ Para configurar e executar o Keppler em seu ambiente de desenvolvimento, siga os
 
 Certifique-se de ter as seguintes ferramentas instaladas:
 
-- Node.js (versão 16 ou superior recomendada)
-- npm ou Yarn
+- Node.js 22 LTS (versão usada no CI)
+- npm (o projeto usa `package-lock.json`; o CI roda `npm ci`)
 
 ### Instalação
 
