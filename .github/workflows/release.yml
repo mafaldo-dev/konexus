@@ -17,7 +17,6 @@ on:
 
 permissions:
   contents: write
-  issues: write
 
 concurrency:
   group: release-${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
@@ -128,16 +127,7 @@ jobs:
               if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
                 $diag.Add("detalhe: $($_.ErrorDetails.Message)")
               }
-              # publica o diagnostico em uma issue (o log do runner exige credencial)
-              $issue = @{
-                title = "[release-debug] $env:RELEASE_TAG"
-                body = ($diag -join [Environment]::NewLine)
-              } | ConvertTo-Json
-              try {
-                Invoke-RestMethod -Uri "https://api.github.com/repos/$env:GITHUB_REPOSITORY/issues" -Headers $headers -Method Post -Body $issue -ContentType "application/json" -ErrorAction Stop | Out-Null
-              } catch {
-                # sem diagnostico publicado, o erro original segue abaixo
-              }
+              # o diagnostico fica no log do runner (com o link da execucao)
               throw ($diag -join [Environment]::NewLine)
             }
           }

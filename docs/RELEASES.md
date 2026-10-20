@@ -243,6 +243,16 @@ gh release upload v1.2.12 dist/latest.yml `
 
 O script `BUILD_AND_RELEASE.bat` é legado e não deve ser usado para publicar.
 
+## Release 1.3.0 (20/10/2026)
+
+- Publicada em `v1.3.0` com `Konexus-Setup-1.3.0.exe` (214.896.837 bytes),
+  `Konexus-Setup-1.3.0.exe.blockmap` e `latest.yml` (SHA-512 conferido).
+- Inclui o módulo de Contabilidade (adicional contratado do Financeiro), a aba
+  de auditoria no painel administrativo global e a reautenticação por senha nas
+  operações protegidas.
+- A tag dispara o workflow: ele cria a release, gera o instalador no Windows e
+  publica os três assets (necessário para a atualização automática).
+
 ## Histórico recente
 
 - A release `1.2.3` foi publicada sem assets e não é uma fonte válida de
