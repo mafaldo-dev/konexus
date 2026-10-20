@@ -173,6 +173,26 @@ O script de auditoria valida o manifesto e o asset publicado. A integridade
 dos bytes no download real é validada pelo `electron-updater`; o download
 integral acima foi uma verificação adicional da release publicada.
 
+## Estado da validação (20/10/2026)
+
+| Etapa | Resultado |
+| --- | --- |
+| Implementação no código | concluída na versão `1.2.12` |
+| Testes de asset/segurança | 21/21 |
+| Testes de estados da tela | 9/9 |
+| `tsc --noEmit` | aprovado |
+| Build CRA de produção | aprovado (avisos legados de ESLint) |
+| Pacote Linux `dir` | aprovado; `app.asar` contém `electron/updateAssets.js` e `app-update.yml` correto |
+| Pacote Windows `win-unpacked` | aprovado; `app.asar`/`app-update.yml` verificados |
+| Instalador NSIS Windows local | **não concluído neste WSL**: o Wine disponível não carrega `kernel32.dll` para gerar o uninstaller; o build oficial é o `windows-latest` do workflow |
+| Release `v1.2.12` publicada | **não**; aguarda autorização |
+| Atualização ponta a ponta em Windows | **não executada**; precisa de uma instalação Windows anterior e de uma release publicada |
+
+O instalador `v1.2.11` já publicado foi baixado integralmente e validado
+conforme a seção de testes. O `1.2.12` foi empacotado localmente até
+`win-unpacked`; a geração do instalador NSIS local exige o runner Windows do
+GitHub Actions.
+
 ## Limitações e pendências
 
 - **Teste ponta a ponta em Windows:** não executado neste ambiente Linux/WSL.
