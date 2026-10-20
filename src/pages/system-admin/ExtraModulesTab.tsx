@@ -8,10 +8,10 @@ import {
   RefreshCw,
   SearchX,
   ShieldCheck,
-  WalletCards,
 } from "lucide-react";
 import {
   ExtraModuleKey,
+  ExtraModuleKeyOrLegacy,
   ExtraModuleStatus,
   SystemAdminExtraModule,
   SystemAdminModuleEvent,
@@ -33,11 +33,11 @@ import {
 } from "./components";
 import { formatDateOnly, formatDateTime, toDateInputValue } from "./utils";
 
-const moduleLabels: Record<ExtraModuleKey, string> = {
-  finance: "Financeiro",
+const moduleLabels: Record<ExtraModuleKeyOrLegacy, string> = {
   nfe: "NF-e",
   crm: "CRM",
   contabil: "Contabilidade",
+  finance: "Financeiro (incluído)",
 };
 
 const statusLabels: Record<ExtraModuleStatus, string> = {
@@ -120,9 +120,6 @@ export default function ExtraModulesTab({
     });
   }, [rows, search, moduleFilter, statusFilter]);
 
-  const activeFinance = rows.filter(
-    (row) => row.module_key === "finance" && row.status === "active"
-  ).length;
   const activeNfe = rows.filter(
     (row) => row.module_key === "nfe" && row.status === "active"
   ).length;
@@ -132,7 +129,7 @@ export default function ExtraModulesTab({
   const activeContabil = rows.filter(
     (row) => row.module_key === "contabil" && row.status === "active"
   ).length;
-  const activeTotal = activeFinance + activeNfe + activeCrm + activeContabil;
+  const activeTotal = activeNfe + activeCrm + activeContabil;
 
   const openEvents = async (row: SystemAdminExtraModule) => {
     setEventsRow(row);
@@ -172,14 +169,6 @@ export default function ExtraModulesTab({
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <WalletCards className="h-4 w-4 text-blue-600" />
-            Financeiro ativo
-          </div>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{activeFinance}</p>
-          <p className="text-xs text-slate-500">empresa(s) com contratação ativa</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <ShieldCheck className="h-4 w-4 text-indigo-600" />
             NF-e ativa
           </div>
@@ -208,7 +197,7 @@ export default function ExtraModulesTab({
             Contratações ativas
           </div>
           <p className="mt-2 text-2xl font-bold text-slate-900">{activeTotal}</p>
-          <p className="text-xs text-slate-500">Financeiro + NF-e + CRM + Contabilidade</p>
+          <p className="text-xs text-slate-500">NF-e + CRM + Contabilidade</p>
         </div>
       </div>
 
@@ -228,7 +217,6 @@ export default function ExtraModulesTab({
             className="w-auto"
           >
             <option value="">Todos os módulos</option>
-            <option value="finance">Financeiro</option>
             <option value="nfe">NF-e</option>
             <option value="crm">CRM</option>
             <option value="contabil">Contabilidade</option>
@@ -308,6 +296,12 @@ export default function ExtraModulesTab({
                         <Button
                           variant="outline"
                           size="sm"
+                          disabled={row.module_key === "finance"}
+                          title={
+                            row.module_key === "finance"
+                              ? "O Financeiro faz parte do freemium e não pode mais ser contratado como extra."
+                              : "Alterar contratação"
+                          }
                           onClick={() => setEditing(row)}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -415,6 +409,12 @@ function ExtraModuleFormModal({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
+    if (row.module_key === "finance") {
+      setError(
+        "O Financeiro faz parte do freemium e não pode mais ser contratado como extra."
+      );
+      return;
+    }
     if (startedAt && endedAt && endedAt < startedAt) {
       setError("A data final não pode ser anterior à data inicial.");
       return;

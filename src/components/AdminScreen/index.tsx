@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { OrderResponse } from "../../types";
 import { Link } from "react-router-dom";
+import ProductUpdatesPanel from "./ProductUpdatesPanel";
 
 interface NewsItem {
   id: number;
@@ -38,12 +39,6 @@ interface NewsItem {
   date: string;
   category: 'feature' | 'update' | 'maintenance' | 'announcement';
   read: boolean;
-}
-
-interface SystemUpdate {
-  version: string;
-  date: string;
-  changes: string[];
 }
 
 interface CarouselImage {
@@ -141,44 +136,6 @@ const AdministrationScreen = () => {
       date: 'Hoje',
       category: 'announcement',
       read: false
-    }
-  ]);
-
-  const [systemUpdates] = useState<SystemUpdate[]>([
-    {
-      version: 'v1.2.1',
-      date: '20/10/2026',
-      changes: [
-        'Gestão completa de colaboradores com cargos personalizados por empresa',
-        'Permissões granulares por módulo/ação com validação no backend',
-        'CRM, Financeiro e NF-e como módulos extras independentes e pagos',
-        'Franquia de 5 contas ativas por empresa (1 admin + 4 colaboradores)',
-        'Franquia de 3 redefinições de senha gratuitas por empresa/mês',
-        'Contas adicionais e redefinições extras custam R$ 5,00 e R$ 3,50 com autorização do suporte',
-        'Remoção lógica de colaborador com revogação imediata de sessão',
-        'Auditoria sem senhas, tokens ou credenciais',
-        'Testes automatizados de autorização, isolamento, limites e concorrência',
-      ]
-    },
-    {
-      version: 'v1.1.9',
-      date: '05/12/2025',
-      changes: [
-        'Nova Dashboard principal',
-        'Botões de navegação rapida na Dashboard ',
-        'Adição de relatorios personalizados ao sistema',
-        'Exportar xls de relatorios diretamente para o excel',
-        'Ajustes na interface do módulo financeiro'
-      ]
-    },
-    {
-      version: 'v1.1.8',
-      date: '27/11/2025',
-      changes: [
-        'Correção de bugs',
-        'Melhoria na performace da aplicação',
-        'Update no módulo financeiro'
-      ]
     }
   ]);
 
@@ -599,32 +556,7 @@ const AdministrationScreen = () => {
               </div>
 
               {/* System Updates */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="p-5 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">Últimas Atualizações</h3>
-                    <Settings className="w-5 h-5 text-gray-500" />
-                  </div>
-                </div>
-                <div className="p-5">
-                  {systemUpdates.map((update, index) => (
-                    <div key={index} className={index > 0 ? 'mt-6 pt-6 border-t border-gray-100' : ''}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-900">{update.version}</span>
-                        <span className="text-sm text-gray-500">{update.date}</span>
-                      </div>
-                      <ul className="mt-3 space-y-2">
-                        {update.changes.map((change, changeIndex) => (
-                          <li key={changeIndex} className="flex items-start text-sm">
-                            <CheckCircle2 className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="text-gray-600">{change}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <ProductUpdatesPanel />
 
               {/* Support Card */}
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-5">

@@ -12,6 +12,7 @@ import {
   AuthorizationStatus,
   AuthorizationType,
   ExtraModuleKey,
+  ExtraModuleKeyOrLegacy,
   SystemAdminAuthorization,
   SystemAdminCompany,
   systemAdminService,
@@ -38,11 +39,11 @@ const typeLabels: Record<AuthorizationType, string> = {
   extra_module: "Módulo extra",
 };
 
-const moduleLabels: Record<ExtraModuleKey, string> = {
-  finance: "Financeiro",
-  nfe: "NF-e",
+const moduleLabels: Record<ExtraModuleKeyOrLegacy, string> = {
   crm: "CRM",
   contabil: "Contabilidade",
+  nfe: "NF-e",
+  finance: "Financeiro (incluído)",
 };
 
 function statusTone(status: AuthorizationStatus): string {
@@ -340,7 +341,7 @@ function AuthorizationFormModal({
   const [companyId, setCompanyId] = useState("");
   const [authorizationType, setAuthorizationType] =
     useState<AuthorizationType>("extra_user");
-  const [moduleKey, setModuleKey] = useState<ExtraModuleKey>("finance");
+  const [moduleKey, setModuleKey] = useState<ExtraModuleKey>("crm");
   const [quantity, setQuantity] = useState("1");
   const [expiresAt, setExpiresAt] = useState("");
   const [notes, setNotes] = useState("");
@@ -351,7 +352,7 @@ function AuthorizationFormModal({
     if (!open) return;
     setCompanyId(String(initialCompanyId || companies[0]?.id || ""));
     setAuthorizationType("extra_user");
-    setModuleKey("finance");
+    setModuleKey("crm");
     setQuantity("1");
     setExpiresAt("");
     setNotes("");
@@ -457,7 +458,8 @@ function AuthorizationFormModal({
               value={moduleKey}
               onChange={(event) => setModuleKey(event.target.value as ExtraModuleKey)}
             >
-              <option value="finance">Financeiro</option>
+              <option value="crm">CRM</option>
+              <option value="contabil">Contabilidade</option>
               <option value="nfe">NF-e</option>
             </Select>
           </Field>

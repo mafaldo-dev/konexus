@@ -76,6 +76,7 @@ konexus/src/
 | `components/ui/` | Componentes visuais puros (sem chamada à API quando possível). |
 | `types/` | Contratos TypeScript (request/response). |
 | `utils/` | Formatação, máscaras, mapeamento de módulos. |
+| `data/` | Dados curados de produto (ex.: `productUpdates.ts`, fonte do histórico de novidades). |
 
 ---
 
@@ -112,6 +113,33 @@ Componente/Página -> Hook (opcional) -> Service (domínio) -> api/client.ts (fe
 - **Não** confiar em `companyId` enviado por formulário como autorização.
 - Troca de empresa invalida dados (limpa listas/cache e recarrega).
 - O backend continua sendo o responsável pela autorização e isolamento; o frontend apenas integra.
+
+---
+
+## 6.1 Módulos, menu e rotas
+
+- `utils/moduleMapping.ts` centraliza as regras de menu, submenu e rota.
+- Regra de acesso: **módulo disponível para a empresa** (calculado pelo backend
+  e entregue no login) **e** permissão individual (ou administrador da empresa).
+- Módulos padrão (freemium): dashboard, gestão, vendas, compras, estoque, RH e
+  **Financeiro**.
+- Módulos extras, contratados de forma independente: **CRM**, **Contábil** e
+  **NF-e**. Contratar um não libera os outros.
+- Esconder um item de menu **não** é proteção: o backend aplica `checkModule`,
+  `checkSubscription` e `requirePermission` nas rotas.
+- Detalhes: [`docs/MODULOS_E_COMERCIAL.md`](docs/MODULOS_E_COMERCIAL.md).
+
+---
+
+## 6.2 Histórico de novidades ("Últimas Atualizações")
+
+- Fonte: `src/data/productUpdates.ts` (curadoria com módulo, versão, título,
+  descrição, data e visibilidade).
+- O painel `src/components/AdminScreen/ProductUpdatesPanel.tsx` filtra por
+  módulo no navegador, sem recarregar a página.
+- Novidades de módulos extras só aparecem para empresa com contratação e
+  usuário com permissão.
+- Política editorial e histórico técnico: [`docs/HISTORICO_VERSOES.md`](docs/HISTORICO_VERSOES.md).
 
 ---
 

@@ -3,7 +3,17 @@ import { apiRequest } from "../api/client";
 export type SubscriptionStatus = "active" | "cancelled" | "expired" | "pending";
 export type SupportStatus = "active" | "pending" | "suspended" | "cancelled";
 export type PlanType = "monthly" | "yearly";
-export type ExtraModuleKey = "finance" | "nfe" | "crm" | "contabil";
+/**
+ * Módulos extras contratáveis de forma independente.
+ * O Financeiro faz parte do freemium e não pode ser contratado como extra.
+ */
+export type ExtraModuleKey = "nfe" | "crm" | "contabil";
+/**
+ * "finance" aparece apenas em contratos antigos (o módulo passou a fazer
+ * parte do freemium). Esses registros são mantidos para auditoria.
+ */
+export type LegacyExtraModuleKey = "finance";
+export type ExtraModuleKeyOrLegacy = ExtraModuleKey | LegacyExtraModuleKey;
 export type ExtraModuleStatus = "pending" | "active" | "suspended" | "cancelled";
 export type AuthorizationType = "extra_user" | "password_reset" | "extra_module";
 export type AuthorizationStatus = "active" | "consumed" | "revoked" | "expired";
@@ -111,7 +121,7 @@ export interface SystemAdminExtraModule {
   id: number | null;
   company_id: number;
   company_name: string;
-  module_key: ExtraModuleKey;
+  module_key: ExtraModuleKeyOrLegacy;
   status: ExtraModuleStatus | null;
   started_at: string | null;
   ended_at: string | null;
@@ -122,7 +132,7 @@ export interface SystemAdminExtraModule {
 export interface SystemAdminModuleEvent {
   id: number;
   company_id: number;
-  module_key: ExtraModuleKey;
+  module_key: ExtraModuleKeyOrLegacy;
   previous_status: ExtraModuleStatus | null;
   new_status: ExtraModuleStatus;
   changed_by: number | null;
@@ -136,7 +146,7 @@ export interface SystemAdminAuthorization {
   company_id: number;
   company_name: string;
   authorization_type: AuthorizationType;
-  module_key: ExtraModuleKey | null;
+  module_key: ExtraModuleKeyOrLegacy | null;
   quantity: number;
   consumed_quantity: number;
   status: AuthorizationStatus;
@@ -382,7 +392,7 @@ export const systemAdminService = {
 
   listModuleEvents: async (
     companyId: number,
-    moduleKey?: ExtraModuleKey
+    moduleKey?: ExtraModuleKeyOrLegacy
   ) => {
     const query = moduleKey ? `?moduleKey=${moduleKey}` : "";
     const data = await request<{ events: SystemAdminModuleEvent[] }>(

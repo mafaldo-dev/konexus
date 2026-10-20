@@ -1,16 +1,24 @@
 // types/modules.ts
-export type ModuleKey = 
-  | 'dashboard' 
-  | 'finance' 
-  | 'crm' 
-  | 'estoque' 
-  | 'vendas' 
-  | 'relatorios' 
-  | 'gestao' 
-  | 'compras' 
-  | 'rh';
+/**
+ * Chaves de módulo do backend (fonte de verdade:
+ * konexus-back/src/domain/security/moduleCatalog.js).
+ *
+ * Padrão (freemium): dashboard, gestao, vendas, compras, estoque, rh, finance.
+ * Extras (contratação independente): crm, contabil, nfe.
+ */
+export type ModuleKey =
+  | 'dashboard'
+  | 'gestao'
+  | 'vendas'
+  | 'compras'
+  | 'estoque'
+  | 'rh'
+  | 'finance'
+  | 'crm'
+  | 'contabil'
+  | 'nfe';
 
-export type MenuKey = 
+export type MenuKey =
   | 'dashboard'
   | 'gestao'
   | 'vendas'
@@ -19,6 +27,7 @@ export type MenuKey =
   | 'financeiro'
   | 'rh'
   | 'crm'
+  | 'planos'
   | 'config';
 
 export interface Module {

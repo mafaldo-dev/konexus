@@ -5,15 +5,20 @@
  * exibir menus/rotas que o usuário não pode usar e mantém a navegação coerente
  * com o catálogo de permissões retornado pelo servidor.
  *
- * Regras do modelo 1.2.2:
- *  - Módulos padrão (gratuitos/freemium): dashboard, gestao, vendas,
- *    compras, estoque, rh e financeiro (Financeiro está liberado no freemium).
- *  - Módulos extras pagos: crm, nfe e contabilidade; só aparecem no menu
- *    quando a empresa possui contratação ativa.
- *  - O Financeiro controla a liberação de pedidos de venda (análise de
- *    crédito).
+ * Classificação comercial (fonte de verdade: backend
+ * `src/domain/security/moduleCatalog.js`, exposta em
+ * `GET /collaborators/permissions/catalog`):
+ *  - Módulos padrão (freemium): dashboard, gestão, vendas, compras, estoque,
+ *    RH e Financeiro. O Financeiro está liberado no freemium e não depende de
+ *    contratação extra.
+ *  - Módulos extras contratados de forma independente: CRM, Contábil e NF-e.
+ *    A contratação de um não libera os outros.
+ *  - A lista de módulos disponíveis vem do login (`modules`), calculada pelo
+ *    backend a partir da instalação e das contratações da empresa.
  *  - O nome do cargo não concede acesso. O que vale são as permissões
  *    efetivas (cargo + exceções) e o cargo administrativo da empresa.
+ *  - O Financeiro controla a liberação de pedidos de venda (análise de
+ *    crédito) e a aprovação de pagamentos.
  */
 
 export interface PermissionGroup {
@@ -275,32 +280,31 @@ export function filterSubmenuItems<
   );
 }
 
+/**
+ * Módulos disponíveis por plano (uso legado).
+ *
+ * Os planos não concedem mais acesso: a liberação de módulos extras é feita
+ * por contratação independente registrada pelo suporte. Esta função devolve
+ * apenas o conjunto padrão (freemium), que é o mesmo para todos os planos.
+ */
 export function getAvailableModulesForPlan(planType: string): string[] {
+  const standard = [
+    "dashboard",
+    "gestao",
+    "vendas",
+    "compras",
+    "estoque",
+    "rh",
+    "finance",
+  ];
+
   const plans: Record<string, string[]> = {
-    free: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "finance"],
-    starter: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "finance"],
-    professional: [
-      "dashboard",
-      "gestao",
-      "vendas",
-      "compras",
-      "estoque",
-      "rh",
-      "finance",
-      "crm",
-    ],
-    enterprise: [
-      "dashboard",
-      "gestao",
-      "vendas",
-      "compras",
-      "estoque",
-      "rh",
-      "finance",
-      "crm",
-      "nfe",
-    ],
+    free: standard,
+    starter: standard,
+    professional: standard,
+    enterprise: standard,
   };
+
   return plans[planType] || plans.free;
 }
 

@@ -14,6 +14,7 @@ import Swal from "sweetalert2";
 import DocumentViewer from "../../../../utils/screenOptions";
 import { DynamicTable } from "../../../../utils/Table/DynamicTable";
 import { mapOrderStatus, getStatusLabel, getStatusColor } from "../../../../components/utils/statusLabel";
+import { blocksOrderRelease, getCreditStatusView } from "./creditRules";
 
 // Importar constantes centralizadas
 
@@ -281,22 +282,17 @@ export default function OrdersPage() {
       key: 'creditStatus',
       header: 'Crédito',
       render: (order: OrderResponse) => {
-        const credit = order.creditAnalysis;
-        if (!credit || credit.status === "exempt") {
-          return (
-            <span className="text-xs px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-600 font-semibold">
-              Isento
-            </span>
-          );
-        }
-        const tone = credit.status === "approved"
+        const view = getCreditStatusView(order.creditAnalysis);
+        const tone = view.tone === "approved"
           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : credit.status === "rejected"
+          : view.tone === "rejected"
             ? "border-rose-200 bg-rose-50 text-rose-700"
-            : "border-amber-200 bg-amber-50 text-amber-700";
+            : view.tone === "pending"
+              ? "border-amber-200 bg-amber-50 text-amber-700"
+              : "border-gray-200 bg-gray-50 text-gray-600";
         return (
           <span className={`text-xs px-3 py-1.5 rounded-full border ${tone} font-semibold`}>
-            {credit.status === "approved" ? "Aprovado" : credit.status === "rejected" ? "Bloqueado" : "Pendente"}
+            {view.label}
           </span>
         );
       }
@@ -310,7 +306,7 @@ export default function OrdersPage() {
         const canEdit = order.orderStatus === "pending" || order.orderStatus === "backout";
         
         // Bloqueia edição se crédito não aprovado e módulo financeiro ativo
-        const creditBlocked = financeModuleActive && order.creditAnalysis && order.creditAnalysis.status !== "approved" && order.creditAnalysis.status !== "exempt";
+        const creditBlocked = financeModuleActive && blocksOrderRelease(order.creditAnalysis);
 
         return (
           <div className="flex items-center gap-4">

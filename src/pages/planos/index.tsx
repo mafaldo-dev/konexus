@@ -118,9 +118,9 @@ export default function PlanosPage() {
                 Planos, módulos e limites
               </h1>
               <p className="mt-1 max-w-2xl text-sm text-slate-500">
-                Módulos padrão estão incluídos para todas as empresas. CRM,
-                NF-e e Contabilidade são extras independentes, contratados
-                separadamente.
+                Módulos padrão estão incluídos para todas as empresas, incluindo
+                o Financeiro. CRM, NF-e e Contabilidade são extras
+                independentes, contratados separadamente.
               </p>
             </div>
             <button
