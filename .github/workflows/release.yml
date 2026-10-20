@@ -231,4 +231,3 @@ jobs:
 
           Write-Host "latest.yml publicado e validado (versão $($manifest.version))."
 
-          }
