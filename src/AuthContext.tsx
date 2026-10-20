@@ -327,10 +327,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
+        // Presenca do proprio colaborador: parte do ciclo de sessao (login),
+        // nao e alteracao de negocio. Nao deve abrir o modal de confirmacao
+        // de senha (a senha ja foi confirmada no acesso).
         const statusResponse = await apiClient.put(
           `employees/${userData.id}/status`,
           { status: "Ativo" },
-          { token: authToken }
+          { token: authToken, reauth: false }
         );
         if (!statusResponse.ok) {
           console.warn("Não foi possível atualizar a presença:", statusResponse.error);
@@ -355,10 +358,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       if (user?.id && !mustChangePassword) {
         const tokenFromStorage = localStorage.getItem("token");
+        // Presenca do proprio colaborador na saida: igual ao login, nao abre
+        // o modal de confirmacao de senha.
         const res = await apiClient.put(
           `employees/${user.id}/status`,
           { status: "Ausente" },
-          { token: tokenFromStorage as string }
+          { token: tokenFromStorage as string, reauth: false }
         );
         if (!res.ok) {
           console.warn("Erro ao atualizar status no logout:", res.error);

@@ -23,6 +23,11 @@ abaixo.
 ## Histórico técnico original (preservado)
 
 ```text
+v1.3.3 — 20/10/2026
+- Login e logout não pedem mais a confirmação de senha
+- Marcação da própria presença passa a ser autoatendimento (auditada)
+- Alterar a situação de outro colaborador continua exigindo a senha
+
 v1.3.2 — 20/10/2026
 - Conferência final do pedido de venda exige a senha do usuário logado
 - Pedido grava o rastro da conferência (usuário autenticado, conferente
