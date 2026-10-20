@@ -71,6 +71,18 @@ export const UPDATE_MODULE_LABELS: Record<ProductUpdateModuleKey, string> = {
  */
 export const PRODUCT_UPDATES: ProductUpdate[] = [
   {
+    id: "1.3.2-conferencia-com-senha",
+    module: "vendas",
+    version: "1.3.2",
+    title: "Conferência de pedido com confirmação de senha",
+    description:
+      "A liberação do pedido de venda agora pede a senha do usuário logado. O registro guarda quem liberou, o conferente, o separador, o peso e os volumes, e aparece na listagem de pedidos.",
+    releasedAt: "2026-10-20",
+    visibility: "standard",
+    status: "published",
+    evidence: "Release 1.3.2 (conferência final com reautenticação e rastro no pedido)",
+  },
+  {
     id: "1.2.11-actualizacao-instalador",
     module: "gestao",
     version: "1.2.11",
