@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Branding from "./components/Branding";
 import LoginForm from "./components/LoginForm";
 import useAuthService from "./useAuthService";
 import Swal from "sweetalert2";
-import AdminSetupModal from "./components/AdminSetupModal";
 import { loginAdmin } from "../services/authService";
+import { saveSystemAdminSession } from "../services/systemAdminService";
 
 // ✅ Hook do Auto-Updater funcionando
 function useAutoUpdater() {
@@ -108,9 +109,9 @@ function useAutoUpdater() {
 
 const LoginPage: React.FC = () => {
   const [credentials, setCredentials] = useState({ user: "", pass: "" });
-  const [showAdminLogin, setShowAdminLogin] = useState(false); 
-  const [showAdminSetup, setShowAdminSetup] = useState(false); 
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const { loading, error, handleLogin } = useAuthService();
+  const navigate = useNavigate();
 
 
   const { downloading, progress } = useAutoUpdater();
@@ -161,10 +162,22 @@ const LoginPage: React.FC = () => {
     try {
       const response = await loginAdmin(credentials.user, credentials.pass);
 
-      if (response.ok && response.data?.user) {
-        Swal.fire("Sucesso", "Login de administrador do sistema realizado!", "success");
+      if (response.ok && response.data?.user && response.data?.token) {
+        saveSystemAdminSession(response.data.token, {
+          id: response.data.user.id,
+          username: response.data.user.username,
+          role: response.data.user.role,
+          userType: response.data.user.userType,
+        });
         setShowAdminLogin(false);
-        setShowAdminSetup(true);
+        Swal.fire({
+          title: "Acesso autorizado",
+          text: "Bem-vindo ao painel administrativo global.",
+          icon: "success",
+          timer: 1400,
+          showConfirmButton: false,
+        });
+        navigate("/system-admin");
       } else {
         Swal.fire("Erro", "Credenciais inválidas!", "error");
       }
@@ -188,7 +201,7 @@ const LoginPage: React.FC = () => {
       )}
 
       {/* Login normal */}
-      {!showAdminLogin && !showAdminSetup && (
+      {!showAdminLogin && (
         <LoginForm
           handleSubmit={handleSubmit}
           loading={loading}
@@ -235,8 +248,6 @@ const LoginPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de configuração da empresa */}
-      {showAdminSetup && <AdminSetupModal onClose={() => setShowAdminSetup(false)} />}
     </section>
   );
 };

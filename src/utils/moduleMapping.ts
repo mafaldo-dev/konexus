@@ -1,249 +1,311 @@
-// config/moduleMapping.ts
 /**
- * Mapeamento completo entre as chaves do menu e os module_keys do banco/token
- * 
- * Database modules: dashboard, finance, crm, estoque, vendas, relatorios, gestao, compras, rh
- * Menu keys: dashboard, gestao, vendas, compras, estoque, financeiro, rh, crm, config
+ * Mapeamento de módulos, permissões e rotas do Konexus.
+ *
+ * A autorização real é sempre validada no backend. Este arquivo apenas evita
+ * exibir menus/rotas que o usuário não pode usar e mantém a navegação coerente
+ * com o catálogo de permissões retornado pelo servidor.
+ *
+ * Regras do modelo 1.2.1:
+ *  - Módulos padrão são universais (dashboard, gestao, vendas, compras,
+ *    estoque, rh e crm).
+ *  - Financeiro e NF-e são extras independentes; a permissão individual só
+ *    libera o acesso quando o módulo também está contratado.
+ *  - O nome do cargo não concede acesso. O que vale são as permissões
+ *    efetivas (cargo + exceções) e o cargo administrativo da empresa.
  */
 
-// Mapeamento principal: menu key -> module key
+export interface PermissionGroup {
+  moduleKey: string;
+  actions: string[];
+}
+
+export type PermissionRequirement = [moduleKey: string, actionKey: string];
+
 export const MODULE_MAPPING: Record<string, string> = {
-  // Mapeamento direto (mesmo nome)
-  'dashboard': 'dashboard',
-  'gestao': 'gestao',
-  'vendas': 'vendas',
-  'compras': 'compras',
-  'estoque': 'estoque',
-  'rh': 'rh',
-  'crm': 'crm',
-  
-  // Mapeamento com nomes diferentes
-  'financeiro': 'finance',
-  
-  // Casos especiais
-  'config': 'dashboard',
-  'planos': 'dashboard',
-  'relatorios': 'relatorios',
+  dashboard: "dashboard",
+  gestao: "gestao",
+  vendas: "vendas",
+  compras: "compras",
+  estoque: "estoque",
+  rh: "rh",
+  crm: "crm",
+  financeiro: "finance",
+  finance: "finance",
+  nfe: "nfe",
+  config: "dashboard",
+  planos: "dashboard",
+  relatorios: "dashboard",
 };
 
-// Mapeamento reverso: module key -> menu keys
 export const REVERSE_MODULE_MAPPING: Record<string, string[]> = {
-  'dashboard': ['dashboard', 'config', 'planos'],
-  'finance': ['financeiro'],
-  'crm': ['crm'],
-  'estoque': ['estoque'],
-  'vendas': ['vendas'],
-  'relatorios': [],
-  'gestao': ['gestao'],
-  'compras': ['compras'],
-  'rh': ['rh'],
+  dashboard: ["dashboard", "config", "planos"],
+  finance: ["financeiro"],
+  nfe: ["financeiro"],
+  crm: ["crm"],
+  estoque: ["estoque"],
+  vendas: ["vendas"],
+  gestao: ["gestao"],
+  compras: ["compras"],
+  rh: ["rh"],
 };
 
-// Submenus que dependem de módulos específicos
 export const SUBMENU_MODULE_DEPENDENCIES: Record<string, string> = {
-  // Submenus específicos que requerem módulos principais
-  'financer/financial': 'finance',
-  'sales/goals': 'finance',
-  'financial/order-nfe': 'finance',
-  'sales/completed': 'finance',
-  'sales/comissions': 'finance',
-  'stock/inventory': 'estoque',
-  'stock/movements': 'estoque',
-  'shopping/purchase-order': 'compras',
-  'shopping/invoice-entry': 'compras',
-  'manager/products': 'gestao',
-  'manager/customer': 'gestao',
-  'manager/suppliers': 'gestao',
-  'manager/categories': 'gestao',
-  'manager/services': 'gestao',
-  'sales/orders': 'vendas',
-  'sales/order-list': 'vendas',
-  'rh/employee': 'rh',
-  'rh/infos': 'rh',
-  'rh/folha': 'rh',
-  'rh/ponto': 'rh',
-  'rh/ferias': 'rh',
-  'rh/beneficios': 'rh',
-  'rh/treinamentos': 'rh',
-  'crm/dashboard': 'crm',
+  "financer/financial": "finance",
+  "financial/order-nfe": "nfe",
+  "sales/goals": "crm",
+  "sales/completed": "vendas",
+  "sales/comissions": "rh",
+  "stock/inventory": "estoque",
+  "shopping/purchase-order": "compras",
+  "shopping/invoice-entry": "compras",
+  "manager/products": "gestao",
+  "manager/customer": "gestao",
+  "manager/suppliers": "gestao",
+  "manager/categories": "gestao",
+  "manager/services": "gestao",
+  "sales/orders": "vendas",
+  "sales/order-list": "vendas",
+  "rh/employee": "rh",
+  "rh/infos": "rh",
+  "crm/dashboard": "crm",
 };
 
-// Módulos que incluem relatórios automaticamente
-export const REPORT_ENABLED_MODULES = ['vendas', 'estoque', 'finance', 'compras'];
+export const REPORT_ENABLED_MODULES = ["vendas", "estoque", "finance", "compras"];
 
-/**
- * Converte chave do menu para module_key do banco
- */
+const MENU_REQUIREMENTS: Record<string, PermissionRequirement[]> = {
+  dashboard: [["dashboard", "view"]],
+  gestao: [
+    ["gestao", "view"],
+    ["estoque", "view"],
+    ["compras", "view"],
+    ["vendas", "view"],
+  ],
+  vendas: [["vendas", "view"]],
+  compras: [["compras", "view"]],
+  estoque: [["estoque", "view"]],
+  financeiro: [["finance", "view"]],
+  rh: [["rh", "view"]],
+  crm: [["crm", "view"]],
+};
+
+const SUBMENU_REQUIREMENTS: Array<{
+  prefix: string;
+  anyOf: PermissionRequirement[];
+}> = [
+  { prefix: "/manager/products", anyOf: [["gestao", "view"], ["estoque", "view"], ["vendas", "view"], ["compras", "view"]] },
+  { prefix: "/manager/customer", anyOf: [["gestao", "view"], ["vendas", "view"]] },
+  { prefix: "/manager/suppliers", anyOf: [["gestao", "view"], ["compras", "view"]] },
+  { prefix: "/manager/categories", anyOf: [["gestao", "view"]] },
+  { prefix: "/manager/services", anyOf: [["gestao", "view"]] },
+  { prefix: "/sales/orders", anyOf: [["vendas", "view"]] },
+  { prefix: "/sales/order-list", anyOf: [["vendas", "view"]] },
+  { prefix: "/sales/newOrder", anyOf: [["vendas", "view"]] },
+  { prefix: "/sales/completed", anyOf: [["vendas", "view"], ["finance", "view"]] },
+  { prefix: "/sales/goals", anyOf: [["crm", "view"], ["vendas", "view"]] },
+  { prefix: "/sales/comissions", anyOf: [["rh", "view"], ["finance", "view"]] },
+  { prefix: "/sales/reports", anyOf: [["vendas", "view"]] },
+  { prefix: "/shopping", anyOf: [["compras", "view"], ["estoque", "view"]] },
+  { prefix: "/financer", anyOf: [["finance", "view"]] },
+  { prefix: "/financial/order-nfe", anyOf: [["nfe", "view"]] },
+  { prefix: "/rh", anyOf: [["rh", "view"]] },
+  { prefix: "/stock", anyOf: [["estoque", "view"]] },
+  { prefix: "/crm", anyOf: [["crm", "view"]] },
+];
+
+const ROUTE_REQUIREMENTS: Array<{
+  prefix: string;
+  anyOf: PermissionRequirement[];
+}> = [
+  { prefix: "/dashboard", anyOf: [["dashboard", "view"]] },
+  ...SUBMENU_REQUIREMENTS,
+];
+
 export function menuKeyToModuleKey(menuKey: string): string {
   return MODULE_MAPPING[menuKey] || menuKey;
 }
 
-/**
- * Converte module_key do banco para chaves do menu
- */
 export function moduleKeyToMenuKeys(moduleKey: string): string[] {
   return REVERSE_MODULE_MAPPING[moduleKey] || [moduleKey];
 }
 
-/**
- * Verifica se um item de menu deve ser exibido
- */
-export function shouldShowMenuItem(menuKey: string, availableModules: string[]): boolean {
-  const moduleKey = menuKeyToModuleKey(menuKey);
-  
-  // Caso especial: config requer dashboard + permissão especial (verificada em outro lugar)
-  if (menuKey === 'config') {
-    return availableModules.includes('dashboard');
-  }
-  
-  // Caso especial: relatórios
-  if (menuKey === 'relatorios') {
-    const hasReportModule = availableModules.includes('relatorios');
-    const hasEnabledModule = availableModules.some(module => 
-      REPORT_ENABLED_MODULES.includes(module)
-    );
-    return hasReportModule || hasEnabledModule;
-  }
-  
-  // Verificação normal
+export function hasPermission(
+  permissions: PermissionGroup[] | undefined,
+  moduleKey: string,
+  actionKey: string
+): boolean {
+  if (!Array.isArray(permissions)) return false;
+  return permissions.some(
+    (group) =>
+      group.moduleKey === moduleKey &&
+      Array.isArray(group.actions) &&
+      group.actions.includes(actionKey)
+  );
+}
+
+export function hasAnyPermission(
+  permissions: PermissionGroup[] | undefined,
+  requirements: PermissionRequirement[]
+): boolean {
+  return requirements.some(([moduleKey, actionKey]) =>
+    hasPermission(permissions, moduleKey, actionKey)
+  );
+}
+
+function isModuleAvailable(moduleKey: string, availableModules: string[]): boolean {
   return availableModules.includes(moduleKey);
 }
 
-/**
- * Verifica se um submenu pode ser acessado
- */
-export function canAccessSubmenu(
-  submenuPath: string, 
-  availableModules: string[], 
-  userRole: string,
-  allowedRoles?: string[]
+function requirementsAllowed(
+  requirements: PermissionRequirement[],
+  availableModules: string[],
+  permissions: PermissionGroup[],
+  isCompanyAdmin: boolean
 ): boolean {
-  // 1. Verifica cargo se houver restrição
-  if (allowedRoles && allowedRoles.length > 0) {
-    if (!allowedRoles.includes(userRole)) {
-      return false;
-    }
-  }
-  
-  // 2. Verifica dependência de módulo
-  const requiredModule = SUBMENU_MODULE_DEPENDENCIES[submenuPath];
-  if (requiredModule && !availableModules.includes(requiredModule)) {
-    return false;
-  }
-  
-  // 3. Casos especiais por path
-  if (submenuPath.includes('/reports')) {
-    // Relatórios específicos
-    const moduleFromPath = submenuPath.split('/')[0]; // 'sales', 'stock', etc
-    const moduleMap: Record<string, string> = {
-      'sales': 'vendas',
-      'stock': 'estoque',
-      'financial': 'finance',
-      'shopping': 'compras',
-    };
-    const requiredModule = moduleMap[moduleFromPath];
-    if (requiredModule && !availableModules.includes(requiredModule)) {
-      return false;
-    }
-  }
-  
-  return true;
-}
-
-/**
- * Filtra itens de menu baseado nos módulos disponíveis
- */
-export function filterMenuItems<T extends { key: string; access?: string[] }>(
-  items: T[],
-  availableModules: string[],
-  userRole: string
-): T[] {
-  return items.filter(item => {
-    // Verifica módulo
-    if (!shouldShowMenuItem(item.key, availableModules)) {
-      return false;
-    }
-    
-    // Verifica cargo se especificado
-    if (item.access && item.access.length > 0) {
-      if (!item.access.includes(userRole)) {
-        return false;
-      }
-    }
-    
-    return true;
+  return requirements.some(([moduleKey, actionKey]) => {
+    if (!isModuleAvailable(moduleKey, availableModules)) return false;
+    return isCompanyAdmin || hasPermission(permissions, moduleKey, actionKey);
   });
 }
 
 /**
- * Filtra subitens de menu
+ * Item de menu principal. Itens especiais:
+ *  - config: somente administrador da empresa;
+ *  - planos: qualquer usuário autenticado (visão comercial da própria empresa).
  */
-export function filterSubmenuItems<T extends { to: string; access?: string[] }>(
-  items: T[],
+export function canAccessMenuItemWithPermissions(
+  menuKey: string,
   availableModules: string[],
-  userRole: string
-): T[] {
-  return items.filter(item => {
-    return canAccessSubmenu(item.to, availableModules, userRole, item.access);
-  });
+  permissions: PermissionGroup[],
+  isCompanyAdmin: boolean
+): boolean {
+  if (menuKey === "config") return isCompanyAdmin;
+  if (menuKey === "planos") return true;
+
+  const requirements = MENU_REQUIREMENTS[menuKey];
+  if (!requirements) return false;
+  return requirementsAllowed(requirements, availableModules, permissions, isCompanyAdmin);
+}
+
+export function canAccessSubmenuWithPermissions(
+  submenuPath: string,
+  availableModules: string[],
+  permissions: PermissionGroup[],
+  isCompanyAdmin: boolean
+): boolean {
+  const path = submenuPath.startsWith("/") ? submenuPath : `/${submenuPath}`;
+
+  if (path.startsWith("/config")) {
+    if (path === "/config/system") {
+      return (
+        isModuleAvailable("nfe", availableModules) &&
+        (isCompanyAdmin || hasPermission(permissions, "nfe", "configure"))
+      );
+    }
+    return isCompanyAdmin;
+  }
+  if (path === "/planos") return true;
+
+  const rule = SUBMENU_REQUIREMENTS.find(
+    (item) => path === item.prefix || path.startsWith(`${item.prefix}/`)
+  );
+  if (!rule) return true;
+  return requirementsAllowed(rule.anyOf, availableModules, permissions, isCompanyAdmin);
 }
 
 /**
- * Obtém todos os módulos disponíveis para uma empresa
+ * Compatibilidade com chamadas antigas. As restrições por nome de cargo foram
+ * substituídas por permissões; `allowedRoles` é ignorado de propósito.
  */
+export function shouldShowMenuItem(menuKey: string, availableModules: string[]): boolean {
+  const moduleKey = menuKeyToModuleKey(menuKey);
+  if (menuKey === "config" || menuKey === "planos") return true;
+  return availableModules.includes(moduleKey);
+}
+
+export function canAccessSubmenu(
+  submenuPath: string,
+  availableModules: string[],
+  _userRole: string,
+  _allowedRoles?: string[]
+): boolean {
+  return canAccessSubmenuWithPermissions(submenuPath, availableModules, [], false);
+}
+
+export function filterMenuItems<
+  T extends { key: string; access?: string[] }
+>(
+  items: T[],
+  availableModules: string[],
+  _userRole: string,
+  permissions: PermissionGroup[] = [],
+  isCompanyAdmin = false
+): T[] {
+  return items.filter((item) =>
+    canAccessMenuItemWithPermissions(
+      item.key,
+      availableModules,
+      permissions,
+      isCompanyAdmin
+    )
+  );
+}
+
+export function filterSubmenuItems<
+  T extends { to: string; access?: string[] }
+>(
+  items: T[],
+  availableModules: string[],
+  _userRole: string,
+  _allowedRoles?: string[],
+  permissions: PermissionGroup[] = [],
+  isCompanyAdmin = false
+): T[] {
+  return items.filter((item) =>
+    canAccessSubmenuWithPermissions(
+      item.to,
+      availableModules,
+      permissions,
+      isCompanyAdmin
+    )
+  );
+}
+
 export function getAvailableModulesForPlan(planType: string): string[] {
   const plans: Record<string, string[]> = {
-    'free': ['dashboard'],
-    'starter': ['dashboard', 'gestao', 'vendas', 'compras'],
-    'professional': ['dashboard', 'gestao', 'vendas', 'compras', 'estoque', 'finance'],
-    'enterprise': ['dashboard', 'gestao', 'vendas', 'compras', 'estoque', 'finance', 'rh', 'crm', 'relatorios'],
+    free: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "crm"],
+    starter: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "crm"],
+    professional: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "crm", "finance"],
+    enterprise: ["dashboard", "gestao", "vendas", "compras", "estoque", "rh", "crm", "finance", "nfe"],
   };
-  
-  return plans[planType] || plans['starter'];
+  return plans[planType] || plans.free;
 }
 
-/**
- * Verifica se uma rota específica pode ser acessada
- */
 export function canAccessRoute(
   pathname: string,
   availableModules: string[],
-  userRole: string
+  _userRole: string,
+  permissions: PermissionGroup[] = [],
+  isCompanyAdmin = false
 ): boolean {
-  // Rotas públicas (não requerem módulo)
-  const publicRoutes = ['/', '/login', '/forgot-password', '/reset-password'];
-  if (publicRoutes.includes(pathname)) {
-    return true;
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  const publicRoutes = ["/", "/login", "/change-password", "/system-admin"];
+  if (publicRoutes.includes(normalized)) return true;
+
+  if (normalized === "/planos") return true;
+
+  if (normalized.startsWith("/config")) {
+    if (normalized === "/config/system") {
+      return (
+        isModuleAvailable("nfe", availableModules) &&
+        (isCompanyAdmin || hasPermission(permissions, "nfe", "configure"))
+      );
+    }
+    return isCompanyAdmin;
   }
-  
-  // Extrai o contexto da rota
-  const pathParts = pathname.split('/').filter(Boolean);
-  if (pathParts.length === 0) return false;
-  
-  const context = pathParts[0]; // 'dashboard', 'sales', 'stock', etc
-  
-  // Mapeamento de contexto para módulo
-  const contextToModule: Record<string, string> = {
-    'dashboard': 'dashboard',
-    'manager': 'gestao',
-    'sales': 'vendas',
-    'shopping': 'compras',
-    'stock': 'estoque',
-    'financer': 'finance',
-    'financial': 'finance',
-    'rh': 'rh',
-    'crm': 'crm',
-    'config': 'dashboard',
-  };
-  
-  const requiredModule = contextToModule[context];
-  
-  // Se não encontrou mapeamento, permite (pode ser rota interna)
-  if (!requiredModule) {
-    console.warn(`Rota não mapeada: ${pathname}`);
-    return true; // Ou false, dependendo da sua política
-  }
-  
-  // Verifica se o módulo está disponível
-  return availableModules.includes(menuKeyToModuleKey(requiredModule));
+
+  const rule = ROUTE_REQUIREMENTS.find(
+    (item) => normalized === item.prefix || normalized.startsWith(`${item.prefix}/`)
+  );
+  if (!rule) return true;
+  return requirementsAllowed(rule.anyOf, availableModules, permissions, isCompanyAdmin);
 }

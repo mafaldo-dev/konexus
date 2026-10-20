@@ -159,7 +159,10 @@ export async function apiRequest<T = any>(
     if (response.status === 403) {
       return {
         data: null,
-        error: responseBody?.message || "Você não possui acesso a este recurso.",
+        error:
+          responseBody?.message ||
+          responseBody?.error ||
+          "Você não possui acesso a este recurso.",
         status: 403,
         ok: false,
       };
@@ -169,7 +172,10 @@ export async function apiRequest<T = any>(
     if (response.status === 404) {
       return {
         data: null,
-        error: responseBody?.message || "Recurso não encontrado.",
+        error:
+          responseBody?.message ||
+          responseBody?.error ||
+          "Recurso não encontrado.",
         status: 404,
         ok: false,
       };
@@ -265,9 +271,10 @@ export const apiClient = {
 
   delete: <T = any>(
     endpoint: string,
+    body?: any,
     options: ClientOptions = {}
   ): Promise<ApiResponse<T>> =>
-    apiRequest<T>(endpoint, "DELETE", undefined, options),
+    apiRequest<T>(endpoint, "DELETE", body, options),
 };
 
 export default apiClient;

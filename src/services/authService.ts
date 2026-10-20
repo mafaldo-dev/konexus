@@ -24,6 +24,11 @@ export interface AdminUser {
   companyIconUrl?: string | null;
   companyCnpj?: string;
   modules?: string[];
+  roleId?: number | null;
+  roleName?: string;
+  isCompanyAdmin?: boolean;
+  mustChangePassword?: boolean;
+  permissions?: Array<{ moduleKey: string; actions: string[] }>;
 }
 
 export interface AdminLoginResponse {
@@ -48,6 +53,11 @@ export interface EmployeeUser {
   companyPhone?: string;
   companyCnpj?: string;
   modules: string[];
+  roleId?: number | null;
+  roleName?: string;
+  isCompanyAdmin?: boolean;
+  mustChangePassword?: boolean;
+  permissions?: Array<{ moduleKey: string; actions: string[] }>;
 }
 
 export interface EmployeeLoginResponse {

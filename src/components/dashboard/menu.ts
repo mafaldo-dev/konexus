@@ -69,7 +69,6 @@ export const menuItems = [
       icon: UserCheck,
       access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor', 'Compras', 'Gerente', 'Financeiro', 'Encarregado'],
       submenu: [
-        { title: 'Colaboradores', to: '/rh/employee', icon: Users, access: ['Administrador', 'Gestor', 'Financeiro', 'Encarregado']},
         { title: 'Folha de Pagamento', to: '/rh/folha', icon: Calculator, access: ['Administrador', 'Gestor', 'Gerente','Financeiro', 'Encarregado']},
         { title: 'Treinamentos', to: '/rh/treinamentos', icon: Target, access: ['Administrador', 'Vendedor', 'Gestor', 'Gerente','Financeiro', 'Encarregado'] }
       ],

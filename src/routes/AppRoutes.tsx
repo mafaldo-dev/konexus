@@ -1,6 +1,8 @@
-import { Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route } from 'react-router-dom';
 import AdministrationScreen from '../components/AdminScreen';
 import LoginPage from '../login';
+import ChangePasswordPage from '../pages/ChangePassword';
+import SystemAdminWorkspace from '../pages/system-admin';
 import OrdersList from '../pages/sales/orders/components/orders-list';
 import PurchaseOrder from '../pages/sales/orders/purchase-order';
 import NewOrderPage from '../pages/sales/orders/purchase-order/create-order';
@@ -38,6 +40,12 @@ const AppRoutes = () => {
     <Routes>
       {/* ==================== ÁREA DE LOGIN ==================== */}
       <Route path="/" element={<LoginPage />} />
+
+      {/* ==================== PAINEL ADMINISTRATIVO GLOBAL (F1) ==================== */}
+      <Route path="/system-admin" element={<SystemAdminWorkspace />} />
+
+      {/* ==================== TROCA DE SENHA ==================== */}
+      <Route path="/change-password" element={<ChangePasswordPage />} />
 
       {/* ==================== ÁREA DE VENDAS ==================== */}
       <Route
@@ -208,11 +216,7 @@ const AppRoutes = () => {
       {/* ==================== ÁREA DE RH ==================== */}
       <Route
         path="/rh/employee"
-        element={
-          <DesignationCheck allowed={['Administrador', 'Financeiro']}>
-            <EmployeeAdministration />
-          </DesignationCheck>
-        }
+        element={<Navigate to="/config/users-permissions" replace />}
       />
 
       <Route

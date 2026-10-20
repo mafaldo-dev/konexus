@@ -1,4 +1,5 @@
 import { AccessType } from "../AuthContext";
+import { PermissionGroup } from "./moduleMapping";
 
 export interface CompanyInfo {
   id: number;
@@ -20,12 +21,18 @@ export interface UserInfo {
   id: string;
   username: string;
   role: string;
+  roleId?: number | null;
+  roleName?: string;
   designation: string;
   active: boolean;
   access?: AccessType | string;
   sector?: string;
   companyId?: number;
   token?: string;
+  isCompanyAdmin?: boolean;
+  mustChangePassword?: boolean;
+  modules?: string[];
+  permissions?: PermissionGroup[];
 }
 
 export enum EmployeeDesignation {
@@ -42,10 +49,15 @@ export interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   hasAccess: (requiredAccess: AccessType | AccessType[]) => boolean;
-  
-  // Funcionalidades de módulos
+
+  // Funcionalidades de módulos e permissões
   modules: string[];
+  permissions: PermissionGroup[];
+  isCompanyAdmin: boolean;
+  mustChangePassword: boolean;
   hasModule: (moduleKey: string) => boolean;
+  hasPermission: (moduleKey: string, actionKey: string) => boolean;
+  hasAnyPermission: (requirements: Array<[string, string]>) => boolean;
   hasRole: (allowedRoles: string[]) => boolean;
   canAccessMenuItem: (menuKey: string, allowedRoles?: string[]) => boolean;
   canAccessSubmenuItem: (path: string, allowedRoles?: string[]) => boolean;

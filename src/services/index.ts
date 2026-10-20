@@ -20,6 +20,8 @@ export * from "./nfeService";
 export * from "./plugnotasService";
 export * from "./messageService";
 export * from "./reportService";
+export * from "./systemAdminService";
+export * from "./collaboratorService";
 
 export {
   apiClient,
