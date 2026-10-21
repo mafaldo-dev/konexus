@@ -172,6 +172,10 @@ temporário encerrado (confirmado sem processo ativo).
 - Electron Windows NSIS: **falhou** ao executar `rcedit-ia32.exe` pelo Wine,
   `c0000135`/exit 53. Não foi gerado instalador NSIS aprovado. Repetir em Windows
   ou ambiente Wine com dependências corretas; sem publicar.
+  Atualização posterior (21/10/2026): o instalador 1.4.0 foi gerado com sucesso no
+  runner Windows oficial do GitHub e publicado em
+  https://github.com/mafaldo-dev/konexus/releases/tag/v1.4.0 (ver `docs/PUBLICACAO_1.4.0.md`).
+  A limitação do runner local permanece registrada acima.
 - Não houve execução visual do aplicativo empacotado nem atualização real instalada.
 
 ## 16–17. Pendências e riscos conhecidos
@@ -183,9 +187,13 @@ temporário encerrado (confirmado sem processo ativo).
    Não se declara isolamento integral dos 193 endpoints apenas com testes centrais.
 3. **Alta:** Socket.IO verifica JWT inicialmente, mas não foi integrado à revogação
    contínua de sid; conexões já abertas exigem revisão específica.
-4. **Alta:** CRM de negócios/pipeline permanece sem persistência comprovada.
+4. **Alta:** o CRM de negócios/pipeline não tinha persistência comprovada nesta auditoria.
+   Atualização posterior (21/10/2026): CRM persistente entregue na 1.4.0, com leads,
+   oportunidades e atividades em banco, auditoria transacional e isolamento testados.
+   Ver `docs/ENTREGA_MODULOS_M1.md`.
 5. **Alta:** a nova migração é pré-requisito do backend; ausência causa bloqueio de
-   autenticação. Planejar homologação/ativação coordenadas, sem execução automática.
+   autenticação. Atualização posterior: as migrações 011/012 foram aplicadas em
+   produção após backup completo, com o backend 1.4.0 implantado e validado.
 6. **Alta:** administrador global legado ainda admite senha armazenada em texto claro;
    conversão de credenciais reais requer procedimento próprio, não foi executada.
 7. **Média:** novos filtros avançados do painel, preferência de fuso por empresa,
