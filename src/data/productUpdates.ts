@@ -71,6 +71,34 @@ export const UPDATE_MODULE_LABELS: Record<ProductUpdateModuleKey, string> = {
  */
 export const PRODUCT_UPDATES: ProductUpdate[] = [
   {
+    id:'1.4.1-escolha-cnpj', module:'gestao', version:'1.4.1',
+    title:'Escolha o CNPJ de cada operação',
+    description:'Organizações autorizadas podem alternar entre CNPJs e conferir o emissor antes de concluir pedidos, compras, notas e lançamentos.',
+    releasedAt:'2026-10-21', visibility:'standard', status:'published',
+    evidence:'Release 1.4.1 e testes de isolamento por CNPJ',
+  },
+  {
+    id:'1.4.1-financeiro-por-cnpj', module:'finance', version:'1.4.1',
+    title:'Financeiro separado por CNPJ',
+    description:'Contas a pagar, receber, bancos e movimentos ficam vinculados ao CNPJ correto. A visão consolidada é gerencial e não mistura saldos.',
+    releasedAt:'2026-10-21', visibility:'standard', status:'published',
+    evidence:'Filtros e painel consolidado por CNPJ na release 1.4.1',
+  },
+  {
+    id:'1.4.1-documentos-emissor', module:'vendas', version:'1.4.1',
+    title:'Documentos preservam o emissor',
+    description:'Pedidos guardam o CNPJ e a identificação visual usados na emissão, mesmo que os dados da empresa sejam atualizados depois.',
+    releasedAt:'2026-10-21', visibility:'standard', status:'published',
+    evidence:'Snapshot do emissor e versão de logo nos pedidos',
+  },
+  {
+    id:'1.4.1-vinculo-trabalho', module:'rh', version:'1.4.1',
+    title:'Transferência com histórico de vínculo',
+    description:'O colaborador pode mudar de empresa mantendo o registro do vínculo anterior, cargo, departamento e centro de custo.',
+    releasedAt:'2026-10-21', visibility:'standard', status:'published',
+    evidence:'Histórico de vínculos e transferências de colaboradores',
+  },
+  {
     id:'1.4.0-crm-persistente', module:'crm', version:'1.4.0',
     title:'Leads, oportunidades e atividades com histórico',
     description:'Organize oportunidades no funil, qualifique leads e acompanhe atividades. As alterações ficam salvas com histórico por empresa.',

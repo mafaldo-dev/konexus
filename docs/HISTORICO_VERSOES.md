@@ -1,5 +1,13 @@
 # Histórico de versões do Konexus
 
+## 1.4.1 — 21/10/2026
+
+Operação com múltiplos CNPJs para organizações elegíveis, seletor de emissor,
+isolamento de vendas, compras, notas, financeiro, estoque, contabilidade e CRM,
+logos versionadas, snapshot histórico do emissor e histórico de vínculos no RH.
+Escopo e limitações: [notas da release](releases/1.4.1.md). Requer backend 1.4.1
+e migração aditiva 013.
+
 ## 1.4.0 — 21/10/2026
 
 CRM persistente, computadores/sessões e correções de integridade financeira,

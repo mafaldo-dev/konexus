@@ -1,11 +1,12 @@
 # Konéxus — Sistema de Gestão Empresarial
 
-## Release 1.4.0
+## Release 1.4.1
 
-Publicação solicitada e produção autorizada posteriormente pelo usuário. Migrações
-011/012 aplicadas após backup; backend enviado ao GitHub. Acompanhe a execução em
-[PUBLICACAO_1.4.0](docs/PUBLICACAO_1.4.0.md). Os relatórios M1/anteriores abaixo
-descrevem o estado histórico antes dessa autorização.
+Multi-CNPJ por organização, com CNPJ emissor validado, isolamento operacional,
+logos versionados e preservação histórica do emissor. A migração aditiva 013 foi
+aplicada no Neon após backup completo e o backend 1.4.1 está publicado. Escopo e
+limites: [notas da release](docs/releases/1.4.1.md). A publicação da 1.4.0
+permanece documentada em [PUBLICACAO_1.4.0](docs/PUBLICACAO_1.4.0.md).
 
 ## Evolução dos quatro módulos
 
