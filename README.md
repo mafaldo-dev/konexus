@@ -5,8 +5,9 @@
 Multi-CNPJ por organização, com CNPJ emissor validado, isolamento operacional,
 logos versionados e preservação histórica do emissor. A migração aditiva 013 foi
 aplicada no Neon após backup completo e o backend 1.4.1 está publicado. Escopo e
-limites: [notas da release](docs/releases/1.4.1.md). A publicação da 1.4.0
-permanece documentada em [PUBLICACAO_1.4.0](docs/PUBLICACAO_1.4.0.md).
+limites: [notas da release](docs/releases/1.4.1.md). Execução e verificação:
+[PUBLICACAO_1.4.1](docs/PUBLICACAO_1.4.1.md). A publicação da 1.4.0 permanece
+documentada em [PUBLICACAO_1.4.0](docs/PUBLICACAO_1.4.0.md).
 
 ## Evolução dos quatro módulos
 
