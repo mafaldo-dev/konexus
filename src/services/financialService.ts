@@ -245,6 +245,10 @@ export interface OrderPaymentDashboard {
   total_a_receber_hoje: number;
   total_atrasado: number;
   total_recebido_mes: number;
+  total_a_pagar_pendente: number;
+  total_a_pagar_hoje: number;
+  total_a_pagar_atrasado: number;
+  total_pago_mes: number;
 }
 
 export interface FinancialDashboardResponse {

@@ -139,11 +139,17 @@ export const OverviewTab: React.FC = () => {
   }, [consolidated]);
 
   if (consolidated) {
-    const cards = [
-      { label: 'Pendente total', value: consolidatedSummary?.total_pendente ?? 0, tone: 'text-amber-700' },
-      { label: 'Vence hoje', value: consolidatedSummary?.total_a_receber_hoje ?? 0, tone: 'text-blue-700' },
-      { label: 'Atrasado', value: consolidatedSummary?.total_atrasado ?? 0, tone: 'text-rose-700' },
-      { label: 'Recebido no mes', value: consolidatedSummary?.total_recebido_mes ?? 0, tone: 'text-emerald-700' },
+    const receivableCards = [
+      { label: 'A receber pendente', value: consolidatedSummary?.total_pendente ?? 0, tone: 'text-amber-700' },
+      { label: 'Recebíveis que vencem hoje', value: consolidatedSummary?.total_a_receber_hoje ?? 0, tone: 'text-blue-700' },
+      { label: 'Recebíveis atrasados', value: consolidatedSummary?.total_atrasado ?? 0, tone: 'text-rose-700' },
+      { label: 'Recebido no mês', value: consolidatedSummary?.total_recebido_mes ?? 0, tone: 'text-emerald-700' },
+    ];
+    const payableCards = [
+      { label: 'A pagar pendente', value: consolidatedSummary?.total_a_pagar_pendente ?? 0, tone: 'text-amber-700' },
+      { label: 'Pagáveis que vencem hoje', value: consolidatedSummary?.total_a_pagar_hoje ?? 0, tone: 'text-blue-700' },
+      { label: 'Pagáveis atrasados', value: consolidatedSummary?.total_a_pagar_atrasado ?? 0, tone: 'text-rose-700' },
+      { label: 'Pago no mês', value: consolidatedSummary?.total_pago_mes ?? 0, tone: 'text-emerald-700' },
     ];
     return (
       <div className="space-y-6">
@@ -186,15 +192,37 @@ export const OverviewTab: React.FC = () => {
             Carregando totais gerenciais...
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {cards.map((card) => (
-              <div key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
-                <p className="text-sm font-medium text-slate-600">{card.label}</p>
-                <p className={`mt-1 text-2xl font-bold ${card.tone}`}>
-                  {formatCurrency(card.value)}
-                </p>
+          <div className="space-y-6">
+            <section>
+              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-emerald-700">
+                Contas a receber de pedidos
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {receivableCards.map((card) => (
+                  <div key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-medium text-slate-600">{card.label}</p>
+                    <p className={`mt-1 text-2xl font-bold ${card.tone}`}>
+                      {formatCurrency(card.value)}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
+            </section>
+            <section>
+              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-rose-700">
+                Contas a pagar
+              </h3>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {payableCards.map((card) => (
+                  <div key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-medium text-slate-600">{card.label}</p>
+                    <p className={`mt-1 text-2xl font-bold ${card.tone}`}>
+                      {formatCurrency(card.value)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
         )}
 
