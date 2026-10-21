@@ -44,16 +44,14 @@ const SearchProducts = () => {
     product: null,
   });
 
-  const { user } = useAuth()
+  const { hasPermission } = useAuth()
 
-  // Verificar se usuário tem permissão para ver o menu
-  const hasMenuPermission = user?.role && [
-    "Administrador",
-    "Encarregado",
-    "Gestor",
-    "Conferente",
-    "Estoque"
-  ].includes(user.role);
+  // Cada ação do menu usa a permissão que o backend exige. O backend continua
+  // sendo a autoridade final; aqui evitamos expor ações que serão negadas.
+  const canEditProduct = hasPermission("gestao", "edit");
+  const canViewKardex = hasPermission("estoque", "view");
+  const canCreateProduct = hasPermission("gestao", "create");
+  const hasMenuPermission = canEditProduct || canViewKardex;
 
   const openKardexModal = useCallback(async (product: Products) => {
     setLoadingKardex(true);
@@ -111,9 +109,11 @@ const SearchProducts = () => {
 
     switch (action) {
       case "edit":
+        if (!canEditProduct) break;
         handleEditProduct(product);
         break;
       case "kardex":
+        if (!canViewKardex) break;
         openKardexModal(product);
         break;
       case "photo":
@@ -137,7 +137,7 @@ const SearchProducts = () => {
       const ipcRenderer = window.ipcRenderer!;
 
       const handleF4Shortcut = () => {
-        if (selectedProduct && hasMenuPermission) {
+        if (selectedProduct && canViewKardex) {
           openKardexModal(selectedProduct);
         }
       };
@@ -149,7 +149,7 @@ const SearchProducts = () => {
       };
     } else {
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "F4" && selectedProduct && hasMenuPermission) {
+        if (e.key === "F4" && selectedProduct && canViewKardex) {
           e.preventDefault();
           openKardexModal(selectedProduct);
         }
@@ -158,7 +158,7 @@ const SearchProducts = () => {
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [selectedProduct, openKardexModal, hasMenuPermission]);
+  }, [selectedProduct, openKardexModal, canViewKardex]);
 
   const [filters, setFilters] = useState({
     code: "",
@@ -351,7 +351,7 @@ const SearchProducts = () => {
                     Filtros
                   </button>
 
-                  {(user?.role === "Administrador" || user?.role === "Gestor" || user?.role === "Gerente") && (
+                  {canCreateProduct && (
                     <button
                       onClick={() => setOpenRegister(true)}
                       className="font-semibold p-2 text-2xl text-slate-900 bg-gray-100 hover:bg-gray-200 border rounded-lg w-12 h-12 flex items-center justify-center cursor-pointer transition-colors"
@@ -492,6 +492,9 @@ const SearchProducts = () => {
             product={contextMenu.product}
             handleContextMenuAction={handleContextMenuAction}
             closeContextMenu={() => setContextMenu({ show: false, position: { x: 0, y: 0 }, product: null })}
+            canEdit={canEditProduct}
+            canViewKardex={canViewKardex}
+            canEditAddress={canEditProduct}
           />
         )}
       {/* Kardex Modal */}

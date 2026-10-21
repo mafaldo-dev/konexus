@@ -20,6 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import DocumentViewer from '../../../utils/screenOptions';
+import { useAuth } from '../../../AuthContext';
 
 const ALL_FILTERS = [
     { key: 'code', label: 'Código' },
@@ -33,6 +34,8 @@ const ALL_FILTERS = [
 ];
 
 const Inventory: React.FC = () => {
+    const { hasPermission } = useAuth();
+    const canExportStock = hasPermission('estoque', 'export');
     // States existentes
     const [selectedFilters, setSelectedFilters] = useState<string[]>(['code', 'name', 'location', 'stock']);
     const [searchTerm, setSearchTerm] = useState('');
@@ -286,13 +289,15 @@ const Inventory: React.FC = () => {
                     {/* Botão de Configurações */}
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => setShowSettings(true)}
-                                className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold transition flex items-center gap-2 shadow-md"
-                            >
-                                <Settings className="w-5 h-5" />
-                                Relatório(s)*
-                            </button>
+                            {canExportStock && (
+                                <button
+                                    onClick={() => setShowSettings(true)}
+                                    className="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold transition flex items-center gap-2 shadow-md"
+                                >
+                                    <Settings className="w-5 h-5" />
+                                    Relatório(s)*
+                                </button>
+                            )}
                             
                             {reportType && (
                                 <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200">

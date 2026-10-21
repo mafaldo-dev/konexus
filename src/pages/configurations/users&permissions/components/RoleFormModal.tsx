@@ -15,6 +15,8 @@ interface Props {
   onSaved: () => Promise<void> | void;
   catalog: PermissionCatalogModule[];
   role?: CompanyRole | null;
+  /** Cargo usado apenas como modelo para um novo cadastro. */
+  template?: CompanyRole | null;
 }
 
 export default function RoleFormModal({
@@ -23,6 +25,7 @@ export default function RoleFormModal({
   onSaved,
   catalog,
   role,
+  template,
 }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -32,19 +35,29 @@ export default function RoleFormModal({
 
   const isEditing = Boolean(role);
   const isSystemAdmin = Boolean(role?.is_system_admin);
+  const availableModules = new Set(
+    catalog.filter((module) => module.available).map((module) => module.key)
+  );
+  const permissionsToSave = permissions.filter((group) =>
+    availableModules.has(group.moduleKey)
+  );
 
   useEffect(() => {
     if (!open) return;
     setError(null);
-    setName(role?.name || "");
-    setDescription(role?.description || "");
+    setName(
+      role?.name || (template ? `Cópia de ${template.name}` : "")
+    );
+    setDescription(role?.description || template?.description || "");
+    const sourcePermissions = (role?.permissions || template?.permissions || [])
+      .filter((group) => availableModules.has(group.moduleKey));
     setPermissions(
-      role?.permissions?.length
-        ? role.permissions
+      sourcePermissions.length
+        ? sourcePermissions
         : [{ moduleKey: "dashboard", actions: ["view"] }]
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, role?.id]);
+  }, [open, role?.id, template?.id]);
 
   if (!open) return null;
 
@@ -61,12 +74,12 @@ export default function RoleFormModal({
       ? await updateCompanyRole(role.id, {
           name: name.trim(),
           description: description.trim() || null,
-          permissions,
+          permissions: permissionsToSave,
         })
       : await createCompanyRole({
           name: name.trim(),
           description: description.trim() || null,
-          permissions,
+          permissions: permissionsToSave,
         });
     setSaving(false);
 
@@ -75,6 +88,7 @@ export default function RoleFormModal({
       return;
     }
     await onSaved();
+    window.dispatchEvent(new Event("konexus:access-changed"));
     onClose();
   };
 
@@ -88,10 +102,17 @@ export default function RoleFormModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">
-                {isEditing ? "Editar cargo" : "Novo cargo"}
+                {isEditing
+                  ? "Editar cargo"
+                  : template
+                    ? "Duplicar cargo como modelo"
+                    : "Novo cargo"}
               </h2>
               <p className="text-xs text-slate-500">
                 As permissões definem o acesso real, independentemente do nome do cargo.
+                {template
+                  ? ` Modelo: ${template.name}. Revise as ações antes de salvar.`
+                  : ""}
               </p>
             </div>
           </div>

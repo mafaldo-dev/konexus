@@ -243,6 +243,21 @@ gh release upload v1.2.12 dist/latest.yml `
 
 O script `BUILD_AND_RELEASE.bat` é legado e não deve ser usado para publicar.
 
+## Release 1.4.2 (21/10/2026)
+
+- Autorização recarregada do banco em cada requisição: cargo, permissões, sessão,
+  módulos e vínculo de CNPJ.
+- Matriz de permissões por módulo, tela e operação; CNPJ explícito por
+  colaborador; administrador da organização limitado aos módulos contratados.
+- Proteção de contas administrativas, bloqueio de autoelevação e garantia de ao
+  menos um administrador ativo.
+- Revogação imediata em sessões abertas, reautenticação e auditoria com ator,
+  alvo, antes/depois, sessão e estação.
+- Migração aditiva `014_explicit_legal_entity_access.sql` aplicada no Neon após
+  backup; inseriu 0 linhas porque todos os contribuidores já tinham vínculo
+  ativo. Backend 1.4.2 é pré-requisito para promover a release.
+- Notas completas: [`releases/1.4.2.md`](./releases/1.4.2.md).
+
 ## Release 1.3.1 (20/10/2026)
 
 - Correção do módulo de Contabilidade: as telas passaram a ficar **dentro do

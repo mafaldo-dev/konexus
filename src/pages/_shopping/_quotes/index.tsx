@@ -8,6 +8,7 @@ import {
 } from '../../../services/purchaseService';
 import DocumentViewer from '../../../utils/screenOptions';
 import { getStatusColor, getStatusLabel, mapOrderStatus, ORDER_STATUS } from '../../../components/utils/statusLabel';
+import { useAuth } from '../../../AuthContext';
 
 
 interface QuotationsListProps {
@@ -23,6 +24,8 @@ const STATUS_OPTIONS = Object.entries(ORDER_STATUS).map(([value, config]: [strin
 }));
 
 export default function QuotationsList({ quotations = [], onUpdate }: QuotationsListProps) {
+  const { hasPermission } = useAuth();
+  const canEditPurchase = hasPermission('compras', 'edit');
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [showViewer, setShowViewer] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -297,13 +300,15 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
                                     Visualizar
                                   </button>
 
-                                  <button 
-                                    onClick={() => handleUpdateStatus(order)} 
-                                    className="w-full px-4 py-2 text-left flex gap-2 hover:bg-slate-50"
-                                  >
-                                    <RefreshCw size={16} />
-                                    Atualizar Status
-                                  </button>
+                                  {canEditPurchase && (
+                                    <button
+                                      onClick={() => handleUpdateStatus(order)}
+                                      className="w-full px-4 py-2 text-left flex gap-2 hover:bg-slate-50"
+                                    >
+                                      <RefreshCw size={16} />
+                                      Atualizar Status
+                                    </button>
+                                  )}
 
                                   <button 
                                     onClick={() => handlePrintProductLabels(order)} 

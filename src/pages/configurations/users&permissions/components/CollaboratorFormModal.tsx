@@ -237,6 +237,15 @@ export default function CollaboratorFormModal({
           </div>
 
           {!isEditing ? (
+            <p className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              A conta inicia com acesso somente ao CNPJ principal da
+              organização. Use o botão <strong>Permissões</strong> na lista de
+              colaboradores para liberar outros CNPJs e ajustar ações
+              individuais.
+            </p>
+          ) : null}
+
+          {!isEditing ? (
             <label className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/60 p-3 text-sm text-slate-700">
               <input
                 type="checkbox"

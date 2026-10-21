@@ -149,6 +149,26 @@ describe("fluxo de reautenticacao do cliente HTTP", () => {
     expect(calls).toHaveLength(2);
   });
 
+  it("403 de autorização sinaliza recarga de sessão, menus e CNPJs", async () => {
+    mockFetch([
+      {
+        status: 403,
+        body: {
+          success: false,
+          code: "PERMISSION_DENIED",
+          message: "Você não possui permissão para executar esta ação.",
+        },
+      },
+    ]);
+    const listener = jest.fn();
+    window.addEventListener("konexus:access-changed", listener);
+
+    await apiRequest("orders/123", "PUT", { status: "x" });
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener("konexus:access-changed", listener);
+  });
+
   it("nao dispara reautenticacao em outros erros 403", async () => {
     const calls = mockFetch([
       {

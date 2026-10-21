@@ -9,6 +9,9 @@ interface ContextMenuProps {
   product: Products | null;
   handleContextMenuAction: (action: string) => void;
   closeContextMenu: () => void;
+  canEdit?: boolean;
+  canViewKardex?: boolean;
+  canEditAddress?: boolean;
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ 
@@ -16,7 +19,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   position, 
   product, 
   handleContextMenuAction, 
-  closeContextMenu 
+  closeContextMenu,
+  canEdit = false,
+  canViewKardex = false,
+  canEditAddress = false,
 }) => {
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
@@ -55,23 +61,27 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         </div>
       )}
 
-      <button
-        onClick={() => handleContextMenuAction('edit')}
-        className="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2 font-medium"
-      >
-        <Edit className="w-4 h-4" />
-        Editar Produto
-      </button>
+      {canEdit && (
+        <button
+          onClick={() => handleContextMenuAction('edit')}
+          className="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2 font-medium"
+        >
+          <Edit className="w-4 h-4" />
+          Editar Produto
+        </button>
+      )}
 
-      <button
-        onClick={() => handleContextMenuAction('kardex')}
-        className="w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50 flex items-center gap-2 font-medium"
-      >
-        <Warehouse className="w-4 h-4" />
-        Visualizar Kardex (F4)
-      </button>
+      {canViewKardex && (
+        <button
+          onClick={() => handleContextMenuAction('kardex')}
+          className="w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50 flex items-center gap-2 font-medium"
+        >
+          <Warehouse className="w-4 h-4" />
+          Visualizar Kardex (F4)
+        </button>
+      )}
 
-      <hr className="my-1 border-gray-200" />
+      {(canEdit || canViewKardex) && <hr className="my-1 border-gray-200" />}
 
       <button
         onClick={() => handleContextMenuAction('photo')}
@@ -86,7 +96,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
       >
         <MapPin className="w-4 h-4" />
-        Visualizar/Alterar Endereço
+        {canEditAddress ? 'Visualizar/Alterar Endereço' : 'Visualizar Endereço'}
       </button>
 
       <button

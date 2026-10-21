@@ -33,6 +33,10 @@ Regras:
    individuais (cargo + exceções) continuam valendo, e o administrador da
    empresa não acessa extras não contratados.
 7. Não há cobrança automática. As contratações são registradas pelo suporte.
+8. O administrador principal acessa todas as ações dos módulos **contratados**,
+   mas não recebe módulos extras não contratados. Permissões de colaboradores e
+   vínculos de CNPJ são explícitos; consulte
+   [`PERMISSOES_E_CNPJ.md`](PERMISSOES_E_CNPJ.md).
 
 ## Classificação anterior (e o que estava errado)
 

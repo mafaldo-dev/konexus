@@ -1,5 +1,13 @@
 # Histórico de versões do Konexus
 
+## 1.4.2 — 21/10/2026
+
+Permissões por módulo, tela e operação, CNPJ explícito por colaborador,
+administrador da organização limitado aos módulos contratados, proteção das
+contas administrativas e revogação imediata em sessões abertas. Escopo e
+limitações: [notas da release](releases/1.4.2.md). Requer backend 1.4.2 e a
+migração aditiva 014.
+
 ## 1.4.1 — 21/10/2026
 
 Operação com múltiplos CNPJs para organizações elegíveis, seletor de emissor,

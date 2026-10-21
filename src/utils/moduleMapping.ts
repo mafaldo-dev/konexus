@@ -107,14 +107,18 @@ const SUBMENU_REQUIREMENTS: Array<{
   { prefix: "/manager/suppliers", anyOf: [["gestao", "view"], ["compras", "view"]] },
   { prefix: "/manager/categories", anyOf: [["gestao", "view"]] },
   { prefix: "/manager/services", anyOf: [["gestao", "view"]] },
+  // Regras mais específicas precisam vencer o prefixo genérico da listagem.
+  { prefix: "/sales/orders/edit", anyOf: [["vendas", "edit"]] },
+  { prefix: "/sales/newOrder", anyOf: [["vendas", "create"]] },
   { prefix: "/sales/orders", anyOf: [["vendas", "view"]] },
   { prefix: "/sales/order-list", anyOf: [["vendas", "view"]] },
-  { prefix: "/sales/newOrder", anyOf: [["vendas", "view"]] },
   { prefix: "/sales/completed", anyOf: [["vendas", "view"], ["finance", "view"]] },
   { prefix: "/sales/goals", anyOf: [["crm", "view"], ["vendas", "view"]] },
   { prefix: "/sales/comissions", anyOf: [["rh", "view"], ["finance", "view"]] },
   { prefix: "/sales/reports", anyOf: [["vendas", "view"]] },
   { prefix: "/shopping", anyOf: [["compras", "view"], ["estoque", "view"]] },
+  // Salários e posições são dados sensíveis do RH.
+  { prefix: "/rh/infos", anyOf: [["rh", "edit"]] },
   { prefix: "/config/audit-log", anyOf: [["audit", "view"]] },
   { prefix: "/config/stations", anyOf: [["audit", "manage_stations"]] },
   { prefix: "/financer/contabilidade/painel", anyOf: [["contabil", "reports"]] },
@@ -136,8 +140,9 @@ const SUBMENU_REQUIREMENTS: Array<{
   { prefix: "/stock", anyOf: [["estoque", "view"]] },
   { prefix: "/crm", anyOf: [["crm", "view"]] },
 ];
+SUBMENU_REQUIREMENTS.sort((a, b) => b.prefix.length - a.prefix.length);
 
-  const ROUTE_REQUIREMENTS: Array<{
+const ROUTE_REQUIREMENTS: Array<{
   prefix: string;
   anyOf: PermissionRequirement[];
 }> = [
@@ -146,6 +151,17 @@ const SUBMENU_REQUIREMENTS: Array<{
   { prefix: "/config/stations", anyOf: [["audit", "manage_stations"]] },
   ...SUBMENU_REQUIREMENTS,
 ];
+ROUTE_REQUIREMENTS.sort((a, b) => b.prefix.length - a.prefix.length);
+
+/** Escolhe sempre a regra de prefixo mais específica. */
+function findRouteRule<T extends { prefix: string }>(
+  rules: T[],
+  path: string
+): T | undefined {
+  return rules.find(
+    (item) => path === item.prefix || path.startsWith(`${item.prefix}/`)
+  );
+}
 
 export function menuKeyToModuleKey(menuKey: string): string {
   return MODULE_MAPPING[menuKey] || menuKey;
@@ -230,9 +246,7 @@ export function canAccessSubmenuWithPermissions(
     }
 
     // Historico de auditoria e estacoes de trabalho tem regras proprias.
-    const auditRule = SUBMENU_REQUIREMENTS.find(
-      (item) => path === item.prefix || path.startsWith(`${item.prefix}/`)
-    );
+    const auditRule = findRouteRule(SUBMENU_REQUIREMENTS, path);
     if (auditRule) {
       return requirementsAllowed(
         auditRule.anyOf,
@@ -246,9 +260,7 @@ export function canAccessSubmenuWithPermissions(
   }
   if (path === "/planos") return true;
 
-  const rule = SUBMENU_REQUIREMENTS.find(
-    (item) => path === item.prefix || path.startsWith(`${item.prefix}/`)
-  );
+  const rule = findRouteRule(SUBMENU_REQUIREMENTS, path);
   if (!rule) return true;
   return requirementsAllowed(rule.anyOf, availableModules, permissions, isCompanyAdmin);
 }
@@ -360,9 +372,7 @@ export function canAccessRoute(
       );
     }
 
-    const auditRule = ROUTE_REQUIREMENTS.find(
-      (item) => normalized === item.prefix || normalized.startsWith(`${item.prefix}/`)
-    );
+    const auditRule = findRouteRule(ROUTE_REQUIREMENTS, normalized);
     if (auditRule) {
       return requirementsAllowed(
         auditRule.anyOf,
@@ -375,9 +385,7 @@ export function canAccessRoute(
     return isCompanyAdmin;
   }
 
-  const rule = ROUTE_REQUIREMENTS.find(
-    (item) => normalized === item.prefix || normalized.startsWith(`${item.prefix}/`)
-  );
+  const rule = findRouteRule(ROUTE_REQUIREMENTS, normalized);
   if (!rule) return true;
   return requirementsAllowed(rule.anyOf, availableModules, permissions, isCompanyAdmin);
 }

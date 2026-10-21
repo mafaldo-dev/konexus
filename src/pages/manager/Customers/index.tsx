@@ -27,7 +27,9 @@ const CustomersContent = () => {
   const [openEditCustomer, setOpenEditCustomer] = useState<boolean>(false)
   const [showFilters, setShowFilters] = useState(false)
 
-  const { user } = useAuth()
+  const { hasPermission } = useAuth()
+  const canCreateCustomer = hasPermission("gestao", "create")
+  const canEditCustomer = hasPermission("gestao", "edit")
 
   const [filters, setFilters] = useState<Filters>({
     name: "",
@@ -182,7 +184,7 @@ const CustomersContent = () => {
       key: 'actions',
       header: 'Ações',
       render: (customer: Customer) => (
-        (user?.role === "Administrador" || user?.role === "Gestor") ? (
+        canEditCustomer ? (
           <div className="flex items-center gap-2">
             <button
               onClick={(e) => {
@@ -241,7 +243,7 @@ const CustomersContent = () => {
                     Filtros {hasActiveFilters && "•"}
                   </button>
 
-                  {(user?.role === "Administrador" || user?.role === "Gestor" || user?.role === "Gerente") && (
+                  {canCreateCustomer && (
                     <button
                       onClick={() => setOpenRegister(true)}
                       className="flex items-center h-10 gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-slate-800 rounded-lg font-medium transition-colors"

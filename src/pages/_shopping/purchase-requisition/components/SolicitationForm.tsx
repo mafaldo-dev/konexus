@@ -18,9 +18,11 @@ export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoa
   const [notes, setNotes] = useState("");
   const [buyer, setBuyer] = useState("");
 
-  const { user } = useAuth()
+  const { user, hasPermission } = useAuth()
 
-  const isAllowed = user?.role === "Compras" && user?.sector === "Comercial";
+  // O cargo/setor não concede acesso. A criação depende da permissão efetiva
+  // do módulo Compras, e o backend revalida no endpoint.
+  const isAllowed = hasPermission("compras", "create");
 
   const {
     orderItems,
@@ -103,7 +105,7 @@ export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoa
         <input
           className="px-2 p-1 rounded-sm"
           type="text"
-          value={isAllowed ? user.username : "Função não permitida"}
+          value={isAllowed ? user?.username ?? "" : "Função não permitida"}
           readOnly={!isAllowed}
           style={{
             backgroundColor: isAllowed ? '#e1e1e1' : '#f0f0f0',
@@ -281,7 +283,14 @@ export default function PurchaseOrderCreate({ supplierData, onSubmitOrder, isLoa
 
       <button
         onClick={handleSubmit}
-        disabled={isLoading || !supplierId || orderItems.length === 0 || !user?.username || !orderNumber}
+        disabled={
+          !isAllowed ||
+          isLoading ||
+          !supplierId ||
+          orderItems.length === 0 ||
+          !user?.username ||
+          !orderNumber
+        }
         className="bg-blue-700 text-white px-5 py-3 rounded-lg hover:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed w-full font-semibold"
       >
         {isLoading ? 'Criando Pedido...' : 'Criar Pedido de Compra'}

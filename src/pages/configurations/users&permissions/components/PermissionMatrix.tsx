@@ -52,7 +52,7 @@ export default function PermissionMatrix({
   };
 
   const toggleModule = (module: PermissionCatalogModule) => {
-    if (disabled) return;
+    if (disabled || !module.available) return;
     const keys = module.actions.map((action) => `${module.key}:${action.key}`);
     const allSelected = keys.every((key) => selection.has(key));
     const next = new Set(selection);
@@ -71,10 +71,12 @@ export default function PermissionMatrix({
         );
         const selectedCount = keys.filter((key) => selection.has(key)).length;
         const allSelected = keys.length > 0 && selectedCount === keys.length;
-        const unavailableWarning =
-          module.isExtra && !module.available
-            ? "Módulo extra não contratado: a permissão fica registrada, mas não libera acesso até a contratação."
-            : null;
+        const moduleDisabled = disabled || !module.available;
+        const unavailableWarning = !module.available
+          ? module.isExtra
+            ? "Módulo extra não contratado. A seleção é bloqueada e o backend rejeita a concessão até a contratação."
+            : "Módulo indisponível nesta instalação. A seleção é bloqueada pelo backend."
+          : null;
 
         return (
           <div
@@ -87,6 +89,11 @@ export default function PermissionMatrix({
                   <h4 className="text-sm font-semibold text-slate-800">
                     {module.name}
                   </h4>
+                  {!module.available ? (
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                      Indisponível
+                    </span>
+                  ) : null}
                   {module.isExtra ? (
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
@@ -115,7 +122,7 @@ export default function PermissionMatrix({
               </div>
               <button
                 type="button"
-                disabled={disabled}
+                disabled={moduleDisabled}
                 onClick={() => toggleModule(module)}
                 className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -133,12 +140,12 @@ export default function PermissionMatrix({
                       checked
                         ? "border-blue-200 bg-blue-50 text-blue-800"
                         : "border-slate-100 bg-slate-50/60 text-slate-600"
-                    } ${disabled ? "cursor-not-allowed opacity-60" : "hover:border-slate-300"}`}
+                    } ${moduleDisabled ? "cursor-not-allowed opacity-60" : "hover:border-slate-300"}`}
                   >
                     <input
                       type="checkbox"
                       checked={checked}
-                      disabled={disabled}
+                      disabled={moduleDisabled}
                       onChange={() => toggleAction(module.key, action.key)}
                       className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     />

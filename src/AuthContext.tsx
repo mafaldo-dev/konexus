@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  ReactNode,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "./api/client";
 import { loginEmployee, loginAdmin } from "./services/authService";
@@ -47,6 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [legalEntities, setLegalEntities] = useState<LegalEntity[]>([]);
   const [activeLegalEntity, setActiveLegalEntityState] = useState<LegalEntity | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastSessionRefreshRef = useRef(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -200,28 +209,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsCompanyAdmin(Boolean(userData.isCompanyAdmin));
           setMustChangePassword(Boolean(userData.mustChangePassword));
 
-          // Multi-CNPJ: restaura a seleção local apenas como preferência de
-          // interface. O backend revalida o vínculo em cada requisição.
-          let restoredEntities: LegalEntity[] = [];
-          try {
-            const raw = localStorage.getItem('legalEntities');
-            if (raw) restoredEntities = JSON.parse(raw);
-          } catch { restoredEntities = []; }
-          if (!restoredEntities.length) {
-            const mine = await getMyLegalEntities();
-            if (mine.ok && mine.data?.entities) restoredEntities = mine.data.entities;
-          }
-          if (restoredEntities.length) {
-            const storedActiveRaw = localStorage.getItem('activeLegalEntity');
-            let selected: LegalEntity | null = null;
-            try { selected = storedActiveRaw ? JSON.parse(storedActiveRaw) : null; } catch { selected = null; }
-            const selectedValid = selected && restoredEntities.some((e) => e.id === selected!.id);
-            const fallback = restoredEntities.find((e) => e.isPrimary) || restoredEntities[0];
-            const active = selectedValid ? selected! : fallback;
-            setLegalEntities(restoredEntities);
-            setActiveLegalEntityState(active);
-            localStorage.setItem('legalEntities', JSON.stringify(restoredEntities));
+          // Multi-CNPJ: a lista vem SEMPRE do backend. O localStorage é
+          // apenas preferência de seleção; permissões revogadas não podem
+          // permanecer visíveis por cache local.
+          const mine = await getMyLegalEntities();
+          const restoredEntities: LegalEntity[] = mine.ok
+            ? mine.data?.entities || []
+            : [];
+          const storedActiveRaw = localStorage.getItem('activeLegalEntity');
+          let selected: LegalEntity | null = null;
+          try { selected = storedActiveRaw ? JSON.parse(storedActiveRaw) : null; } catch { selected = null; }
+          const selectedValid = selected && restoredEntities.some((e) => e.id === selected!.id);
+          const fallback = restoredEntities.find((e) => e.isPrimary) || restoredEntities[0] || null;
+          const active = selectedValid ? selected! : fallback;
+          setLegalEntities(restoredEntities);
+          setActiveLegalEntityState(active);
+          localStorage.setItem('legalEntities', JSON.stringify(restoredEntities));
+          if (active) {
             localStorage.setItem('activeLegalEntity', JSON.stringify(active));
+          } else {
+            localStorage.removeItem('activeLegalEntity');
           }
 
           if (storedCompany) {
@@ -436,6 +443,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setActiveLegalEntityState(selected);
         localStorage.setItem("legalEntities", JSON.stringify(userLegalEntities));
         localStorage.setItem("activeLegalEntity", JSON.stringify(selected));
+      } else {
+        setLegalEntities([]);
+        setActiveLegalEntityState(null);
+        localStorage.removeItem("legalEntities");
+        localStorage.removeItem("activeLegalEntity");
       }
 
       if (userMustChangePassword) {
@@ -521,10 +533,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("activeLegalEntity", JSON.stringify(entity));
   };
 
-  const refreshLegalEntities = async (): Promise<LegalEntity[]> => {
+  const refreshLegalEntities = useCallback(async (): Promise<LegalEntity[]> => {
     const result = await getMyLegalEntities();
-    if (!result.ok || !result.data?.entities) return legalEntities;
-    const entities = result.data.entities;
+    if (!result.ok || !result.data) {
+      // Falha de autorização não pode manter CNPJs antigos visíveis no
+      // seletor. Falhas de rede preservam a última lista boa.
+      if (result.status === 403) {
+        setLegalEntities([]);
+        setActiveLegalEntityState(null);
+        localStorage.removeItem("legalEntities");
+        localStorage.removeItem("activeLegalEntity");
+      }
+      return [];
+    }
+    const entities = result.data.entities || [];
     setLegalEntities(entities);
     localStorage.setItem("legalEntities", JSON.stringify(entities));
     const storedRaw = localStorage.getItem("activeLegalEntity");
@@ -535,9 +557,100 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       || entities[0]
       || null;
     setActiveLegalEntityState(selected);
-    if (selected) localStorage.setItem("activeLegalEntity", JSON.stringify(selected));
+    if (selected) {
+      localStorage.setItem("activeLegalEntity", JSON.stringify(selected));
+    } else {
+      localStorage.removeItem("activeLegalEntity");
+    }
     return entities;
-  };
+  }, []);
+
+  /**
+   * Recarrega a sessão no backend (cargo, permissões, módulos e CNPJs).
+   * Chamado ao voltar o foco, ao receber um 403 de autorização e em intervalo
+   * curto. O JWT continua sendo revalidado pelo backend em cada requisição.
+   */
+  const refreshSession = useCallback(async (): Promise<void> => {
+    const storedToken = token || localStorage.getItem("token");
+    if (!storedToken) return;
+    const now = Date.now();
+    if (lastSessionRefreshRef.current && now - lastSessionRefreshRef.current < 5000) {
+      return;
+    }
+    lastSessionRefreshRef.current = now;
+
+    const current = await apiClient.get("login/session", {
+      token: storedToken,
+      reauth: false,
+    });
+    if (!current.ok || !current.data?.user) return;
+    const patch = current.data.user as Partial<UserInfo>;
+
+    setUser((previous) => {
+      if (!previous) return previous;
+      const next = { ...previous, ...patch } as UserInfo;
+      localStorage.setItem("userData", JSON.stringify(next));
+      return next;
+    });
+
+    if (Array.isArray(patch.modules)) {
+      setModules(patch.modules);
+      localStorage.setItem("companyModules", JSON.stringify(patch.modules));
+      setCompany((previous) => {
+        if (!previous) return previous;
+        const next = { ...previous, modules: patch.modules };
+        localStorage.setItem("companyData", JSON.stringify(next));
+        return next;
+      });
+    }
+    if (Array.isArray(patch.permissions)) {
+      setPermissions(patch.permissions);
+    }
+    if (patch.isCompanyAdmin !== undefined) {
+      setIsCompanyAdmin(Boolean(patch.isCompanyAdmin));
+    }
+    if (patch.mustChangePassword !== undefined) {
+      setMustChangePassword(Boolean(patch.mustChangePassword));
+    }
+    await refreshLegalEntities();
+  }, [token, refreshLegalEntities]);
+
+  useEffect(() => {
+    if (!token || mustChangePassword) return;
+    let stopped = false;
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+
+    const run = () => {
+      if (stopped) return;
+      void refreshSession();
+    };
+    const schedule = () => {
+      if (stopped || debounce) return;
+      debounce = setTimeout(() => {
+        debounce = null;
+        run();
+      }, 250);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") schedule();
+    };
+
+    window.addEventListener("konexus:access-changed", schedule);
+    window.addEventListener("focus", schedule);
+    document.addEventListener("visibilitychange", onVisibility);
+    const interval = setInterval(() => {
+      if (document.visibilityState !== "hidden") run();
+    }, 60000);
+
+    return () => {
+      stopped = true;
+      if (debounce) clearTimeout(debounce);
+      clearInterval(interval);
+      window.removeEventListener("konexus:access-changed", schedule);
+      window.removeEventListener("focus", schedule);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [token, mustChangePassword, refreshSession]);
 
   return (
     <AuthContext.Provider
@@ -566,6 +679,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         activeLegalEntity,
         setActiveLegalEntity: selectLegalEntity,
         refreshLegalEntities,
+        refreshSession,
       }}
     >
       {children}

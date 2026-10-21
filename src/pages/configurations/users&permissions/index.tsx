@@ -72,6 +72,8 @@ const actionLabels: Record<string, string> = {
   role_created: "Cargo criado",
   role_updated: "Cargo atualizado",
   role_deactivated: "Cargo desativado",
+  role_permissions_changed: "Permissões do cargo atualizadas",
+  collaborator_permissions_changed: "Permissões e CNPJs do colaborador atualizados",
   permissions_updated: "Permissões individuais atualizadas",
 };
 
@@ -137,6 +139,7 @@ export default function UserManagementPage() {
   const [employmentCollaborator, setEmploymentCollaborator] = useState<Collaborator | null>(null);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<CompanyRole | null>(null);
+  const [roleTemplate, setRoleTemplate] = useState<CompanyRole | null>(null);
   const [temporary, setTemporary] = useState<{
     username: string;
     password: string;
@@ -557,8 +560,15 @@ export default function UserManagementPage() {
                                 <button
                                   type="button"
                                   onClick={() => openEdit(collaborator)}
-                                  disabled={!collaborator.active}
-                                  title="Editar colaborador"
+                                  disabled={
+                                    !collaborator.active ||
+                                    (isProtectedAdmin && !isSelf)
+                                  }
+                                  title={
+                                    isProtectedAdmin && !isSelf
+                                      ? "Contas administrativas só podem ser alteradas pelo próprio titular"
+                                      : "Editar colaborador"
+                                  }
                                   aria-label="Editar colaborador"
                                   className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
                                 >
@@ -577,8 +587,12 @@ export default function UserManagementPage() {
                                 <button
                                   type="button"
                                   onClick={() => setPermissionsCollaborator(collaborator)}
-                                  disabled={!collaborator.active}
-                                  title="Gerenciar permissões"
+                                  disabled={!collaborator.active || isProtectedAdmin}
+                                  title={
+                                    isProtectedAdmin
+                                      ? "O cargo administrativo não usa permissões individuais"
+                                      : "Gerenciar permissões e CNPJs"
+                                  }
                                   aria-label="Gerenciar permissões"
                                   className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-30"
                                 >
@@ -692,6 +706,7 @@ export default function UserManagementPage() {
                   type="button"
                   onClick={() => {
                     setEditingRole(null);
+                    setRoleTemplate(null);
                     setRoleModalOpen(true);
                   }}
                   className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
@@ -784,6 +799,7 @@ export default function UserManagementPage() {
                             type="button"
                             onClick={() => {
                               setEditingRole(role);
+                              setRoleTemplate(null);
                               setRoleModalOpen(true);
                             }}
                             disabled={role.is_system_admin}
@@ -791,6 +807,24 @@ export default function UserManagementPage() {
                           >
                             <Pencil className="h-3.5 w-3.5" />
                             Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingRole(null);
+                              setRoleTemplate(role);
+                              setRoleModalOpen(true);
+                            }}
+                            disabled={role.is_system_admin}
+                            title={
+                              role.is_system_admin
+                                ? "O cargo administrativo é protegido e não pode ser usado como modelo"
+                                : "Criar um novo cargo a partir deste"
+                            }
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Users className="h-3.5 w-3.5" />
+                            Duplicar
                           </button>
                           <button
                             type="button"
@@ -1120,6 +1154,7 @@ export default function UserManagementPage() {
         onSaved={load}
         catalog={catalog}
         role={editingRole}
+        template={roleTemplate}
       />
 
       <TemporaryPasswordModal

@@ -7,9 +7,13 @@ import { safeFormatDate } from '../../../../utils/dateTime';
 
 interface ContasReceberColumnsProps {
   handleMarkAsPaid: (id: number) => void;
+  canMarkAsPaid?: boolean;
 }
 
-export const getContasReceberColumns = ({ handleMarkAsPaid }: ContasReceberColumnsProps) => [
+export const getContasReceberColumns = ({
+  handleMarkAsPaid,
+  canMarkAsPaid = false,
+}: ContasReceberColumnsProps) => [
   {
     key: 'orderNumber',
     header: 'Pedido',
@@ -65,7 +69,9 @@ export const getContasReceberColumns = ({ handleMarkAsPaid }: ContasReceberColum
     key: 'actions',
     header: 'Status de pagamento',
     render: (pedido: OrderResponse) => (
-      pedido.payment?.status !== 'paid' ? (
+      pedido.payment?.status === 'paid' ? (
+        <span className="text-xs text-gray-400 px-16">Pago</span>
+      ) : canMarkAsPaid ? (
         <button
           onClick={() => handleMarkAsPaid(pedido.id)}
           className="p-2 flex gap-2 px-16 hover:bg-green-50 rounded-md transition-colors text-green-600"
@@ -74,7 +80,7 @@ export const getContasReceberColumns = ({ handleMarkAsPaid }: ContasReceberColum
           <CheckCircle className="h-4 w-4" />
         </button>
       ) : (
-        <span className="text-xs text-gray-400 px-16">Pago</span>
+        <span className="text-xs text-gray-400 px-16">Pendente</span>
       )
     ),
   },

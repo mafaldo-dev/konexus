@@ -49,10 +49,13 @@ interface ActionMenuProps {
   os: OrderService;
   handleUpdateStatus: (id: number, status: string) => void;
   handleViewPDF: (os: OrderService) => void;
+  canEdit: boolean;
 }
 
 const OSSystem: React.FC = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const canCreateOS = hasPermission("gestao", "create");
+  const canEditOS = hasPermission("gestao", "edit");
   const [ordens, setOrdens] = useState<OrderService[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -74,7 +77,12 @@ const OSSystem: React.FC = () => {
     }
   });
 
-  const ActionMenu: React.FC<ActionMenuProps> = ({ os, handleUpdateStatus, handleViewPDF }) => {
+  const ActionMenu: React.FC<ActionMenuProps> = ({
+    os,
+    handleUpdateStatus,
+    handleViewPDF,
+    canEdit,
+  }) => {
     const [openMenu, setOpenMenu] = React.useState(false);
     const toggleMenu = () => setOpenMenu(!openMenu);
     const closeMenu = () => setOpenMenu(false);
@@ -102,7 +110,7 @@ const OSSystem: React.FC = () => {
         {openMenu && (
           <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-md z-10">
             {/* Quando o status for 'initialized', mostra 'Iniciar' */}
-            {os.orderStatus === 'initialized' && (
+            {canEdit && os.orderStatus === 'initialized' && (
               <button
                 onClick={() => {
                   handleUpdateStatus(os.id, 'in_progress');
@@ -126,7 +134,7 @@ const OSSystem: React.FC = () => {
             </button>
 
             {/* Quando o status for 'in_progress', mostra 'Finalizar' */}
-            {os.orderStatus === 'in_progress' && (
+            {canEdit && os.orderStatus === 'in_progress' && (
               <button
                 onClick={() => {
                   handleUpdateStatus(os.id, 'finished');
@@ -400,6 +408,7 @@ const OSSystem: React.FC = () => {
           os={os}
           handleUpdateStatus={handleUpdateStatus}
           handleViewPDF={handleViewPDF}
+          canEdit={canEditOS}
         />
       ),
     },
@@ -430,13 +439,15 @@ const OSSystem: React.FC = () => {
               Usuário: {user?.username || 'N/A'} | Setor: {user?.sector || 'N/A'}
             </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition disabled:opacity-50"
-          >
-            <Plus className="w-5 h-5" />
-            {loading ? 'Criando...' : 'Nova OS'}
-          </button>
+          {canCreateOS && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition disabled:opacity-50"
+            >
+              <Plus className="w-5 h-5" />
+              {loading ? 'Criando...' : 'Nova OS'}
+            </button>
+          )}
         </div>
 
         {/* Tabs */}

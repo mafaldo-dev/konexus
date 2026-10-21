@@ -6,13 +6,15 @@ interface ActionsDropdownProps {
   onCreateClick: () => void;
   onReportClick: () => void;
   onExportClick: () => void;
+  canCreate?: boolean;
 }
 
 export const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
   activeSubTab,
   onCreateClick,
   onReportClick,
-  onExportClick
+  onExportClick,
+  canCreate = true
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -53,7 +55,7 @@ export const ActionsDropdown: React.FC<ActionsDropdownProps> = ({
           <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-20">
             <div className="py-1">
               {/* Botão Nova Conta - só aparece na aba contas-pagar */}
-              {activeSubTab === "contas-pagar" && (
+              {activeSubTab === "contas-pagar" && canCreate && (
                 <button
                   onClick={handleCreate}
                   className="flex items-center w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition-colors"

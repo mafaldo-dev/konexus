@@ -194,4 +194,80 @@ describe("rotas e submenus protegidos", () => {
       canAccessRoute("/config/system", withNfe, "Administrador", [], true)
     ).toBe(true);
   });
+
+  it("separa visualização, criação e edição de pedidos de venda", () => {
+    const somenteVisualiza: PermissionGroup[] = [
+      { moduleKey: "vendas", actions: ["view"] },
+    ];
+    expect(
+      canAccessRoute("/sales/orders", FREEMIUM_MODULES, "Vendedor", somenteVisualiza, false)
+    ).toBe(true);
+    expect(
+      canAccessRoute(
+        "/sales/newOrder",
+        FREEMIUM_MODULES,
+        "Vendedor",
+        somenteVisualiza,
+        false
+      )
+    ).toBe(false);
+    expect(
+      canAccessRoute(
+        "/sales/orders/edit/42",
+        FREEMIUM_MODULES,
+        "Vendedor",
+        somenteVisualiza,
+        false
+      )
+    ).toBe(false);
+
+    const criaEEdita: PermissionGroup[] = [
+      { moduleKey: "vendas", actions: ["view", "create", "edit"] },
+    ];
+    expect(
+      canAccessRoute("/sales/newOrder", FREEMIUM_MODULES, "Vendedor", criaEEdita, false)
+    ).toBe(true);
+    expect(
+      canAccessRoute(
+        "/sales/orders/edit/42",
+        FREEMIUM_MODULES,
+        "Vendedor",
+        criaEEdita,
+        false
+      )
+    ).toBe(true);
+  });
+
+  it("protege rotas de gestão e dados sensíveis de RH", () => {
+    expect(
+      canAccessRoute("/manager/services", FREEMIUM_MODULES, "Gestor", [], false)
+    ).toBe(false);
+    expect(
+      canAccessRoute(
+        "/manager/services",
+        FREEMIUM_MODULES,
+        "Gestor",
+        [{ moduleKey: "gestao", actions: ["view"] }],
+        false
+      )
+    ).toBe(true);
+    expect(
+      canAccessRoute(
+        "/rh/infos",
+        FREEMIUM_MODULES,
+        "RH",
+        [{ moduleKey: "rh", actions: ["view"] }],
+        false
+      )
+    ).toBe(false);
+    expect(
+      canAccessRoute(
+        "/rh/infos",
+        FREEMIUM_MODULES,
+        "RH",
+        [{ moduleKey: "rh", actions: ["edit"] }],
+        false
+      )
+    ).toBe(true);
+  });
 });

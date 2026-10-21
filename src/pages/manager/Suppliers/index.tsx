@@ -20,7 +20,9 @@ const SearchSuppliers = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
     const [showFilters, setShowFilters] = useState<boolean>(false)
     const [currentData, setCurrentData] = useState<Supplier | null>(null)
-    const { user } = useAuth()
+    const { hasPermission } = useAuth()
+    const canCreateSupplier = hasPermission("gestao", "create")
+    const canEditSupplier = hasPermission("gestao", "edit")
 
     const [filters, setFilters] = useState({
         name: "",
@@ -134,7 +136,7 @@ const SearchSuppliers = () => {
             key: 'actions',
             header: 'Ações',
             render: (supplier: any) => (
-                user?.role === "Administrador" ? (
+                canEditSupplier ? (
                     <div className="flex gap-2">
                         <button
                             onClick={(e) => {
@@ -186,7 +188,7 @@ const SearchSuppliers = () => {
                                         Filtros
                                     </button>
 
-                                    {(user?.role === "Administrador" || user?.role === "Gestor" || user?.role === "Gerente") && (
+                                    {canCreateSupplier && (
                                         <button
                                             onClick={() => setOpenRegister(true)}
                                             className="font-semibold p-2 text-2xl text-slate-900 bg-gray-100 hover:bg-gray-200 border rounded-lg w-12 h-12 flex items-center justify-center cursor-pointer transition-colors"

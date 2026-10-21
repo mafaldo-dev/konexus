@@ -1,13 +1,14 @@
 # Konéxus — Sistema de Gestão Empresarial
 
-## Release 1.4.1
+## Release 1.4.2
 
-Multi-CNPJ por organização, com CNPJ emissor validado, isolamento operacional,
-logos versionados e preservação histórica do emissor. A migração aditiva 013 foi
-aplicada no Neon após backup completo e o backend 1.4.1 está publicado. Escopo e
-limites: [notas da release](docs/releases/1.4.1.md). Execução e verificação:
-[PUBLICACAO_1.4.1](docs/PUBLICACAO_1.4.1.md). A publicação da 1.4.0 permanece
-documentada em [PUBLICACAO_1.4.0](docs/PUBLICACAO_1.4.0.md).
+Permissões por módulo, tela e operação, CNPJ explícito por colaborador,
+administrador limitado aos módulos contratados, proteção das contas
+administrativas e atualização imediata de revogações. A migração aditiva 014 foi
+aplicada no Neon após backup completo validado. Escopo, compatibilidade e
+resultados: [notas da release](docs/releases/1.4.2.md). Execução e verificação:
+[PUBLICACAO_1.4.2](docs/PUBLICACAO_1.4.2.md). A publicação da 1.4.1 permanece
+documentada em [PUBLICACAO_1.4.1](docs/PUBLICACAO_1.4.1.md).
 
 ## Evolução dos quatro módulos
 
@@ -210,12 +211,12 @@ node run_migration.js migrations/009_order_conference.sql
 
 ```bash
 # frontend
-npm run test:frontend          # 71 testes
+npm run test:frontend          # 78 testes
 npm test -- --watchAll=false
 
 # backend
 cd ../konexus-back
-npm test                       # 110 testes
+npm test                       # 142 testes no relatório completo
 ```
 
 ### 4.5 Auditorias automatizadas
@@ -320,6 +321,7 @@ konexus/
 | Documento | Onde | Conteúdo |
 | --- | --- | --- |
 | Módulos e comercial | [`docs/MODULOS_E_COMERCIAL.md`](docs/MODULOS_E_COMERCIAL.md) | Freemium x extras, permissões, Multiempresa |
+| Permissões e CNPJs | [`docs/PERMISSOES_E_CNPJ.md`](docs/PERMISSOES_E_CNPJ.md) | Administrador principal, matriz, reautenticação, auditoria e migração 014 |
 | Módulo de contabilidade | [`docs/MODULO_CONTABILIDADE.md`](docs/MODULO_CONTABILIDADE.md) | Escopo, telas, seed, substituir o plano de contas |
 | Releases | [`docs/RELEASES.md`](docs/RELEASES.md) | Versionamento e publicação |
 | Fluxo de atualização | [`docs/UPDATE_FLOW.md`](docs/UPDATE_FLOW.md) | `electron-updater` ponta a ponta |

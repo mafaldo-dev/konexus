@@ -21,6 +21,7 @@ import {
   OrderPaymentDashboard,
 } from '../../../../services/financialService';
 import { formatCurrency } from '../../../../utils/formatters';
+import { useAuth } from '../../../../AuthContext';
 
 
 // Interface para as colunas
@@ -29,6 +30,10 @@ interface ColumnsMap {
 }
 
 export const OverviewTab: React.FC = () => {
+  const { hasPermission } = useAuth();
+  const canCreatePayment = hasPermission("finance", "create");
+  const canApprovePayment = hasPermission("finance", "approve");
+  const canReleaseOrder = hasPermission("vendas", "edit");
   const [activeSubTab, setActiveSubTab] = useState<"contas-receber" | "contas-pagar" | "pedidos">("contas-receber");
   const [modalOpen, setModalOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -236,12 +241,17 @@ export const OverviewTab: React.FC = () => {
 
   // Configurar colunas com tipo correto
   const columns: ColumnsMap = {
-    "contas-receber": getContasReceberColumns({ handleMarkAsPaid }),
+    "contas-receber": getContasReceberColumns({
+      handleMarkAsPaid,
+      canMarkAsPaid: canApprovePayment,
+    }),
     "contas-pagar": getContasPagarColumns(),
-    "pedidos": getPedidosColumns({ 
-      handleLoadCustomerOrders, 
-      pedidos, 
-      setPedidos 
+    "pedidos": getPedidosColumns({
+      handleLoadCustomerOrders,
+      pedidos,
+      setPedidos,
+      canCancelPayment: canApprovePayment,
+      canReleaseOrder,
     })
   };
   
@@ -313,6 +323,7 @@ export const OverviewTab: React.FC = () => {
             onCreateClick={() => setCreateModalOpen(true)}
             onReportClick={() => setReportModalOpen(true)}
             onExportClick={handleExportData}
+            canCreate={canCreatePayment}
           />
         </div>
       </div>

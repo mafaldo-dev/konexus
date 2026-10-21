@@ -189,6 +189,17 @@ export interface PasswordResetEvent {
   completed_at: string | null;
 }
 
+export interface CollaboratorLegalEntityAccess {
+  id: number;
+  legalName: string;
+  tradeName: string | null;
+  cnpj: string | null;
+  cnpjFormatted: string | null;
+  status: "active" | "inactive" | "regularization";
+  isPrimary: boolean;
+  granted: boolean;
+}
+
 export interface CollaboratorPermissionsDetail {
   collaborator: {
     id: number;
@@ -201,6 +212,8 @@ export interface CollaboratorPermissionsDetail {
   rolePermissions: PermissionGroup[];
   overrides: Array<{ moduleKey: string; actionKey: string; allowed: boolean }>;
   effectivePermissions: PermissionGroup[];
+  legalEntities: CollaboratorLegalEntityAccess[];
+  legalEntityIds: number[];
 }
 
 export interface CreateCollaboratorPayload {
@@ -210,6 +223,7 @@ export interface CreateCollaboratorPayload {
   sector?: string;
   forcePasswordChange?: boolean;
   permissions?: PermissionGroup[];
+  legalEntityIds?: number[];
 }
 
 export interface UpdateCollaboratorPayload {
@@ -394,10 +408,14 @@ export async function getCollaboratorPermissions(
 
 export async function updateCollaboratorPermissions(
   id: number,
-  permissions: PermissionGroup[]
+  permissions: PermissionGroup[] | undefined,
+  legalEntityIds?: number[]
 ): Promise<ApiResponse<CollaboratorPermissionsDetail>> {
+  const payload: { permissions?: PermissionGroup[]; legalEntityIds?: number[] } = {};
+  if (permissions !== undefined) payload.permissions = permissions;
+  if (legalEntityIds !== undefined) payload.legalEntityIds = legalEntityIds;
   return unwrap(
-    await apiClient.put(`collaborators/${id}/permissions`, { permissions }),
+    await apiClient.put(`collaborators/${id}/permissions`, payload),
     (body) => body?.data
   );
 }

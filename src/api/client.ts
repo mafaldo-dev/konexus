@@ -17,6 +17,32 @@ import { getReauthHandler } from "./reauth";
 
 const STATION_TOKEN_KEY = "konexus.stationToken";
 
+/**
+ * Códigos que indicam que cargo, permissões, módulos ou CNPJs podem ter
+ * mudado. A sessão é recarregada para atualizar menus, rotas e o seletor.
+ */
+const ACCESS_CHANGED_CODES = new Set([
+  "PERMISSION_DENIED",
+  "MODULE_NOT_AVAILABLE",
+  "MODULE_NOT_CONTRACTED",
+  "NO_MODULES",
+  "ROLE_INACTIVE",
+  "COMPANY_ADMIN_REQUIRED",
+  "LEGAL_ENTITY_FORBIDDEN",
+  "LEGAL_ENTITY_INACTIVE",
+  "LEGAL_ENTITY_REQUIRED",
+  "LEGAL_ENTITY_EXPLICIT_REQUIRED",
+  "LEGAL_ENTITY_REGULARIZATION",
+]);
+
+function notifyAccessChanged(code: string | null | undefined, endpoint: string) {
+  if (!code || typeof window === "undefined") return;
+  if (endpoint.replace(/^\/+/, "").startsWith("login/session")) return;
+  if (ACCESS_CHANGED_CODES.has(code)) {
+    window.dispatchEvent(new Event("konexus:access-changed"));
+  }
+}
+
 export interface ApiResponse<T = any> {
   data: T | null;
   error: string | null;
@@ -224,6 +250,8 @@ export async function apiRequest<T = any>(
         }
       }
 
+      const code = responseBody?.code || null;
+      notifyAccessChanged(code, endpoint);
       return {
         data: null,
         error:
@@ -231,7 +259,7 @@ export async function apiRequest<T = any>(
           responseBody?.error ||
           "Você não possui acesso a este recurso.",
         status: 403,
-        code: responseBody?.code || null,
+        code,
         ok: false,
       };
     }
@@ -251,6 +279,8 @@ export async function apiRequest<T = any>(
 
     // Erros de servidor ou requisição mal formada
     if (!response.ok) {
+      const code = responseBody?.code || null;
+      notifyAccessChanged(code, endpoint);
       return {
         data: null,
         error:
@@ -258,7 +288,7 @@ export async function apiRequest<T = any>(
           responseBody?.error ||
           `Erro HTTP ${response.status}`,
         status: response.status,
-        code: responseBody?.code || null,
+        code,
         ok: false,
       };
     }

@@ -12,9 +12,12 @@ import { usePurchaseData } from '../../../hooks/_manager/usePurchaseData';
 import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter';
 import ReturnsPage from '../returns';
 import { listPurchaseOrders, createPurchaseOrder } from '../../../services/purchaseService';
+import { useAuth } from '../../../AuthContext';
 import Swal from 'sweetalert2';
 
 export default function PurchaseManagementScreen() {
+  const { hasPermission } = useAuth();
+  const canCreatePurchase = hasPermission('compras', 'create');
   const [activeTab, setActiveTab] = useState<'stock' | 'request' | 'quote' | 'returns'>('stock');
   const { products, suppliers, isLoading } = usePurchaseData();
   const [selectedProducts, setSelectedProducts] = useState<Products[]>([]);
@@ -121,14 +124,16 @@ export default function PurchaseManagementScreen() {
             )}
           </button>
 
-          <button onClick={() => setActiveTab('request')} className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'request' ? 'border-slate-600 text-slate-700' : 'border-transparent text-slate-400'}`}>
-            Nova requisição
-            {selectedProducts.length > 0 && (
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                {selectedProducts.length}
-              </span>
-            )}
-          </button>
+          {canCreatePurchase && (
+            <button onClick={() => setActiveTab('request')} className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'request' ? 'border-slate-600 text-slate-700' : 'border-transparent text-slate-400'}`}>
+              Nova requisição
+              {selectedProducts.length > 0 && (
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                  {selectedProducts.length}
+                </span>
+              )}
+            </button>
+          )}
 
           <button onClick={() => setActiveTab('quote')} className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'quote' ? 'border-slate-600 text-slate-700' : 'border-transparent text-slate-400'}`}>
             Cotações
@@ -161,7 +166,7 @@ export default function PurchaseManagementScreen() {
               onToggleProduct={toggleProductSelection}
               isLoading={isLoading}
             />
-            {selectedProducts.length > 0 && (
+            {canCreatePurchase && selectedProducts.length > 0 && (
               <button
                 onClick={goToRequestTab}
                 className="fixed bottom-6 right-6 flex items-center justify-center w-14 h-14 rounded-full bg-slate-700 text-white shadow-lg hover:bg-slate-800 transition"
@@ -173,7 +178,7 @@ export default function PurchaseManagementScreen() {
           </>
         )}
 
-        {activeTab === 'request' && (
+        {activeTab === 'request' && canCreatePurchase && (
           <PurchaseOrderForm
             supplierData={suppliers}
             onSubmitOrder={handleCreateRequest}

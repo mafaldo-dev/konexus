@@ -10,12 +10,16 @@ interface PedidosColumnsProps {
   handleLoadCustomerOrders: (customerId: number, customerName: string) => void;
   pedidos: OrderResponse[];
   setPedidos: (pedidos: OrderResponse[]) => void;
+  canCancelPayment?: boolean;
+  canReleaseOrder?: boolean;
 }
 
 export const getPedidosColumns = ({
   handleLoadCustomerOrders,
   pedidos,
-  setPedidos
+  setPedidos,
+  canCancelPayment = false,
+  canReleaseOrder = false
 }: PedidosColumnsProps) => [
     {
       key: 'orderNumber',
@@ -120,7 +124,7 @@ export const getPedidosColumns = ({
                   Ver Pedidos do Cliente
                 </button>
                 
-                {pedido.payment?.status === 'paid' && (
+                {pedido.payment?.status === 'paid' && canCancelPayment && (
                   <div className="border-t border-gray-100">
                     <button
                       onClick={() => FinancialService.cancelPayment(pedido.id)}
@@ -131,19 +135,21 @@ export const getPedidosColumns = ({
                   </div>
                 )}
 
-                <div className="border-t border-gray-100">
-                  <button
-                    onClick={() => FinancialService.updateOrderStatus(
-                      pedido.id,
-                      pedido.orderStatus,
-                      pedidos,
-                      setPedidos
-                    )}
-                    className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:text-blue-500 hover:bg-blue-50"
-                  >
-                    Liberar Pedido
-                  </button>
-                </div>
+                {canReleaseOrder && (
+                  <div className="border-t border-gray-100">
+                    <button
+                      onClick={() => FinancialService.updateOrderStatus(
+                        pedido.id,
+                        pedido.orderStatus,
+                        pedidos,
+                        setPedidos
+                      )}
+                      className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:text-blue-500 hover:bg-blue-50"
+                    >
+                      Liberar Pedido
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

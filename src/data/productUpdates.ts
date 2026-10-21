@@ -71,6 +71,27 @@ export const UPDATE_MODULE_LABELS: Record<ProductUpdateModuleKey, string> = {
  */
 export const PRODUCT_UPDATES: ProductUpdate[] = [
   {
+    id:'1.4.2-permissoes-por-tela', module:'gestao', version:'1.4.2',
+    title:'Permissões por tela e por operação',
+    description:'Cada colaborador recebe somente os módulos, telas e ações necessários. A matriz é carregada do servidor e módulos não contratados ficam bloqueados.',
+    releasedAt:'2026-10-21', visibility:'standard', status:'published',
+    evidence:'Release 1.4.2 e teste de autorização no backend',
+  },
+  {
+    id:'1.4.2-cnpj-por-colaborador', module:'gestao', version:'1.4.2',
+    title:'Cada colaborador vê apenas os CNPJs autorizados',
+    description:'O administrador escolhe os CNPJs de cada pessoa na tela de permissões. Acesso cruzado entre CNPJs ou organizações é recusado no servidor.',
+    releasedAt:'2026-10-21', visibility:'standard', status:'published',
+    evidence:'Testes de vínculo explícito, troca de CNPJ e isolamento de organização',
+  },
+  {
+    id:'1.4.2-protecao-administrador', module:'gestao', version:'1.4.2',
+    title:'Conta administrativa protegida',
+    description:'Outro administrador não altera, remove ou desativa a conta administrativa. A organização mantém ao menos um administrador ativo.',
+    releasedAt:'2026-10-21', visibility:'standard', status:'published',
+    evidence:'Testes de proteção administrativa e último administrador ativo',
+  },
+  {
     id:'1.4.1-escolha-cnpj', module:'gestao', version:'1.4.1',
     title:'Escolha o CNPJ de cada operação',
     description:'Organizações autorizadas podem alternar entre CNPJs e conferir o emissor antes de concluir pedidos, compras, notas e lançamentos.',

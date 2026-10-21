@@ -72,4 +72,6 @@ export interface AuthContextType {
   activeLegalEntity: LegalEntity | null;
   setActiveLegalEntity: (entity: LegalEntity) => void;
   refreshLegalEntities: () => Promise<LegalEntity[]>;
+  /** Recarrega cargo, permissões, módulos e CNPJs do backend. */
+  refreshSession: () => Promise<void>;
 }

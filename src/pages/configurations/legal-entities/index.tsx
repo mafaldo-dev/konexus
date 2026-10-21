@@ -69,7 +69,7 @@ function Field({ label, children, hint }: { label: string; children: React.React
 }
 
 export default function LegalEntitiesPage() {
-  const { isCompanyAdmin, user } = useAuth();
+  const { isCompanyAdmin } = useAuth();
   const [entities, setEntities] = useState<LegalEntity[]>([]);
   const [capacity, setCapacity] = useState<LegalEntityCapacity | null>(null);
   const [requests, setRequests] = useState<LegalEntityRequest[]>([]);
@@ -90,7 +90,7 @@ export default function LegalEntitiesPage() {
   const [supportNotes, setSupportNotes] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const canManage = Boolean(isCompanyAdmin) || user?.role === "Administrador";
+  const canManage = Boolean(isCompanyAdmin);
 
   const load = async () => {
     try {
