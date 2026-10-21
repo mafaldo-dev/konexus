@@ -43,6 +43,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const invalid = () => {
+      setUser(null); setCompany(null); setToken(null); setModules([]);
+      setPermissions([]); setIsCompanyAdmin(false); setMustChangePassword(false);
+      navigate('/');
+    };
+    window.addEventListener('konexus:session-invalid', invalid);
+    return () => window.removeEventListener('konexus:session-invalid', invalid);
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!token || mustChangePassword) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const interval = Math.max(30000, Number(process.env.REACT_APP_HEARTBEAT_MS) || 60000);
+    const communicate = async () => {
+      if (stopped || localStorage.getItem('token') !== token) return;
+      const response = await apiClient.post('devices/heartbeat', undefined, { token, reauth: false });
+      if (!stopped && response.status !== 401) timer = setTimeout(communicate, interval);
+    };
+    const start = async () => {
+      if (window.ipcRenderer) {
+        try {
+          const installation = await window.ipcRenderer.invoke('get_installation');
+          if (stopped) return;
+          const registered = await apiClient.post('devices/register', installation, { token, reauth: false });
+          if (!registered.ok) {
+            if (!stopped && [0,408,503].includes(registered.status)) {
+              timer = setTimeout(start, interval);
+              return;
+            }
+            if (!stopped) await Swal.fire('Rastreabilidade indisponível', registered.error || 'Falha ao registrar computador.', 'error');
+            return;
+          }
+        } catch {
+          if (!stopped) await Swal.fire('Identificação indisponível', 'Não foi possível ler a identidade local da instalação.', 'error');
+          return;
+        }
+      }
+      if (!stopped) void communicate();
+    };
+    void start();
+    return () => { stopped = true; clearTimeout(timer); };
+  }, [token, mustChangePassword]);
+
   const hasModule = (moduleKey: string): boolean => {
     const moduleKeyFromMenu = mapMenuKeyToModule(moduleKey);
     return modules.includes(moduleKeyFromMenu);
@@ -131,8 +176,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (storedUser && storedToken) {
         try {
+          const current = await apiClient.get('login/session', { token: storedToken, reauth: false });
+          if (!current.ok) {
+            setLoading(false);
+            return;
+          }
           const userData: UserInfo = JSON.parse(storedUser);
-          const storedPermissions = readStoredPermissions(storedUser);
+          Object.assign(userData, current.data?.user);
+          const storedPermissions = Array.isArray(current.data?.user?.permissions)
+            ? current.data.user.permissions : readStoredPermissions(storedUser);
           setUser(userData);
           setToken(storedToken);
           setPermissions(storedPermissions);
@@ -143,7 +195,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const companyData = JSON.parse(storedCompany);
             setCompany(companyData);
 
-            if (storedModules) {
+            if (Array.isArray(current.data?.user?.modules)) {
+              setModules(current.data.user.modules);
+            } else if (storedModules) {
               setModules(JSON.parse(storedModules));
             } else if (companyData.modules) {
               setModules(companyData.modules);
@@ -307,6 +361,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Identifica a instalacao antes de liberar a interface e executar operacoes.
+      if (window.ipcRenderer && !userMustChangePassword) {
+        const installation = await window.ipcRenderer.invoke('get_installation');
+        const registered = await apiClient.post('devices/register', installation, { token:authToken, reauth:false });
+        if (!registered.ok) {
+          await apiClient.post('login/logout', undefined, {token:authToken,reauth:false});
+          await Swal.fire('Computador não registrado', registered.error || 'Tente novamente.', 'error');
+          return;
+        }
+      }
+
       // Persiste a sessão antes de qualquer chamada autenticada.
       setUser(userData);
       setCompany(companyData);
@@ -355,6 +420,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async (status?: boolean) => {
+    setToken(null); // Interrompe presenca antes de iniciar o logout remoto.
     try {
       if (user?.id && !mustChangePassword) {
         const tokenFromStorage = localStorage.getItem("token");

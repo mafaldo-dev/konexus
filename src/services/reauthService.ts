@@ -28,6 +28,7 @@ export async function requestReauthGrant(input: {
   password: string;
   intent: ReauthIntent;
   payload?: unknown;
+  token?: string;
 }): Promise<ReauthGrantResponse> {
   const response = await apiRequest<{
     grantId: string;
@@ -40,7 +41,7 @@ export async function requestReauthGrant(input: {
     password: input.password,
     intent: input.intent,
     payload: input.payload ?? null,
-  }, { reauth: false });
+  }, { reauth: false, token: input.token, headers: input.intent.correlationId ? { 'X-Correlation-Id': input.intent.correlationId } : {} });
 
   if (!response.ok || !response.data) {
     return {

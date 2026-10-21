@@ -1,5 +1,36 @@
 # Konéxus — Sistema de Gestão Empresarial
 
+## Release 1.4.0
+
+Publicação solicitada e produção autorizada posteriormente pelo usuário. Migrações
+011/012 aplicadas após backup; backend enviado ao GitHub. Acompanhe a execução em
+[PUBLICACAO_1.4.0](docs/PUBLICACAO_1.4.0.md). Os relatórios M1/anteriores abaixo
+descrevem o estado histórico antes dessa autorização.
+
+## Evolução dos quatro módulos
+
+[Plano e matriz de lacunas](docs/EVOLUCAO_QUATRO_MODULOS.md) ·
+[Entrega incremental M1 e testes](docs/ENTREGA_MODULOS_M1.md).
+
+O CRM agora possui uma base persistente de leads, oportunidades e atividades, usando
+a migração backend `012_crm_pipeline.sql`. A evolução completa dos quatro módulos
+e a publicação da próxima release ainda estão em andamento; não confundir esta
+entrega incremental com folha homologada, integração fiscal ou ERP integralmente validado.
+
+## Auditoria e rastreabilidade — outubro/2026
+
+Implementação em andamento, com validações locais e pendências E2E explícitas:
+
+- [Diagnóstico](docs/AUDITORIA_2026.md)
+- [Inventário de rotas e entidades SQL](docs/MATRIZ_ROTAS_2026.md)
+- [Arquitetura de computadores, sessões e migração 011](docs/RASTREABILIDADE_COMPUTADORES.md)
+- [Relatório de execução e limitações](docs/RESULTADOS_AUDITORIA_2026.md)
+
+Identificação Electron por UUID em userData, painel de computadores/sessões,
+heartbeat e revogação exigem a migração aditiva 011 no backend. Ela foi aplicada
+somente no PostgreSQL temporário de testes, não no ambiente configurado no `.env`.
+As métricas históricas abaixo não substituem os resultados desta auditoria.
+
 Konéxus é um ERP desktop (Electron + React + TypeScript) para gestão de vendas,
 compras, estoque, RH, financeiro, contabilidade e CRM. É multiempresa, com
 controle de acesso por módulo e ação, trilha de auditoria append-only e

@@ -131,10 +131,10 @@ const SearchProducts = () => {
   };
 
   useEffect(() => {
-    const isElectron = typeof (window as any).require !== 'undefined';
+    const isElectron = Boolean(window.ipcRenderer);
 
     if (isElectron) {
-      const { ipcRenderer } = (window as any).require('electron');
+      const ipcRenderer = window.ipcRenderer!;
 
       const handleF4Shortcut = () => {
         if (selectedProduct && hasMenuPermission) {

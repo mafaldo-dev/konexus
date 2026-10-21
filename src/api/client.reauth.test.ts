@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { apiRequest, apiRequestBlob } from "./client";
 import { setReauthHandler } from "./reauth";
 
 /**
@@ -13,6 +13,7 @@ describe("fluxo de reautenticacao do cliente HTTP", () => {
     global.fetch = originalFetch;
     setReauthHandler(null);
     jest.restoreAllMocks();
+    localStorage.clear();
   });
 
   function mockFetch(responses: Array<{ status: number; body: any }>) {
@@ -42,6 +43,7 @@ describe("fluxo de reautenticacao do cliente HTTP", () => {
           code: "REAUTH_REQUIRED",
           message: "Confirme sua identidade para concluir esta alteração.",
           reauth: {
+            correlationId: '8aa94a0a-5232-4d75-bd92-dca673c62574',
             moduleKey: "vendas",
             action: "update",
             entityType: "order",
@@ -71,7 +73,34 @@ describe("fluxo de reautenticacao do cliente HTTP", () => {
 
     const headers = (calls[1].init.headers || {}) as Record<string, string>;
     expect(headers["X-Reauth-Grant"]).toBe("grant-123");
+    expect(headers['X-Correlation-Id']).toBe('8aa94a0a-5232-4d75-bd92-dca673c62574');
     expect(calls[1].init.body).toBe(JSON.stringify({ orderStatus: "approved" }));
+  });
+
+  it('401 autenticado invalida contexto, mas senha incorreta não encerra sessão', async () => {
+    localStorage.setItem('token','current');
+    mockFetch([{status:401,body:{}}]);
+    const listener=jest.fn();
+    window.addEventListener('konexus:session-invalid',listener);
+    await apiRequest('audit/reauth','POST',{password:'wrong'});
+    expect(localStorage.getItem('token')).toBe('current');
+    await apiRequest('orders/all');
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener('konexus:session-invalid',listener);
+  });
+
+  it('401 atrasado de sessão anterior não encerra nova sessão', async () => {
+    localStorage.setItem('token','new');
+    mockFetch([{status:401,body:{}}]);
+    await apiRequest('orders/all','GET',undefined,{token:'old'});
+    expect(localStorage.getItem('token')).toBe('new');
+  });
+
+  it('download mantém bytes como Blob', async () => {
+    const blob=new Blob(['PDF bytes']);
+    global.fetch=jest.fn(async()=>({ok:true,status:200,blob:async()=>blob})) as any;
+    expect((await apiRequestBlob('report')).data).toBe(blob);
   });
 
   it("nao repete a requisicao quando o usuario cancela", async () => {

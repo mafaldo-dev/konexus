@@ -1,5 +1,11 @@
 # Histórico de versões do Konexus
 
+## 1.4.0 — 21/10/2026
+
+CRM persistente, computadores/sessões e correções de integridade financeira,
+estoque, autenticação e IPC. Escopo e limitações: [notas da release](releases/1.4.0.md).
+Requer backend 1.4.0 e migrações 011/012; publicação condicionada à prontidão do backend.
+
 Este documento guarda o histórico técnico do produto (usado por
 desenvolvimento e auditoria) e explica como ele virou o histórico de
 novidades exibido ao cliente em **Últimas Atualizações**.

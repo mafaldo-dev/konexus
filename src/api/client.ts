@@ -38,6 +38,7 @@ interface ClientOptions {
   reauth?: boolean;
   /** Uso interno: impede laco infinito de reautenticacao. */
   __reauthAttempted?: boolean;
+  asBlob?: boolean;
 }
 
 /**
@@ -134,7 +135,7 @@ export async function apiRequest<T = any>(
   }
 
   // Estacao de trabalho da sessao (rotulo do ambiente, nunca prova de identidade).
-  if (typeof localStorage !== "undefined" && !headers["X-Station-Token"]) {
+  if (typeof localStorage !== "undefined" && !window.ipcRenderer && !headers["X-Station-Token"]) {
     const stationToken = localStorage.getItem(STATION_TOKEN_KEY);
     if (stationToken) {
       headers["X-Station-Token"] = stationToken;
@@ -157,15 +158,18 @@ export async function apiRequest<T = any>(
 
     clearTimeout(timeoutId);
 
-    const responseBody = await readBody(response, false);
+    const responseBody = await readBody(response, Boolean(options.asBlob && response.ok));
 
     // 401: sessão inválida/expirada
     if (response.status === 401) {
-      if (typeof localStorage !== "undefined") {
+      if (!endpoint.replace(/^\/+/, '').startsWith('login/auth') &&
+          endpoint.replace(/^\/+/, '') !== 'audit/reauth' && cleanToken &&
+          typeof localStorage !== "undefined" && localStorage.getItem('token') === cleanToken) {
         localStorage.removeItem("token");
         localStorage.removeItem("userData");
         localStorage.removeItem("companyData");
         localStorage.removeItem("companyModules");
+        window.dispatchEvent(new Event('konexus:session-invalid'));
       }
       return {
         data: null,
@@ -187,12 +191,14 @@ export async function apiRequest<T = any>(
       if (needsReauth) {
         const handler = getReauthHandler();
         if (handler) {
-          const grantId = await handler(responseBody.reauth, body);
+            const correlationId = responseBody.reauth?.correlationId || response.headers?.get?.('X-Correlation-Id');
+            const grantId = await handler({ ...responseBody.reauth, correlationId }, body, cleanToken);
           if (grantId) {
             return apiRequest<T>(endpoint, method, body, {
               ...options,
               __reauthAttempted: true,
-              headers: { ...extraHeaders, "X-Reauth-Grant": grantId },
+               headers: { ...extraHeaders, "X-Reauth-Grant": grantId,
+                 ...(correlationId ? { 'X-Correlation-Id': correlationId } : {}) },
             });
           }
         }
@@ -278,6 +284,7 @@ export async function apiRequestBlob(
 ): Promise<ApiResponse<Blob>> {
   return apiRequest<Blob>(endpoint, method, body, {
     ...options,
+    asBlob: true,
   }) as Promise<ApiResponse<Blob>>;
 }
 

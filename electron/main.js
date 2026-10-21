@@ -3,6 +3,8 @@ const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 const fs = require("fs");
+const { loadInstallation } = require('./installation');
+let installation;
 const {
   DEFAULT_ARTIFACT_NAME_TEMPLATE,
   DEFAULT_PRODUCT_NAME,
@@ -38,6 +40,11 @@ let manualUpdateCheck = false;
 let lastUpdateErrorAt = 0;
 let automaticDownloadTimer = null;
 let updateDownloadPromise = null;
+
+function trustedSender(event) {
+  return mainWindow && !mainWindow.isDestroyed() && event.sender === mainWindow.webContents &&
+    event.senderFrame === mainWindow.webContents.mainFrame;
+}
 
 function sendToRenderer(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -149,19 +156,23 @@ function startNetworkMonitor(win) {
   const dns = require("dns");
   let lastOnline = true;
 
-  setInterval(() => {
+  const timer = setInterval(() => {
     dns.resolve("google.com", (err) => {
       const online = !err;
-      if (online !== lastOnline) {
+      if (!win.isDestroyed() && online !== lastOnline) {
         lastOnline = online;
         win.webContents.send("network-status", online);
       }
     });
   }, 3000);
+  win.once('closed', () => clearInterval(timer));
 }
 
 // ✅ HANDLER PARA SALVAR EXCEL
-ipcMain.on("save-excel-file", async (event, { fileName, buffer }) => {
+ipcMain.on("save-excel-file", async (event, payload) => {
+  const { fileName, buffer } = payload || {};
+  if (!trustedSender(event) || typeof fileName !== 'string' || fileName.length > 200 ||
+      path.basename(fileName) !== fileName || !buffer || buffer.byteLength > 50 * 1024 * 1024) return;
   try {
     const { filePath, canceled } = await dialog.showSaveDialog({
       title: 'Salvar Relatório Excel',
@@ -199,26 +210,30 @@ function createWindow() {
     minWidth: 1360,
     minHeight: 768,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false, 
-      webSecurity: false,
-      enableRemoteModule: true, 
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  win.webContents.on('did-finish-load', () => {
-    win.webContents.executeJavaScript(`
-      if (typeof window !== 'undefined' && typeof require !== 'undefined') {
-        window.ipcRenderer = require('electron').ipcRenderer;
-      }
-    `);
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    // DANFE/relatorios e links HTTPS abrem sem preload nem privilegios Node.
+    if (!url.startsWith('https://') && !url.startsWith('blob:')) return { action: 'deny' };
+    return { action: 'allow', overrideBrowserWindowOptions: {
+      webPreferences: { nodeIntegration:false, contextIsolation:true, sandbox:true, webSecurity:true, preload:'' },
+    } };
+  });
+  win.webContents.on('will-navigate', (event, url) => {
+    if (url.split('#')[0] !== win.webContents.getURL().split('#')[0]) event.preventDefault();
   });
 
   win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
     log.error('Failed to load:', errorCode, errorDescription);
   });
 
-  if (process.env.NODE_ENV === 'development') {
+  if (!app.isPackaged) {
     win.loadURL('http://localhost:3000');
     win.webContents.openDevTools();
   } else {
@@ -241,8 +256,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
-  app.commandLine.appendSwitch('disable-site-isolation-trials');
+  installation = loadInstallation(app.getPath('userData'));
 
   mainWindow = createWindow();
   startNetworkMonitor(mainWindow);
@@ -277,13 +291,11 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
 
-app.on('certificate-error', (event, url, callback) => {
-  if (url.startsWith('https://backend-oi68.onrender.com')) {
-    event.preventDefault();
-    callback(true);
-  } else {
-    callback(false);
-  }
+ipcMain.handle('get_installation', (event) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents ||
+      event.senderFrame !== mainWindow.webContents.mainFrame) throw new Error('Origem IPC inválida');
+  return { ...installation, platform: process.platform, arch: process.arch,
+    electronVersion: process.versions.electron, appVersion: app.getVersion() };
 });
 
 // Eventos do autoUpdater
@@ -386,14 +398,19 @@ autoUpdater.on('update-downloaded', (info) => {
   });
 });
 
-ipcMain.handle('get_update_status', () => updateState);
+ipcMain.handle('get_update_status', (event) => {
+  if (!trustedSender(event)) throw new Error('Origem IPC inválida');
+  return updateState;
+});
 
-ipcMain.on('check_for_update', () => {
+ipcMain.on('check_for_update', (event) => {
+  if (!trustedSender(event)) return;
   clearAutomaticDownload();
   startUpdateCheck(true);
 });
 
-ipcMain.on('restart_app', () => {
+ipcMain.on('restart_app', (event) => {
+  if (!trustedSender(event)) return;
   clearAutomaticDownload();
   if (updateState.status === 'downloaded') {
     autoUpdater.quitAndInstall();
@@ -404,7 +421,8 @@ ipcMain.on('restart_app', () => {
 
 // O renderer não envia URL, nome de arquivo nem tag. A seleção do asset e a
 // resolução da URL oficial ficam no processo principal/electron-updater.
-ipcMain.on('download_update', () => {
+ipcMain.on('download_update', (event) => {
+  if (!trustedSender(event)) return;
   log.info('Download de atualização solicitado pela interface');
   startUpdateDownload('manual');
 });

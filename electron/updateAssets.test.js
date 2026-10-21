@@ -458,7 +458,7 @@ test('o processo principal só inicia o download pelo updater, sem URL do render
   assert.match(mainSource, /autoUpdater\.allowPrerelease\s*=\s*false/);
   assert.match(mainSource, /autoUpdater\s*\.checkForUpdates\(\)/);
   assert.match(mainSource, /selectWindowsInstallerFromUpdateInfo/);
-  assert.match(mainSource, /ipcMain\.on\(['"]download_update['"],\s*\(\)\s*=>\s*\{/);
+  assert.match(mainSource, /ipcMain\.on\(['"]download_update['"],\s*\(event\)\s*=>\s*\{\s*if \(!trustedSender\(event\)\) return;/);
   assert.match(mainSource, /startUpdateDownload\(/);
   assert.match(mainSource, /if \(updateDownloadPromise\)/);
   assert.match(mainSource, /scheduleAutomaticDownload/);

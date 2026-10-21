@@ -31,10 +31,10 @@ function useAutoUpdater() {
   const updateAssetRef = useRef<UpdateAsset | undefined>(undefined);
 
   useEffect(() => {
-    const isElectron = typeof (window as any).require !== "undefined";
+    const isElectron = Boolean(window.ipcRenderer);
     if (!isElectron) return;
 
-    const { ipcRenderer } = (window as any).require("electron");
+    const ipcRenderer = window.ipcRenderer!;
 
     const applyStatus = (state: UpdateState) => {
       if (!state || typeof state.status !== "string") return;
@@ -152,10 +152,10 @@ const LoginPage: React.FC = () => {
   }, [updateState.status]);
 
   useEffect(() => {
-    const isElectron = typeof (window as any).require !== 'undefined';
+    const isElectron = Boolean(window.ipcRenderer);
 
     if (isElectron) {
-      const { ipcRenderer } = (window as any).require('electron');
+      const ipcRenderer = window.ipcRenderer!;
 
       const handleF1Shortcut = () => {
         setShowAdminLogin(true);
@@ -220,9 +220,9 @@ const LoginPage: React.FC = () => {
   };
 
   const restartForUpdate = () => {
-    const isElectron = typeof (window as any).require !== "undefined";
+    const isElectron = Boolean(window.ipcRenderer);
     if (isElectron) {
-      const { ipcRenderer } = (window as any).require("electron");
+      const ipcRenderer = window.ipcRenderer!;
       ipcRenderer.send("restart_app");
     }
   };
@@ -231,9 +231,9 @@ const LoginPage: React.FC = () => {
     setRetryingUpdate(true);
     setUpdateDismissed(false);
 
-    const isElectron = typeof (window as any).require !== "undefined";
+    const isElectron = Boolean(window.ipcRenderer);
     if (isElectron) {
-      const { ipcRenderer } = (window as any).require("electron");
+      const ipcRenderer = window.ipcRenderer!;
       ipcRenderer.send("check_for_update");
     }
   };
@@ -244,10 +244,10 @@ const LoginPage: React.FC = () => {
   };
 
   const downloadUpdate = () => {
-    const isElectron = typeof (window as any).require !== "undefined";
+    const isElectron = Boolean(window.ipcRenderer);
     if (!isElectron) return;
 
-    const { ipcRenderer } = (window as any).require("electron");
+    const ipcRenderer = window.ipcRenderer!;
     // O processo principal resolve o asset e a URL oficial. O renderer não
     // envia URL, tag ou nome de arquivo.
     ipcRenderer.send("download_update");

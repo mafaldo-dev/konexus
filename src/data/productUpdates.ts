@@ -71,6 +71,27 @@ export const UPDATE_MODULE_LABELS: Record<ProductUpdateModuleKey, string> = {
  */
 export const PRODUCT_UPDATES: ProductUpdate[] = [
   {
+    id:'1.4.0-crm-persistente', module:'crm', version:'1.4.0',
+    title:'Leads, oportunidades e atividades com histórico',
+    description:'Organize oportunidades no funil, qualifique leads e acompanhe atividades. As alterações ficam salvas com histórico por empresa.',
+    releasedAt:'2026-10-21', visibility:'contract', status:'published',
+    evidence:'Integração HTTP/PostgreSQL e release 1.4.0',
+  },
+  {
+    id:'1.4.0-computadores-sessoes', module:'gestao', version:'1.4.0',
+    title:'Computadores e sessões identificados',
+    description:'Consulte os computadores utilizados, a última comunicação e as sessões. Administradores autorizados podem nomear estações e revogar acessos.',
+    releasedAt:'2026-10-21', visibility:'standard', status:'published',
+    evidence:'Testes de persistência e isolamento de instalações e sessões',
+  },
+  {
+    id:'1.4.0-baixa-financeira', module:'finance', version:'1.4.0',
+    title:'Proteção contra baixa duplicada',
+    description:'A baixa de um recebimento já liquidado é recusada, inclusive em operações simultâneas. A consulta financeira por cliente também foi corrigida.',
+    releasedAt:'2026-10-21', visibility:'standard', status:'published',
+    evidence:'Teste PostgreSQL de baixa concorrente e consulta por cliente',
+  },
+  {
     id: "1.3.3-entrada-e-saida-sem-confirmacao",
     module: "gestao",
     version: "1.3.3",

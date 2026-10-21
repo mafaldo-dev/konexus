@@ -102,8 +102,8 @@ function staticChecks() {
   if (!/selectWindowsInstallerFromUpdateInfo/.test(mainSource)) {
     throw new Error("electron/main.js não valida o instalador com selectWindowsInstallerFromUpdateInfo.");
   }
-  if (!/ipcMain\.on\(['"]download_update['"],\s*\(\)\s*=>\s*\{/.test(mainSource)) {
-    throw new Error("O IPC download_update deve ser um handler sem parâmetros/URL.");
+  if (!/ipcMain\.on\(['"]download_update['"],\s*\(event\)\s*=>\s*\{\s*if \(!trustedSender\(event\)\) return;/.test(mainSource)) {
+    throw new Error("O IPC download_update deve validar o emissor sem receber URL/payload do renderer.");
   }
 
   console.log("OK estático: login e processo principal não abrem a página HTML da release.");

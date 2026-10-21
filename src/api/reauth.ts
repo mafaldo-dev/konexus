@@ -16,11 +16,13 @@ export interface ReauthIntent {
   entityType?: string | null;
   entityId?: string | null;
   description?: string;
+  correlationId?: string;
 }
 
 export type ReauthHandler = (
   intent: ReauthIntent,
-  payload: unknown
+  payload: unknown,
+  token?: string
 ) => Promise<string | null>;
 
 let handler: ReauthHandler | null = null;

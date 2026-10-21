@@ -138,7 +138,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       // ✅ DETECÇÃO CORRETA DO ELECTRON
       const isElectron = !!(
         typeof window !== 'undefined' &&
-        window.require &&
         (window as any).ipcRenderer
       );
 

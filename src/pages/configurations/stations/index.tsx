@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import Dashboard from "../../../components/dashboard/Dashboard";
+import Computers from './Computers';
 import {
   WorkStation,
   createStationPairingCode,
@@ -117,7 +118,7 @@ export default function WorkStationsPage() {
       return;
     }
 
-    if (!station.active) {
+    if (station.active) {
       await revokeStationTokens(station.id);
     }
 
@@ -128,6 +129,7 @@ export default function WorkStationsPage() {
     <Dashboard>
       <div className="min-h-screen bg-slate-50 p-4 md:p-6">
         <div className="mx-auto max-w-6xl space-y-5">
+          <Computers />
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-blue-700">

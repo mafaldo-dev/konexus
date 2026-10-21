@@ -1,8 +1,6 @@
 name: Release Windows installer
 
 on:
-  release:
-    types: [published]
   # Publicar a release empurrando a tag: o proprio workflow cria a release,
   # gera o instalador e publica os assets (exe, blockmap e latest.yml).
   push:
@@ -109,19 +107,19 @@ jobs:
 
           if (-not $existing) {
             $versao = $env:RELEASE_TAG.Substring(1)
-            $notas = "Konexus $versao. Inclui o modulo de Contabilidade (adicional contratado do Financeiro), a aba de auditoria no painel administrativo global e o fluxo de reautenticacao por senha. Atualizacao automatica: baixe o instalador Konexus-Setup-$versao.exe ou deixe o aplicativo instalado buscar a nova versao sozinho."
+            $notas = "Konexus $versao. Consulte o histórico de versões do repositório para funcionalidades e limitações. Instalador Windows e metadados de atualização verificados pelo workflow."
             $body = @{
               tag_name = $env:RELEASE_TAG
               name = "Konexus $versao"
               body = $notas
-              draft = $false
+              draft = $true
               prerelease = $false
               target_commitish = "main"
             } | ConvertTo-Json
 
             try {
               $created = Invoke-RestMethod -Uri $api -Headers $headers -Method Post -Body $body -ContentType "application/json" -ErrorAction Stop
-              $diag.Add("release criada e publicada: $($created.html_url)")
+              $diag.Add("rascunho de release criado: $($created.html_url)")
             } catch {
               $diag.Add("POST release falhou: $($_.Exception.Message)")
               if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
@@ -132,13 +130,17 @@ jobs:
             }
           }
 
+          if ($existing -and -not $existing.draft) {
+            throw "Release já publicada. Use uma nova versão; não substitua assets de usuários instalados."
+          }
+
           Write-Host ($diag -join [Environment]::NewLine)
 
       - name: Instalar dependências (lockfile)
         run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Testar seleção do instalador de atualização
-        run: npm run test:update
+        run: npm run test:electron
 
       - name: Auditar fluxo de atualização (sem rede)
         run: node scripts/audit-update-flow.mjs --skip-network
@@ -214,6 +216,15 @@ jobs:
           New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
           gh release download $env:RELEASE_TAG --pattern latest.yml --dir $downloadDir --clobber
 
+          # Compara também bytes baixados, não somente tamanho/nome informado pela API.
+          foreach ($file in $manifest.files) {
+            gh release download $env:RELEASE_TAG --pattern $file --dir $downloadDir --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Falha ao baixar o asset publicado: $file" }
+            $localHash = (Get-FileHash (Join-Path (Get-Location) "dist/$file") -Algorithm SHA512).Hash
+            $remoteHash = (Get-FileHash (Join-Path $downloadDir $file) -Algorithm SHA512).Hash
+            if ($localHash -ne $remoteHash) { throw "SHA-512 divergente no asset publicado: $file" }
+          }
+
           $downloadedLatest = Get-Content (Join-Path $downloadDir "latest.yml") -Raw
           if ($downloadedLatest -notmatch "(?m)^version:\s*$($manifest.version)\s*$") {
             throw "O latest.yml publicado não declara a versão $($manifest.version)."
@@ -221,3 +232,31 @@ jobs:
 
           Write-Host "latest.yml publicado e validado (versão $($manifest.version))."
 
+      - name: Confirmar backend compatível antes do autoUpdater
+        shell: pwsh
+        run: |
+          $manifest = Get-Content "docs/releases/$($env:RELEASE_TAG.Substring(1)).backend.json" -Raw | ConvertFrom-Json
+          $ready = $false
+          for ($attempt = 1; $attempt -le 30; $attempt++) {
+            try {
+              $health = Invoke-RestMethod -Uri "$($manifest.url)/health/release" -TimeoutSec 30
+              if ($health.ready -eq $true -and $health.version -eq $manifest.version -and $health.commit -eq $manifest.commit) {
+                $ready = $true
+                break
+              }
+            } catch { Write-Host "Backend ainda não confirmou prontidão (tentativa $attempt)." }
+            Start-Sleep -Seconds 20
+          }
+          if (-not $ready) { throw "Backend incompatível. Assets preservados em draft; autoUpdater não liberado." }
+
+      - name: Publicar release validada para o autoUpdater
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $notes = "docs/releases/$($env:RELEASE_TAG.Substring(1)).md"
+          gh release edit $env:RELEASE_TAG --draft=false --latest --notes-file $notes
+          if ($LASTEXITCODE -ne 0) { throw "Falha ao publicar a release validada." }
+
+      - name: Confirmar download público do autoUpdater
+        run: node scripts/audit-update-flow.mjs --tag "${{ env.RELEASE_TAG }}"

@@ -29,6 +29,7 @@ import { Input } from "../../../components/dashboard/components/ui/Input";
 import { Modal as BaseModal } from "../../../components/dashboard/components/ui/Modal";
 import { Badge } from "../../../components/dashboard/components/ui/Badge";
 import { DynamicTable } from "../../../utils/Table/DynamicTable";
+import { formatCalendarDate } from '../../../utils/calendarDate';
 
 export function formatMoney(value: number | string | null | undefined): string {
   const number = Number(value || 0);
@@ -39,10 +40,7 @@ export function formatMoney(value: number | string | null | undefined): string {
 }
 
 export function formatDate(value?: string | null): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("pt-BR");
+  return formatCalendarDate(value);
 }
 
 export function formatDateTime(value?: string | null): string {

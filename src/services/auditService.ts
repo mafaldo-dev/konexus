@@ -59,6 +59,7 @@ export interface AuditEventPage {
 }
 
 export interface WorkStation {
+  installation_uuid?: string | null;
   id: number;
   company_id: number;
   name: string;
@@ -114,7 +115,7 @@ export async function getAuditEvent(id: number): Promise<ApiResponse<AuditEvent>
  */
 export async function listWorkStations(): Promise<ApiResponse<WorkStation[]>> {
   const response = await apiRequest<WorkStation[]>("audit/stations");
-  return { ...response, data: response.data || [] };
+  return { ...response, data: (response.data || []).filter(station => !station.installation_uuid) };
 }
 
 export async function createWorkStation(input: {

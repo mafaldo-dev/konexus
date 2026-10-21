@@ -20,6 +20,7 @@ export interface ReauthContextValue {
 const ReauthContext = createContext<ReauthContextValue | undefined>(undefined);
 
 interface PendingRequest {
+  token?: string;
   intent: ReauthIntent;
   payload: unknown;
   resolve: (grantId: string | null) => void;
@@ -41,18 +42,24 @@ export function ReauthProvider({ children }: { children: ReactNode }) {
   const pendingRef = useRef<PendingRequest | null>(null);
 
   const requestReauth = useCallback(
-    (intent: ReauthIntent, payload?: unknown) =>
+    (intent: ReauthIntent, payload?: unknown, token?: string) =>
       new Promise<string | null>((resolve) => {
-        pendingRef.current = { intent, payload, resolve };
-        setPending({ intent, payload, resolve });
+        pendingRef.current?.resolve(null);
+        pendingRef.current = { intent, payload, resolve, token };
+        setPending(pendingRef.current);
+        setLoading(false);
         setError(null);
       }),
     []
   );
 
   useEffect(() => {
-    setReauthHandler((intent, payload) => requestReauth(intent, payload));
-    return () => setReauthHandler(null);
+    setReauthHandler((intent, payload, token) => requestReauth(intent, payload, token));
+    return () => {
+      setReauthHandler(null);
+      pendingRef.current?.resolve(null);
+      pendingRef.current = null;
+    };
   }, [requestReauth]);
 
   const close = useCallback(() => {
@@ -83,7 +90,9 @@ export function ReauthProvider({ children }: { children: ReactNode }) {
           password,
           intent: current.intent,
           payload: current.payload,
+          token: current.token,
         });
+        if (pendingRef.current !== current) return;
 
         if (!response.success || !response.grant) {
           setError(
@@ -99,6 +108,7 @@ export function ReauthProvider({ children }: { children: ReactNode }) {
         close();
         current.resolve(response.grant.grantId);
       } catch {
+        if (pendingRef.current !== current) return;
         setError(GENERIC_ERROR);
         setLoading(false);
       }

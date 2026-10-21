@@ -21,14 +21,6 @@ root.render(
 );
 
 
-if (window.require) {
-  window.require('electron');
-  const { ipcRenderer } = window.require("electron");
-  window.ipcRenderer = ipcRenderer;
-
-} else {
-  console.info('Running in Browser');
-}
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
