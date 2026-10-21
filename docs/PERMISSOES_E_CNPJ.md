@@ -1,8 +1,9 @@
 # Permissões, administrador principal e CNPJs
 
-Atualizado em **21/10/2026** após a auditoria de autorização da release 1.4.1.
-Este documento descreve o comportamento **verificado nos testes locais**. Nenhum
-deploy ou migração de produção foi executado nesta etapa.
+Atualizado em **21/10/2026** após a auditoria de autorização e a publicação da
+release 1.4.2. Este documento descreve o comportamento verificado nos testes
+locais e na migração de produção. O backend 1.4.2 está publicado no Render e a
+release 1.4.2 do aplicativo está pública.
 
 ## 1. Dois níveis de acesso
 
@@ -149,12 +150,18 @@ npm run build
 npm run test:electron
 ```
 
-## 8. Limites desta entrega
+## 8. Publicação e limites desta entrega
 
-- Nenhum commit, push, deploy ou migração de produção foi realizado.
-- A validação é local/isolada, com PostgreSQL de teste. Não substitui o ensaio
-  de migração em cópia da base de produção.
-- A migração 014 precisa ser aplicada e auditada antes do deploy do backend sem
-  fallback.
+- Commit, push, deploy do backend, release do frontend e migração de produção
+  foram executados em 21/10/2026. Publicação registrada em
+  [`PUBLICACAO_1.4.2.md`](PUBLICACAO_1.4.2.md).
+- A migração 014 foi aplicada no Neon após backup completo restaurado em banco
+  temporário. O backfill inseriu zero linhas e a conferência pós-migração não
+  encontrou contribuidor ativo sem vínculo de CNPJ.
+- A autorização foi validada com PostgreSQL real nos testes de integração. Não
+  foi executado smoke autenticado com credenciais reais de produção nem
+  instalação/atualização in-place em uma estação Windows; ambos continuam
+  exigindo validação humana.
 - O build mantém warnings ESLint preexistentes de outras telas; não houve
   declaração de build “sem warnings”.
+- O instalador Windows não é assinado; o SmartScreen pode exibir aviso.
