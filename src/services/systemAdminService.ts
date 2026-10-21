@@ -141,6 +141,76 @@ export interface SystemAdminModuleEvent {
   created_at: string;
 }
 
+export type LegalEntityContractStatus = "active" | "suspended" | "cancelled" | "pending";
+export type LegalEntityRequestStatus = "pending" | "contacted" | "approved" | "rejected" | "cancelled";
+
+export interface LegalEntityCapacity {
+  multiCnpjEnabled: boolean;
+  contractStatus: LegalEntityContractStatus;
+  limit: number;
+  active: number;
+  total: number;
+  available: number;
+  canAdd: boolean;
+  maxCommercialLimit: number;
+  requiresSupport: boolean;
+}
+
+export interface SystemAdminLegalEntity {
+  id: number;
+  companyId: number;
+  legalName: string;
+  tradeName: string | null;
+  cnpj: string;
+  cnpjFormatted: string;
+  status: "active" | "regularization" | "inactive";
+  isPrimary: boolean;
+  hasLogo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SystemAdminLegalEntityRequest {
+  id: number;
+  company_id: number;
+  company_name: string;
+  requested_by: number | null;
+  requested_by_username: string | null;
+  status: LegalEntityRequestStatus;
+  notes: string | null;
+  support_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SystemAdminCapacityEvent {
+  id: number;
+  company_id: number;
+  previous_enabled: boolean | null;
+  previous_limit: number | null;
+  previous_contract_status: string | null;
+  new_enabled: boolean;
+  new_limit: number;
+  new_contract_status: string;
+  changed_by_username: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface SystemAdminLegalEntityCapacityView {
+  company: {
+    id: number;
+    name: string;
+    cnpj: string | null;
+    contractStatus: LegalEntityContractStatus;
+    multiCnpjEnabled: boolean;
+    legalEntityLimit: number;
+  };
+  capacity: LegalEntityCapacity;
+  entities: SystemAdminLegalEntity[];
+  events: SystemAdminCapacityEvent[];
+}
+
 export interface SystemAdminAuthorization {
   id: number;
   company_id: number;
@@ -502,5 +572,56 @@ export const systemAdminService = {
       payload
     );
     return data.contract;
+  },
+
+  // ------------------------------------------------------------------ CNPJs
+
+  listLegalEntityRequests: async (status?: LegalEntityRequestStatus) => {
+    const query = status ? `?status=${encodeURIComponent(status)}` : "";
+    const data = await request<{ requests: SystemAdminLegalEntityRequest[] }>(
+      `legal-entities/support/requests${query}`
+    );
+    return data.requests || [];
+  },
+
+  updateLegalEntityRequest: async (
+    requestId: number,
+    payload: { status?: LegalEntityRequestStatus; supportNotes?: string | null }
+  ) => {
+    const data = await request<{ request: SystemAdminLegalEntityRequest }>(
+      `legal-entities/support/requests/${requestId}`,
+      "PATCH",
+      payload
+    );
+    return data.request;
+  },
+
+  getLegalEntityCapacity: (companyId: number) =>
+    request<SystemAdminLegalEntityCapacityView>(
+      `legal-entities/support/companies/${companyId}/capacity`
+    ),
+
+  listLegalEntityCapacityEvents: async (companyId: number) => {
+    const data = await request<{ events: SystemAdminCapacityEvent[] }>(
+      `legal-entities/support/companies/${companyId}/capacity-events`
+    );
+    return data.events || [];
+  },
+
+  updateLegalEntityCapacity: async (
+    companyId: number,
+    payload: {
+      enabled: boolean;
+      limit: number;
+      contractStatus: LegalEntityContractStatus;
+      notes?: string | null;
+    }
+  ) => {
+    const data = await request<{
+      company: SystemAdminCompany;
+      capacity: LegalEntityCapacity;
+      regularized: SystemAdminLegalEntity[];
+    }>(`legal-entities/support/companies/${companyId}/capacity`, "PUT", payload);
+    return data;
   },
 };

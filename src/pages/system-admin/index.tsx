@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   WalletCards,
   FileCheck2,
+  Landmark,
   X,
   ClipboardList,
 } from "lucide-react";
@@ -32,6 +33,7 @@ import SubscriptionsTab from "./SubscriptionsTab";
 import SupportTab from "./SupportTab";
 import ExtraModulesTab from "./ExtraModulesTab";
 import AuthorizationsTab from "./AuthorizationsTab";
+import LegalEntitiesTab from "./LegalEntitiesTab";
 import AuditTab from "./AuditTab";
 
 type TabKey =
@@ -42,6 +44,7 @@ type TabKey =
   | "plans"
   | "extraModules"
   | "authorizations"
+  | "legalEntities"
   | "audit";
 
 const navigation: Array<{
@@ -93,6 +96,12 @@ const navigation: Array<{
     icon: FileCheck2,
   },
   {
+    key: "legalEntities",
+    label: "Empresas / CNPJs",
+    description: "Capacidade multi-CNPJ",
+    icon: Landmark,
+  },
+  {
     key: "audit",
     label: "Auditoria",
     description: "Histórico de ações por empresa",
@@ -108,6 +117,7 @@ const tabTitles: Record<TabKey, string> = {
   plans: "Planos e módulos",
   extraModules: "Módulos extras",
   authorizations: "Autorizações comerciais",
+  legalEntities: "Empresas / CNPJs",
   audit: "Auditoria e rastreabilidade",
 };
 
@@ -424,6 +434,15 @@ export default function SystemAdminWorkspace() {
 
             {activeTab === "authorizations" ? (
               <AuthorizationsTab
+                refreshKey={refreshKey}
+                initialCompanyId={focusCompanyId}
+                onPresetConsumed={() => setFocusCompanyId(null)}
+                onDataChanged={refresh}
+              />
+            ) : null}
+
+            {activeTab === "legalEntities" ? (
+              <LegalEntitiesTab
                 refreshKey={refreshKey}
                 initialCompanyId={focusCompanyId}
                 onPresetConsumed={() => setFocusCompanyId(null)}

@@ -24,6 +24,9 @@ import {
 export interface AuditViewEvent {
   id: number;
   company_id: number | null;
+  legal_entity_id?: number | null;
+  legal_entity_name?: string | null;
+  legal_entity_cnpj?: string | null;
   username: string | null;
   station_name: string | null;
   module_key: string | null;
@@ -301,6 +304,7 @@ export default function AuditEventsView({
                 <tr>
                   <th className="px-4 py-3">Data e hora</th>
                   {companyNames ? <th className="px-4 py-3">Empresa</th> : null}
+                  <th className="px-4 py-3">CNPJ emitente</th>
                   <th className="px-4 py-3">Usuário</th>
                   <th className="px-4 py-3">Estação</th>
                   <th className="px-4 py-3">Módulo</th>
@@ -327,6 +331,16 @@ export default function AuditEventsView({
                           : "Administrador global"}
                       </td>
                     ) : null}
+                    <td className="px-4 py-3 text-slate-600">
+                      {event.legal_entity_name ? (
+                        <span>
+                          <span className="block text-slate-800">{event.legal_entity_name}</span>
+                          {event.legal_entity_cnpj ? <span className="block text-[11px] text-slate-500">{event.legal_entity_cnpj}</span> : null}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">Não aplicável</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-800">
                       {event.username || "—"}
                     </td>
@@ -462,6 +476,14 @@ export default function AuditEventsView({
                 <dt className="text-xs text-slate-500">Confirmação de identidade</dt>
                 <dd className="text-slate-800">
                   {getReauthLabel(selected.reauth_outcome)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">CNPJ emitente</dt>
+                <dd className="text-slate-800">
+                  {selected.legal_entity_name
+                    ? `${selected.legal_entity_name}${selected.legal_entity_cnpj ? ` · ${selected.legal_entity_cnpj}` : ""}`
+                    : "Não aplicável"}
                 </dd>
               </div>
               {companyNames ? (

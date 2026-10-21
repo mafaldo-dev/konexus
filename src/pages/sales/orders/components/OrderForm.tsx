@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { Trash2, Package, User, MapPin, RefreshCw } from "lucide-react";
+import { Trash2, Package, User, MapPin, RefreshCw, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -51,7 +51,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   const hasPrefilledData = useRef(false);
 
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, activeLegalEntity } = useAuth();
 
   const isSalesPerson = user?.role === "Vendedor" && user?.sector === "Comercial";
 
@@ -269,6 +269,20 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
     addProductToInvoice();
   };
 
+  // Sinaliza ao seletor global que existe um pedido/orçamento em andamento.
+  // A troca de CNPJ exige confirmação e nunca descarta os dados já digitados.
+  useEffect(() => {
+    if (products.length === 0 && !selectedCustomer) return;
+    localStorage.setItem(
+      "konexus:operation-in-progress",
+      JSON.stringify({
+        label: `${editMode ? "pedido" : "novo pedido/orçamento"} ${orderNumber !== "Carregando..." ? orderNumber : ""}`.trim(),
+        path: window.location.pathname,
+      })
+    );
+    return () => localStorage.removeItem("konexus:operation-in-progress");
+  }, [products.length, selectedCustomer, orderNumber, editMode]);
+
   const onSubmit = async (data: FormValues) => {
     if (!isSalesPerson) {
       Swal.fire({
@@ -363,6 +377,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
         });
 
 
+        localStorage.removeItem("konexus:operation-in-progress");
         navigate("/sales/orders");
       } else {
         Swal.fire("Erro", `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido.`, "error");
@@ -384,6 +399,25 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
       <div className="max-w-6xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            {activeLegalEntity && (
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-700">
+                  <Building2 className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-700">Emitente deste documento</p>
+                  <p className="truncate font-semibold text-slate-900">
+                    {activeLegalEntity.tradeName || activeLegalEntity.legalName}
+                    {activeLegalEntity.cnpjFormatted ? ` · ${activeLegalEntity.cnpjFormatted}` : ""}
+                  </p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${activeLegalEntity.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                  {activeLegalEntity.status === 'active' ? 'Ativa' : 'Em regularização'}
+                </span>
+                <p className="w-full text-xs text-blue-800">O CNPJ selecionado no topo será gravado no pedido e usado em estoque, financeiro e fiscal. Confira antes de confirmar.</p>
+              </div>
+            )}
+
             {/* Informações do Pedido */}
             <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-3 text-gray-900">

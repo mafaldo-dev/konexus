@@ -237,3 +237,38 @@ export async function markPaymentAsPaid(
 ): Promise<ApiResponse<Payment>> {
   return apiClient.put<Payment>(`payments/${id}/mark-payd`, data ?? {});
 }
+
+/* ---------- Painel gerencial (por CNPJ ou consolidado) ---------- */
+
+export interface OrderPaymentDashboard {
+  total_pendente: number;
+  total_a_receber_hoje: number;
+  total_atrasado: number;
+  total_recebido_mes: number;
+}
+
+export interface FinancialDashboardResponse {
+  status: string;
+  data: OrderPaymentDashboard;
+  scope: {
+    mode: "legal_entity" | "consolidated_management";
+    legalEntityId: number | null;
+    warning: string | null;
+  };
+}
+
+/**
+ * Painel de pagamentos de pedidos.
+ *
+ * Sem `consolidated`, o backend aplica o CNPJ ativo enviado no cabecalho.
+ * Com `consolidated`, devolve apenas totais gerenciais da organizacao inteira,
+ * sem misturar contas nem permitir transferencias entre CNPJs. A permissao e
+ * revalidada no backend; a UI nao e a fronteira de seguranca.
+ */
+export async function getPaymentDashboard(
+  consolidated = false
+): Promise<ApiResponse<FinancialDashboardResponse>> {
+  return apiClient.get<FinancialDashboardResponse>(
+    `payments/dashboard?consolidated=${consolidated ? "true" : "false"}`
+  );
+}

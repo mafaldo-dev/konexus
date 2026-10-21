@@ -23,6 +23,15 @@ export interface Collaborator {
   role_name: string | null;
   is_system_admin: boolean;
   overrides_count: number;
+  employment_link_id?: number | null;
+  legal_entity_id?: number | null;
+  position_title?: string | null;
+  department?: string | null;
+  cost_center?: string | null;
+  employment_started_at?: string | null;
+  employer_legal_name?: string | null;
+  employer_trade_name?: string | null;
+  employer_cnpj?: string | null;
 }
 
 export interface CompanyRole {
@@ -390,5 +399,82 @@ export async function updateCollaboratorPermissions(
   return unwrap(
     await apiClient.put(`collaborators/${id}/permissions`, { permissions }),
     (body) => body?.data
+  );
+}
+
+/* ---------- Vínculo empregatício (RH) ---------- */
+
+export interface EmploymentLink {
+  id: number;
+  company_id: number;
+  contributor_id: number;
+  legal_entity_id: number;
+  position_title: string | null;
+  department: string | null;
+  cost_center: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  status: "active" | "transferred" | "ended";
+  notes: string | null;
+  legal_name: string;
+  trade_name: string | null;
+  cnpj: string;
+  legal_entity_status: string;
+  is_primary: boolean;
+}
+
+export interface EmploymentPayload {
+  contributorId: number;
+  legalEntityId: number;
+  positionTitle?: string;
+  department?: string;
+  costCenter?: string;
+  startedAt?: string;
+  notes?: string;
+}
+
+export interface EmploymentUpdatePayload {
+  positionTitle?: string;
+  department?: string;
+  costCenter?: string;
+  notes?: string;
+}
+
+export async function listEmploymentLinks(
+  contributorId?: number
+): Promise<ApiResponse<EmploymentLink[]>> {
+  const query = contributorId ? `?contributorId=${contributorId}` : "";
+  return unwrap(
+    await apiClient.get(`employment/links${query}`),
+    (body) => (body?.data || []) as EmploymentLink[]
+  );
+}
+
+export async function createEmploymentLink(
+  payload: EmploymentPayload
+): Promise<ApiResponse<EmploymentLink>> {
+  return unwrap(
+    await apiClient.post("employment/links", payload),
+    (body) => body?.data as EmploymentLink
+  );
+}
+
+export async function updateEmploymentLink(
+  id: number,
+  payload: EmploymentUpdatePayload
+): Promise<ApiResponse<EmploymentLink>> {
+  return unwrap(
+    await apiClient.patch(`employment/links/${id}`, payload),
+    (body) => body?.data as EmploymentLink
+  );
+}
+
+export async function endEmploymentLink(
+  id: number,
+  payload: { endedAt?: string; notes?: string } = {}
+): Promise<ApiResponse<EmploymentLink>> {
+  return unwrap(
+    await apiClient.post(`employment/links/${id}/end`, payload),
+    (body) => body?.data as EmploymentLink
   );
 }

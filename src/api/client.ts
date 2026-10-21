@@ -29,6 +29,8 @@ export interface ApiResponse<T = any> {
 interface ClientOptions {
   token?: string;
   companyId?: number | string;
+  /** Empresa jurídica operacional (CNPJ) da requisição. */
+  legalEntityId?: number | string;
   signal?: AbortSignal;
   headers?: Record<string, string>;
   /**
@@ -99,7 +101,7 @@ export async function apiRequest<T = any>(
   body?: any,
   options: ClientOptions = {}
 ): Promise<ApiResponse<T>> {
-  const { token, companyId, signal, headers: extraHeaders = {} } = options;
+  const { token, companyId, legalEntityId, signal, headers: extraHeaders = {} } = options;
 
   const url = `${API_CONFIG.BASE_URL}/${endpoint.replace(/^\/+/, "")}`;
 
@@ -130,6 +132,22 @@ export async function apiRequest<T = any>(
         }
       } catch {
         // ignora empresa malformada no storage
+      }
+    }
+  }
+
+  // Empresa juridica operacional. O backend revalida o vinculo em cada
+  // requisicao; o localStorage e apenas preferencia de interface.
+  if (legalEntityId != null) {
+    headers["X-Legal-Entity-Id"] = String(legalEntityId);
+  } else if (typeof localStorage !== "undefined") {
+    const storedEntity = localStorage.getItem("activeLegalEntity");
+    if (storedEntity) {
+      try {
+        const parsed = JSON.parse(storedEntity);
+        if (parsed?.id) headers["X-Legal-Entity-Id"] = String(parsed.id);
+      } catch {
+        // ignora seleção malformada no storage
       }
     }
   }
@@ -169,6 +187,8 @@ export async function apiRequest<T = any>(
         localStorage.removeItem("userData");
         localStorage.removeItem("companyData");
         localStorage.removeItem("companyModules");
+        localStorage.removeItem("legalEntities");
+        localStorage.removeItem("activeLegalEntity");
         window.dispatchEvent(new Event('konexus:session-invalid'));
       }
       return {

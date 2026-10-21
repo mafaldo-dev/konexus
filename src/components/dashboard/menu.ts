@@ -119,6 +119,7 @@ export const menuItems = [
       icon: Settings,
       access: ['Administrador','Vendedor','Conferente', 'Estoquista', 'Gestor', 'Compras', 'Gerente', 'Financeiro'],
       submenu: [
+        { title: 'Empresas / CNPJs', to: '/config/legal-entities', icon: Building2, access: ['Administrador'] },
         { title: 'Usuários e Permissões', to: '/config/users-permissions', icon: Users, access: ['Administrador'] },
         { title: 'Parâmetros do Sistema', to: '/config/system', icon: Database, access: ['Administrador'] },
         { title: 'Notificações', to: '/config/notifications', icon: Bell, access: ['Administrador'] },

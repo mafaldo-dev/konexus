@@ -1,5 +1,6 @@
 import { AccessType } from "../AuthContext";
 import { PermissionGroup } from "./moduleMapping";
+import { LegalEntity } from "../services/legalEntityService";
 
 export interface CompanyInfo {
   id: number;
@@ -65,4 +66,10 @@ export interface AuthContextType {
     items: T[]
   ) => T[];
   canAccessRoute: (pathname: string) => boolean;
+
+  // Multi-CNPJ: empresas jurídicas que o usuário pode operar nesta sessão.
+  legalEntities: LegalEntity[];
+  activeLegalEntity: LegalEntity | null;
+  setActiveLegalEntity: (entity: LegalEntity) => void;
+  refreshLegalEntities: () => Promise<LegalEntity[]>;
 }

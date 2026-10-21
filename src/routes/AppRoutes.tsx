@@ -31,6 +31,7 @@ import WorkStationsPage from '../pages/configurations/stations';
 import NotificationPreferences from '../pages/configurations/notifications';
 import UserManagementPage from '../pages/configurations/users&permissions';
 import CompanyManagement from '../pages/configurations/companies';
+import LegalEntitiesPage from '../pages/configurations/legal-entities';
 import PlanosPage from '../pages/planos';
 
 import NotFound from '../pages/NOT-FOUND';
@@ -430,6 +431,15 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={['Administrador']}>
             <PlugNotasConfigDashboard />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
+        path="/config/legal-entities"
+        element={
+          <DesignationCheck allowed={['Administrador']}>
+            <LegalEntitiesPage />
           </DesignationCheck>
         }
       />

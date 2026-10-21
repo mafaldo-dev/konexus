@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Download, FileText, X, Printer, CheckSquare, Package, ChevronLeft, HelpCircle, Settings, Share, Wrench, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "../AuthContext";
+import { getCachedLogoUrl } from "../services/legalEntityService";
 import Swal from 'sweetalert2';
 import { downloadDanfe } from "../services/nfeService";
 import * as XLSX from 'xlsx';
@@ -30,7 +31,19 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   documentType = "purchase_order",
   onClose
 }) => {
-  const { company } = useAuth()
+  const { company, activeLegalEntity } = useAuth()
+  // O emissor do documento e o CNPJ gravado no proprio registro. Nunca
+  // substituimos um pedido historico pelo CNPJ atualmente selecionado. A
+  // empresa ativa so e usada em relatorios gerados a partir do contexto atual
+  // ou quando nao existe registro de pedido (documento em branco).
+  const issuer = order
+    ? order.legalEntity || null
+    : report?.legalEntity || activeLegalEntity || null;
+  const issuerName = issuer?.tradeName || issuer?.legalName || company?.name || "Empresa";
+  const issuerLegalName = issuer?.legalName || company?.name || "Empresa";
+  const issuerCnpj = issuer?.cnpjFormatted || issuer?.cnpj || company?.cnpj || "";
+  const issuerEmail = issuer?.email || company?.email || "";
+  const issuerLogo = issuer?.logoDataUrl || getCachedLogoUrl(issuer?.id) || null;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [processedItems, setProcessedItems] = useState<any[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -713,9 +726,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
                 <div className="text-center mb-8 -mt-5">
                   <p className="text-sm" style={{ fontSize: "12px" }}>
-                    {company?.name} - {company?.cnpj || "------"}
+                    {issuerName} - {issuerCnpj || "------"}
                   </p>
-                  <p className="text-sm" style={{ fontSize: "12px" }}>{company?.email}</p>
+                  <p className="text-sm" style={{ fontSize: "12px" }}>{issuerEmail}</p>
                 </div>
               </div>
             </div>
@@ -730,12 +743,23 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       {order ? (
         <>
           <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
+            {issuerLogo && (
+              <img src={issuerLogo} alt={`Logo ${issuerName}`} className="mx-auto mb-3 max-h-16 max-w-[180px] object-contain" />
+            )}
             <h2 className="text-3xl font-bold uppercase text-slate-800">
-              {company?.name || "Empresa"}
+              {issuerLegalName}
             </h2>
+            {issuer?.tradeName && issuer.tradeName !== issuer.legalName && (
+              <p className="text-sm text-slate-600">{issuer.tradeName}</p>
+            )}
             <p className="text-sm text-slate-600 mt-1">
-              CNPJ: {company?.cnpj || "00.000.000/0000-00"}
+              CNPJ: {issuerCnpj || "não informado"}
             </p>
+            {issuer?.address?.street && (
+              <p className="text-xs text-slate-500 mt-1">
+                {[issuer.address.street, issuer.address.number, issuer.address.district, issuer.address.city, issuer.address.state].filter(Boolean).join(", ")}
+              </p>
+            )}
           </div>
 
           <div className="text-center mb-8">
@@ -761,7 +785,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             <div>
               <p className="font-medium text-slate-700 mb-2">
                 <strong>Solicitante:</strong>{" "}
-                {company?.name || "Não informado"}
+                {issuerLegalName || "Não informado"}
               </p>
               <p className="font-medium text-slate-700">
                 <strong>Moeda:</strong> {order.currency || "BRL"}
@@ -863,19 +887,17 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     <div className="flex flex-col print-area print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
       <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
         <div className="flex items-start gap-2">
-          <div className="w-12 h-12 flex items-center justify-center">
-            <img
-              src={company?.companyIcon || "logo"}
-              alt="Logo"
-              className="w-10 h-10 object-contain"
-            />
-          </div>
+          {issuerLogo && (
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={issuerLogo} alt={`Logo ${issuerName}`} className="w-10 h-10 object-contain" />
+            </div>
+          )}
           <div>
-            <h1 className="text-sm font-bold text-gray-900">Vendas {company?.name}</h1>
+            <h1 className="text-sm font-bold text-gray-900">Vendas {issuerName}</h1>
             <p className="text-xs text-gray-600 font-medium">Lista de Separação - Expedição</p>
             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              {company?.email || "konexuserp@comercial.com"}
+              {issuerEmail || "konexuserp@comercial.com"}
             </p>
           </div>
         </div>
@@ -982,7 +1004,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       </div>
 
       <div className="text-center text-xs text-gray-500 border-t border-gray-200 pt-2">
-        <p>Vendas {company?.name} • {company?.email}</p>
+        <p>Vendas {issuerName} • {issuerEmail}</p>
         <p className="text-xs">Documento gerado em {new Date().toLocaleDateString()} • Konéxus</p>
       </div>
     </div>
@@ -992,23 +1014,21 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     <div className="flex flex-col print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
       <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
         <div className="flex items-start gap-2">
-          <div className="w-12 h-12 flex items-center justify-center">
-            <img
-              src={company?.companyIcon || "logo"}
-              alt="Logo"
-              className="w-10 h-10 object-contain"
-            />
-          </div>
+          {issuerLogo && (
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={issuerLogo} alt={`Logo ${issuerName}`} className="w-10 h-10 object-contain" />
+            </div>
+          )}
           <div>
             <h1 className="text-sm font-bold text-gray-900">
-              {company?.name || "Empresa"} - Ordens de Serviço
+              {issuerName} - Ordens de Serviço
             </h1>
             <p className="text-xs text-gray-600 font-medium">
               Ficha de Execução de OS
             </p>
             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              {company?.email || "konexuserp@comercial.com"}
+              {issuerEmail || "konexuserp@comercial.com"}
             </p>
           </div>
         </div>
@@ -1128,7 +1148,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
       <div className="text-center text-xs text-gray-500 border-t border-gray-200 pt-2">
         <p>
-          {company?.name} • {company?.email}
+          {issuerName} • {issuerEmail}
         </p>
         <p className="text-xs">
           Documento gerado em {new Date().toLocaleDateString()} • Konéxus
@@ -1141,15 +1161,18 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     <div className="flex flex-col print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
       <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
         <div className="flex items-start gap-2">
-          <div className="w-12 h-12 flex items-center justify-center">
-          </div>
+          {issuerLogo && (
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={issuerLogo} alt={`Logo ${issuerName}`} className="w-10 h-10 object-contain" />
+            </div>
+          )}
           <div>
             <h1 className="text-sm font-bold text-gray-900">
-              {company?.name || "Empresa"} - Relatorio personalizado
+              {issuerLegalName} - Relatorio personalizado
             </h1>
             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              {company?.email || "guimansystem.comercial@gmail.com"}
+              {issuerEmail || "guimansystem.comercial@gmail.com"}
             </p>
           </div>
         </div>
@@ -1225,7 +1248,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
       <div className="text-center text-xs text-gray-500 border-t border-gray-200 pt-2">
         <p>
-          {company?.name} • {company?.email}
+          {issuerName} • {issuerEmail}
         </p>
         <p className="text-xs">
           Documento gerado em {new Date().toLocaleDateString()} • Konéxus
@@ -1238,23 +1261,21 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     <div className="flex flex-col relative print-area print:scale-100 scale-[0.8] bg-white w-[210mm] min-h-[297mm] p-12 rounded-sm border border-gray-200">
       <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
         <div className="flex items-start gap-2">
-          <div className="w-12 h-12 flex items-center justify-center">
-            <img
-              src={company?.companyIcon || "logo"}
-              alt="Logo"
-              className="w-10 h-10 object-contain"
-            />
-          </div>
+          {issuerLogo && (
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img src={issuerLogo} alt={`Logo ${issuerName}`} className="w-10 h-10 object-contain" />
+            </div>
+          )}
           <div>
             <h1 className="text-sm font-bold text-gray-900">
-              {company?.name || "Empresa"} - Relatório de expedição
+              {issuerName} - Relatório de expedição
             </h1>
             <p className="text-xs text-gray-600 font-medium">
               Itens Expedidos por Data
             </p>
             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              {company?.email || "konexuserp@comercial.com"}
+              {issuerEmail || "konexuserp@comercial.com"}
             </p>
           </div>
         </div>
@@ -1353,7 +1374,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
       <div className="text-center absolute bottom-8 flex flex-col self-center text-xs text-gray-500 border-t border-gray-200 pt-2">
         <p>
-          {company?.name} • {company?.email}
+          {issuerName} • {issuerEmail}
         </p>
         <p className="text-xs">
           Documento gerado em {new Date().toLocaleDateString()} • Konéxus
@@ -1393,23 +1414,21 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         {/* Cabeçalho */}
         <div className="flex justify-between items-start mb-2 -mt-2 pb-3 border-b border-gray-100">
           <div className="flex items-start gap-2">
-            <div className="w-12 h-12 flex items-center justify-center">
-              <img
-                src={company?.companyIcon || "logo"}
-                alt="Logo"
-                className="w-10 h-10 object-contain"
-              />
-            </div>
+            {issuerLogo && (
+              <div className="w-12 h-12 flex items-center justify-center">
+                <img src={issuerLogo} alt={`Logo ${issuerName}`} className="w-10 h-10 object-contain" />
+              </div>
+            )}
             <div>
               <h1 className="text-sm font-bold text-gray-900">
-                {company?.name || "Empresa"} - Relatório de Inventário
+                {issuerName} - Relatório de Inventário
               </h1>
               <p className="text-xs text-gray-600 font-medium">
                 Contagem de Estoque
               </p>
               <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                {company?.email || "konexuserp@comercial.com"}
+                {issuerEmail || "konexuserp@comercial.com"}
               </p>
             </div>
           </div>
@@ -1532,7 +1551,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         {/* Rodapé */}
         <div className="text-center flex flex-col self-center absolute bottom-8 text-xs text-gray-500 border-t border-gray-200 pt-2">
           <p>
-            {company?.name} • {company?.email}
+            {issuerName} • {issuerEmail}
           </p>
           <p className="text-xs">
             Konéxus

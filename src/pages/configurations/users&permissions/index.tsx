@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
+  BriefcaseBusiness,
   BadgeDollarSign,
   CheckCircle2,
   ChevronRight,
@@ -50,6 +51,7 @@ import CollaboratorFormModal from "./components/CollaboratorFormModal";
 import PermissionsModal from "./components/PermissionsModal";
 import RoleFormModal from "./components/RoleFormModal";
 import TemporaryPasswordModal from "./components/TemporaryPasswordModal";
+import EmploymentModal from "./components/EmploymentModal";
 
 type TabKey = "collaborators" | "roles" | "usage" | "audit";
 
@@ -78,6 +80,12 @@ function formatDate(value?: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("pt-BR");
+}
+
+function formatCnpj(value?: string | null): string {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length !== 14) return value || "CNPJ não informado";
+  return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 }
 
 function formatMoney(cents: number): string {
@@ -126,6 +134,7 @@ export default function UserManagementPage() {
   const [collaboratorModalOpen, setCollaboratorModalOpen] = useState(false);
   const [editingCollaborator, setEditingCollaborator] = useState<Collaborator | null>(null);
   const [permissionsCollaborator, setPermissionsCollaborator] = useState<Collaborator | null>(null);
+  const [employmentCollaborator, setEmploymentCollaborator] = useState<Collaborator | null>(null);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<CompanyRole | null>(null);
   const [temporary, setTemporary] = useState<{
@@ -452,6 +461,7 @@ export default function UserManagementPage() {
                       <tr>
                         <th className="px-4 py-3 font-semibold">Colaborador</th>
                         <th className="px-4 py-3 font-semibold">Cargo</th>
+                        <th className="px-4 py-3 font-semibold">Empregador / vínculo</th>
                         <th className="px-4 py-3 font-semibold">Tipo</th>
                         <th className="px-4 py-3 font-semibold">Situação</th>
                         <th className="px-4 py-3 font-semibold">Ajustes</th>
@@ -486,6 +496,27 @@ export default function UserManagementPage() {
                             </td>
                             <td className="px-4 py-3 text-slate-600">
                               {collaborator.role_name || collaborator.role}
+                            </td>
+                            <td className="px-4 py-3">
+                              {collaborator.employer_legal_name ? (
+                                <div>
+                                  <p className="font-semibold text-slate-700">
+                                    {collaborator.employer_trade_name || collaborator.employer_legal_name}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {formatCnpj(collaborator.employer_cnpj)}
+                                  </p>
+                                  <p className="text-xs text-slate-400">
+                                    {[collaborator.position_title, collaborator.department, collaborator.cost_center]
+                                      .filter(Boolean)
+                                      .join(" · ") || "Sem cargo/departamento"}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                                  Sem vínculo ativo
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <span
@@ -532,6 +563,16 @@ export default function UserManagementPage() {
                                   className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
                                 >
                                   <Pencil className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEmploymentCollaborator(collaborator)}
+                                  disabled={!collaborator.active}
+                                  title="Vínculo empregatício"
+                                  aria-label="Vínculo empregatício"
+                                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-30"
+                                >
+                                  <BriefcaseBusiness className="h-4 w-4" />
                                 </button>
                                 <button
                                   type="button"
@@ -1056,6 +1097,13 @@ export default function UserManagementPage() {
         roles={roles}
         collaborator={editingCollaborator}
         currentUserId={user?.id}
+      />
+
+      <EmploymentModal
+        open={Boolean(employmentCollaborator)}
+        onClose={() => setEmploymentCollaborator(null)}
+        collaborator={employmentCollaborator}
+        onSaved={load}
       />
 
       <PermissionsModal

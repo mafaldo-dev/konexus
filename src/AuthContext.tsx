@@ -17,6 +17,10 @@ import {
 import { EmployeeDesignation } from "./types";
 import { AuthContextType, UserInfo, CompanyInfo } from "./utils/authContext";
 import { saveSystemAdminSession } from "./services/systemAdminService";
+import {
+  getMyLegalEntities,
+  LegalEntity,
+} from "./services/legalEntityService";
 
 export type AccessType = "Full-access" | "Normal";
 
@@ -40,6 +44,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [permissions, setPermissions] = useState<PermissionGroup[]>([]);
   const [isCompanyAdmin, setIsCompanyAdmin] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [legalEntities, setLegalEntities] = useState<LegalEntity[]>([]);
+  const [activeLegalEntity, setActiveLegalEntityState] = useState<LegalEntity | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -47,6 +53,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const invalid = () => {
       setUser(null); setCompany(null); setToken(null); setModules([]);
       setPermissions([]); setIsCompanyAdmin(false); setMustChangePassword(false);
+      setLegalEntities([]); setActiveLegalEntityState(null);
+      localStorage.removeItem('legalEntities');
+      localStorage.removeItem('activeLegalEntity');
       navigate('/');
     };
     window.addEventListener('konexus:session-invalid', invalid);
@@ -191,6 +200,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsCompanyAdmin(Boolean(userData.isCompanyAdmin));
           setMustChangePassword(Boolean(userData.mustChangePassword));
 
+          // Multi-CNPJ: restaura a seleção local apenas como preferência de
+          // interface. O backend revalida o vínculo em cada requisição.
+          let restoredEntities: LegalEntity[] = [];
+          try {
+            const raw = localStorage.getItem('legalEntities');
+            if (raw) restoredEntities = JSON.parse(raw);
+          } catch { restoredEntities = []; }
+          if (!restoredEntities.length) {
+            const mine = await getMyLegalEntities();
+            if (mine.ok && mine.data?.entities) restoredEntities = mine.data.entities;
+          }
+          if (restoredEntities.length) {
+            const storedActiveRaw = localStorage.getItem('activeLegalEntity');
+            let selected: LegalEntity | null = null;
+            try { selected = storedActiveRaw ? JSON.parse(storedActiveRaw) : null; } catch { selected = null; }
+            const selectedValid = selected && restoredEntities.some((e) => e.id === selected!.id);
+            const fallback = restoredEntities.find((e) => e.isPrimary) || restoredEntities[0];
+            const active = selectedValid ? selected! : fallback;
+            setLegalEntities(restoredEntities);
+            setActiveLegalEntityState(active);
+            localStorage.setItem('legalEntities', JSON.stringify(restoredEntities));
+            localStorage.setItem('activeLegalEntity', JSON.stringify(active));
+          }
+
           if (storedCompany) {
             const companyData = JSON.parse(storedCompany);
             setCompany(companyData);
@@ -235,6 +268,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("companyData");
     localStorage.removeItem("token");
     localStorage.removeItem("companyModules");
+    localStorage.removeItem("legalEntities");
+    localStorage.removeItem("activeLegalEntity");
   };
 
   const login = async (username: string, password: string) => {
@@ -246,6 +281,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let userPermissions: PermissionGroup[] = [];
       let userIsCompanyAdmin = false;
       let userMustChangePassword = false;
+      let userLegalEntities: LegalEntity[] = [];
+      let activeLegalEntityId: number | null = null;
 
       try {
         const adminResponse = await loginAdmin(username, password);
@@ -314,6 +351,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             employeeResponse.data?.token
           ) {
             const { user: empUser, token: employeeToken } = employeeResponse.data;
+            userLegalEntities = Array.isArray((employeeResponse.data as any).legalEntities)
+              ? (employeeResponse.data as any).legalEntities
+              : [];
+            activeLegalEntityId = (employeeResponse.data as any).activeLegalEntityId ?? null;
             userData = {
               id: empUser.id,
               username: empUser.username,
@@ -386,6 +427,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("token", authToken);
       localStorage.setItem("companyModules", JSON.stringify(companyModules));
 
+      // Define o CNPJ operacional antes de qualquer chamada de negócio.
+      if (userLegalEntities.length) {
+        const selected = userLegalEntities.find((e) => e.id === activeLegalEntityId)
+          || userLegalEntities.find((e) => e.isPrimary)
+          || userLegalEntities[0];
+        setLegalEntities(userLegalEntities);
+        setActiveLegalEntityState(selected);
+        localStorage.setItem("legalEntities", JSON.stringify(userLegalEntities));
+        localStorage.setItem("activeLegalEntity", JSON.stringify(selected));
+      }
+
       if (userMustChangePassword) {
         navigate("/change-password");
         return;
@@ -456,8 +508,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setPermissions([]);
     setIsCompanyAdmin(false);
     setMustChangePassword(false);
+    setLegalEntities([]);
+    setActiveLegalEntityState(null);
     clearLocalStorage();
+    localStorage.removeItem('legalEntities');
+    localStorage.removeItem('activeLegalEntity');
     navigate("/");
+  };
+
+  const selectLegalEntity = (entity: LegalEntity) => {
+    setActiveLegalEntityState(entity);
+    localStorage.setItem("activeLegalEntity", JSON.stringify(entity));
+  };
+
+  const refreshLegalEntities = async (): Promise<LegalEntity[]> => {
+    const result = await getMyLegalEntities();
+    if (!result.ok || !result.data?.entities) return legalEntities;
+    const entities = result.data.entities;
+    setLegalEntities(entities);
+    localStorage.setItem("legalEntities", JSON.stringify(entities));
+    const storedRaw = localStorage.getItem("activeLegalEntity");
+    let stored: LegalEntity | null = null;
+    try { stored = storedRaw ? JSON.parse(storedRaw) : null; } catch { stored = null; }
+    const selected = (stored && entities.find((e) => e.id === stored!.id))
+      || entities.find((e) => e.isPrimary)
+      || entities[0]
+      || null;
+    setActiveLegalEntityState(selected);
+    if (selected) localStorage.setItem("activeLegalEntity", JSON.stringify(selected));
+    return entities;
   };
 
   return (
@@ -483,6 +562,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         canAccessSubmenuItem,
         filterMenu,
         canAccessRoute,
+        legalEntities,
+        activeLegalEntity,
+        setActiveLegalEntity: selectLegalEntity,
+        refreshLegalEntities,
       }}
     >
       {children}

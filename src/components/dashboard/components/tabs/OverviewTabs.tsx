@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Building2, ShieldAlert, ArrowLeft } from 'lucide-react';
 
 import { DynamicTable } from '../../../../utils/Table/DynamicTable';
 import { FinancialService } from '../../../../pages/Financial/service/financialService';
@@ -16,6 +16,11 @@ import { useFinancialData } from '../../../../hooks/useFinancialData';
 import { useFinancialFilters } from '../../../../hooks/useFinancialFilters';
 import { CreateContaPagarModal } from '../../../../pages/Financial/paymentAccounts';
 import { ActionsDropdown } from '../../../../pages/Financial/components/ActionsDropdown';
+import {
+  getPaymentDashboard,
+  OrderPaymentDashboard,
+} from '../../../../services/financialService';
+import { formatCurrency } from '../../../../utils/formatters';
 
 
 // Interface para as colunas
@@ -31,6 +36,11 @@ export const OverviewTab: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<{ name: string; id: number } | null>(null);
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [consolidated, setConsolidated] = useState(false);
+  const [consolidatedSummary, setConsolidatedSummary] = useState<OrderPaymentDashboard | null>(null);
+  const [consolidatedWarning, setConsolidatedWarning] = useState<string | null>(null);
+  const [consolidatedError, setConsolidatedError] = useState<string | null>(null);
+  const [consolidatedLoading, setConsolidatedLoading] = useState(false);
 
   const {
     contasReceber,
@@ -96,6 +106,106 @@ export const OverviewTab: React.FC = () => {
     handleLoadData();
   }, [activeSubTab]);
 
+  // Visao consolidada e somente leitura e gerencial. O backend revalida o
+  // perfil; nenhuma conta, saldo ou transferencia e misturada.
+  useEffect(() => {
+    if (!consolidated) return;
+    let cancelled = false;
+    (async () => {
+      setConsolidatedLoading(true);
+      setConsolidatedError(null);
+      try {
+        const response = await getPaymentDashboard(true);
+        if (cancelled) return;
+        if (!response.ok || !response.data) {
+          throw new Error(response.error || 'Não foi possível carregar a visão consolidada.');
+        }
+        setConsolidatedSummary(response.data.data);
+        setConsolidatedWarning(response.data.scope?.warning || null);
+      } catch (error: any) {
+        if (!cancelled) {
+          setConsolidatedError(
+            error.message || 'A visão consolidada é restrita aos perfis de gestão financeira.'
+          );
+          setConsolidatedSummary(null);
+        }
+      } finally {
+        if (!cancelled) setConsolidatedLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [consolidated]);
+
+  if (consolidated) {
+    const cards = [
+      { label: 'Pendente total', value: consolidatedSummary?.total_pendente ?? 0, tone: 'text-amber-700' },
+      { label: 'Vence hoje', value: consolidatedSummary?.total_a_receber_hoje ?? 0, tone: 'text-blue-700' },
+      { label: 'Atrasado', value: consolidatedSummary?.total_atrasado ?? 0, tone: 'text-rose-700' },
+      { label: 'Recebido no mes', value: consolidatedSummary?.total_recebido_mes ?? 0, tone: 'text-emerald-700' },
+    ];
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+              <Building2 className="h-5 w-5 text-blue-600" />
+              Visão consolidada gerencial
+            </h2>
+            <p className="text-sm text-slate-500">
+              Soma gerencial de todos os CNPJs ativos. Não é demonstração oficial e não autoriza
+              movimentar saldos entre empresas.
+            </p>
+          </div>
+          <button
+            onClick={() => setConsolidated(false)}
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para visão por CNPJ
+          </button>
+        </div>
+
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <ShieldAlert className="mt-0.5 h-5 w-5 flex-none" />
+          <div>
+            <p className="font-semibold">Leitura gerencial, sem consolidação contábil/fiscal.</p>
+            <p>{consolidatedWarning || 'As contas, títulos e saldos continuam pertencendo a cada CNPJ emissor.'}</p>
+          </div>
+        </div>
+
+        {consolidatedError ? (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+            {consolidatedError}
+          </div>
+        ) : null}
+
+        {consolidatedLoading ? (
+          <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+            Carregando totais gerenciais...
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {cards.map((card) => (
+              <div key={card.label} className="rounded-lg border border-slate-200 bg-white p-4">
+                <p className="text-sm font-medium text-slate-600">{card.label}</p>
+                <p className={`mt-1 text-2xl font-bold ${card.tone}`}>
+                  {formatCurrency(card.value)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="text-xs text-slate-500">
+          Para agir sobre um título, selecione o CNPJ responsável no cabeçalho e abra as abas
+          Contas a receber, Contas a pagar ou Pedidos.
+        </p>
+      </div>
+    );
+  }
+
   // Configurar colunas com tipo correto
   const columns: ColumnsMap = {
     "contas-receber": getContasReceberColumns({ handleMarkAsPaid }),
@@ -139,6 +249,14 @@ export const OverviewTab: React.FC = () => {
         <TabNavigation activeSubTab={activeSubTab} setActiveSubTab={setActiveSubTab} />
         
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setConsolidated(true)}
+            className="px-3 py-2 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-medium text-slate-700"
+            title="Soma gerencial de todos os CNPJs, sem movimentar saldos"
+          >
+            <Building2 className="h-4 w-4" />
+            Visao consolidada
+          </button>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
