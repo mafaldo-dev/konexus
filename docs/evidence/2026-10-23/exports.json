@@ -1,0 +1,15 @@
+{
+  "results": [
+    {
+      "name": "Inventário XLSX: download e leitura das células",
+      "status": "Aprovado",
+      "rows": 7
+    },
+    {
+      "name": "Inventário PDF: download e formato válido",
+      "status": "Aprovado",
+      "bytes": 162956
+    }
+  ],
+  "errors": []
+}

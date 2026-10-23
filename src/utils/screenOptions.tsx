@@ -49,6 +49,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
 
   const handleExportExcel = () => {
@@ -155,7 +156,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       );
 
       if (isElectron) {
-        const fileBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+        const fileBuffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
         (window as any).ipcRenderer.send("save-excel-file", { fileName, buffer: fileBuffer });
       } else {
 
@@ -341,6 +342,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   };
 
   const handleGeneratePDF = async () => {
+    if (generatingPdf) return;
     if (!order && !product && !report) {
       Swal.fire("Atenção", "Nenhum documento disponível para gerar PDF.", "warning");
       return;
@@ -355,6 +357,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     const originalElementClass = element.className;
     const originalWrapperClass = wrapper?.className || '';
     const originalMainClass = main?.className || '';
+    const originalWrapperStyle = wrapper?.style.cssText || '';
+    const originalMainStyle = main?.style.cssText || '';
+    setGeneratingPdf(true);
 
     try {
       const html2pdf = (await import('html2pdf.js')).default;
@@ -365,7 +370,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         documentType === "render_report_print_sheet" ||
         documentType === "relatorio_expedicao" ||
         documentType === "relatorio_inventario") {
-        element.className = 'bg-white w-[210mm] min-h-[297mm] mt-32';
+        element.className = 'bg-white w-[210mm] min-h-[297mm]';
       } else if (documentType.includes('label')) {
         element.className = '';
       }
@@ -396,6 +401,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         } else {
           filename = `Relatorio_${report?.reportSelected || report?.id}.pdf`;
         }
+      } else if (documentType === "relatorio_inventario" || documentType === "relatorio_expedicao") {
+        filename = `${documentType}_${new Date().toISOString().slice(0,10)}.pdf`;
       } else if (documentType === "render_os_print_sheet") {
         filename = `OS_${order?.ordernumber || order?.id}.pdf`;
       } else {
@@ -424,29 +431,20 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       };
 
       await html2pdf().set(opt).from(element).save();
-
-      element.className = originalElementClass;
-      if (wrapper) {
-        wrapper.className = originalWrapperClass;
-        wrapper.style.cssText = '';
-      }
-      if (main) {
-        main.className = originalMainClass;
-        main.style.cssText = '';
-      }
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       alert('Erro ao gerar PDF. Tente usar a função de impressão.');
-
+    } finally {
       element.className = originalElementClass;
       if (wrapper) {
         wrapper.className = originalWrapperClass;
-        wrapper.style.cssText = '';
+        wrapper.style.cssText = originalWrapperStyle;
       }
       if (main) {
         main.className = originalMainClass;
-        main.style.cssText = '';
+        main.style.cssText = originalMainStyle;
       }
+      setGeneratingPdf(false);
     }
   };
 
@@ -897,7 +895,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             <p className="text-xs text-gray-600 font-medium">Lista de Separação - Expedição</p>
             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              {issuerEmail || "konexuserp@comercial.com"}
+              {issuerEmail || "E-mail não cadastrado"}
             </p>
           </div>
         </div>
@@ -1028,7 +1026,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             </p>
             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              {issuerEmail || "konexuserp@comercial.com"}
+              {issuerEmail || "E-mail não cadastrado"}
             </p>
           </div>
         </div>
@@ -1275,7 +1273,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             </p>
             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              {issuerEmail || "konexuserp@comercial.com"}
+              {issuerEmail || "E-mail não cadastrado"}
             </p>
           </div>
         </div>
@@ -1428,7 +1426,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               </p>
               <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                {issuerEmail || "konexuserp@comercial.com"}
+                {issuerEmail || "E-mail não cadastrado"}
               </p>
             </div>
           </div>
@@ -1716,8 +1714,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                     <button
                       onClick={handleGeneratePDF}
                       className="w-full flex items-center gap-3 p-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
-                      disabled
-                      title="Função indisponivel. Use a impressão direta!"
+                       disabled={generatingPdf || documentType === "nfe_pdf"}
+                       title={documentType === "nfe_pdf" ? "Use o DANFE fornecido pela integração fiscal" : "Baixar documento em PDF"}
                     >
                       <FileText size={14} />
                       <span>Gerar PDF</span>

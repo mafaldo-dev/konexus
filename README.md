@@ -1,5 +1,17 @@
 # Konéxus — Sistema de Gestão Empresarial
 
+## Homologação e segurança — 23/10/2026
+
+Build migrado para **Vite 8**, testes para **Jest 30**, sem alertas no `npm audit`
+na rodada registrada. Instalação, inicialização, persistência de identidade e
+desinstalação exercitadas em Windows nativo. Consulte os escopos e bloqueios
+fiscais/legais em [Pendências e resultados](docs/PENDENCIAS_2026-10-23.md) e
+[Homologação completa](docs/HOMOLOGACAO_SEGURANCA_2026-10-23.md).
+
+Desenvolvimento: `npm start`; tipos: `npm run typecheck`; testes:
+`npm run test:frontend`; build: `npm run build`. O resultado continua em `build/`
+e aceita as variáveis públicas `REACT_APP_API_URL`/`REACT_APP_SOCKET_URL`.
+
 ## Release 1.4.2
 
 Permissões por módulo, tela e operação, CNPJ explícito por colaborador,

@@ -1,0 +1,42 @@
+import {readFile,writeFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import * as XLSX from 'xlsx';
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const ctx=JSON.parse(await readFile('/tmp/opencode/homologation-context.json','utf8'));
+const browser=await chromium.launch();
+const page=await browser.newPage({viewport:{width:1440,height:1000},acceptDownloads:true});
+const results=[],errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+page.on('dialog',d=>{errors.push(d.message());d.dismiss();});
+try {
+  await page.goto('http://localhost:3000');
+  await page.getByPlaceholder('Usuário',{exact:true}).fill(ctx.username);
+  await page.getByPlaceholder('Senha',{exact:true}).fill(ctx.password);
+  await page.getByRole('button',{name:'Entrar',exact:true}).click();
+  await page.waitForURL('**/dashboard');
+  await page.goto('http://localhost:3000/#/stock/inventory');
+  await page.getByRole('button',{name:'Relatório(s)*',exact:true}).click();
+  await page.getByRole('button',{name:/Inventário Completo/}).click();
+  await page.getByRole('button',{name:'Gerar Relatório',exact:true}).click();
+  await page.getByTitle('Opções',{exact:true}).click();
+  let download=page.waitForEvent('download');
+  await page.getByRole('button',{name:'Exportar para Excel',exact:true}).click();
+  const excel=await download;
+  await excel.saveAs('/tmp/opencode/inventory.xlsx');
+  const book=XLSX.read(await readFile('/tmp/opencode/inventory.xlsx'),{type:'buffer'});
+  const rows=XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]],{header:1});
+  assert.ok(rows.length>5,'Planilha deve conter produtos persistidos');
+  assert.match(JSON.stringify(rows),/Produto/);
+  results.push({name:'Inventário XLSX: download e leitura das células',status:'Aprovado',rows:rows.length});
+  await page.getByTitle('Opções',{exact:true}).click();
+  download=page.waitForEvent('download',{timeout:60000});
+  await page.getByRole('button',{name:'Gerar PDF',exact:true}).click();
+  const pdf=await download;
+  await pdf.saveAs('/tmp/opencode/inventory.pdf');
+  const data=await readFile('/tmp/opencode/inventory.pdf');
+  assert.equal(data.subarray(0,5).toString(),'%PDF-');
+  assert.ok(data.length>1000);
+  assert.equal(errors.length,0,errors.join('\n'));
+  results.push({name:'Inventário PDF: download e formato válido',status:'Aprovado',bytes:data.length});
+}catch(error){results.push({status:'Reprovado',error:error.message});console.error(error);process.exitCode=1;}
+finally{await page.screenshot({path:'/tmp/opencode/exports.png'});await writeFile('/tmp/opencode/exports.json',JSON.stringify({results,errors},null,2));await browser.close();}
