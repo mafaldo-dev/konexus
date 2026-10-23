@@ -22,10 +22,8 @@ concurrency:
 
 env:
   RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag || github.ref_name }}
-  # O CRA trata avisos do ESLint como erro quando CI=true. O projeto possui
-  # avisos legados; um aviso de estilo não deve impedir a geração do instalador.
-  # A validação de tipos continua obrigatória no passo "Verificar TypeScript".
-  CI: "false"
+  # Vite gera o bundle; TypeScript continua obrigatório no build.
+  CI: "true"
 
 jobs:
   build-windows:

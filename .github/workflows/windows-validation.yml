@@ -1,0 +1,75 @@
+name: Windows installed application validation
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/windows-validation.yml'
+      - 'scripts/windows-installed-smoke.mjs'
+      - 'vite.config.mjs'
+      - 'package*.json'
+      - 'electron/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  installed-app:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # O teste não faz login nem escreve em produção.
+      REACT_APP_API_URL: http://127.0.0.1:3010
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --legacy-peer-deps --no-fund
+      - run: npm run test:frontend
+      - run: npm run test:electron
+      - run: npm audit --audit-level=low
+      - run: npm run build
+      - name: Build installer without publishing
+        run: npx electron-builder --win nsis --publish never
+      - name: Install NSIS and verify executable
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem dist/Konexus-Setup-*.exe | Select-Object -First 1
+          if (-not $installer) { throw 'Instalador não encontrado' }
+          $target = Join-Path $env:RUNNER_TEMP 'KonexusQA'
+          $p = Start-Process $installer.FullName -ArgumentList '/S',"/D=$target" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Instalação falhou: $($p.ExitCode)" }
+          $exe = Join-Path $target 'Konexus.exe'
+          if (-not (Test-Path $exe)) { throw 'Executável instalado ausente' }
+          "INSTALLED_EXE=$exe" >> $env:GITHUB_ENV
+          "INSTALL_DIR=$target" >> $env:GITHUB_ENV
+      - name: Installed application and persistence smoke
+        shell: pwsh
+        run: |
+          npm install --prefix "$env:RUNNER_TEMP/browser" playwright --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:PLAYWRIGHT_MODULE = ([uri](Join-Path $env:RUNNER_TEMP 'browser/node_modules/playwright/index.mjs')).AbsoluteUri
+          node scripts/windows-installed-smoke.mjs
+          exit $LASTEXITCODE
+      - name: Uninstall and verify removal
+        if: always() && env.INSTALL_DIR != ''
+        shell: pwsh
+        run: |
+          $uninstaller = Get-ChildItem $env:INSTALL_DIR -Filter 'Uninstall*.exe' | Select-Object -First 1
+          if (-not $uninstaller) { throw 'Desinstalador ausente' }
+          $p = Start-Process $uninstaller.FullName -ArgumentList '/S' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Desinstalação falhou: $($p.ExitCode)" }
+          $deadline = (Get-Date).AddSeconds(30)
+          while ((Test-Path $env:INSTALLED_EXE) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 500 }
+          if (Test-Path $env:INSTALLED_EXE) { throw 'Executável permaneceu após desinstalação' }
+          'NSIS installation/uninstallation verified' | Out-File windows-uninstall.txt
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: windows-validation-${{ github.sha }}
+          path: |
+            windows-evidence/
+            windows-uninstall.txt
+          retention-days: 14
