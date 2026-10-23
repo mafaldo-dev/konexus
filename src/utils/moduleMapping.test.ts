@@ -63,9 +63,10 @@ describe("menu lateral", () => {
     ).toBe(true);
   });
 
-  it("esconde o Financeiro de quem não tem a permissão", () => {
+  it("esconde o Financeiro de quem não acessa nenhum domínio do grupo", () => {
     const semFinanceiro = FULL_PERMISSIONS.filter(
-      (group) => group.moduleKey !== "finance"
+      (group) =>
+        !["finance", "rh", "contabil", "nfe"].includes(group.moduleKey)
     );
 
     expect(
@@ -269,5 +270,44 @@ describe("rotas e submenus protegidos", () => {
         false
       )
     ).toBe(true);
+  });
+
+  it("separa acesso à folha e aos treinamentos por permissão específica", () => {
+    expect(
+      canAccessRoute(
+        "/rh/folha",
+        FREEMIUM_MODULES,
+        "RH",
+        [{ moduleKey: "rh", actions: ["view"] }],
+        false
+      )
+    ).toBe(false);
+    expect(
+      canAccessRoute(
+        "/rh/folha",
+        FREEMIUM_MODULES,
+        "RH",
+        [{ moduleKey: "rh", actions: ["view_payroll"] }],
+        false
+      )
+    ).toBe(true);
+    expect(
+      canAccessRoute(
+        "/rh/treinamentos",
+        FREEMIUM_MODULES,
+        "RH",
+        [{ moduleKey: "rh", actions: ["view"] }],
+        false
+      )
+    ).toBe(true);
+    expect(
+      canAccessRoute(
+        "/rh/treinamentos",
+        FREEMIUM_MODULES,
+        "RH",
+        [],
+        false
+      )
+    ).toBe(false);
   });
 });

@@ -38,7 +38,13 @@ const UpdatedSupplierForm = ({ supplier, onClose }: Props) => {
       onClose()
     } catch (error) {
       console.error("Erro ao atualizar fornecedor:", error)
-      Swal.fire("Erro", "Erro ao atualizar fornecedor.", "error")
+      Swal.fire(
+        "Erro",
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar o fornecedor.",
+        "error"
+      )
     }
   }
 

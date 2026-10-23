@@ -9,12 +9,16 @@ import {
 import DocumentViewer from '../../../utils/screenOptions';
 import { getStatusColor, getStatusLabel, mapOrderStatus, ORDER_STATUS } from '../../../components/utils/statusLabel';
 import { useAuth } from '../../../AuthContext';
+import { DataState, DataStateVariant } from '../../../components/ui/DataState';
 
 
 interface QuotationsListProps {
   quotations: any[];
   onPreview?: (quotation: any[]) => void;
   onUpdate?: () => void;
+  error?: string | null;
+  errorVariant?: DataStateVariant;
+  onRetry?: () => void;
 }
 
 // Lista de opções para o select de status (formato array para Swal)
@@ -23,7 +27,13 @@ const STATUS_OPTIONS = Object.entries(ORDER_STATUS).map(([value, config]: [strin
   label: config.label
 }));
 
-export default function QuotationsList({ quotations = [], onUpdate }: QuotationsListProps) {
+export default function QuotationsList({
+  quotations = [],
+  onUpdate,
+  error = null,
+  errorVariant = "error",
+  onRetry,
+}: QuotationsListProps) {
   const { hasPermission } = useAuth();
   const canEditPurchase = hasPermission('compras', 'edit');
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
@@ -65,7 +75,9 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
         didOpen: () => Swal.showLoading(),
       });
 
-      const fullOrderRes = await getPurchaseOrderByNumber(order.ordernumber);
+      const fullOrderRes = await getPurchaseOrderByNumber(
+        order.orderNumber || order.ordernumber
+      );
       if (!fullOrderRes.ok || !fullOrderRes.data) throw new Error('Pedido não encontrado');
       const fullOrder = fullOrderRes.data;
 
@@ -131,7 +143,7 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
     setOpenMenuId(null);
     
     // Normalizar o status atual
-    const currentStatus = mapOrderStatus(order.orderstatus);
+    const currentStatus = mapOrderStatus(order.orderStatus ?? order.orderstatus);
 
     // Gerar opções HTML
     const optionsHtml = STATUS_OPTIONS.map((option) =>
@@ -161,7 +173,10 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
           orderStatus: newStatus,
           notes: order.notes || ''
         };
-        await updatePurchaseOrder(Number(order.id), payload);
+        const response = await updatePurchaseOrder(Number(order.id), payload);
+        if (!response.ok) {
+          throw new Error(response.error || 'Não foi possível atualizar o status.');
+        }
         if (onUpdate) onUpdate();
         
         Swal.fire({
@@ -174,7 +189,7 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
         console.error(err);
         Swal.fire({
           title: 'Erro!',
-          text: 'Não foi possível atualizar o status.',
+          text: err instanceof Error ? err.message : 'Não foi possível atualizar o status.',
           icon: 'error'
         });
       }
@@ -241,8 +256,17 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
           Solicitações de Compra
         </h2>
 
-        {quotations.length === 0 ? (
-          <p className="text-slate-500">Nenhuma solicitação registrada ainda.</p>
+        {error ? (
+          <DataState
+            variant={errorVariant}
+            description={error}
+            onAction={onRetry}
+          />
+        ) : quotations.length === 0 ? (
+          <DataState
+            variant="empty"
+            description="Cadastre a primeira solicitação de compra para começar."
+          />
         ) : (
           <>
             <div className="overflow-x-auto rounded border border-slate-300">
@@ -260,15 +284,22 @@ export default function QuotationsList({ quotations = [], onUpdate }: Quotations
 
                 <tbody className="divide-y divide-slate-200">
                   {paginatedData.map((order) => {
-                    // Normalizar status para exibição
-                    const normalizedStatus = mapOrderStatus(order.orderstatus);
+                    // O backend devolve camelCase; versões antigas usavam
+                    // minúsculas. Aceitamos os dois contratos na leitura.
+                    const normalizedStatus = mapOrderStatus(
+                      order.orderStatus ?? order.orderstatus
+                    );
+                    const orderNumber = order.orderNumber ?? order.ordernumber ?? '-';
+                    const supplierName = order.supplierName ?? order.suppliername ?? '-';
+                    const orderDate = order.orderDate ?? order.orderdate;
+                    const totalCost = order.totalCost ?? order.totalcost ?? 0;
                     
                     return (
                       <tr key={order.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-3">{order.ordernumber}</td>
-                        <td className="px-4 py-3">{order.suppliername}</td>
-                        <td className="px-4 py-3">{formatDate(order.orderdate)}</td>
-                        <td className="px-4 py-3 text-right">R$ {order.totalcost}</td>
+                        <td className="px-4 py-3">{orderNumber}</td>
+                        <td className="px-4 py-3">{supplierName}</td>
+                        <td className="px-4 py-3">{formatDate(orderDate)}</td>
+                        <td className="px-4 py-3 text-right">R$ {Number(totalCost).toFixed(2)}</td>
                         <td className="px-4 py-3 text-center">
                           <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(normalizedStatus)}`}>
                             {getStatusLabel(normalizedStatus)}

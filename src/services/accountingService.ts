@@ -8,6 +8,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { pickData } from "../api/payload";
 
 export type AccountingClassification =
   | "ativo"
@@ -246,6 +247,18 @@ function query(
   return text ? `?${text}` : "";
 }
 
+/**
+ * O backend contábil responde sempre `{ success: true, data: ... }`.
+ * Desembrulhar aqui evita que as telas recebam um objeto onde esperam uma
+ * lista (o que acionava o Error Boundary) e mantém os erros HTTP intactos.
+ */
+function accountingData<T>(
+  response: ApiResponse<any>,
+  label: string
+): ApiResponse<T> {
+  return pickData<T>(response, (body) => body?.data, label);
+}
+
 /* ------------------------------------------------------------ Plano de contas */
 
 export async function listAccountingAccounts(
@@ -256,49 +269,66 @@ export async function listAccountingAccounts(
     active?: boolean;
   } = {}
 ): Promise<ApiResponse<AccountingAccount[]>> {
-  const response = await apiClient.get<AccountingAccount[]>(
-    `accounting/accounts${query(filters)}`
+  return accountingData<AccountingAccount[]>(
+    await apiClient.get(`accounting/accounts${query(filters)}`),
+    "plano de contas"
   );
-  return { ...response, data: response.data || [] };
 }
 
 export async function createAccountingAccount(
   payload: Partial<AccountingAccount>
 ): Promise<ApiResponse<AccountingAccount>> {
-  return apiClient.post<AccountingAccount>("accounting/accounts", payload);
+  return accountingData<AccountingAccount>(
+    await apiClient.post("accounting/accounts", payload),
+    "conta contábil criada"
+  );
 }
 
 export async function updateAccountingAccount(
   id: number,
   payload: Partial<AccountingAccount>
 ): Promise<ApiResponse<AccountingAccount>> {
-  return apiClient.put<AccountingAccount>(`accounting/accounts/${id}`, payload);
+  return accountingData<AccountingAccount>(
+    await apiClient.put(`accounting/accounts/${id}`, payload),
+    "conta contábil atualizada"
+  );
 }
 
 export async function deleteAccountingAccount(
   id: number
 ): Promise<ApiResponse<{ deleted: boolean }>> {
-  return apiClient.delete<{ deleted: boolean }>(`accounting/accounts/${id}`);
+  return accountingData<{ deleted: boolean }>(
+    await apiClient.delete(`accounting/accounts/${id}`),
+    "conta contábil removida"
+  );
 }
 
 /* ---------------------------------------------------------- Centros de custo */
 
 export async function listCostCenters(): Promise<ApiResponse<AccountingCostCenter[]>> {
-  const response = await apiClient.get<AccountingCostCenter[]>("accounting/cost-centers");
-  return { ...response, data: response.data || [] };
+  return accountingData<AccountingCostCenter[]>(
+    await apiClient.get("accounting/cost-centers"),
+    "centros de custo"
+  );
 }
 
 export async function createCostCenter(
   payload: Partial<AccountingCostCenter>
 ): Promise<ApiResponse<AccountingCostCenter>> {
-  return apiClient.post<AccountingCostCenter>("accounting/cost-centers", payload);
+  return accountingData<AccountingCostCenter>(
+    await apiClient.post("accounting/cost-centers", payload),
+    "centro de custo criado"
+  );
 }
 
 export async function updateCostCenter(
   id: number,
   payload: Partial<AccountingCostCenter>
 ): Promise<ApiResponse<AccountingCostCenter>> {
-  return apiClient.put<AccountingCostCenter>(`accounting/cost-centers/${id}`, payload);
+  return accountingData<AccountingCostCenter>(
+    await apiClient.put(`accounting/cost-centers/${id}`, payload),
+    "centro de custo atualizado"
+  );
 }
 
 /* ------------------------------------------------------ Exercicios e periodos */
@@ -306,10 +336,10 @@ export async function updateCostCenter(
 export async function listAccountingPeriods(
   filters: { year?: number; status?: string } = {}
 ): Promise<ApiResponse<AccountingPeriod[]>> {
-  const response = await apiClient.get<AccountingPeriod[]>(
-    `accounting/periods${query(filters)}`
+  return accountingData<AccountingPeriod[]>(
+    await apiClient.get(`accounting/periods${query(filters)}`),
+    "períodos contábeis"
   );
-  return { ...response, data: response.data || [] };
 }
 
 export async function createAccountingPeriod(payload: {
@@ -319,28 +349,40 @@ export async function createAccountingPeriod(payload: {
   startsAt: string;
   endsAt: string;
 }): Promise<ApiResponse<AccountingPeriod>> {
-  return apiClient.post<AccountingPeriod>("accounting/periods", payload);
+  return accountingData<AccountingPeriod>(
+    await apiClient.post("accounting/periods", payload),
+    "período contábil criado"
+  );
 }
 
 export async function closeAccountingPeriod(
   id: number,
   notes?: string
 ): Promise<ApiResponse<AccountingPeriod>> {
-  return apiClient.post<AccountingPeriod>(`accounting/periods/${id}/close`, { notes });
+  return accountingData<AccountingPeriod>(
+    await apiClient.post(`accounting/periods/${id}/close`, { notes }),
+    "fechamento contábil"
+  );
 }
 
 export async function reopenAccountingPeriod(
   id: number,
   notes: string
 ): Promise<ApiResponse<AccountingPeriod>> {
-  return apiClient.post<AccountingPeriod>(`accounting/periods/${id}/reopen`, { notes });
+  return accountingData<AccountingPeriod>(
+    await apiClient.post(`accounting/periods/${id}/reopen`, { notes }),
+    "reabertura contábil"
+  );
 }
 
 export async function lockAccountingPeriod(
   id: number,
   notes?: string
 ): Promise<ApiResponse<AccountingPeriod>> {
-  return apiClient.post<AccountingPeriod>(`accounting/periods/${id}/lock`, { notes });
+  return accountingData<AccountingPeriod>(
+    await apiClient.post(`accounting/periods/${id}/lock`, { notes }),
+    "bloqueio contábil"
+  );
 }
 
 /* --------------------------------------------------------------- Lancamentos */
@@ -357,20 +399,27 @@ export async function listAccountingEntries(
     offset?: number;
   } = {}
 ): Promise<ApiResponse<AccountingEntry[]> & { total: number }> {
-  const response = await apiClient.get<{ data: AccountingEntry[]; total: number }>(
+  const response = await apiClient.get<any>(
     `accounting/entries${query(filters)}`
   );
+  const normalized = pickData<AccountingEntry[]>(
+    response,
+    (body) => (Array.isArray(body?.data) ? body.data : undefined),
+    "lançamentos contábeis"
+  );
   return {
-    ...response,
-    data: response.data?.data || [],
-    total: response.data?.total || 0,
-  } as ApiResponse<AccountingEntry[]> & { total: number };
+    ...normalized,
+    total: normalized.ok ? Number(response.data?.total) || 0 : 0,
+  };
 }
 
 export async function getAccountingEntry(
   id: number
 ): Promise<ApiResponse<AccountingEntry>> {
-  return apiClient.get<AccountingEntry>(`accounting/entries/${id}`);
+  return accountingData<AccountingEntry>(
+    await apiClient.get(`accounting/entries/${id}`),
+    "lançamento contábil"
+  );
 }
 
 export async function createAccountingEntry(payload: {
@@ -386,7 +435,10 @@ export async function createAccountingEntry(payload: {
     description?: string;
   }>;
 }): Promise<ApiResponse<AccountingEntry>> {
-  return apiClient.post<AccountingEntry>("accounting/entries", payload);
+  return accountingData<AccountingEntry>(
+    await apiClient.post("accounting/entries", payload),
+    "lançamento contábil criado"
+  );
 }
 
 export async function updateAccountingEntry(
@@ -403,36 +455,47 @@ export async function updateAccountingEntry(
     }>;
   }
 ): Promise<ApiResponse<AccountingEntry>> {
-  return apiClient.put<AccountingEntry>(`accounting/entries/${id}`, payload);
+  return accountingData<AccountingEntry>(
+    await apiClient.put(`accounting/entries/${id}`, payload),
+    "lançamento contábil atualizado"
+  );
 }
 
 export async function postAccountingEntry(
   id: number
 ): Promise<ApiResponse<AccountingEntry>> {
-  return apiClient.post<AccountingEntry>(`accounting/entries/${id}/post`);
+  return accountingData<AccountingEntry>(
+    await apiClient.post(`accounting/entries/${id}/post`),
+    "lançamento contábil"
+  );
 }
 
 export async function reverseAccountingEntry(
   id: number,
   payload: { description?: string; notes?: string; entryDate?: string }
 ): Promise<ApiResponse<{ reversal: AccountingEntry; reversed: number }>> {
-  return apiClient.post<{ reversal: AccountingEntry; reversed: number }>(
-    `accounting/entries/${id}/reverse`,
-    payload
+  return accountingData<{ reversal: AccountingEntry; reversed: number }>(
+    await apiClient.post(`accounting/entries/${id}/reverse`, payload),
+    "estorno contábil"
   );
 }
 
 export async function deleteAccountingEntry(
   id: number
 ): Promise<ApiResponse<{ deleted: boolean }>> {
-  return apiClient.delete<{ deleted: boolean }>(`accounting/entries/${id}`);
+  return accountingData<{ deleted: boolean }>(
+    await apiClient.delete(`accounting/entries/${id}`),
+    "lançamento contábil removido"
+  );
 }
 
 /* --------------------------------------------------------------- Mapeamentos */
 
 export async function listAccountingMappings(): Promise<ApiResponse<AccountingMapping[]>> {
-  const response = await apiClient.get<AccountingMapping[]>("accounting/mappings");
-  return { ...response, data: response.data || [] };
+  return accountingData<AccountingMapping[]>(
+    await apiClient.get("accounting/mappings"),
+    "mapeamentos contábeis"
+  );
 }
 
 export async function saveAccountingMapping(payload: {
@@ -442,19 +505,28 @@ export async function saveAccountingMapping(payload: {
   costCenterId?: number | null;
   active?: boolean;
 }): Promise<ApiResponse<AccountingMapping>> {
-  return apiClient.post<AccountingMapping>("accounting/mappings", payload);
+  return accountingData<AccountingMapping>(
+    await apiClient.post("accounting/mappings", payload),
+    "mapeamento contábil"
+  );
 }
 
 export async function deleteAccountingMapping(
   id: number
 ): Promise<ApiResponse<{ deleted: boolean }>> {
-  return apiClient.delete<{ deleted: boolean }>(`accounting/mappings/${id}`);
+  return accountingData<{ deleted: boolean }>(
+    await apiClient.delete(`accounting/mappings/${id}`),
+    "mapeamento contábil removido"
+  );
 }
 
 /* ------------------------------------------------------------- Configuracoes */
 
 export async function getAccountingSettings(): Promise<ApiResponse<AccountingSettings>> {
-  return apiClient.get<AccountingSettings>("accounting/settings");
+  return accountingData<AccountingSettings>(
+    await apiClient.get("accounting/settings"),
+    "configurações contábeis"
+  );
 }
 
 export async function saveAccountingSettings(payload: {
@@ -463,7 +535,10 @@ export async function saveAccountingSettings(payload: {
   depreciationMethod?: string;
   notes?: string;
 }): Promise<ApiResponse<AccountingSettings>> {
-  return apiClient.put<AccountingSettings>("accounting/settings", payload);
+  return accountingData<AccountingSettings>(
+    await apiClient.put("accounting/settings", payload),
+    "configurações contábeis"
+  );
 }
 
 /* ----------------------------------------------------------------- Relatorios */
@@ -471,7 +546,10 @@ export async function saveAccountingSettings(payload: {
 export async function getAccountingDashboard(
   filters: { year?: number; from?: string; to?: string } = {}
 ): Promise<ApiResponse<AccountingDashboard>> {
-  return apiClient.get<AccountingDashboard>(`accounting/dashboard${query(filters)}`);
+  return accountingData<AccountingDashboard>(
+    await apiClient.get(`accounting/dashboard${query(filters)}`),
+    "painel contábil"
+  );
 }
 
 export async function getAccountingJournal(filters: {
@@ -491,7 +569,10 @@ export async function getAccountingJournal(filters: {
     totals: { debit: number; credit: number; balanced: boolean };
   }>
 > {
-  return apiClient.get(`accounting/reports/journal${query(filters)}`);
+  return accountingData(
+    await apiClient.get(`accounting/reports/journal${query(filters)}`),
+    "livro diário"
+  );
 }
 
 export async function getAccountingLedger(filters: {
@@ -530,7 +611,10 @@ export async function getAccountingLedger(filters: {
     } | null;
   }>
 > {
-  return apiClient.get(`accounting/reports/ledger${query(filters)}`);
+  return accountingData(
+    await apiClient.get(`accounting/reports/ledger${query(filters)}`),
+    "livro razão"
+  );
 }
 
 export async function getTrialBalance(filters: {
@@ -556,7 +640,10 @@ export async function getTrialBalance(filters: {
     balanced: boolean;
   }>
 > {
-  return apiClient.get(`accounting/reports/trial-balance${query(filters)}`);
+  return accountingData(
+    await apiClient.get(`accounting/reports/trial-balance${query(filters)}`),
+    "balancete"
+  );
 }
 
 export async function getBalanceSheet(filters: {
@@ -565,7 +652,10 @@ export async function getBalanceSheet(filters: {
   compareFrom?: string;
   compareTo?: string;
 }): Promise<ApiResponse<any>> {
-  return apiClient.get(`accounting/reports/balance-sheet${query(filters)}`);
+  return accountingData(
+    await apiClient.get(`accounting/reports/balance-sheet${query(filters)}`),
+    "balanço patrimonial"
+  );
 }
 
 export async function getIncomeStatement(filters: {
@@ -574,7 +664,10 @@ export async function getIncomeStatement(filters: {
   compareFrom?: string;
   compareTo?: string;
 }): Promise<ApiResponse<any>> {
-  return apiClient.get(`accounting/reports/income-statement${query(filters)}`);
+  return accountingData(
+    await apiClient.get(`accounting/reports/income-statement${query(filters)}`),
+    "demonstração do resultado"
+  );
 }
 
 /* ------------------------------------------------------------------ Integracao */
@@ -601,7 +694,10 @@ export async function listPendingFinancialItems(): Promise<
     }>;
   }>
 > {
-  return apiClient.get("accounting/integration/pending");
+  return accountingData(
+    await apiClient.get("accounting/integration/pending"),
+    "pendências de integração contábil"
+  );
 }
 
 export async function processFinancialEvent(payload: {
@@ -609,17 +705,20 @@ export async function processFinancialEvent(payload: {
   financialId: number;
   eventType: string;
 }): Promise<ApiResponse<{ created: boolean; entry: AccountingEntry | null }>> {
-  return apiClient.post("accounting/integration/events", payload);
+  return accountingData(
+    await apiClient.post("accounting/integration/events", payload),
+    "evento contábil"
+  );
 }
 
 export async function listReconciliations(filters: {
   status?: string;
   financialType?: string;
 } = {}): Promise<ApiResponse<AccountingReconciliation[]>> {
-  const response = await apiClient.get<AccountingReconciliation[]>(
-    `accounting/reconciliations${query(filters)}`
+  return accountingData<AccountingReconciliation[]>(
+    await apiClient.get(`accounting/reconciliations${query(filters)}`),
+    "conciliações contábeis"
   );
-  return { ...response, data: response.data || [] };
 }
 
 export async function reconcileFinancialItem(payload: {
@@ -629,9 +728,9 @@ export async function reconcileFinancialItem(payload: {
   status?: "reconciled" | "divergent";
   notes?: string;
 }): Promise<ApiResponse<AccountingReconciliation>> {
-  return apiClient.post<AccountingReconciliation>(
-    "accounting/reconciliations",
-    payload
+  return accountingData<AccountingReconciliation>(
+    await apiClient.post("accounting/reconciliations", payload),
+    "conciliação contábil"
   );
 }
 
@@ -639,9 +738,11 @@ export async function unreconcileFinancialItem(
   id: number,
   reason: string
 ): Promise<ApiResponse<AccountingReconciliation>> {
-  return apiClient.post<AccountingReconciliation>(
-    `accounting/reconciliations/${id}/unreconcile`,
-    { reason }
+  return accountingData<AccountingReconciliation>(
+    await apiClient.post(`accounting/reconciliations/${id}/unreconcile`, {
+      reason,
+    }),
+    "conciliação contábil"
   );
 }
 
@@ -651,10 +752,10 @@ export async function listFixedAssets(filters: {
   status?: string;
   search?: string;
 } = {}): Promise<ApiResponse<AccountingFixedAsset[]>> {
-  const response = await apiClient.get<AccountingFixedAsset[]>(
-    `accounting/assets${query(filters)}`
+  return accountingData<AccountingFixedAsset[]>(
+    await apiClient.get(`accounting/assets${query(filters)}`),
+    "ativos imobilizados"
   );
-  return { ...response, data: response.data || [] };
 }
 
 export async function createFixedAsset(payload: {
@@ -670,16 +771,19 @@ export async function createFixedAsset(payload: {
   costCenterId?: number | null;
   notes?: string;
 }): Promise<ApiResponse<AccountingFixedAsset>> {
-  return apiClient.post<AccountingFixedAsset>("accounting/assets", payload);
+  return accountingData<AccountingFixedAsset>(
+    await apiClient.post("accounting/assets", payload),
+    "ativo imobilizado"
+  );
 }
 
 export async function listDepreciations(filters: {
   assetId?: number;
 } = {}): Promise<ApiResponse<AccountingDepreciation[]>> {
-  const response = await apiClient.get<AccountingDepreciation[]>(
-    `accounting/depreciations${query(filters)}`
+  return accountingData<AccountingDepreciation[]>(
+    await apiClient.get(`accounting/depreciations${query(filters)}`),
+    "depreciações contábeis"
   );
-  return { ...response, data: response.data || [] };
 }
 
 export async function runDepreciation(
@@ -697,5 +801,8 @@ export async function runDepreciation(
     }>;
   }>
 > {
-  return apiClient.post(`accounting/periods/${periodId}/depreciation`);
+  return accountingData(
+    await apiClient.post(`accounting/periods/${periodId}/depreciation`),
+    "depreciação contábil"
+  );
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { Warehouse, X, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { Products } from '../../../../types/stock/products';
 import { Movement } from '../../../../types/stock/movements';
+import { DataState } from '../../../../components/ui/DataState';
 
 interface KardexModalProps {
     show: boolean;
@@ -9,9 +10,19 @@ interface KardexModalProps {
     product: Products | null;
     movements: Movement[];
     loading: boolean;
+    error?: string | null;
+    onRetry?: () => void;
 }
 
-const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, movements, loading }) => {
+const KardexModal: React.FC<KardexModalProps> = ({
+    show,
+    closeModal,
+    product,
+    movements,
+    loading,
+    error = null,
+    onRetry,
+}) => {
     if (!show || !product) return null;
 
     const safeMovements = Array.isArray(movements) ? movements : [];
@@ -114,6 +125,13 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-800"></div>
                                 <p className="ml-3 text-gray-600">Carregando movimentações...</p>
                             </div>
+                        ) : error ? (
+                            <DataState
+                                variant="error"
+                                compact
+                                description={error}
+                                onAction={onRetry}
+                            />
                         ) : safeMovements.length > 0 ? (
                             <div className="overflow-x-auto">
                                 <table className="w-full border border-gray-200 border-collapse rounded-lg overflow-hidden">
@@ -166,9 +184,11 @@ const KardexModal: React.FC<KardexModalProps> = ({ show, closeModal, product, mo
                                 </table>
                             </div>
                         ) : (
-                            <div className="text-center py-8">
-                                <p className="text-gray-500">Nenhuma movimentação encontrada para este produto.</p>
-                            </div>
+                            <DataState
+                                variant="empty"
+                                compact
+                                description="Nenhuma movimentação registrada para este produto."
+                            />
                         )}
                     </div>
                 </div>

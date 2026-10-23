@@ -9,6 +9,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { asList, asObject } from "../api/payload";
 
 export interface Customer {
   id: number;
@@ -44,20 +45,16 @@ export interface CustomerFilters {
  */
 export async function listCustomers(
   filters: CustomerFilters = {}
-): Promise<
-  ApiResponse<{
-    data: Customer[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  }>
-> {
+): Promise<ApiResponse<Customer[]>> {
   const params = new URLSearchParams();
   if (filters.page) params.append("page", String(filters.page));
   if (filters.limit) params.append("limit", String(filters.limit));
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get(`customers/all${query}`);
+  return asList<Customer>(
+    await apiClient.get(`customers/all${query}`),
+    ["data", "customers"],
+    "clientes"
+  );
 }
 
 /**
@@ -66,7 +63,11 @@ export async function listCustomers(
 export async function getCustomerById(
   id: number | string
 ): Promise<ApiResponse<Customer>> {
-  return apiClient.get<Customer>(`customers/${id}`);
+  return asObject<Customer>(
+    await apiClient.get(`customers/${id}`),
+    ["data", "customer"],
+    "cliente"
+  );
 }
 
 /**
@@ -75,7 +76,11 @@ export async function getCustomerById(
 export async function createCustomer(
   data: Omit<Customer, "id" | "createdAt" | "updatedAt">
 ): Promise<ApiResponse<Customer>> {
-  return apiClient.post<Customer>("customers/create", data);
+  return asObject<Customer>(
+    await apiClient.post("customers/create", data),
+    ["customer", "data"],
+    "cliente criado"
+  );
 }
 
 /**
@@ -85,7 +90,11 @@ export async function updateCustomer(
   id: number | string,
   data: Partial<Customer>
 ): Promise<ApiResponse<Customer>> {
-  return apiClient.put<Customer>(`customers/${id}`, data);
+  return asObject<Customer>(
+    await apiClient.put(`customers/${id}`, data),
+    ["data", "customer"],
+    "cliente atualizado"
+  );
 }
 
 /**

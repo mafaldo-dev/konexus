@@ -45,7 +45,9 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [customersError, setCustomersError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string>("Carregando...");
+  const [orderNumberError, setOrderNumberError] = useState<string | null>(null);
   const [loadingOrderNumber, setLoadingOrderNumber] = useState(true);
   const [addressConfirmed, setAddressConfirmed] = useState(false);
   const hasPrefilledData = useRef(false);
@@ -145,10 +147,17 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
 
       try {
         setLoadingOrderNumber(true);
+        setOrderNumberError(null);
         const newOrderNumber = await getNextOrderNumber();
         setOrderNumber(newOrderNumber);
-      } catch {
-        setOrderNumber("P-100");
+      } catch (error) {
+        console.error("Erro ao carregar número do pedido:", error);
+        setOrderNumber("Não disponível");
+        setOrderNumberError(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível obter o número do próximo pedido."
+        );
       } finally {
         setLoadingOrderNumber(false);
       }
@@ -159,12 +168,22 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   useEffect(() => {
     const loadCustomers = async () => {
       try {
+        setCustomersError(null);
         const response = await getOrderCustomers();
-        if (response.ok && response.data) {
-          setCustomers(response.data);
+        if (!response.ok || !response.data) {
+          setCustomers([]);
+          setCustomersError(
+            response.error || "Não foi possível carregar os clientes."
+          );
+          return;
         }
+        setCustomers(response.data);
       } catch (error) {
         console.error("Erro ao carregar clientes:", error);
+        setCustomers([]);
+        setCustomersError(
+          "Não foi possível carregar os clientes. Tente novamente."
+        );
       } finally {
         setLoadingCustomers(false);
       }
@@ -177,10 +196,17 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   const refreshOrderNumber = async () => {
     try {
       setLoadingOrderNumber(true);
+      setOrderNumberError(null);
       const newOrderNumber = await getNextOrderNumber();
       setOrderNumber(newOrderNumber);
     } catch (error) {
       console.error("Erro ao recarregar número do pedido:", error);
+      setOrderNumber("Não disponível");
+      setOrderNumberError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível obter o número do próximo pedido."
+      );
     } finally {
       setLoadingOrderNumber(false);
     }
@@ -291,6 +317,16 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
         icon: "error",
         confirmButtonText: "Entendi"
       });
+      return;
+    }
+
+    if (!editMode && (orderNumberError || orderNumber === "Não disponível")) {
+      Swal.fire(
+        "Número do pedido indisponível",
+        orderNumberError ||
+          "Não foi possível obter a sequência real de pedidos. Tente novamente antes de salvar.",
+        "error"
+      );
       return;
     }
 
@@ -443,6 +479,11 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
                     readOnly
                     className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 font-mono font-bold"
                   />
+                  {orderNumberError && (
+                    <p className="mt-1 text-sm font-medium text-red-600">
+                      {orderNumberError}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -539,6 +580,9 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
                     ))}
                   </select>
                   {errors.customerId && <p className="text-red-600 text-sm mt-1">{errors.customerId.message}</p>}
+                  {customersError && (
+                    <p className="text-red-600 text-sm mt-1">{customersError}</p>
+                  )}
                 </div>
 
                 {selectedCustomer && (

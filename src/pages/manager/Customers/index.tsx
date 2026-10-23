@@ -1,9 +1,5 @@
 import { useEffect, useState, useMemo } from "react"
-import {
-  listCustomers,
-  getCustomerById,
-  deleteCustomer,
-} from "../../../services/customerService";
+import { listCustomers } from "../../../services/customerService";
 import { Customer } from "../../../types"
 import Dashboard from "../../../components/dashboard/Dashboard"
 import FormAdd from './Form-add'
@@ -21,6 +17,7 @@ interface Filters {
 
 const CustomersContent = () => {
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null)
   const [openRegister, setOpenRegister] = useState<boolean>(false)
@@ -74,14 +71,18 @@ const CustomersContent = () => {
   const loadCustomers = async () => {
     try {
       setLoading(true)
+      setLoadError(null)
       const response = await listCustomers()
-      if (response.ok && response.data) {
-        setCustomers(response.data.data || [])
-      } else {
-        console.error(response.error || "Erro ao recuperar clientes.")
+      if (!response.ok || !response.data) {
+        setCustomers([])
+        setLoadError(response.error || "Não foi possível carregar os clientes.")
+        return
       }
+      setCustomers(response.data)
     } catch (error) {
       console.error("Erro ao recuperar dados dos clientes:", error)
+      setCustomers([])
+      setLoadError("Não foi possível carregar os clientes. Tente novamente.")
     } finally {
       setLoading(false)
     }
@@ -216,11 +217,7 @@ const CustomersContent = () => {
   return (
     <Dashboard>
       <div className="w-full h-full flex flex-col items-center m-auto p-4">
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <p className="text-gray-600">Carregando clientes...</p>
-          </div>
-        ) : (
+        {
           <div className="max-w-screen mx-auto">
             {/* Header */}
             <div className="mb-8 flex justify-between items-center">
@@ -333,11 +330,15 @@ const CustomersContent = () => {
               data={filteredCustomers}
               columns={columns}
               loading={loading}
-              emptyMessage="Nenhum cliente encontrado"
-              emptyDescription="Tente ajustar os filtros de busca"
+              error={loadError}
+              onRetry={loadCustomers}
+              emptyMessage="Não há dados disponíveis."
+              emptyDescription={hasActiveFilters
+                ? "Nenhum cliente corresponde aos filtros informados."
+                : "Cadastre o primeiro cliente para começar."}
             />
           </div>
-        )}
+        }
 
         {/* Modal Adicionar Cliente */}
         {openRegister && (

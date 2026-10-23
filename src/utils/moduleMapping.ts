@@ -119,6 +119,8 @@ const SUBMENU_REQUIREMENTS: Array<{
   { prefix: "/shopping", anyOf: [["compras", "view"], ["estoque", "view"]] },
   // Salários e posições são dados sensíveis do RH.
   { prefix: "/rh/infos", anyOf: [["rh", "edit"]] },
+  { prefix: "/rh/folha", anyOf: [["rh", "view_payroll"]] },
+  { prefix: "/rh/treinamentos", anyOf: [["rh", "view"]] },
   { prefix: "/config/audit-log", anyOf: [["audit", "view"]] },
   { prefix: "/config/stations", anyOf: [["audit", "manage_stations"]] },
   { prefix: "/financer/contabilidade/painel", anyOf: [["contabil", "reports"]] },
@@ -223,6 +225,23 @@ export function canAccessMenuItemWithPermissions(
 ): boolean {
   if (menuKey === "config") return isCompanyAdmin;
   if (menuKey === "planos") return true;
+
+  // O grupo Financeiro também abriga Contabilidade, NF-e e RH. Um usuário
+  // que só possui um desses módulos precisa enxergar o grupo para chegar às
+  // telas liberadas; cada filho continua com sua própria regra de acesso.
+  if (menuKey === "financeiro") {
+    return ["finance", "rh", "contabil", "nfe"].some(
+      (moduleKey) =>
+        availableModules.includes(moduleKey) &&
+        (isCompanyAdmin ||
+          permissions.some(
+            (group) =>
+              group.moduleKey === moduleKey &&
+              Array.isArray(group.actions) &&
+              group.actions.length > 0
+          ))
+    );
+  }
 
   const requirements = MENU_REQUIREMENTS[menuKey];
   if (!requirements) return false;
@@ -349,6 +368,18 @@ export function getAvailableModulesForPlan(planType: string): string[] {
   };
 
   return plans[planType] || plans.free;
+}
+
+/**
+ * Módulos que podem liberar uma rota. Usado pela interface para distinguir
+ * "módulo não contratado" de "permissão insuficiente".
+ */
+export function getRouteModules(pathname: string): string[] {
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  if (normalized === "/config/system") return ["nfe"];
+
+  const rule = findRouteRule(ROUTE_REQUIREMENTS, normalized);
+  return rule ? Array.from(new Set(rule.anyOf.map(([moduleKey]) => moduleKey))) : [];
 }
 
 export function canAccessRoute(

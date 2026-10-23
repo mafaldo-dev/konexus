@@ -11,6 +11,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { asList, asObject, pickData } from "../api/payload";
 
 export interface Employee {
   id: number | string;
@@ -22,6 +23,15 @@ export interface Employee {
   access: string;
   sector: string;
   companyId?: number;
+  role_name?: string;
+  position_title?: string | null;
+  department?: string | null;
+  cost_center?: string | null;
+  employer_legal_name?: string | null;
+  employer_trade_name?: string | null;
+  employer_cnpj?: string | null;
+  employment_started_at?: string | null;
+  createdat?: string | null;
 }
 
 export interface EmployeeFilters {
@@ -39,7 +49,11 @@ export async function listEmployees(
   if (filters.page) params.append("page", String(filters.page));
   if (filters.limit) params.append("limit", String(filters.limit));
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get<Employee[]>(`employees/all${query}`);
+  return asList<Employee>(
+    await apiClient.get(`employees/all${query}`),
+    ["data", "employees"],
+    "colaboradores"
+  );
 }
 
 /**
@@ -48,7 +62,11 @@ export async function listEmployees(
 export async function getEmployeeById(
   id: number | string
 ): Promise<ApiResponse<Employee>> {
-  return apiClient.get<Employee>(`employees/${id}`);
+  return asObject<Employee>(
+    await apiClient.get(`employees/${id}`),
+    ["employee", "collaborator"],
+    "colaborador"
+  );
 }
 
 /**
@@ -57,7 +75,11 @@ export async function getEmployeeById(
 export async function createEmployee(
   data: Omit<Employee, "id">
 ): Promise<ApiResponse<Employee>> {
-  return apiClient.post<Employee>("employees/create", data);
+  return pickData<Employee>(
+    await apiClient.post("employees/create", data),
+    (body) => body?.data?.collaborator ?? body?.data,
+    "colaborador criado"
+  );
 }
 
 /**
@@ -67,7 +89,11 @@ export async function updateEmployee(
   id: number | string,
   data: Partial<Employee>
 ): Promise<ApiResponse<Employee>> {
-  return apiClient.put<Employee>(`employees/${id}`, data);
+  return pickData<Employee>(
+    await apiClient.put(`employees/${id}`, data),
+    (body) => body?.data?.collaborator ?? body?.data,
+    "colaborador atualizado"
+  );
 }
 
 /**
@@ -86,7 +112,11 @@ export async function updateEmployeeStatus(
   id: number | string,
   status: "Ativo" | "Ausente" | "Inativo"
 ): Promise<ApiResponse<Employee>> {
-  return apiClient.put<Employee>(`employees/${id}/status`, { status });
+  return asObject<Employee>(
+    await apiClient.put(`employees/${id}/status`, { status }),
+    ["employee"],
+    "status do colaborador"
+  );
 }
 
 /**
@@ -95,5 +125,9 @@ export async function updateEmployeeStatus(
 export async function getEmployeeStatus(
   id: number | string
 ): Promise<ApiResponse<Employee>> {
-  return apiClient.get<Employee>(`employees/${id}/status`);
+  return asObject<Employee>(
+    await apiClient.get(`employees/${id}/status`),
+    ["employee"],
+    "status do colaborador"
+  );
 }

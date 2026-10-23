@@ -21,6 +21,7 @@ const SearchProducts = () => {
   const [openRegister, setOpenRegister] = useState<boolean>(false);
   const [openEdit, setOpenEdit] = useState<boolean>(false)
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [items, setItem] = useState<Products[]>([]);
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [currentData, setCurrentData] = useState<Products | null>(null)
@@ -29,6 +30,7 @@ const SearchProducts = () => {
   const [kardexMovements, setKardexMovements] = useState<Movement[]>([]);
   const [showKardexModal, setShowKardexModal] = useState(false);
   const [loadingKardex, setLoadingKardex] = useState(false);
+  const [kardexError, setKardexError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Products | null>(null);
 
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -55,10 +57,16 @@ const SearchProducts = () => {
 
   const openKardexModal = useCallback(async (product: Products) => {
     setLoadingKardex(true);
+    setKardexError(null);
     try {
       const response = await getKardexByProduct(product.id);
       setKardexProduct(product);
-      if (response.ok && response.data) {
+      if (!response.ok || !response.data) {
+        setKardexMovements([]);
+        setKardexError(
+          response.error || "Não foi possível carregar as movimentações do produto."
+        );
+      } else {
         const movements: Movement[] = (response.data.movements || []).map((m) => ({
           id: m.id,
           movementtype: m.movementtype,
@@ -79,6 +87,11 @@ const SearchProducts = () => {
       setShowKardexModal(true);
     } catch (error) {
       console.error("Erro ao buscar Kardex", error);
+      setKardexMovements([]);
+      setKardexError(
+        "Não foi possível carregar as movimentações do produto. Tente novamente."
+      );
+      setShowKardexModal(true);
     } finally {
       setLoadingKardex(false);
     }
@@ -185,37 +198,40 @@ const SearchProducts = () => {
       String(product.code || "").toLowerCase().includes(filters.code.toLowerCase());
 
     const nameMatch = !filters.name ||
-      product.name.toLowerCase().includes(filters.name.toLowerCase());
+      String(product.name || "").toLowerCase().includes(filters.name.toLowerCase());
 
     const brandMatch = !filters.brand ||
-      product.brand.toLowerCase().includes(filters.brand.toLowerCase());
+      String(product.brand || "").toLowerCase().includes(filters.brand.toLowerCase());
 
     const locationMatch = !filters.location ||
-      product.location.toLowerCase().includes(filters.location.toLowerCase());
+      String(product.location || "").toLowerCase().includes(filters.location.toLowerCase());
 
     return codeMatch && nameMatch && brandMatch && locationMatch;
   });
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await listProducts();
-        if (response.ok && response.data) {
-          setItem(response.data);
-        } else {
-          console.error(response.error || "Erro ao recuperar produtos.");
-          setItem([]);
-        }
-      } catch (error) {
-        console.error("Erro ao recuperar a lista de produtos.", error);
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const response = await listProducts();
+      if (!response.ok || !response.data) {
         setItem([]);
-      } finally {
-        setLoading(false);
+        setLoadError(response.error || "Não foi possível carregar os produtos.");
+        return;
       }
-    };
-    fetchProducts();
+      setItem(response.data);
+    } catch (error) {
+      console.error("Erro ao recuperar a lista de produtos.", error);
+      setItem([]);
+      setLoadError("Não foi possível carregar os produtos. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const handleEditProduct = (product: Products) => {
     setCurrentData(product)
@@ -224,8 +240,7 @@ const SearchProducts = () => {
 
   const handleCloseEditModal = async () => {
     setOpenEdit(false)
-    const reload = await listProducts()
-    if (reload.ok && reload.data) setItem(reload.data)
+    await fetchProducts()
   }
 
   const hasActiveFilters = filters.code !== "" || filters.name !== "" || filters.brand !== "" || filters.location !== "";
@@ -321,9 +336,7 @@ const SearchProducts = () => {
   return (
     <Dashboard>
       <div className="w-full flex flex-col items-center m-auto p-4">
-        {loading ? (
-          <p>Carregando...</p>
-        ) : (
+        {
           <div className="max-w-screen mx-auto">
             <div className="mb-8 flex justify-between items-center">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestão de Produtos</h1>
@@ -438,14 +451,18 @@ const SearchProducts = () => {
               data={filteredProducts}
               columns={columns}
               loading={loading}
+              error={loadError}
+              onRetry={fetchProducts}
               handleProductClick={handleProductClick}
               handleContextMenu={handleContextMenu}
-              emptyMessage="Nenhum produto encontrado"
-              emptyDescription="Tente ajustar os filtros de busca"
+              emptyMessage="Não há dados disponíveis."
+              emptyDescription={hasActiveFilters
+                ? "Nenhum produto corresponde aos filtros informados."
+                : "Cadastre seu primeiro produto para começar."}
               selectedProduct={selectedProduct}
             />
           </div>
-        )}
+        }
       </div>
 
       {/* Modal de Registro */}
@@ -464,8 +481,7 @@ const SearchProducts = () => {
                 <FormAdd
                   onClose={() => setOpenRegister(false)}
                   onProductsAdded={async () => {
-                  const response = await listProducts();
-                    setItem((response.ok && response.data) ? response.data : [])
+                    await fetchProducts()
                     setOpenRegister(false)
                   }}
                 />
@@ -504,6 +520,14 @@ const SearchProducts = () => {
         product={kardexProduct}
         movements={kardexMovements}
         loading={loadingKardex}
+        error={kardexError}
+        onRetry={
+          kardexProduct
+            ? () => {
+                void openKardexModal(kardexProduct);
+              }
+            : undefined
+        }
       />
 
       {/* Location Modal */}

@@ -30,7 +30,13 @@ const FormRegisterSupplier: React.FC<FormAddProps> = ({ onSupplierAdded, onClose
             Swal.fire('Sucesso!', 'Fornecedor adicionado com sucesso!', 'success')
         } catch (error) {
             console.error("Erro ao cadastrar fornecedor:", error)
-            Swal.fire('Error!', 'Erro ao adicionar Fornecedor a base de dados!', 'error')
+            Swal.fire(
+                'Erro!',
+                error instanceof Error
+                    ? error.message
+                    : 'Não foi possível adicionar o fornecedor.',
+                'error'
+            )
         }
     }
 

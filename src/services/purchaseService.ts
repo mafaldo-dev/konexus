@@ -10,6 +10,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { asList, asObject } from "../api/payload";
 
 export interface PurchaseOrderItem {
   productid: string | number;
@@ -68,7 +69,11 @@ export async function createPurchaseOrder(
     orderItems: PurchaseOrderItem[];
   }
 ): Promise<ApiResponse<PurchaseOrder>> {
-  return apiClient.post<PurchaseOrder>("purchase/create", data);
+  return asObject<PurchaseOrder>(
+    await apiClient.post("purchase/create", data),
+    ["order"],
+    "pedido de compra criado"
+  );
 }
 
 /**
@@ -81,7 +86,11 @@ export async function listPurchaseOrders(
   if (filters.page) params.append("page", String(filters.page));
   if (filters.limit) params.append("limit", String(filters.limit));
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get<PurchaseOrder[]>(`purchase/all${query}`);
+  return asList<PurchaseOrder>(
+    await apiClient.get(`purchase/all${query}`),
+    ["data", "orders", "purchaseOrders"],
+    "pedidos de compra"
+  );
 }
 
 /**
@@ -90,7 +99,12 @@ export async function listPurchaseOrders(
 export async function getPurchaseOrderByNumber(
   orderNumber: string
 ): Promise<ApiResponse<PurchaseOrder>> {
-  return apiClient.get<PurchaseOrder>(`purchase/${orderNumber}`);
+  return asObject<PurchaseOrder>(
+    await apiClient.get(`purchase/${orderNumber}`),
+    ["order"],
+    "pedido de compra",
+    { allowDirect: true }
+  );
 }
 
 /**
@@ -100,7 +114,11 @@ export async function updatePurchaseOrder(
   id: number | string,
   data: { orderStatus?: string; notes?: string }
 ): Promise<ApiResponse<PurchaseOrder>> {
-  return apiClient.put<PurchaseOrder>(`purchase/${id}`, data);
+  return asObject<PurchaseOrder>(
+    await apiClient.put(`purchase/${id}`, data),
+    ["order"],
+    "pedido de compra"
+  );
 }
 
 /**

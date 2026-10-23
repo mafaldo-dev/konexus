@@ -1,0 +1,410 @@
+{
+  "at": "2026-10-23T14:52:54.461Z",
+  "scope": "Login real e navegação de rotas; não substitui testes de escrita em cada tela.",
+  "results": [
+    {
+      "route": "/login",
+      "status": "Aprovado"
+    },
+    {
+      "route": "/change-password",
+      "url": "http://localhost:3000/#/change-password",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/sales/orders",
+      "url": "http://localhost:3000/#/sales/orders",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/sales/order-list",
+      "url": "http://localhost:3000/#/sales/order-list",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/sales/newOrder",
+      "url": "http://localhost:3000/#/sales/newOrder",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/sales/completed",
+      "url": "http://localhost:3000/#/sales/completed",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/sales/goals",
+      "url": "http://localhost:3000/#/sales/goals",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/sales/comissions",
+      "url": "http://localhost:3000/#/sales/comissions",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/sales/reports",
+      "url": "http://localhost:3000/#/sales/reports",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/manager/products",
+      "url": "http://localhost:3000/#/manager/products",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/manager/customer",
+      "url": "http://localhost:3000/#/manager/customer",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/manager/suppliers",
+      "url": "http://localhost:3000/#/manager/suppliers",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/manager/categories",
+      "url": "http://localhost:3000/#/manager/categories",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/manager/services",
+      "url": "http://localhost:3000/#/manager/services",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/shopping/purchase-order",
+      "url": "http://localhost:3000/#/shopping/purchase-order",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/shopping/purchase-requisition",
+      "url": "http://localhost:3000/#/shopping/purchase-requisition",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/shopping/invoice-entry",
+      "url": "http://localhost:3000/#/shopping/invoice-entry",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/financial",
+      "url": "http://localhost:3000/#/financer/financial",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financial/order-nfe",
+      "url": "http://localhost:3000/#/financial/order-nfe",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/rh",
+      "url": "http://localhost:3000/#/rh",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/rh/employees",
+      "url": "http://localhost:3000/#/rh/employees",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/rh/employees/new",
+      "url": "http://localhost:3000/#/rh/employees/new",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/rh/employee",
+      "url": "http://localhost:3000/#/rh/employees",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/rh/infos",
+      "url": "http://localhost:3000/#/rh/infos",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/rh/folha",
+      "url": "http://localhost:3000/#/rh/folha",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/rh/treinamentos",
+      "url": "http://localhost:3000/#/rh/treinamentos",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/stock/inventory",
+      "url": "http://localhost:3000/#/stock/inventory",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/stock/alerts",
+      "url": "http://localhost:3000/#/stock/alerts",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/dashboard",
+      "url": "http://localhost:3000/#/dashboard",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/crm",
+      "url": "http://localhost:3000/#/crm",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/config/users-permissions",
+      "url": "http://localhost:3000/#/config/users-permissions",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/painel",
+      "url": "http://localhost:3000/#/financer/contabilidade/painel",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/plano-de-contas",
+      "url": "http://localhost:3000/#/financer/contabilidade/plano-de-contas",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/lancamentos",
+      "url": "http://localhost:3000/#/financer/contabilidade/lancamentos",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/livro-diario",
+      "url": "http://localhost:3000/#/financer/contabilidade/livro-diario",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/livro-razao",
+      "url": "http://localhost:3000/#/financer/contabilidade/livro-razao",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/balancete",
+      "url": "http://localhost:3000/#/financer/contabilidade/balancete",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/balanco-patrimonial",
+      "url": "http://localhost:3000/#/financer/contabilidade/balanco-patrimonial",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/demonstracao-resultado",
+      "url": "http://localhost:3000/#/financer/contabilidade/demonstracao-resultado",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/conciliacao",
+      "url": "http://localhost:3000/#/financer/contabilidade/conciliacao",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/exercicios",
+      "url": "http://localhost:3000/#/financer/contabilidade/exercicios",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/ativos",
+      "url": "http://localhost:3000/#/financer/contabilidade/ativos",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/relatorios",
+      "url": "http://localhost:3000/#/financer/contabilidade/relatorios",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/financer/contabilidade/configuracoes",
+      "url": "http://localhost:3000/#/financer/contabilidade/configuracoes",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/config/security-area",
+      "url": "http://localhost:3000/#/config/legal-entities",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/config/companies",
+      "url": "http://localhost:3000/#/config/legal-entities",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/config/audit-log",
+      "url": "http://localhost:3000/#/config/audit-log",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/config/stations",
+      "url": "http://localhost:3000/#/config/stations",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/config/notifications",
+      "url": "http://localhost:3000/#/config/notifications",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/config/system",
+      "url": "http://localhost:3000/#/config/system",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/config/legal-entities",
+      "url": "http://localhost:3000/#/config/legal-entities",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    },
+    {
+      "route": "/planos",
+      "url": "http://localhost:3000/#/planos",
+      "status": "Aprovado",
+      "pageErrors": [],
+      "serverErrors": []
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "url": "http://localhost:3010/employment/contributors",
+      "status": 500
+    },
+    {
+      "url": "http://localhost:3010/employment/contributors",
+      "status": 500
+    },
+    {
+      "url": "http://localhost:3010/employment/contributors",
+      "status": 500
+    },
+    {
+      "url": "http://localhost:3010/employment/contributors",
+      "status": 500
+    },
+    {
+      "url": "http://localhost:3010/employment/contributors",
+      "status": 500
+    },
+    {
+      "url": "http://localhost:3010/employment/contributors",
+      "status": 500
+    },
+    {
+      "url": "http://localhost:3010/employment/contributors",
+      "status": 500
+    },
+    {
+      "url": "http://localhost:3010/employment/contributors",
+      "status": 500
+    },
+    {
+      "url": "http://localhost:3010/employment/contributors",
+      "status": 500
+    },
+    {
+      "url": "http://localhost:3010/employment/contributors",
+      "status": 500
+    }
+  ]
+}

@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Inbox } from 'lucide-react';
 import { Products } from '../../types';
+import { DataState, DataStateVariant } from '../../components/ui/DataState';
 
 interface Column<T> {
   key: string;
@@ -22,6 +23,11 @@ interface DynamicTableProps<T> {
   rowClassName?: string | ((item: T, index: number) => string);
   loading?: boolean;
   loadingMessage?: string;
+  /** Erro de comunicação da consulta. Nunca é exibido como lista vazia. */
+  error?: string | null;
+  /** Estado específico para erros de acesso, contratação ou contexto. */
+  errorVariant?: DataStateVariant;
+  onRetry?: () => void;
   handleProductClick?: (product: Products) => void;
   handleContextMenu?: (e: React.MouseEvent, product: Products) => void;
   selectedProduct?: T | null;
@@ -30,8 +36,8 @@ interface DynamicTableProps<T> {
 export function DynamicTable<T extends Record<string, any>>({
   data,
   columns,
-  emptyMessage = "Nenhum registro encontrado",
-  emptyDescription = "Tente ajustar os filtros de busca",
+  emptyMessage = "Não há dados disponíveis.",
+  emptyDescription = "Cadastre o primeiro registro ou ajuste os filtros de busca.",
   containerHeight = "auto",
   minHeight = "auto",
   width = "70vw",
@@ -39,6 +45,9 @@ export function DynamicTable<T extends Record<string, any>>({
   rowClassName = "border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50",
   loading = false,
   loadingMessage = "Carregando...",
+  error = null,
+  errorVariant = "error",
+  onRetry,
   handleProductClick,
   handleContextMenu,
   selectedProduct,
@@ -71,6 +80,14 @@ export function DynamicTable<T extends Record<string, any>>({
   const [page, setPage] = useState(1);
 
   const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    if (totalPages > 0 && page > totalPages) {
+      setPage(totalPages);
+    } else if (totalPages === 0 && page !== 1) {
+      setPage(1);
+    }
+  }, [data.length, page, totalPages]);
 
   const paginatedData = useMemo(() => {
     const start = (page - 1) * ITEMS_PER_PAGE;
@@ -108,18 +125,30 @@ export function DynamicTable<T extends Record<string, any>>({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                      <p className="font-medium">{loadingMessage}</p>
-                    </div>
+                  <td colSpan={columns.length}>
+                    <DataState
+                      variant="loading"
+                      compact
+                      description={loadingMessage}
+                    />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={columns.length}>
+                    <DataState
+                      variant={errorVariant}
+                      compact
+                      description={error}
+                      onAction={onRetry}
+                    />
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">
-                    <div className="flex flex-col items-center gap-2">
-                      <Search className="w-8 h-8 text-gray-400" />
+                  <td colSpan={columns.length} className="text-center text-gray-500">
+                    <div className="flex flex-col items-center gap-2 px-6 py-12">
+                      <Inbox className="w-8 h-8 text-gray-400" />
                       <p className="font-medium">{emptyMessage}</p>
                       <p className="text-sm">{emptyDescription}</p>
                     </div>

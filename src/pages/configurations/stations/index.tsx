@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
   Copy,
-  HardDrive,
   KeyRound,
   Loader2,
   Monitor,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 
 import Dashboard from "../../../components/dashboard/Dashboard";
+import { DynamicTable } from "../../../utils/Table/DynamicTable";
 import Computers from './Computers';
 import {
   WorkStation,
@@ -35,6 +35,7 @@ export default function WorkStationsPage() {
   const [stations, setStations] = useState<WorkStation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [sector, setSector] = useState("");
   const [saving, setSaving] = useState(false);
@@ -47,14 +48,14 @@ export default function WorkStationsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
 
     const response = await listWorkStations();
     if (response.ok) {
       setStations(response.data || []);
     } else {
       setStations([]);
-      setError(response.error || "Não foi possível carregar as estações.");
+      setLoadError(response.error || "Não foi possível carregar as estações.");
     }
 
     setLoading(false);
@@ -124,6 +125,63 @@ export default function WorkStationsPage() {
 
     await load();
   };
+
+  const columns = [
+    {
+      key: "name",
+      header: "Estação",
+      render: (station: WorkStation) => (
+        <span className="font-medium text-slate-800">{station.name}</span>
+      ),
+    },
+    {
+      key: "sector",
+      header: "Setor",
+      render: (station: WorkStation) => (
+        <span className="text-slate-600">{station.sector || "—"}</span>
+      ),
+    },
+    {
+      key: "active",
+      header: "Situação",
+      render: (station: WorkStation) => (
+        <span
+          className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
+            station.active
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-slate-200 bg-slate-50 text-slate-600"
+          }`}
+        >
+          {station.active ? "Ativa" : "Inativa"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Ações",
+      headerClassName:
+        "px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide",
+      render: (station: WorkStation) => (
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => handlePairing(station)}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          >
+            <KeyRound className="h-3.5 w-3.5" />
+            Gerar código
+          </button>
+          <button
+            type="button"
+            onClick={() => handleToggle(station)}
+            className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          >
+            {station.active ? "Desativar" : "Ativar"}
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <Dashboard>
@@ -274,72 +332,17 @@ export default function WorkStationsPage() {
             </div>
           ) : null}
 
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            {loading ? (
-              <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Carregando as estações...
-              </div>
-            ) : stations.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-16 text-sm text-slate-500">
-                <HardDrive className="h-6 w-6 text-slate-300" />
-                Nenhuma estação cadastrada ainda.
-              </div>
-            ) : (
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Estação</th>
-                    <th className="px-4 py-3">Setor</th>
-                    <th className="px-4 py-3">Situação</th>
-                    <th className="px-4 py-3 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {stations.map((station) => (
-                    <tr key={station.id}>
-                      <td className="px-4 py-3 font-medium text-slate-800">
-                        {station.name}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {station.sector || "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                            station.active
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                              : "border-slate-200 bg-slate-50 text-slate-600"
-                          }`}
-                        >
-                          {station.active ? "Ativa" : "Inativa"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handlePairing(station)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                          >
-                            <KeyRound className="h-3.5 w-3.5" />
-                            Gerar código
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleToggle(station)}
-                            className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                          >
-                            {station.active ? "Desativar" : "Ativar"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <DynamicTable
+            data={stations}
+            columns={columns}
+            loading={loading}
+            loadingMessage="Carregando as estações..."
+            error={loadError}
+            onRetry={load}
+            emptyMessage="Não há dados disponíveis."
+            emptyDescription="Cadastre a primeira estação de trabalho para começar."
+            width="100%"
+          />
         </div>
       </div>
     </Dashboard>

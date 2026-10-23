@@ -1,0 +1,37 @@
+{
+  "runtime": {
+    "version": "45.0.0",
+    "packaged": false
+  },
+  "scope": "Linux headless; --no-sandbox somente no harness; sem instalador Windows",
+  "results": [
+    {
+      "name": "login",
+      "status": "Aprovado"
+    },
+    {
+      "name": "/manager/products",
+      "status": "Aprovado"
+    },
+    {
+      "name": "/financer/financial",
+      "status": "Aprovado"
+    },
+    {
+      "name": "/shopping/purchase-requisition",
+      "status": "Aprovado"
+    },
+    {
+      "name": "/rh/treinamentos",
+      "status": "Aprovado"
+    },
+    {
+      "name": "/rh/folha",
+      "status": "Aprovado"
+    },
+    {
+      "name": "/crm",
+      "status": "Aprovado"
+    }
+  ]
+}

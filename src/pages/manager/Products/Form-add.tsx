@@ -14,6 +14,7 @@ interface FormAddedProps {
 
 const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded, onClose }: FormAddedProps) => {
   const [supId, setSupId] = useState<any[]>([]);
+  const [supplierError, setSupplierError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"geral" | "fiscal">("geral");
 
   const {
@@ -33,15 +34,35 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded, on
       Swal.fire("Sucesso!", "Produto cadastrado com sucesso!", "success");
     } catch (error) {
       console.error("Erro ao cadastrar produto: ", error);
-      Swal.fire("Erro!", "Falha ao adicionar o produto à base de dados.", "error");
+      Swal.fire(
+        "Erro!",
+        error instanceof Error
+          ? error.message
+          : "Não foi possível adicionar o produto.",
+        "error"
+      );
     }
   };
 
   useEffect(() => {
     const fetchSuppliers = async () => {
-      const response = await listSuppliers();
-      if (response.ok && response.data) {
-        setSupId(response.data.data || []);
+      try {
+        setSupplierError(null);
+        const response = await listSuppliers();
+        if (!response.ok || !response.data) {
+          setSupId([]);
+          setSupplierError(
+            response.error || "Não foi possível carregar os fornecedores."
+          );
+          return;
+        }
+        setSupId(response.data);
+      } catch (error) {
+        console.error("Erro ao carregar fornecedores:", error);
+        setSupId([]);
+        setSupplierError(
+          "Não foi possível carregar os fornecedores. Feche o formulário e tente novamente."
+        );
       }
     };
     fetchSuppliers();
@@ -216,6 +237,11 @@ const ProductRegistrationForm: React.FC<FormAddedProps> = ({ onProductsAdded, on
                           </option>
                         ))}
                       </select>
+                      {supplierError && (
+                        <p className="text-red-600 text-xs mt-1">
+                          {supplierError}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </fieldset>

@@ -11,6 +11,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { asList, asObject } from "../api/payload";
 
 export interface Product {
   id: number;
@@ -52,7 +53,11 @@ export async function listProducts(
   if (filters.page) params.append("page", String(filters.page));
   if (filters.limit) params.append("limit", String(filters.limit));
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get<Product[]>(`products/all${query}`);
+  return asList<Product>(
+    await apiClient.get(`products/all${query}`),
+    ["products", "data"],
+    "produtos"
+  );
 }
 
 /**
@@ -61,7 +66,11 @@ export async function listProducts(
 export async function getProductById(
   id: number | string
 ): Promise<ApiResponse<Product>> {
-  return apiClient.get<Product>(`products/${id}`);
+  return asObject<Product>(
+    await apiClient.get(`products/${id}`),
+    ["product"],
+    "produto"
+  );
 }
 
 /**
@@ -70,7 +79,11 @@ export async function getProductById(
 export async function createProduct(
   data: Omit<Product, "id" | "createdAt" | "updatedAt" | "stock">
 ): Promise<ApiResponse<Product>> {
-  return apiClient.post<Product>("products/create", data);
+  return asObject<Product>(
+    await apiClient.post("products/create", data),
+    ["product"],
+    "produto criado"
+  );
 }
 
 /**
@@ -80,7 +93,11 @@ export async function updateProduct(
   id: number | string,
   data: Partial<Product>
 ): Promise<ApiResponse<Product>> {
-  return apiClient.put<Product>(`products/${id}`, data);
+  return asObject<Product>(
+    await apiClient.put(`products/${id}`, data),
+    ["product"],
+    "produto atualizado"
+  );
 }
 
 /**
@@ -90,7 +107,11 @@ export async function updateProductStock(
   id: number | string,
   quantity: number
 ): Promise<ApiResponse<Product>> {
-  return apiClient.put<Product>(`products/${id}/stock`, { quantity });
+  return asObject<Product>(
+    await apiClient.put(`products/${id}/stock`, { quantity }),
+    ["product"],
+    "estoque do produto"
+  );
 }
 
 /**

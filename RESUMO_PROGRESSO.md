@@ -131,3 +131,25 @@
   [`v1.2.0`](https://github.com/mafaldo-dev/konexus/releases/tag/v1.2.0) publicada
   com instalador Windows, `.blockmap` e `latest.yml`. Deploy do backend no Render
   ainda não executado.
+
+---
+
+## Atualização — Estabilidade de rotas (2026-10-22)
+
+- Contratos de API centralizados em `src/api/payload.ts`; resposta 2xx com
+  envelope inesperado vira erro de contrato, não lista vazia.
+- Estados centralizados em `DataState`/`DynamicTable`: carregando, vazio, erro,
+  acesso negado, módulo não contratado, CNPJ ausente e indisponível.
+- Financeiro agrupa Contabilidade e RH; permissões e módulos continuam
+  independentes. RH usa `/employment/contributors` para leitura com `rh:view`.
+- Telas antigas de Segurança e Empresas/CNPJs removidas; redirecionamentos para
+  `/config/legal-entities`.
+- Validação: TypeScript sem erros, 118 testes frontend, 166 testes backend com
+  PostgreSQL local, suíte Electron e build de produção aprovados.
+- Folha, Treinamentos, contas bancárias, fluxo de caixa projetado e devoluções
+  permanecem indisponíveis por ausência de backend; nenhuma tela usa mock.
+- O dashboard financeiro e o histórico do cliente usam apenas dados reais da
+  API; falhas não viram sucesso, relatório zerado ou lista vazia.
+- Nenhuma alteração foi publicada em produção e a tag `v1.4.2` não foi movida.
+
+Detalhes: `docs/ESTABILIDADE_ROTAS_2026-10-22.md`.

@@ -26,11 +26,15 @@ export const usePurchaseData = (): PurchaseData => {
       const productsResponse = await listProducts();
       const suppliersResponse = await listSuppliers();
 
-      const productsData = (productsResponse.ok && productsResponse.data) ? productsResponse.data : [];
-      const suppliersData = (suppliersResponse.ok && suppliersResponse.data) ? (suppliersResponse.data.data || []) : [];
+      if (!productsResponse.ok) {
+        throw new Error(productsResponse.error || "Não foi possível carregar os produtos.");
+      }
+      if (!suppliersResponse.ok) {
+        throw new Error(suppliersResponse.error || "Não foi possível carregar os fornecedores.");
+      }
 
-      setProducts(productsData);
-      setSuppliers(suppliersData);
+      setProducts(productsResponse.data || []);
+      setSuppliers(suppliersResponse.data || []);
     } catch (err) {
       console.error('Error loading data:', err);
       setError(err as Error);

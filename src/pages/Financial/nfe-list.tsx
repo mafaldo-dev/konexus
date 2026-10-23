@@ -5,10 +5,15 @@ import { listNfe, downloadDanfe } from "../../services/nfeService";
 import Dashboard from "../../components/dashboard/Dashboard";
 import DocumentViewer from "../../utils/screenOptions";
 import { motion } from "framer-motion";
+import { DataStateVariant } from "../../components/ui/DataState";
+import { getResponseDataState } from "../../api/responseState";
 
 export default function NfeList() {
     const [notas, setNotas] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [loadErrorVariant, setLoadErrorVariant] =
+        useState<DataStateVariant>("error");
     const [selectedNfe, setSelectedNfe] = useState<any | null>(null);
     const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list" | "nfe_pdf">("purchase_order");
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
@@ -37,10 +42,25 @@ export default function NfeList() {
     const loadNotas = async () => {
         try {
             setLoading(true);
+            setLoadError(null);
+            setLoadErrorVariant("error");
             const response = await listNfe();
-            setNotas((response.ok && response.data?.notas) || []);
+            if (!response.ok || !response.data) {
+                setNotas([]);
+                setLoadError(
+                    response.error || "Não foi possível carregar as notas fiscais."
+                );
+                setLoadErrorVariant(getResponseDataState(response));
+                return;
+            }
+            setNotas(response.data.notas);
         } catch (err) {
             console.error("Erro ao carregar NFs:", err);
+            setNotas([]);
+            setLoadError(
+                "Não foi possível carregar as notas fiscais. Tente novamente."
+            );
+            setLoadErrorVariant("error");
         } finally {
             setLoading(false);
         }
@@ -286,8 +306,11 @@ export default function NfeList() {
                             data={notas}
                             columns={columns}
                             loading={loading}
-                            emptyMessage="Nenhuma Nota Fiscal encontrada"
-                            emptyDescription="Nenhuma NF-e foi emitida ainda no sistema."
+                            error={loadError}
+                            errorVariant={loadErrorVariant}
+                            onRetry={loadNotas}
+                            emptyMessage="Não há dados disponíveis."
+                            emptyDescription="Nenhuma NF-e foi emitida para o CNPJ selecionado."
                         />
                     </motion.div>
                 </div>

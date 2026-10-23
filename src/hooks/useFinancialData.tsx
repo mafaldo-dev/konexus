@@ -2,6 +2,8 @@ import { listOrders } from '../services/orderService';
 import { listPaymentAccounts } from '../services/financialService';
 import { OrderResponse, FinancialStats } from '../types';
 import { useState } from 'react';
+import { DataStateVariant } from '../components/ui/DataState';
+import { getResponseDataState } from '../api/responseState';
 
 export const useFinancialData = () => {
   const [contasReceber, setContasReceber] = useState<OrderResponse[]>([]);
@@ -19,6 +21,15 @@ export const useFinancialData = () => {
   const [isLoadingContasPagar, setIsLoadingContasPagar] = useState(false);
   const [isLoadingPedidos, setIsLoadingPedidos] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorVariant, setErrorVariant] = useState<DataStateVariant>('error');
+
+  const registerError = (
+    response: { error?: string | null } & Parameters<typeof getResponseDataState>[0],
+    fallback: string
+  ) => {
+    setError(response.error || fallback);
+    setErrorVariant(getResponseDataState(response));
+  };
 
   const getDataAtualBrasil = (): string => {
     const agora = new Date();
@@ -44,9 +55,20 @@ export const useFinancialData = () => {
     try {
       setIsLoadingContasReceber(true);
       setError(null);
+      setErrorVariant('error');
 
       const response = await listOrders();
-      const orders = (response.ok && response.data) ? response.data : [];
+      if (!response.ok || !response.data) {
+        setContasReceber([]);
+        setPedidos([]);
+        registerError(
+          response,
+          'Não foi possível carregar as contas a receber.'
+        );
+        return;
+      }
+
+      const orders = response.data;
       const pedidosPendentes = orders.filter(order => order.orderStatus === 'pending');
 
       setContasReceber(pedidosPendentes);
@@ -67,7 +89,10 @@ export const useFinancialData = () => {
       }));
     } catch (error) {
       console.error("Erro ao carregar contas a receber:", error);
-      setError("Erro ao carregar contas a receber");
+      setError("Não foi possível carregar as contas a receber. Tente novamente.");
+      setErrorVariant("error");
+      setContasReceber([]);
+      setPedidos([]);
     } finally {
       setIsLoadingContasReceber(false);
     }
@@ -77,29 +102,33 @@ export const useFinancialData = () => {
     try {
       setIsLoadingContasPagar(true);
       setError(null);
+      setErrorVariant('error');
 
       const response = await listPaymentAccounts({ page: 1, limit: 50 });
-      if (response.ok && response.data) {
-        const data = response.data.data || [];
-        setContasPagar(data);
-
-        const totalPagar = data
-          .filter(conta => conta.payment_status !== 'paid' && conta.payment_status !== 'cancelled')
-          .reduce((sum, conta) => sum + (Number(conta.total_amount) || 0), 0);
-
-        const payment_date = calcularVencimentosHoje(data);
-
-        setStats(prev => ({
-          ...prev,
-          totalPagar,
-          payment_date
-        }));
-      } else {
+      if (!response.ok || !response.data) {
         setContasPagar([]);
+        registerError(response, 'Não foi possível carregar as contas a pagar.');
+        return;
       }
+
+      const data = response.data.data;
+      setContasPagar(data);
+
+      const totalPagar = data
+        .filter(conta => conta.payment_status !== 'paid' && conta.payment_status !== 'cancelled')
+        .reduce((sum, conta) => sum + (Number(conta.total_amount) || 0), 0);
+
+      const payment_date = calcularVencimentosHoje(data);
+
+      setStats(prev => ({
+        ...prev,
+        totalPagar,
+        payment_date
+      }));
     } catch (error) {
       console.error("Erro ao carregar contas a pagar:", error);
-      setError("Erro ao carregar contas a pagar");
+      setError("Não foi possível carregar as contas a pagar. Tente novamente.");
+      setErrorVariant("error");
       setContasPagar([]);
     } finally {
       setIsLoadingContasPagar(false);
@@ -110,16 +139,19 @@ export const useFinancialData = () => {
     try {
       setIsLoadingContasPagar(true);
       setError(null);
+      setErrorVariant('error');
 
       const response = await listPaymentAccounts({ payment_status: status, page: 1, limit: 50 });
-      if (response.ok && response.data) {
-        setContasPagar(response.data.data || []);
-      } else {
+      if (!response.ok || !response.data) {
         setContasPagar([]);
+        registerError(response, 'Não foi possível carregar as contas a pagar.');
+        return;
       }
+      setContasPagar(response.data.data);
     } catch (error) {
       console.error("Erro ao carregar contas a pagar:", error);
-      setError("Erro ao carregar contas a pagar");
+      setError("Não foi possível carregar as contas a pagar. Tente novamente.");
+      setErrorVariant("error");
       setContasPagar([]);
     } finally {
       setIsLoadingContasPagar(false);
@@ -130,26 +162,30 @@ export const useFinancialData = () => {
     try {
       setIsLoadingContasPagar(true);
       setError(null);
+      setErrorVariant('error');
 
       const response = await listPaymentAccounts({ date_start, date_end, page: 1, limit: 50 });
-      if (response.ok && response.data) {
-        const data = response.data.data || [];
-        setContasPagar(data);
-
-        const totalPagar = data
-          .filter(conta => conta.payment_status !== 'paid' && conta.payment_status !== 'cancelled')
-          .reduce((sum, conta) => sum + (conta.total_amount || 0), 0);
-
-        setStats(prev => ({
-          ...prev,
-          totalPagar
-        }));
-      } else {
+      if (!response.ok || !response.data) {
         setContasPagar([]);
+        registerError(response, 'Não foi possível carregar as contas a pagar.');
+        return;
       }
+
+      const data = response.data.data;
+      setContasPagar(data);
+
+      const totalPagar = data
+        .filter(conta => conta.payment_status !== 'paid' && conta.payment_status !== 'cancelled')
+        .reduce((sum, conta) => sum + (Number(conta.total_amount) || 0), 0);
+
+      setStats(prev => ({
+        ...prev,
+        totalPagar
+      }));
     } catch (error) {
       console.error("Erro ao carregar contas a pagar:", error);
-      setError("Erro ao carregar contas a pagar por período");
+      setError("Não foi possível carregar as contas a pagar por período. Tente novamente.");
+      setErrorVariant("error");
       setContasPagar([]);
     } finally {
       setIsLoadingContasPagar(false);
@@ -160,16 +196,19 @@ export const useFinancialData = () => {
     try {
       setIsLoadingContasPagar(true);
       setError(null);
+      setErrorVariant('error');
 
       const response = await listPaymentAccounts({ supplier, page: 1, limit: 50 });
-      if (response.ok && response.data) {
-        setContasPagar(response.data.data || []);
-      } else {
+      if (!response.ok || !response.data) {
         setContasPagar([]);
+        registerError(response, 'Não foi possível carregar as contas a pagar.');
+        return;
       }
+      setContasPagar(response.data.data);
     } catch (error) {
       console.error("Erro ao carregar contas a pagar:", error);
-      setError("Erro ao carregar contas a pagar por fornecedor");
+      setError("Não foi possível carregar as contas a pagar por fornecedor. Tente novamente.");
+      setErrorVariant("error");
       setContasPagar([]);
     } finally {
       setIsLoadingContasPagar(false);
@@ -185,6 +224,7 @@ export const useFinancialData = () => {
     isLoadingContasPagar,
     isLoadingPedidos,
     error,
+    errorVariant,
     loadContasReceber,
     loadContasPagar,
     loadContasPagarByStatus,

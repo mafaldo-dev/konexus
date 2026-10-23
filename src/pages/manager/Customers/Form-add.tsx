@@ -3,6 +3,7 @@ import { Customer } from "../../../types";
 import { PackagePlus, Save, MapPin, User, Mail, Phone, Hash, Map, X } from "lucide-react";
 import { createCustomer } from "../../../services/customerService";
 import { useState } from "react";
+import Swal from "sweetalert2";
 import { maskCpfCnpj, maskPhone, maskZipCode } from "../../../utils/masks";
 
 interface FormAddedProps {
@@ -34,7 +35,13 @@ const CustomerRegistrationForm: React.FC<FormAddedProps> = ({ onCustomerAdded, o
             onCustomerAdded();
         } catch (error) {
             console.error("Erro ao adicionar novo cliente: ", error);
-            throw new Error("Erro interno do servidor!");
+            Swal.fire(
+                "Erro",
+                error instanceof Error
+                    ? error.message
+                    : "Não foi possível cadastrar o cliente.",
+                "error"
+            );
         } finally {
             setIsLoading(false);
         }

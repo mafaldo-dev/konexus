@@ -25,6 +25,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { asObject, pickData } from "../api/payload";
 
 /* ---------- Contas a pagar (payment_account) ---------- */
 
@@ -79,16 +80,39 @@ export async function listPaymentAccounts(
   if (filters.page) params.append("page", String(filters.page));
   if (filters.limit) params.append("limit", String(filters.limit));
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get(`payment/accounts${query}`);
+
+  const response = await apiClient.get<any>(`payment/accounts${query}`);
+  return pickData<PaymentAccountPage>(
+    response,
+    (body) => {
+      if (!body || typeof body !== "object" || !Array.isArray(body.data)) {
+        return undefined;
+      }
+      return {
+        data: body.data,
+        total: Number(body.total) || 0,
+        page: Number(body.page) || 1,
+        limit: Number(body.limit) || 50,
+        totalPages: Number(body.totalPages) || 0,
+      };
+    },
+    "contas a pagar"
+  );
 }
 
 /**
  * Busca conta a pagar pelo ID (restrito à empresa).
+ * O endpoint legado devolve a entidade diretamente.
  */
 export async function getPaymentAccountById(
   id: number | string
 ): Promise<ApiResponse<PaymentAccount>> {
-  return apiClient.get<PaymentAccount>(`payment/accounts/${id}`);
+  return asObject<PaymentAccount>(
+    await apiClient.get<any>(`payment/accounts/${id}`),
+    ["data"],
+    "conta a pagar",
+    { allowDirect: true }
+  );
 }
 
 /**
@@ -97,7 +121,11 @@ export async function getPaymentAccountById(
 export async function createPaymentAccount(
   data: Omit<PaymentAccount, "id" | "createdat" | "updatedat" | "companyId">
 ): Promise<ApiResponse<PaymentAccount>> {
-  return apiClient.post<PaymentAccount>("payment/accounts", data);
+  return asObject<PaymentAccount>(
+    await apiClient.post<any>("payment/accounts", data),
+    ["data"],
+    "conta a pagar criada"
+  );
 }
 
 /**
@@ -107,7 +135,11 @@ export async function updatePaymentAccount(
   id: number | string,
   data: Partial<PaymentAccount>
 ): Promise<ApiResponse<PaymentAccount>> {
-  return apiClient.put<PaymentAccount>(`payment/accounts/${id}`, data);
+  return asObject<PaymentAccount>(
+    await apiClient.put<any>(`payment/accounts/${id}`, data),
+    ["data"],
+    "conta a pagar atualizada"
+  );
 }
 
 /**
@@ -156,6 +188,26 @@ export interface PaymentDashboard {
   total_recebido_mes: number;
 }
 
+export interface PaymentPage {
+  data: Payment[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface CustomerPaymentsPage {
+  customer: { id: number; name: string } | null;
+  orders: any[];
+  payments: Payment[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 export interface PaymentFilters {
   payment_status?: string;
   customer_id?: number | string;
@@ -177,7 +229,7 @@ export async function getPaymentsDashboard(): Promise<ApiResponse<PaymentDashboa
  */
 export async function listPayments(
   filters: PaymentFilters = {}
-): Promise<ApiResponse<{ data: Payment[]; total: number }>> {
+): Promise<ApiResponse<PaymentPage>> {
   const params = new URLSearchParams();
   if (filters.payment_status) params.append("payment_status", filters.payment_status);
   if (filters.customer_id) params.append("customer_id", String(filters.customer_id));
@@ -186,7 +238,25 @@ export async function listPayments(
   if (filters.page) params.append("page", String(filters.page));
   if (filters.limit) params.append("limit", String(filters.limit));
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get(`payments/all${query}`);
+
+  const response = await apiClient.get<any>(`payments/all${query}`);
+  return pickData<PaymentPage>(
+    response,
+    (body) => {
+      if (!body || typeof body !== "object" || !Array.isArray(body.data)) {
+        return undefined;
+      }
+      const pagination = body.pagination || {};
+      return {
+        data: body.data,
+        total: Number(pagination.total) || 0,
+        page: Number(pagination.page) || 1,
+        limit: Number(pagination.limit) || 50,
+        totalPages: Number(pagination.totalPages) || 0,
+      };
+    },
+    "pagamentos"
+  );
 }
 
 /**
@@ -204,12 +274,41 @@ export async function getPaymentById(
 export async function getPaymentsByCustomer(
   customerId: number | string,
   filters: { page?: number; limit?: number } = {}
-): Promise<ApiResponse<any>> {
+): Promise<ApiResponse<CustomerPaymentsPage>> {
   const params = new URLSearchParams();
   if (filters.page) params.append("page", String(filters.page));
   if (filters.limit) params.append("limit", String(filters.limit));
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get(`payments/customer/${customerId}/payments${query}`);
+
+  const response = await apiClient.get<any>(
+    `payments/customer/${customerId}/payments${query}`
+  );
+  return pickData<CustomerPaymentsPage>(
+    response,
+    (body) => {
+      if (
+        !body ||
+        typeof body !== "object" ||
+        !Array.isArray(body.orders) ||
+        !Array.isArray(body.payments)
+      ) {
+        return undefined;
+      }
+      const pagination = body.pagination || {};
+      return {
+        customer: body.customer || null,
+        orders: body.orders,
+        payments: body.payments,
+        pagination: {
+          total: Number(pagination.total) || 0,
+          page: Number(pagination.page) || 1,
+          limit: Number(pagination.limit) || 50,
+          totalPages: Number(pagination.totalPages) || 0,
+        },
+      };
+    },
+    "histórico do cliente"
+  );
 }
 
 /**

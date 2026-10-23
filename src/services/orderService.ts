@@ -15,6 +15,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { asList, asObject, pickData } from "../api/payload";
 
 export interface OrderItem {
   productId: string | number;
@@ -80,7 +81,12 @@ export interface OrderFilters {
 export async function createOrder(
   data: Omit<Order, "id" | "companyId"> & { orderItems: OrderItem[] }
 ): Promise<ApiResponse<Order>> {
-  return apiClient.post<Order>("orders/create", data);
+  return asObject<Order>(
+    await apiClient.post("orders/create", data),
+    ["order"],
+    "pedido criado",
+    { allowDirect: true }
+  );
 }
 
 /**
@@ -93,7 +99,11 @@ export async function listOrders(
   if (filters.page) params.append("page", String(filters.page));
   if (filters.limit) params.append("limit", String(filters.limit));
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get<OrderResponse[]>(`orders/all${query}`);
+  return asList<OrderResponse>(
+    await apiClient.get(`orders/all${query}`),
+    ["orders", "data"],
+    "pedidos de venda"
+  );
 }
 
 /**
@@ -102,20 +112,44 @@ export async function listOrders(
 export async function getLastOrderNumber(): Promise<
   ApiResponse<{ lastOrderNumber: string }>
 > {
-  return apiClient.get("orders/last-number");
+  const response = await apiClient.get<any>("orders/last-number");
+  return pickData<{ lastOrderNumber: string }>(
+    response,
+    (body) => {
+      if (
+        !body ||
+        typeof body !== "object" ||
+        body.lastOrderNumber === undefined ||
+        body.lastOrderNumber === null
+      ) {
+        return undefined;
+      }
+      return { lastOrderNumber: String(body.lastOrderNumber) };
+    },
+    "último número de pedido"
+  );
 }
 
 /**
  * Gera o próximo número de pedido com base no último.
+ *
+ * Uma falha de comunicação não gera um número fictício: o formulário deve
+ * impedir a criação do pedido até que a sequência real seja recuperada.
  */
 export async function getNextOrderNumber(): Promise<string> {
   const res = await getLastOrderNumber();
-  if (!res.ok || !res.data) return "P-100";
+  if (!res.ok || !res.data) {
+    throw new Error(
+      res.error || "Não foi possível obter o número do próximo pedido."
+    );
+  }
+
   const last = res.data.lastOrderNumber;
   const match = String(last).match(/P-(\d+)/);
   if (match && match[1]) return `P-${parseInt(match[1], 10) + 1}`;
   if (!isNaN(Number(last))) return `P-${parseInt(String(last), 10) + 1}`;
-  return "P-100";
+
+  throw new Error("O servidor retornou um número de pedido inválido.");
 }
 
 /**
@@ -124,7 +158,11 @@ export async function getNextOrderNumber(): Promise<string> {
 export async function getOrderById(
   id: number | string
 ): Promise<ApiResponse<Order>> {
-  return apiClient.get<Order>(`orders/${id}`);
+  return asObject<Order>(
+    await apiClient.get(`orders/${id}`),
+    ["order"],
+    "pedido de venda"
+  );
 }
 
 /**
@@ -133,14 +171,22 @@ export async function getOrderById(
 export async function getOrderForEdit(
   id: number | string
 ): Promise<ApiResponse<OrderResponse>> {
-  return apiClient.get<OrderResponse>(`orders/edit/${id}`);
+  return asObject<OrderResponse>(
+    await apiClient.get(`orders/edit/${id}`),
+    ["order"],
+    "pedido para edição"
+  );
 }
 
 /**
  * Lista clientes para a área de vendas (restrito à empresa).
  */
 export async function getOrderCustomers(): Promise<ApiResponse<any[]>> {
-  return apiClient.get("orders/customers/list");
+  return asList<any>(
+    await apiClient.get("orders/customers/list"),
+    ["customers", "data"],
+    "clientes para venda"
+  );
 }
 
 /**
@@ -150,7 +196,11 @@ export async function updateOrder(
   id: number | string,
   data: Partial<Order>
 ): Promise<ApiResponse<Order>> {
-  return apiClient.put<Order>(`orders/${id}`, data);
+  return asObject<Order>(
+    await apiClient.put(`orders/${id}`, data),
+    ["order"],
+    "pedido atualizado"
+  );
 }
 
 /**
@@ -176,10 +226,14 @@ export async function updateOrderStatus(
     conference?: OrderConferenceData;
   }
 ): Promise<ApiResponse<Order>> {
-  return apiClient.put<Order>(`orders/${id}/status`, {
-    orderStatus,
-    ...extraData,
-  });
+  return asObject<Order>(
+    await apiClient.put(`orders/${id}/status`, {
+      orderStatus,
+      ...extraData,
+    }),
+    ["order"],
+    "status do pedido"
+  );
 }
 
 /**

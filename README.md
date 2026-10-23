@@ -10,6 +10,16 @@ resultados: [notas da release](docs/releases/1.4.2.md). Execução e verificaç�
 [PUBLICACAO_1.4.2](docs/PUBLICACAO_1.4.2.md). A publicação da 1.4.1 permanece
 documentada em [PUBLICACAO_1.4.1](docs/PUBLICACAO_1.4.1.md).
 
+## Estabilidade das rotas — 22/10/2026
+
+Respostas envelopadas da API agora passam por validação central
+(`src/api/payload.ts`), evitando que formatos inesperados derrubem a tela no
+Error Boundary. Produtos, fornecedores, clientes, pedidos, compras, estoque,
+contabilidade e RH distinguem carregamento, banco vazio, erro, acesso negado,
+módulo não contratado e CNPJ ausente. Financeiro agrupa Contabilidade e RH, mas
+cada domínio mantém módulo, rotas e permissões próprios. Resultados e limitações:
+[ESTABILIDADE_ROTAS_2026-10-22](docs/ESTABILIDADE_ROTAS_2026-10-22.md).
+
 ## Evolução dos quatro módulos
 
 [Plano e matriz de lacunas](docs/EVOLUCAO_QUATRO_MODULOS.md) ·
@@ -57,7 +67,7 @@ confirmação de senha nas alterações de negócio.
 | Compras | `compras` | Freemium | Pedidos de compra |
 | Estoque | `estoque` | Freemium | Movimentações (Kardex), ajuste de estoque |
 | RH | `rh` | Freemium | Colaboradores, cargos e salários |
-| Financeiro | `finance` | Freemium | Contas a pagar/receber, contas bancárias, pagamento |
+| Financeiro | `finance` | Freemium | Contas a pagar/receber e pagamentos de pedidos |
 | Auditoria | `audit` | Freemium | Histórico de ações, estações de trabalho |
 | CRM | `crm` | **Extra contratado** | Independente dos demais |
 | Contábil | `contabil` | **Extra contratado** | Dentro de Financeiro; independente de CRM e NF-e |
@@ -211,12 +221,12 @@ node run_migration.js migrations/009_order_conference.sql
 
 ```bash
 # frontend
-npm run test:frontend          # 78 testes
+npm run test:frontend          # 118 testes
 npm test -- --watchAll=false
 
 # backend
 cd ../konexus-back
-npm test                       # 142 testes no relatório completo
+npm test                       # 166 testes no relatório completo
 ```
 
 ### 4.5 Auditorias automatizadas

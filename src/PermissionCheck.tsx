@@ -1,5 +1,7 @@
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { DataState } from "./components/ui/DataState";
+import { getRouteModules } from "./utils/moduleMapping";
 
 /**
  * Proteção visual de rotas.
@@ -13,11 +15,18 @@ const DesignationCheck = ({
   allowed?: string[];
   children: React.ReactNode;
 }) => {
-  const { user, loading, mustChangePassword, canAccessRoute } = useAuth();
+  const { user, loading, mustChangePassword, canAccessRoute, modules } =
+    useAuth();
   const location = useLocation();
 
   if (loading) {
-    return <p style={{ padding: 20 }}>Carregando...</p>;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <DataState variant="loading" />
+        </div>
+      </main>
+    );
   }
 
   if (!user) {
@@ -32,20 +41,20 @@ const DesignationCheck = ({
     location.pathname !== "/change-password" &&
     !canAccessRoute(location.pathname)
   ) {
+    const requiredModules = getRouteModules(location.pathname);
+    const moduleUnavailable =
+      requiredModules.length > 0 &&
+      !requiredModules.some((moduleKey) => modules.includes(moduleKey));
+
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
         <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">
-            Permissão necessária
-          </p>
-          <h1 className="mt-2 text-2xl font-bold text-slate-900">Acesso negado</h1>
-          <p className="mt-3 text-sm text-slate-600">
-            Seu cargo ou as permissões concedidas não permitem acessar esta tela.
-            Se isso mudou recentemente, a navegação será atualizada automaticamente.
-          </p>
+          <DataState
+            variant={moduleUnavailable ? "module-not-contracted" : "forbidden"}
+          />
           <Link
             to="/dashboard"
-            className="mt-6 inline-flex rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+            className="mt-2 inline-flex rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
           >
             Voltar ao painel
           </Link>

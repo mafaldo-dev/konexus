@@ -11,12 +11,12 @@ import EditModal from './modal-edit'
 import { DynamicTable } from '../../../utils/Table/DynamicTable'
 import { DeleteIcon, Edit, Filter, DotIcon } from 'lucide-react'
 import { useAuth } from '../../../AuthContext'
-import Swal from 'sweetalert2'
 
 const SearchSuppliers = () => {
     const [openEdit, setOpenEdit] = useState<boolean>(false)
     const [openRegister, setOpenRegister] = useState<boolean>(false)
     const [loading, setLoading] = useState<boolean>(false)
+    const [loadError, setLoadError] = useState<string | null>(null)
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
     const [showFilters, setShowFilters] = useState<boolean>(false)
     const [currentData, setCurrentData] = useState<Supplier | null>(null)
@@ -39,7 +39,7 @@ const SearchSuppliers = () => {
 
     const filteredSupplier = suppliers.filter(sup => {
         const nameMatch = !filters.name ||
-            sup.name.toLowerCase().includes(filters.name.toLowerCase())
+            String(sup.name || "").toLowerCase().includes(filters.name.toLowerCase())
 
         const codeMatch = !filters.code ||
             String(sup.code || "").toLowerCase().includes(filters.code.toLowerCase())
@@ -47,24 +47,28 @@ const SearchSuppliers = () => {
         return nameMatch && codeMatch
     })
 
+    const loadSuppliers = async () => {
+        setLoading(true)
+        setLoadError(null)
+        try {
+            const response = await listSuppliers()
+            if (!response.ok || !response.data) {
+                setSuppliers([])
+                setLoadError(response.error || "Não foi possível carregar os fornecedores.")
+                return
+            }
+            setSuppliers(response.data)
+        } catch (error) {
+            console.error("Erro ao carregar fornecedores:", error)
+            setSuppliers([])
+            setLoadError("Não foi possível carregar os fornecedores. Tente novamente.")
+        } finally {
+            setLoading(false)
+        }
+    }
+
     // Carregar fornecedores
     useEffect(() => {
-        const loadSuppliers = async () => {
-            setLoading(true)
-            try {
-                const response = await listSuppliers()
-                if (response.ok && response.data) {
-                    setSuppliers(response.data.data)
-                } else {
-                    Swal.fire("Alert", response.error || "Lista de fornecedores não carregada corretamente", "warning")
-                }
-            } catch (error) {
-                console.error("Erro ao carregar fornecedores:", error)
-                Swal.fire("Erro", "Erro ao recuperar a lista de fornecedores!", "error")
-            } finally {
-                setLoading(false)
-            }
-        }
         loadSuppliers()
     }, [])
 
@@ -75,8 +79,7 @@ const SearchSuppliers = () => {
 
     const handleCloseEditModal = async () => {
         setOpenEdit(false)
-        const response = await listSuppliers();
-        setSuppliers((response.ok && response.data) ? response.data.data : []);
+        await loadSuppliers()
     }
 
     const hasActiveFilters = filters.name !== "" || filters.code !== ""
@@ -167,9 +170,7 @@ const SearchSuppliers = () => {
     return (
         <Dashboard>
             <div className="w-full flex flex-col items-center m-auto p-4">
-                {loading ? (
-                    <p>Carregando...</p>
-                ) : (
+                {
                     <div className="max-w-screen mx-auto">
                         <div className="mb-8 flex justify-between items-center">
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestão de Fornecedores</h1>
@@ -250,11 +251,15 @@ const SearchSuppliers = () => {
                             data={filteredSupplier}
                             columns={columns}
                             loading={loading}
-                            emptyMessage="Nenhum Fornecedor encontrado"
-                            emptyDescription="Tente ajustar os filtros de busca"
+                            error={loadError}
+                            onRetry={loadSuppliers}
+                            emptyMessage="Não há dados disponíveis."
+                            emptyDescription={hasActiveFilters
+                                ? "Nenhum fornecedor corresponde aos filtros informados."
+                                : "Cadastre seu primeiro fornecedor para começar."}
                         />
                     </div>
-                )}
+                }
             </div>
 
             {/* Modal de Registro */}
@@ -265,8 +270,7 @@ const SearchSuppliers = () => {
                             <FormAdd
                                 onClose={() => setOpenRegister(false)} 
                                 onSupplierAdded={async () => {
-                                const response = await listSuppliers();
-                                setSuppliers((response.ok && response.data) ? response.data.data : []);
+                                await loadSuppliers();
                                 setOpenRegister(false)
                             }} />
                         </div>

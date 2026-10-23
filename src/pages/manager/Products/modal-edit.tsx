@@ -37,8 +37,11 @@ const UpdatedProduct = ({ product, onClose }: Props) => {
   const handleSearchSupplier = async () => {
     try {
       const response = await listSuppliers();
-      if (!response.ok || !response.data) return;
-      const found = (response.data.data || []).find(
+      if (!response.ok || !response.data) {
+        alert(response.error || "Não foi possível consultar os fornecedores.");
+        return;
+      }
+      const found = response.data.find(
         (s) => s.code?.toLowerCase() === searchCode.toLowerCase()
       );
 
@@ -49,6 +52,7 @@ const UpdatedProduct = ({ product, onClose }: Props) => {
       }
     } catch (err) {
       console.error("Erro ao buscar fornecedor:", err);
+      alert("Não foi possível consultar os fornecedores. Tente novamente.");
     }
   };
 
@@ -76,7 +80,13 @@ const UpdatedProduct = ({ product, onClose }: Props) => {
         onClose();
       } catch (error) {
         console.error('Erro ao atualizar produto: ', error);
-        await showAlert('Erro!', 'Erro ao atualizar o produto.', 'error');
+        await showAlert(
+          'Erro!',
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível atualizar o produto.',
+          'error'
+        );
       }
     },
     [product?.id, showAlert, onClose]

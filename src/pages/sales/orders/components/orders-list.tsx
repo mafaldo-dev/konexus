@@ -18,6 +18,8 @@ import { DynamicTable } from "../../../../utils/Table/DynamicTable";
 import { mapOrderStatus, getStatusColor, getStatusLabel, getStatusTabColor } from "../../../../components/utils/statusLabel";
 import { useConferenceModal } from "../../../../hooks/useConferenceModal";
 import ConferenceModal from "./confereceModal";
+import { DataStateVariant } from "../../../../components/ui/DataState";
+import { getResponseDataState } from "../../../../api/responseState";
 
 type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "cancelled" | "backout" | any
 
@@ -25,6 +27,9 @@ export default function OrderList() {
   const [selectedTab, setSelectedTab] = useState<OrderStatus>("approved");
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorVariant, setLoadErrorVariant] =
+    useState<DataStateVariant>("error");
   const { isModalOpen, selectedOrder, openModal, closeModal, setSelectedOrder } = useConferenceModal();
   const { user, company } = useAuth();
 
@@ -35,8 +40,16 @@ export default function OrderList() {
   const loadOrders = async () => {
     try {
       setIsLoading(true);
+      setLoadError(null);
+      setLoadErrorVariant("error");
       const response = await listOrders();
-      const fetchedOrders = (response.ok && response.data) ? response.data : [];
+      if (!response.ok || !response.data) {
+        setOrders([]);
+        setLoadError(response.error || "Não foi possível carregar os pedidos de venda.");
+        setLoadErrorVariant(getResponseDataState(response));
+        return;
+      }
+      const fetchedOrders = response.data;
 
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
         id: order.id,
@@ -115,7 +128,8 @@ export default function OrderList() {
       setOrders(mappedOrders);
     } catch (error) {
       console.error("Erro ao recuperar orders", error);
-      alert("Erro ao recuperar os pedidos de venda!");
+      setOrders([]);
+      setLoadError("Não foi possível carregar os pedidos de venda. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -142,7 +156,10 @@ export default function OrderList() {
     }
   ) => {
     try {
-      await updateOrderStatus(orderId, newStatus, extraData);
+      const response = await updateOrderStatus(orderId, newStatus, extraData);
+      if (!response.ok) {
+        throw new Error(response.error || "Não foi possível atualizar o status do pedido.");
+      }
       const updatedOrders = orders.map((order) =>
         order.id === orderId
           ? {
@@ -156,7 +173,15 @@ export default function OrderList() {
       setOrders(updatedOrders);
     } catch (error) {
       console.error("Erro ao atualizar status do pedido:", error);
-      alert("Erro ao atualizar o status do pedido!");
+      await Swal.fire({
+        title: "Erro!",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Erro ao atualizar o status do pedido.",
+        icon: "error",
+        confirmButtonColor: "#d33",
+      });
     }
   };
 
@@ -564,8 +589,11 @@ export default function OrderList() {
                 data={getOrdersByStatus(selectedTab)}
                 columns={getColumnsForTab(selectedTab)}
                 loading={isLoading}
-                emptyMessage={`Nenhum pedido com status "${getStatusLabel(selectedTab)}"`}
-                emptyDescription="Os pedidos aparecerão aqui quando houver"
+                error={loadError}
+                errorVariant={loadErrorVariant}
+                onRetry={loadOrders}
+                emptyMessage="Não há dados disponíveis."
+                emptyDescription={`Nenhum pedido com status "${getStatusLabel(selectedTab)}".`}
               />
             </div>
           </motion.div>

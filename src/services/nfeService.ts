@@ -12,6 +12,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { pickData } from "../api/payload";
 
 export interface NfeEmitResult {
   success: boolean;
@@ -37,11 +38,35 @@ export async function emitNfe(
   return apiClient.post<NfeEmitResult>(`nfe/${orderId}/emitir`);
 }
 
+export interface NfeListResult {
+  notas: any[];
+  total: number;
+  empresa?: {
+    cnpj?: string;
+    razao_social?: string;
+    ambiente?: string;
+  };
+}
+
 /**
  * Lista NF-e (consulta PlugNotas da empresa autenticada).
+ * `notas` é validado explicitamente para não transformar erro de contrato
+ * em uma lista vazia.
  */
-export async function listNfe(): Promise<ApiResponse<any>> {
-  return apiClient.get("nfe/all");
+export async function listNfe(): Promise<ApiResponse<NfeListResult>> {
+  const response = await apiClient.get<any>("nfe/all");
+  return pickData<NfeListResult>(
+    response,
+    (body) => {
+      if (!body || !Array.isArray(body.notas)) return undefined;
+      return {
+        notas: body.notas,
+        total: Number(body.total) || body.notas.length,
+        empresa: body.empresa,
+      };
+    },
+    "notas fiscais"
+  );
 }
 
 /**

@@ -8,6 +8,8 @@ import PurchaseOrderForm from './components/SolicitationForm';
 import QuotationsList from '../_quotes/index';
 
 import Dashboard from "../../../components/dashboard/Dashboard";
+import { DataState, DataStateVariant } from '../../../components/ui/DataState';
+import { getResponseDataState } from '../../../api/responseState';
 import { usePurchaseData } from '../../../hooks/_manager/usePurchaseData';
 import { useSearchFilter } from '../../../hooks/_manager/useSearchFilter';
 import ReturnsPage from '../returns';
@@ -18,26 +20,46 @@ import Swal from 'sweetalert2';
 export default function PurchaseManagementScreen() {
   const { hasPermission } = useAuth();
   const canCreatePurchase = hasPermission('compras', 'create');
+  const canViewReturns = hasPermission('compras', 'view');
   const [activeTab, setActiveTab] = useState<'stock' | 'request' | 'quote' | 'returns'>('stock');
-  const { products, suppliers, isLoading } = usePurchaseData();
+  const {
+    products,
+    suppliers,
+    isLoading,
+    error: purchaseDataError,
+    refetch: refetchPurchaseData,
+  } = usePurchaseData();
   const [selectedProducts, setSelectedProducts] = useState<Products[]>([]);
   const [showSnackbar, setShowSnackbar] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedSupplier, setSelectedSupplier] = useState<string>('');
   const [quotations, setQuotations] = useState<any[]>([]);
+  const [quotationsError, setQuotationsError] = useState<string | null>(null);
+  const [quotationsErrorVariant, setQuotationsErrorVariant] =
+    useState<DataStateVariant>("error");
   const [isCreatingOrder, setIsCreatingOrder] = useState<boolean>(false); // ✅ NOVO
 
-  useEffect(() => {
-    const fetchQuotations = async () => {
-      try {
-        const response = await listPurchaseOrders()
-        setQuotations((response.ok && response.data) ? response.data : [])
-      } catch (error) {
-        console.error('❌ Erro ao buscar cotações:', error);
-        setQuotations([]);
+  const fetchQuotations = async () => {
+    try {
+      setQuotationsError(null);
+      setQuotationsErrorVariant("error");
+      const response = await listPurchaseOrders()
+      if (!response.ok || !response.data) {
+        setQuotations([])
+        setQuotationsError(response.error || "Não foi possível carregar as solicitações de compra.")
+        setQuotationsErrorVariant(getResponseDataState(response));
+        return
       }
-    };
+      setQuotations(response.data)
+    } catch (error) {
+      console.error('❌ Erro ao buscar cotações:', error);
+      setQuotations([]);
+      setQuotationsError("Não foi possível carregar as solicitações de compra. Tente novamente.")
+      setQuotationsErrorVariant("error");
+    }
+  };
 
+  useEffect(() => {
     fetchQuotations();
   }, []); 
 
@@ -73,8 +95,7 @@ export default function PurchaseManagementScreen() {
       if (!response.ok || !response.data) throw new Error(response.error || "Erro ao criar pedido de compra")
       const orderId = response.data.id;
 
-      const resp2 = await listPurchaseOrders()
-      setQuotations((resp2.ok && resp2.data) ? resp2.data : [])
+      await fetchQuotations()
       
       setSelectedProducts([]);
       setActiveTab('quote'); 
@@ -144,12 +165,22 @@ export default function PurchaseManagementScreen() {
             )}
           </button>
 
-          <button disabled title='"Contate-nos" para mais informações' onClick={() => setActiveTab('returns')} className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'returns' ? 'border-slate-600 text-slate-700' : 'border-transparent text-slate-400'}`}>
-            Devoluções
-          </button>
+          {canViewReturns && (
+            <button onClick={() => setActiveTab('returns')} className={`pb-2 border-b-2 text-sm font-medium ${activeTab === 'returns' ? 'border-slate-600 text-slate-700' : 'border-transparent text-slate-400'}`}>
+              Devoluções
+            </button>
+          )}
         </div>
 
         {/* Tabs content */}
+        {purchaseDataError ? (
+          <DataState
+            variant="error"
+            description={purchaseDataError.message}
+            onAction={refetchPurchaseData}
+          />
+        ) : (
+          <>
         {activeTab === 'stock' && (
           <>
             <SupplierFilter
@@ -194,7 +225,13 @@ export default function PurchaseManagementScreen() {
           <QuotationsList 
             quotations={quotations} 
             onPreview={handlePreviewQuotation}
+            error={quotationsError}
+            errorVariant={quotationsErrorVariant}
+            onRetry={fetchQuotations}
+            onUpdate={fetchQuotations}
           />
+        )}
+          </>
         )}
       </div>
 

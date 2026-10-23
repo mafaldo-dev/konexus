@@ -13,6 +13,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { asList, asObject } from "../api/payload";
 
 export interface Supplier {
   id: number;
@@ -38,20 +39,16 @@ export interface SupplierFilters {
  */
 export async function listSuppliers(
   filters: SupplierFilters = {}
-): Promise<
-  ApiResponse<{
-    data: Supplier[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  }>
-> {
+): Promise<ApiResponse<Supplier[]>> {
   const params = new URLSearchParams();
   if (filters.page) params.append("page", String(filters.page));
   if (filters.limit) params.append("limit", String(filters.limit));
   const query = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get(`suppliers/all${query}`);
+  return asList<Supplier>(
+    await apiClient.get(`suppliers/all${query}`),
+    ["suppliers", "data"],
+    "fornecedores"
+  );
 }
 
 /**
@@ -60,7 +57,11 @@ export async function listSuppliers(
 export async function getSupplierById(
   id: number | string
 ): Promise<ApiResponse<Supplier>> {
-  return apiClient.get<Supplier>(`suppliers/${id}`);
+  return asObject<Supplier>(
+    await apiClient.get(`suppliers/${id}`),
+    ["supplier"],
+    "fornecedor"
+  );
 }
 
 /**
@@ -69,7 +70,11 @@ export async function getSupplierById(
 export async function createSupplier(
   data: Omit<Supplier, "id" | "createdAt">
 ): Promise<ApiResponse<Supplier>> {
-  return apiClient.post<Supplier>("suppliers/create", data);
+  return asObject<Supplier>(
+    await apiClient.post("suppliers/create", data),
+    ["supplier"],
+    "fornecedor criado"
+  );
 }
 
 /**
@@ -79,7 +84,11 @@ export async function updateSupplier(
   id: number | string,
   data: Partial<Supplier>
 ): Promise<ApiResponse<Supplier>> {
-  return apiClient.put<Supplier>(`suppliers/${id}`, data);
+  return asObject<Supplier>(
+    await apiClient.put(`suppliers/${id}`, data),
+    ["supplier"],
+    "fornecedor atualizado"
+  );
 }
 
 /**

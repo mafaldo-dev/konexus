@@ -17,7 +17,13 @@ export const useOrderSearch = (setValue: any) => {
     try {
         setIsLoading(true);
         const response = await getPurchaseOrderByNumber(orderByCode);
-        const orderData = (response.ok && response.data) ? response.data : null;
+        if (!response.ok || !response.data) {
+          alert(response.error || "Não foi possível consultar o pedido.");
+          setOrder(null);
+          setFetchedProducts([]);
+          return;
+        }
+        const orderData = response.data;
 
       if (orderData && orderData.id) {
           setOrder(orderData);

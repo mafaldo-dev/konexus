@@ -1,4 +1,5 @@
 import { apiRequest, ApiResponse } from "../api/client";
+import { asList, asObject, pickData } from "../api/payload";
 
 export type AuditOutcome = "success" | "denied" | "failed" | "cancelled" | "pending";
 
@@ -89,33 +90,56 @@ function buildQuery(filters: AuditEventFilters): string {
 export async function listAuditEvents(
   filters: AuditEventFilters = {}
 ): Promise<ApiResponse<AuditEventPage>> {
-  const response = await apiRequest<AuditEventPage>(
-    `audit/events${buildQuery(filters)}`
+  const response = await apiRequest<any>(`audit/events${buildQuery(filters)}`);
+  return pickData<AuditEventPage>(
+    response,
+    (body) => {
+      const rows = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.data)
+          ? body.data
+          : null;
+      if (!rows) return undefined;
+      const limit = Number(body?.limit) || 50;
+      const total = Number(body?.total) || rows.length;
+      return {
+        data: rows as AuditEvent[],
+        total,
+        page: Number(body?.page) || 1,
+        limit,
+        totalPages:
+          Number(body?.totalPages) || Math.ceil(total / limit) || 0,
+      };
+    },
+    "histórico de ações"
   );
-  return {
-    ...response,
-    data: response.data
-      ? {
-          data: response.data.data || [],
-          total: response.data.total || 0,
-          page: response.data.page || 1,
-          limit: response.data.limit || 50,
-          totalPages: response.data.totalPages || 0,
-        }
-      : null,
-  };
 }
 
 export async function getAuditEvent(id: number): Promise<ApiResponse<AuditEvent>> {
-  return apiRequest<AuditEvent>(`audit/events/${id}`);
+  return asObject<AuditEvent>(
+    await apiRequest(`audit/events/${id}`),
+    ["event", "data"],
+    "evento de auditoria"
+  );
 }
 
 /**
  * Estacoes de trabalho cadastradas pela empresa.
  */
 export async function listWorkStations(): Promise<ApiResponse<WorkStation[]>> {
-  const response = await apiRequest<WorkStation[]>("audit/stations");
-  return { ...response, data: (response.data || []).filter(station => !station.installation_uuid) };
+  const response = asList<WorkStation>(
+    await apiRequest("audit/stations"),
+    ["data", "stations"],
+    "estações de trabalho"
+  );
+  return {
+    ...response,
+    data: response.ok
+      ? (response.data as WorkStation[]).filter(
+          (station) => !station.installation_uuid
+        )
+      : null,
+  };
 }
 
 export async function createWorkStation(input: {
@@ -123,31 +147,43 @@ export async function createWorkStation(input: {
   sector?: string;
   technicalId?: string;
 }): Promise<ApiResponse<WorkStation>> {
-  return apiRequest<WorkStation>("audit/stations", "POST", input);
+  return asObject<WorkStation>(
+    await apiRequest("audit/stations", "POST", input),
+    ["data", "station"],
+    "estação de trabalho criada"
+  );
 }
 
 export async function updateWorkStation(
   id: number,
   input: Partial<Pick<WorkStation, "name" | "sector" | "technical_id" | "active">>
 ): Promise<ApiResponse<WorkStation>> {
-  return apiRequest<WorkStation>(`audit/stations/${id}`, "PATCH", input);
+  return asObject<WorkStation>(
+    await apiRequest(`audit/stations/${id}`, "PATCH", input),
+    ["data", "station"],
+    "estação de trabalho atualizada"
+  );
 }
 
 export async function createStationPairingCode(
   id: number,
   label?: string
 ): Promise<ApiResponse<{ station: WorkStation; code: string }>> {
-  return apiRequest<{ station: WorkStation; code: string }>(
-    `audit/stations/${id}/pairing`,
-    "POST",
-    { label }
+  return asObject<{ station: WorkStation; code: string }>(
+    await apiRequest(`audit/stations/${id}/pairing`, "POST", { label }),
+    ["data"],
+    "código de pareamento"
   );
 }
 
 export async function revokeStationTokens(
   id: number
 ): Promise<ApiResponse<WorkStation>> {
-  return apiRequest<WorkStation>(`audit/stations/${id}/tokens`, "DELETE");
+  return asObject<WorkStation>(
+    await apiRequest(`audit/stations/${id}/tokens`, "DELETE"),
+    ["data", "station"],
+    "tokens da estação"
+  );
 }
 
 /**

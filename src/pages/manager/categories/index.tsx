@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Products } from "../../../types/stock/products"
 import { listProducts } from "../../../services/productService";
 import { DynamicTable } from "../../../utils/Table/DynamicTable"
 import { Search, X, ChevronDown, BarChart2, Layers, Clock, Package, TrendingUp, ShoppingBag } from "lucide-react"
 import Dashboard from "../../../components/dashboard/Dashboard"
+import { DataState, DataStateVariant } from "../../../components/ui/DataState"
+import { getResponseDataState } from "../../../api/responseState"
 
 type Category = {
   id: string
@@ -21,49 +23,70 @@ const Categories = () => {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadErrorVariant, setLoadErrorVariant] =
+    useState<DataStateVariant>("error")
   const [allProducts, setAllProducts] = useState<Products[]>([])
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  useEffect(() => {
-    const fetchProductsAndBuildCategories = async () => {
-      try {
-        setIsLoading(true)
-        const response = await listProducts();
-        const products: Products[] = (response.ok && response.data) ? response.data : [];
-        setAllProducts(products)
-
-        const categoryMap = new Map<string, Category>()
-
-        products.forEach((product) => {
-          const existing = categoryMap.get(product.category)
-
-          if (existing) {
-            existing.productsCount += 1
-          } else {
-            categoryMap.set(product.category, {
-              id: product.category,
-              name: product.category,
-              description: "",
-              parentId: undefined,
-              parentName: undefined,
-              status: "active",
-              createdAt: new Date().toISOString(),
-              productsCount: 1,
-            })
-          }
-        })
-
-        setCategories(Array.from(categoryMap.values()))
-      } catch (error) {
-        console.error("Erro ao buscar produtos:", error)
-      } finally {
-        setIsLoading(false)
+  const fetchProductsAndBuildCategories = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setLoadError(null)
+      setLoadErrorVariant("error")
+      const response = await listProducts();
+      if (!response.ok || !response.data) {
+        setAllProducts([])
+        setCategories([])
+        setLoadError(
+          response.error || "Não foi possível carregar as categorias."
+        )
+        setLoadErrorVariant(getResponseDataState(response))
+        return
       }
-    }
 
-    fetchProductsAndBuildCategories()
+      const products: Products[] = response.data;
+      setAllProducts(products)
+
+      const categoryMap = new Map<string, Category>()
+
+      products.forEach((product) => {
+        const existing = categoryMap.get(product.category)
+
+        if (existing) {
+          existing.productsCount += 1
+        } else {
+          categoryMap.set(product.category, {
+            id: product.category,
+            name: product.category,
+            description: "",
+            parentId: undefined,
+            parentName: undefined,
+            status: "active",
+            createdAt: new Date().toISOString(),
+            productsCount: 1,
+          })
+        }
+      })
+
+      setCategories(Array.from(categoryMap.values()))
+    } catch (error) {
+      console.error("Erro ao buscar produtos:", error)
+      setAllProducts([])
+      setCategories([])
+      setLoadError(
+        "Não foi possível carregar as categorias. Tente novamente."
+      )
+      setLoadErrorVariant("error")
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    void fetchProductsAndBuildCategories()
+  }, [fetchProductsAndBuildCategories])
 
   const filteredCategories = useMemo(() => {
     return categories
@@ -242,12 +265,18 @@ const Categories = () => {
               <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
               <p className="mt-4 text-gray-600 font-medium">Carregando categorias...</p>
             </div>
+          ) : loadError ? (
+            <DataState
+              variant={loadErrorVariant}
+              description={loadError}
+              onAction={fetchProductsAndBuildCategories}
+            />
           ) : filteredCategories.length === 0 ? (
             <div className="text-center py-16">
               <div className="mx-auto h-24 w-24 text-gray-300 mb-4">
                 <Layers className="w-full h-full" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma categoria encontrada</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Não há dados disponíveis.</h3>
               <p className="text-sm text-gray-500 mb-6">
                 {searchTerm ? "Tente ajustar sua busca ou limpar os filtros" : "Adicione uma nova categoria para começar"}
               </p>

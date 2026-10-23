@@ -15,9 +15,14 @@ import SearchSuppliers from '../pages/manager/Suppliers';
 import CustomersContent from '../pages/manager/Customers';
 import Categories from '../pages/manager/categories';
 import EmployeeAdministration from '../pages/RH/employees';
+import EmployeesList from '../pages/RH/employees/list';
+import HRDashboard from '../pages/RH/dashboard';
+import PayrollPage from '../pages/RH/folha';
+import TrainingPage from '../pages/RH/treinamentos';
 import PositionsAndSalaries from '../pages/RH/positions&salaries';
 import Commissions from '../pages/RH/commissions';
 import Inventory from '../pages/stock/inventory';
+import StockAlerts from '../pages/stock/alerts';
 import PurchaseRequisition from '../pages/_shopping/purchase-requisition';
 import PurchaseManagementScreen from '../pages/_shopping/purchase-requisition';
 import InvoiceEntries from '../pages/_shopping/entry-notes/InvoiceEntries';
@@ -25,12 +30,10 @@ import FinancialDashboard from '../pages/Financial';
 import NfeList from '../pages/Financial/nfe-list';
 import OSSystem from '../pages/ServiceOrder';
 import CRMModule from '../pages/CRM';
-import SecuritySettingsPage from '../pages/configurations/security';
 import AuditLogPage from '../pages/configurations/audit';
 import WorkStationsPage from '../pages/configurations/stations';
 import NotificationPreferences from '../pages/configurations/notifications';
 import UserManagementPage from '../pages/configurations/users&permissions';
-import CompanyManagement from '../pages/configurations/companies';
 import LegalEntitiesPage from '../pages/configurations/legal-entities';
 import PlanosPage from '../pages/planos';
 
@@ -230,15 +233,60 @@ const AppRoutes = () => {
 
       {/* ==================== ÁREA DE RH ==================== */}
       <Route
+        path="/rh"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Gestor', 'Gerente', 'Encarregado']}>
+            <HRDashboard />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
+        path="/rh/employees"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Gestor', 'Gerente', 'Encarregado']}>
+            <EmployeesList />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
+        path="/rh/employees/new"
+        element={
+          <DesignationCheck allowed={['Administrador']}>
+            <EmployeeAdministration />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
         path="/rh/employee"
-        element={<Navigate to="/config/users-permissions" replace />}
+        element={<Navigate to="/rh/employees" replace />}
       />
 
       <Route
         path="/rh/infos"
         element={
-          <DesignationCheck allowed={['Administrador', 'Financeiro']}>
+          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Gestor', 'Gerente']}>
             <PositionsAndSalaries />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
+        path="/rh/folha"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Gestor', 'Gerente', 'Encarregado']}>
+            <PayrollPage />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
+        path="/rh/treinamentos"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Financeiro', 'Gestor', 'Gerente', 'Encarregado']}>
+            <TrainingPage />
           </DesignationCheck>
         }
       />
@@ -250,6 +298,15 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={['Administrador', 'Conferente', 'Estoquista', 'Gerente']}>
             <Inventory />
+          </DesignationCheck>
+        }
+      />
+
+      <Route
+        path="/stock/alerts"
+        element={
+          <DesignationCheck allowed={['Administrador', 'Conferente', 'Estoquista', 'Gestor', 'Compras', 'Gerente', 'Encarregado']}>
+            <StockAlerts />
           </DesignationCheck>
         }
       />
@@ -390,14 +447,10 @@ const AppRoutes = () => {
         }
       />
 
-      <Route
-        path="/config/security-area"
-        element={
-          <DesignationCheck allowed={['Administrador']}>
-            <SecuritySettingsPage />
-          </DesignationCheck>
-        }
-      />
+      {/* Rotas antigas: preservadas como redirecionamento para os cadastros
+          atuais, sem manter telas duplicadas ou configurações sem backend. */}
+      <Route path="/config/security-area" element={<Navigate to="/config/legal-entities" replace />} />
+      <Route path="/config/companies" element={<Navigate to="/config/legal-entities" replace />} />
 
       <Route
         path="/config/audit-log"
@@ -440,15 +493,6 @@ const AppRoutes = () => {
         element={
           <DesignationCheck allowed={['Administrador']}>
             <LegalEntitiesPage />
-          </DesignationCheck>
-        }
-      />
-
-      <Route
-        path="/config/companies"
-        element={
-          <DesignationCheck allowed={['Administrador']}>
-            <CompanyManagement />
           </DesignationCheck>
         }
       />

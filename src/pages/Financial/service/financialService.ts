@@ -42,19 +42,27 @@ export class FinancialService {
       });
 
       if (formValues) {
-        await apiUpdatePaymentStatus(id, {
+        const response = await apiUpdatePaymentStatus(id, {
           payment_status: "paid",
           payment_date: new Date().toDateString(),
           transaction_id: formValues.transaction_id || String(id),
           notes: formValues.notes || "Concluida transação"
         });
 
+        if (!response.ok) {
+          throw new Error(response.error || "Erro ao confirmar pagamento!");
+        }
+
         await reloadData();
         Swal.fire("Sucesso", "Pagamento confirmado com sucesso!", "success");
       }
     } catch (error) {
       console.error("Erro ao marcar como pago:", error);
-      Swal.fire("Erro", "Erro ao confirmar pagamento!", "error");
+      Swal.fire(
+        "Erro",
+        error instanceof Error ? error.message : "Erro ao confirmar pagamento!",
+        "error"
+      );
     }
   }
 
@@ -71,18 +79,26 @@ export class FinancialService {
       });
 
       if (result.isConfirmed) {
-        await apiUpdatePaymentStatus(id, {
+        const response = await apiUpdatePaymentStatus(id, {
           payment_status: "cancelled",
           payment_date: null,
           transaction_id: null,
           notes: "Pagamento cancelado"
         });
 
+        if (!response.ok) {
+          throw new Error(response.error || "Erro ao cancelar pagamento!");
+        }
+
         Swal.fire("Sucesso", "Pagamento cancelado com sucesso!", "success")
       }
     } catch (error) {
       console.error("Erro ao cancelar pagamento:", error);
-      Swal.fire("Erro", "Erro ao cancelar pagamento!", "error");
+      Swal.fire(
+        "Erro",
+        error instanceof Error ? error.message : "Erro ao cancelar pagamento!",
+        "error"
+      );
     }
   }
 
@@ -96,10 +112,36 @@ export class FinancialService {
   ) {
     try {
       const response = await getPaymentsByCustomer(id);
+      if (!response.ok || !response.data) {
+        throw new Error(
+          response.error || "Erro ao carregar o histórico do cliente!"
+        );
+      }
 
-      const merged = (response.ok && response.data?.combined) || [];
+      const orders = response.data.orders.map((order: any) => ({
+        type: "order",
+        id: order.id,
+        title: order.orderNumber ?? order.ordernumber ?? String(order.id),
+        amount: Number(order.totalAmount ?? order.totalamount) || 0,
+        status: order.orderStatus ?? order.orderstatus ?? "pending",
+        date: order.orderDate ?? order.orderdate,
+      }));
 
-      merged.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const payments = response.data.payments.map((payment: any) => ({
+        type: "payment",
+        id: payment.id,
+        title: `#${payment.id}`,
+        amount: Number(payment.amount) || 0,
+        status: payment.payment_status ?? payment.paymentStatus ?? "pending",
+        date: payment.payment_date ?? payment.paymentDate,
+        orderId: payment.orderId ?? payment.orderid,
+        notes: payment.notes,
+      }));
+
+      const merged = [...orders, ...payments].sort(
+        (a, b) =>
+          new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
+      );
 
       setCustomerOrders(merged);
 
@@ -108,7 +150,13 @@ export class FinancialService {
 
     } catch (error) {
       console.error("Erro ao carregar pedidos do cliente:", error);
-      Swal.fire("Erro", "Erro ao carregar pedidos do cliente!", "error");
+      Swal.fire(
+        "Erro",
+        error instanceof Error
+          ? error.message
+          : "Erro ao carregar pedidos do cliente!",
+        "error"
+      );
     }
   }
 
@@ -138,7 +186,10 @@ export class FinancialService {
       });
 
       if (result.isConfirmed) {
-        await apiUpdateOrderStatus(orderId, newStatus);
+        const response = await apiUpdateOrderStatus(orderId, newStatus);
+        if (!response.ok) {
+          throw new Error(response.error || "Erro ao atualizar status do pedido!");
+        }
 
         const updatedOrders = pedidos.map((order) =>
           order.id === orderId ? { ...order, orderStatus: newStatus } : order
@@ -149,7 +200,13 @@ export class FinancialService {
       }
     } catch (error) {
       console.error("Erro ao atualizar o status do Pedido: ", error);
-      Swal.fire("Erro", "Erro ao atualizar status do pedido!", "error");
+      Swal.fire(
+        "Erro",
+        error instanceof Error
+          ? error.message
+          : "Erro ao atualizar status do pedido!",
+        "error"
+      );
     }
   }
 
@@ -160,7 +217,13 @@ export class FinancialService {
         data_fim: endDate
       });
 
-      const payments = (response.ok && response.data) ? response.data.data : [];
+      if (!response.ok || !response.data) {
+        throw new Error(
+          response.error || "Não foi possível carregar os pagamentos do relatório."
+        );
+      }
+
+      const payments = response.data.data;
 
       const reportData = payments.map((item: any) => ({
         Pedido: item.ordernumber || `#${item.orderid}`,
@@ -207,7 +270,11 @@ QUANTIDADE DE REGISTROS: ${reportData.length}
       setReportModalOpen(false);
     } catch (error) {
       console.error("Erro ao gerar relatório:", error);
-      Swal.fire("Erro", "Erro ao gerar relatório!", "error");
+      Swal.fire(
+        "Erro",
+        error instanceof Error ? error.message : "Erro ao gerar relatório!",
+        "error"
+      );
     }
   }
 

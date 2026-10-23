@@ -48,7 +48,13 @@ const UpdatedCustomer = ({ customer, onClose }: Props) => {
             onClose()
         } catch (error) {
             console.error("Erro ao atualizar as informações do Cliente", error)
-            Swal.fire('Erro', 'Erro ao atualizar informações.', 'error')
+            Swal.fire(
+                'Erro',
+                error instanceof Error
+                    ? error.message
+                    : 'Não foi possível atualizar as informações.',
+                'error'
+            )
         }
     }
 

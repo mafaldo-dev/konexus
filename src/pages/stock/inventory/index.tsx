@@ -21,6 +21,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import DocumentViewer from '../../../utils/screenOptions';
 import { useAuth } from '../../../AuthContext';
+import { DataState, DataStateVariant } from '../../../components/ui/DataState';
+import { getResponseDataState } from '../../../api/responseState';
 
 const ALL_FILTERS = [
     { key: 'code', label: 'Código' },
@@ -41,6 +43,10 @@ const Inventory: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [allProducts, setAllProducts] = useState<Products[]>([]);
     const [filteredProducts, setFilteredProducts] = useState<Products[]>([]);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [ordersError, setOrdersError] = useState<string | null>(null);
+    const [ordersErrorVariant, setOrdersErrorVariant] =
+        useState<DataStateVariant>('error');
     const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
     const sensors = useSensors(useSensor(PointerSensor));
 
@@ -67,20 +73,43 @@ const Inventory: React.FC = () => {
     // Carrega produtos
     const allProductsInventory = async () => {
         try {
+            setLoadError(null);
             const res = await listProducts();
-            setAllProducts((res.ok && res.data) ? res.data : []);
+            if (!res.ok || !res.data) {
+                setAllProducts([]);
+                setLoadError(res.error || "Não foi possível carregar os produtos para o relatório.");
+                return;
+            }
+            setAllProducts(res.data);
         } catch (error) {
             console.error('❌ Erro ao carregar produtos:', error);
+            setAllProducts([]);
+            setLoadError("Não foi possível carregar os produtos para o relatório. Tente novamente.");
         }
     };
 
     // Carrega pedidos
     const loadAllOrders = async () => {
         try {
+            setOrdersError(null);
+            setOrdersErrorVariant('error');
             const res = await listOrders();
-            setAllOrders((res.ok && res.data) ? res.data : []);
+            if (!res.ok || !res.data) {
+                setAllOrders([]);
+                setOrdersError(
+                    res.error || "Não foi possível carregar os pedidos para o relatório."
+                );
+                setOrdersErrorVariant(getResponseDataState(res));
+                return;
+            }
+            setAllOrders(res.data);
         } catch (error) {
             console.error('❌ Erro ao carregar pedidos:', error);
+            setAllOrders([]);
+            setOrdersError(
+                "Não foi possível carregar os pedidos para o relatório. Tente novamente."
+            );
+            setOrdersErrorVariant('error');
         }
     };
 
@@ -541,12 +570,38 @@ const Inventory: React.FC = () => {
                                             </tr>
                                         </thead>
                                     <tbody className="bg-white divide-y divide-slate-100">
-                                        {filteredProducts.length === 0 ? (
+                                        {loadError ||
+                                        (reportType === 'shipped' && ordersError) ? (
                                             <tr>
-                                                <td colSpan={selectedFilters.length + 1} className="px-6 py-8 text-center text-slate-500 italic">
-                                                    {reportType === 'shipped' 
-                                                        ? 'Nenhum item expedido nesta data' 
-                                                        : 'Nenhum produto encontrado'}
+                                                <td colSpan={selectedFilters.length + 1}>
+                                                    <DataState
+                                                        variant={
+                                                            loadError
+                                                                ? "error"
+                                                                : ordersErrorVariant
+                                                        }
+                                                        compact
+                                                        description={
+                                                            loadError || ordersError || ""
+                                                        }
+                                                        onAction={
+                                                            loadError
+                                                                ? allProductsInventory
+                                                                : loadAllOrders
+                                                        }
+                                                    />
+                                                </td>
+                                            </tr>
+                                        ) : filteredProducts.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={selectedFilters.length + 1}>
+                                                    <DataState
+                                                        variant="empty"
+                                                        compact
+                                                        description={reportType === 'shipped'
+                                                            ? "Não há itens expedidos nesta data."
+                                                            : "Não há produtos disponíveis para o relatório."}
+                                                    />
                                                 </td>
                                             </tr>
                                         ) : (

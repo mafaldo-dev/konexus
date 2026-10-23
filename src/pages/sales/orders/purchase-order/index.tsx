@@ -25,6 +25,7 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
 
@@ -47,8 +48,15 @@ export default function OrdersPage() {
   const loadOrders = async () => {
     try {
       setIsLoading(true);
+      setLoadError(null);
       const response = await listOrders();
-      const fetchedOrders = (response.ok && response.data) ? response.data : [];
+      if (!response.ok || !response.data) {
+        setOrders([]);
+        setFilteredOrders([]);
+        setLoadError(response.error || "Não foi possível carregar os pedidos de venda.");
+        return;
+      }
+      const fetchedOrders = response.data;
       const mappedOrders: OrderResponse[] = fetchedOrders.map((order: any) => ({
         id: order.id,
         orderDate: order.orderDate,
@@ -108,7 +116,9 @@ export default function OrdersPage() {
       setFilteredOrders(mappedOrders);
     } catch (error) {
       console.error("Erro ao recuperar orders", error);
-      alert("Erro ao recuperar os pedidos de venda!");
+      setOrders([]);
+      setFilteredOrders([]);
+      setLoadError("Não foi possível carregar os pedidos de venda. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -179,10 +189,13 @@ export default function OrdersPage() {
     try {
       setIsLoading(true);
       const response = await cancelOrder(order.id);
+      if (!response.ok) {
+        throw new Error(response.error || "Não foi possível cancelar o pedido.");
+      }
 
       await Swal.fire({
         title: "Sucesso!",
-        text: (response.ok && response.data?.message) || "Pedido cancelado com sucesso!",
+        text: (response.data as any)?.message || "Pedido cancelado com sucesso!",
         icon: "success",
         confirmButtonText: "OK"
       });
@@ -499,8 +512,12 @@ export default function OrdersPage() {
               data={filteredOrders}
               columns={columns}
               loading={isLoading}
-              emptyMessage="Nenhum pedido encontrado"
-              emptyDescription={searchTerm ? "Tente ajustar os termos de busca" : "Nenhum pedido cadastrado no sistema"}
+              error={loadError}
+              onRetry={loadOrders}
+              emptyMessage="Não há dados disponíveis."
+              emptyDescription={searchTerm
+                ? "Nenhum pedido corresponde aos termos de busca."
+                : "Cadastre o primeiro pedido de venda para começar."}
             />
           </motion.div>
         </div>

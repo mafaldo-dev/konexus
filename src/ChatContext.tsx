@@ -169,8 +169,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       const normalized = msgs.map((m: any) => ({
         ...m,
         id: String(m.id),
-        senderId: String(m.senderId),
-        recipientId: String(m.recipientId),
+        senderId: String(m.senderId ?? m.sender_id),
+        recipientId: String(m.recipientId ?? m.recipient_id),
       }));
       const sorted = normalized.sort((a: Message, b: Message) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()

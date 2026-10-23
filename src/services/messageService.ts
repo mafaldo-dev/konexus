@@ -14,6 +14,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { asList, asObject } from "../api/payload";
 
 export interface Message {
   id: string;
@@ -35,9 +36,7 @@ export async function getConversation(
   recipientId: string | number,
   limit = 50
 ): Promise<ApiResponse<Conversation[]>> {
-  return apiClient.get<Conversation[]>(
-    `message/${userId}/${recipientId}?limit=${limit}`
-  );
+  return asList<Conversation>(await apiClient.get(`message/${userId}/${recipientId}?limit=${limit}`), ["data"], "conversa");
 }
 
 /**
@@ -47,9 +46,7 @@ export async function getRecentConversations(
   userId: string | number,
   limit = 10
 ): Promise<ApiResponse<Conversation[]>> {
-  return apiClient.get<Conversation[]>(
-    `message/${userId}/recent?limit=${limit}`
-  );
+  return asList<Conversation>(await apiClient.get(`message/${userId}/recent?limit=${limit}`), ["data"], "conversas recentes");
 }
 
 /**
@@ -58,7 +55,7 @@ export async function getRecentConversations(
 export async function countUnread(
   userId: string | number
 ): Promise<ApiResponse<any[]>> {
-  return apiClient.get(`message/${userId}/unread`);
+  return asList(await apiClient.get(`message/${userId}/unread`), ["data"], "mensagens não lidas");
 }
 
 /**
@@ -67,7 +64,7 @@ export async function countUnread(
 export async function markMessageAsRead(
   messageId: string | number
 ): Promise<ApiResponse<Message>> {
-  return apiClient.put<Message>(`message/${messageId}/read`);
+  return asObject<Message>(await apiClient.put(`message/${messageId}/read`), ["data"], "mensagem");
 }
 
 /**
@@ -77,9 +74,7 @@ export async function markAllAsRead(
   senderId: string | number,
   recipientId: string | number
 ): Promise<ApiResponse<Message[]>> {
-  return apiClient.put<Message[]>(
-    `message/${recipientId}/read-all/${senderId}`
-  );
+  return asList<Message>(await apiClient.put(`message/${recipientId}/read-all/${senderId}`), ["data"], "mensagens lidas");
 }
 
 /**

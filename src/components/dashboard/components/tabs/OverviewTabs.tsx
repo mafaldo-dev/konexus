@@ -54,6 +54,8 @@ export const OverviewTab: React.FC = () => {
     stats,
     isLoadingContasReceber,
     isLoadingContasPagar,
+    error,
+    errorVariant,
     loadContasReceber,
     loadContasPagar,
     setPedidos
@@ -335,8 +337,11 @@ export const OverviewTab: React.FC = () => {
           data={getCurrentData()}
           columns={columns[activeSubTab]}
           loading={getCurrentLoading()}
-          emptyMessage={`Nenhum ${activeSubTab.replace('-', ' ')} encontrado`}
-          emptyDescription={`Os ${activeSubTab.replace('-', ' ')} aparecerão aqui quando forem criados`}
+          error={error}
+          errorVariant={errorVariant}
+          onRetry={handleLoadData}
+          emptyMessage="Não há dados disponíveis."
+          emptyDescription={`Nenhum registro em ${activeSubTab.replace('-', ' ')} para os filtros atuais.`}
         />
       </div>
 

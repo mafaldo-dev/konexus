@@ -14,6 +14,7 @@
  */
 
 import { apiClient, ApiResponse } from "../api/client";
+import { asList, asObject, pickData } from "../api/payload";
 
 export interface KardexMovement {
   id: number;
@@ -51,7 +52,11 @@ export interface KardexData {
 export async function createKardexMovement(
   data: KardexData
 ): Promise<ApiResponse<KardexMovement>> {
-  return apiClient.post<KardexMovement>("kardex/create", data);
+  return asObject<KardexMovement>(
+    await apiClient.post<any>("kardex/create", data),
+    ["kardex", "data"],
+    "movimentação de estoque"
+  );
 }
 
 /**
@@ -60,7 +65,22 @@ export async function createKardexMovement(
 export async function getKardexByProduct(
   productId: number | string
 ): Promise<ApiResponse<KardexByProduct>> {
-  return apiClient.get<KardexByProduct>(`kardex/products/${productId}`);
+  const response = await apiClient.get<any>(`kardex/products/${productId}`);
+  return pickData<KardexByProduct>(
+    response,
+    (body) => {
+      if (
+        !body ||
+        typeof body !== "object" ||
+        !Array.isArray(body.movements) ||
+        typeof body.product !== "object"
+      ) {
+        return undefined;
+      }
+      return { product: body.product, movements: body.movements };
+    },
+    "movimentações do produto"
+  );
 }
 
 /**
@@ -69,5 +89,9 @@ export async function getKardexByProduct(
 export async function getKardexByOrder(
   orderId: number | string
 ): Promise<ApiResponse<KardexMovement[]>> {
-  return apiClient.get<KardexMovement[]>(`kardex/orders/${orderId}`);
+  return asList<KardexMovement>(
+    await apiClient.get<any>(`kardex/orders/${orderId}`),
+    ["movements", "data"],
+    "movimentações do pedido"
+  );
 }

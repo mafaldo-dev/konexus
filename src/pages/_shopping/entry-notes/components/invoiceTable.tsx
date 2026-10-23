@@ -31,7 +31,12 @@ const InvoiceProductTable: React.FC<Props> = ({ orderItems, setOrderItems }) => 
 
         try {
             const response = await listProducts();
-            const products = (response.ok && response.data) ? response.data : [];
+            if (!response.ok || !response.data) {
+                alert(response.error || 'Não foi possível buscar os produtos.');
+                setSearchedProduct(null);
+                return;
+            }
+            const products = response.data;
             const product = products.find(p => String(p.code).trim() === productCode.trim());
             
             if (product) {
