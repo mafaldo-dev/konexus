@@ -123,4 +123,5 @@ PLAYWRIGHT_MODULE=/tmp/opencode/browser/node_modules/playwright/index.mjs node s
 - Exportações PDF/XLSX após atualização das bibliotecas: compilação aprovada; conferência visual de todos os documentos não executada.
 - Admin global, integrações externas e sessões reais de usuários de produção: não homologados ponta a ponta nesta rodada.
 - A tag `v1.4.2` deve permanecer em `22fde71dd438bd940ec9b8168e5c1ab0f2f12a80`. Nenhuma nova release/instalador integra esta entrega.
-- Commits/push dos dois repositórios autorizados pelo usuário; os hashes e o resultado do envio serão registrados na resposta de entrega. Push não prova por si só que um deploy automático terminou.
+- Implementação frontend: `89ec982`; backend: `a3da4a2`. Ambos enviados com sucesso para `origin/main`, sem force-push.
+- Após o envio, `GET https://backend-oi68.onrender.com/health/release` retornou `ready:true`, versão `1.4.2`, commit `fc45cba581329df05cec93bb7e9ff526a602e087` (anterior). **O deploy da implementação nova ainda não foi confirmado**, e não houve smoke autenticado em produção. Push não prova por si só que um deploy automático terminou.
