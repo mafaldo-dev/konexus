@@ -4,6 +4,12 @@ const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 const fs = require("fs");
 const { loadInstallation } = require('./installation');
+const { openProtectedStore, dispatch: dispatchOffline } = require('./offlineStorage');
+let offlineStorage;
+function localStorageEngine() {
+  if (!offlineStorage) offlineStorage = openProtectedStore(app.getPath('userData'), safeStorage, installation.id);
+  return offlineStorage;
+}
 let installation;
 const {
   DEFAULT_ARTIFACT_NAME_TEMPLATE,
@@ -169,6 +175,15 @@ function startNetworkMonitor(win) {
 }
 
 // ✅ HANDLER PARA SALVAR EXCEL
+ipcMain.handle('offline-store', (event, request) => {
+  if (!trustedSender(event)) throw new Error('Origem IPC inválida.');
+  if (!request || Buffer.byteLength(JSON.stringify(request)) > 150000) throw new Error('Pedido SQLite inválido ou muito grande.');
+  return dispatchOffline(localStorageEngine().store, request);
+});
+ipcMain.handle('offline-backup', (event) => {
+  if (!trustedSender(event)) throw new Error('Origem IPC inválida.');
+  return localStorageEngine().backup();
+});
 for (const channel of ['draft-encrypt','draft-decrypt']) {
   ipcMain.handle(channel,(event,value)=>{
     if(!trustedSender(event)||typeof value!=='string'||value.length>300000)throw new Error('Rascunho inválido.');
@@ -294,6 +309,7 @@ app.on('activate', () => {
 });
 
 app.on('will-quit', () => {
+  if (offlineStorage) offlineStorage.store.close();
   clearAutomaticDownload();
   globalShortcut.unregisterAll();
 });

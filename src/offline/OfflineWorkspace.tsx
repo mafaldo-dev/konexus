@@ -1,7 +1,8 @@
 import {useEffect,useRef,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {apiClient} from '../api/client';
-import {DraftPayload,DraftScope,LocalDraft,loadLocalDraft,readDraftPayload,saveLocalDraft,syncLocalDrafts} from './salesDrafts';
+import {DraftPayload,DraftScope,LocalDraft,loadLocalDraft,readDraftPayload,saveLocalDraft,syncLocalDrafts,resumeLocalDrafts} from './salesDrafts';
+import OfflineStoragePanel from './OfflineStoragePanel';
 
 // Acesso somente à cópia local do último perfil. Não restaura permissões
 // online pelo cache: toda sincronização revalida a sessão no servidor.
@@ -25,11 +26,14 @@ export default function OfflineWorkspace(){
       const data=await readDraftPayload(value);if(!alive)return;
       row.current=value;setPayload(data);setStatus(value.synced?'Cópia local sincronizada':'Recuperado localmente; sincronização pendente');
     }).catch(error=>setStatus(error.message));
+    let resumedToken:string|null=null;
     const sync=async()=>{
       if(!navigator.onLine)return;
       await chain.current.catch(()=>{});
       const session=await apiClient.get('login/session',{reauth:false});
       if(!session.ok||Number(session.data?.user?.id)!==scope.userId)return;
+      const token=localStorage.getItem('token');
+      if(token!==resumedToken){await resumeLocalDrafts(scope);resumedToken=token;}
       await syncLocalDrafts(scope);
       const current=await loadLocalDraft(scope);
       if(alive&&current?.synced)setStatus('Rascunho sincronizado com o banco online. Entre no sistema para revisar e finalizar.');
@@ -50,6 +54,7 @@ export default function OfflineWorkspace(){
     <p>Somente rascunhos locais. Estoque, financeiro, autorização e emissão fiscal continuam dependendo da validação online.</p>
     <p role="status" className="rounded bg-blue-50 p-3">{status}</p>
     {scope&&<p>Organização #{scope.companyId} · CNPJ interno #{scope.legalEntityId} · usuário #{scope.userId}</p>}
+    {scope&&<OfflineStoragePanel scope={scope}/>}
     {payload&&<section className="space-y-4">
       <p>Cliente: {payload.selectedCustomer?.name||'Ainda não selecionado'}</p>
       {['salesperson','carrier','notes'].map(name=><label key={name} className="block">{name==='notes'?'Observações':name==='carrier'?'Transportadora':'Vendedor'}

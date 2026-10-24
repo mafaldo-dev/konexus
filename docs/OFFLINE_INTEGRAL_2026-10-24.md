@@ -8,30 +8,44 @@
 
 ## Estado real desta branch
 
-**O ERP integral offline ainda não está implementado.** Os componentes de rascunhos descritos abaixo são uma base parcial, não uma réplica operacional de todos os módulos. Não publicar esta branch como "offline completo".
+**O ERP integral offline ainda não está implementado.** O SQLite local e a fila de sincronização já existem no aplicativo desktop, mas hoje cobrem **somente rascunhos de vendas**. Não há réplica local de estoque, financeiro, compras, folha, contábil, fiscal ou CRM, nem reservas por dispositivo. Não publicar esta branch como "offline completo".
 
 Foi concluída a primeira integração:
-- Armazenamento transacional de rascunhos de vendas no IndexedDB, com criptografia: AES-GCM no navegador e cofre do sistema operacional via Electron `safeStorage` no desktop. Linux com backend `basic_text` é recusado; não há fallback em texto aberto.
-- Rascunhos separados por usuário/organização/CNPJ, versão local com detecção de escrita concorrente e revisão imutável no PostgreSQL.
-- Área `/offline` recupera o rascunho já existente quando a API está inacessível, inclusive após recarregar a interface. Não concede permissões online a partir do cache.
-- Sincronização revalida a sessão/permissões/CNPJ. A identidade esperada acompanha o envio, evitando que troca de perfil envie dados do usuário anterior como se fossem do próximo.
-- Repetição da mesma revisão não cria outra versão; mesmo ID com conteúdo diferente retorna conflito. Reconexão confirmada somente após resposta do servidor.
+- **SQLite real no processo principal do Electron** (`node:sqlite` do Electron 45), com WAL, `synchronous=FULL`, foreign keys, transações `BEGIN IMMEDIATE`, verificação de integridade na abertura e schema versionado (`user_version=1`).
+- **Criptografia de conteúdo**: cada rascunho e cada operação da fila é cifrado com AES-256-GCM, com AAD vinculando escopo, revisão e `draftId`. A chave de 32 bytes é protegida pelo cofre do sistema (`safeStorage`) e gravada apenas cifrada. Linux com backend `basic_text` é recusado; não há fallback em texto aberto.
+- **Fila transacional (outbox)**: documento e operação são gravados na mesma transação. A operação tem estado `pending`/`leased`/`blocked`, lease de 60 s, tentativas com backoff, mesmo UUID após reinício e confirmação somente quando o servidor devolve exatamente o `draftId` e a `revisionId` enviados.
+- **Concorrência local**: revisão esperada impede sobrescrita entre janelas; edições pendentes são coalescidas sem apagar uma operação em trânsito; confirmação antiga não marca uma revisão nova como sincronizada.
+- **Migração do IndexedDB**: rascunhos antigos são importados preservando `draftId`/`revisionId`, com conferência de leitura e marcador idempotente. Os originais cifrados no IndexedDB não são apagados.
+- **Backup local**: `VACUUM INTO` gera cópia consistente, acompanhada da chave cifrada e de manifesto com SHA-256. O backup só é recuperável no mesmo contexto de usuário/máquina do cofre; não é um backup portátil entre computadores.
+- Rascunhos separados por usuário/organização/CNPJ, revisão imutável no PostgreSQL e rejeição de proprietário diferente.
+- Área `/offline` recupera o rascunho SQLite quando a API está inacessível, inclusive após reiniciar o aplicativo. Não concede permissões online a partir do cache.
 - Pedidos novos admitem `clientRequestId`, bloqueio transacional e hash do conteúdo. Reenvio não duplica pedido, estoque, recebível ou agendamento fiscal. Conteúdo diferente com a mesma chave é recusado.
 - Migration aditiva `019_offline_sales_drafts.sql` aplicada **apenas em PostgreSQL local de testes** nesta etapa.
 
-O navegador ainda depende de carregar os arquivos da aplicação; não foi entregue PWA/service worker. Electron empacotado possui os arquivos locais. O cofre do sistema protege o usuário do SO, não substitui um protocolo de autenticação offline por usuário do ERP.
+O navegador continua usando IndexedDB cifrado e ainda depende de carregar os arquivos da aplicação; não foi entregue PWA/service worker. O cofre do sistema protege o usuário do SO, não substitui um protocolo de autenticação offline por usuário do ERP. O SQLite cobre apenas rascunhos: estoque, títulos, competências de folha e documentos fiscais continuam dependendo de validação online. Também não há resolução visual completa de conflito bloqueado; o rascunho é preservado e a UI mostra o código, mas a decisão continua manual.
 
 ### Verificação executada em 24/10
 
-- Backend: 178 testes aprovados, zero falhas e zero skips, incluindo PostgreSQL real.
-- HTTP autenticado: 111 verificações aprovadas, incluindo deduplicação de pedidos, integridade de revisão, proprietário do rascunho, CNPJ e cálculo CLT persistente.
-- Frontend: TypeScript/build aprovados, 126 testes frontend e 24 Electron aprovados; audit npm sem alertas.
-- Browser: 6 verificações aprovadas — queda da API, recuperação após reinício, conflito entre janelas sem sobrescrita, resposta HTTP 200 com confirmação inválida rejeitada, reconexão com revisão persistida e ausência de formulário em texto aberto no objeto IndexedDB. A confirmação inválida é uma injeção de falha do teste, não um mock do produto.
-- Criptografia Windows: **aprovada** em [run 40098318327](https://github.com/mafaldo-dev/konexus/actions/runs/40098318327), commit `330a6c5`. Instalação NSIS, executável empacotado, encrypt/decrypt pelo cofre do SO, recuperação do texto cifrado após reinício, persistência da identidade e desinstalação passaram. Testes, build e audit também passaram no Windows. Não equivale a homologação de transações de todos os setores offline.
-
-A primeira execução Windows (`40098122732`) encontrou regressão no contrato de chamada de `calculatePayroll`: foi enviado um segundo argumento `undefined` onde os testes esperavam a chamada original sem corpo. O contrato foi preservado e a suíte local completa foi reexecutada com 126/126 aprovados antes do novo envio. Essa execução Windows falha não foi classificada como aprovada.
+- Backend: **178/178** testes aprovados, zero falhas e zero skips, incluindo PostgreSQL real.
+- Frontend: **126/126** testes, TypeScript e build aprovados; `npm audit` sem alertas.
+- Electron: **36/36** testes, sendo **12 de SQLite real**, incluindo transação atômica, conflito entre conexões, lease/expição, reenvio do mesmo UUID, migração idempotente, disco cheio com preservação do rascunho anterior, dois dispositivos isolados, backup restaurável/adulteração detectada, encerramento abrupto após COMMIT e cofre indisponível falhando fechado.
+- Integração SQLite → API local → PostgreSQL: **10/10** verificações. Inclui queda de rede real (porta fechada), reinício, perda de confirmação, backup antigo reenviado sem duplicar revisão, conflito de conteúdo, isolamento por CNPJ e ausência de texto aberto no arquivo SQLite. Perfil sintético `qa.*`; nenhum banco de produção foi usado.
+- Navegador (fallback IndexedDB): **6/6** verificações aprovadas — queda da API, recuperação após reinício, conflito entre janelas sem sobrescrita, resposta HTTP 200 com confirmação inválida rejeitada, reconexão com revisão persistida e ausência de formulário em texto aberto no IndexedDB. A confirmação inválida é uma injeção de falha do teste, não um mock do produto.
+- Aplicativo Electron local: login e sete rotas principais abriram sem erro de página. Em Linux sem cofre, o pedido SQLite foi recusado com mensagem explícita e o aplicativo permaneceu utilizável (sem fallback inseguro).
+- HTTP autenticado anterior: **111** verificações aprovadas, incluindo deduplicação de pedidos, integridade de revisão, proprietário do rascunho, CNPJ e cálculo CLT persistente.
+- Criptografia Windows anterior: **aprovada** em [run 40098318327](https://github.com/mafaldo-dev/konexus/actions/runs/40098318327), commit `330a6c5` (somente `safeStorage`, antes do SQLite). A validação Windows do SQLite é a nova execução desta etapa; o resultado será registrado abaixo após o workflow.
+- A primeira execução Windows (`40098122732`) encontrou regressão no contrato de chamada de `calculatePayroll`: foi enviado um segundo argumento `undefined` onde os testes esperavam a chamada original sem corpo. O contrato foi preservado e a suíte local completa foi reexecutada antes do novo envio. Essa execução Windows falha não foi classificada como aprovada.
 
 As mudanças desta etapa ficam em `feat/offline-isolated`, separadas de `main` e do Neon de produção. Nenhuma migration 019 foi aplicada ao banco de produção e nenhuma nova release foi publicada.
+
+
+### Operação e recuperação do SQLite
+
+- Banco: `%APPDATA%/Konexus/offline/konexus.sqlite` no Windows (o caminho exato vem de `userData` do Electron), com WAL e permissões restritas. A chave fica em `key.v1.enc`, cifrada pelo cofre do sistema.
+- Backup: botão **Criar backup local protegido** na área `/offline`; gera `offline/backups/<data>-<uuid>/` com `konexus.sqlite`, `key.v1.enc` e `manifest.json` (SHA-256). A cópia é consistente, mas continua dependente do cofre do mesmo usuário/máquina.
+- Se a chave sumir, o aplicativo **não cria outra** silenciosamente sobre um banco existente: ele falha e preserva os arquivos para recuperação.
+- Se o cofre estiver indisponível (por exemplo, Linux sem keyring), o SQLite não abre e o app não grava rascunho em texto aberto. O restante do sistema online continua funcionando.
+- Antes de restaurar um backup, feche o aplicativo; restaure banco e chave no mesmo diretório; abra o app e confira a contagem de pendências. Um backup antigo não deve ser usado como verdade absoluta: o servidor idempotente devolve a mesma confirmação e não duplica a revisão, mas operações posteriores podem ter sido perdidas no intervalo.
 
 ## Arquitetura necessária para todos os setores
 

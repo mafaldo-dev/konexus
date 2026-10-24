@@ -2,7 +2,12 @@ import { apiClient } from '../api/client';
 export type DraftScope = { companyId: number; legalEntityId: number; userId: number };
 export type DraftPayload = { values: Record<string, any>; products: any[]; selectedCustomer: any; addressConfirmed: boolean; orderNumber: string; editOrderId?: number };
 type Envelope = { native: true; value: string } | { native: false; iv: Uint8Array; value: ArrayBuffer };
-export type LocalDraft = DraftScope & { key: string; draftId: string; revisionId: string; updatedAt: string; synced: boolean; error?: string; encrypted: Envelope };
+export type LocalDraft = DraftScope & { key: string; draftId: string; revisionId: string; updatedAt: string; synced: boolean; error?: string; encrypted?: Envelope; storage?: 'sqlite' };
+export type StorageStatus = { engine: 'sqlite' | 'indexeddb'; schemaVersion: number; pending: number; leased: number; blocked: number };
+const nativeStorage = () => Boolean((window as any).ipcRenderer);
+const nativeCall = <T,>(method:string,args:Record<string,unknown>):Promise<T> => (window as any).ipcRenderer.invoke('offline-store',{method,...args});
+const scopeOf = (row:LocalDraft):DraftScope => ({companyId:row.companyId,legalEntityId:row.legalEntityId,userId:row.userId});
+const slotOf = (row:LocalDraft) => row.key.split(':').slice(3).join(':');
 let databasePromise: Promise<IDBDatabase> | undefined;
 const database = () => databasePromise ||= new Promise<IDBDatabase>((resolve,reject)=>{
   if (typeof indexedDB === 'undefined') { reject(new Error('Armazenamento local indisponível neste ambiente.')); return; }
@@ -35,7 +40,9 @@ async function encrypt(payload:DraftPayload,key:string):Promise<Envelope>{
   return {native:false,iv,value:await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(key)},await browserKey(),new TextEncoder().encode(text))};
 }
 export async function readDraftPayload(row:LocalDraft):Promise<DraftPayload>{
+  if(row.storage==='sqlite')return nativeCall('read',{scope:scopeOf(row),slot:slotOf(row),revisionId:row.revisionId});
   const envelope=row.encrypted;
+  if(!envelope)throw new Error('Rascunho local sem conteúdo protegido.');
   if(envelope.native){
     const decoded=JSON.parse(await (window as any).ipcRenderer.invoke('draft-decrypt',envelope.value));
     if(decoded.key!==row.key)throw new Error('Rascunho pertence a outro contexto local.');
@@ -44,9 +51,40 @@ export async function readDraftPayload(row:LocalDraft):Promise<DraftPayload>{
   const decoded=await crypto.subtle.decrypt({name:'AES-GCM',iv:envelope.iv as Uint8Array<ArrayBuffer>,additionalData:new TextEncoder().encode(row.key)},await browserKey(),envelope.value);
   return JSON.parse(new TextDecoder().decode(decoded));
 }
-export const loadLocalDraft=(scope:DraftScope,slot='new')=>get<LocalDraft>('drafts',draftKey(scope,slot));
+const migrations=new Map<string,Promise<void>>();
+async function legacyRows():Promise<LocalDraft[]> {
+  const db=await database();
+  return new Promise((resolve,reject)=>{const r=db.transaction('drafts').objectStore('drafts').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+}
+async function migrateToSQLite(scope:DraftScope) {
+  const key=draftKey(scope);
+  if(!migrations.has(key)){
+    const migration=(async()=>{
+      const rows=(await legacyRows()).filter(row=>row.companyId===scope.companyId&&row.legalEntityId===scope.legalEntityId&&row.userId===scope.userId);
+      for(const row of rows){
+        const payload=await readDraftPayload(row);
+        await nativeCall('import',{scope,slot:slotOf(row),legacy:{key:row.key,draftId:row.draftId,revisionId:row.revisionId,synced:row.synced},payload});
+      }
+      // Originais permanecem cifrados no IndexedDB. Marcadores SQLite impedem
+      // reimportação e ressurreição após a conclusão do pedido.
+    })();
+    migrations.set(key,migration);
+    migration.catch(()=>migrations.delete(key));
+  }
+  await migrations.get(key);
+}
+export async function loadLocalDraft(scope:DraftScope,slot='new'):Promise<LocalDraft|undefined>{
+  if(!nativeStorage())return get<LocalDraft>('drafts',draftKey(scope,slot));
+  await migrateToSQLite(scope);
+  return (await nativeCall<LocalDraft|null>('load',{scope,slot})) || undefined;
+}
 function changed(){window.dispatchEvent(new Event('konexus:drafts-changed'));}
 export async function saveLocalDraft(scope:DraftScope,payload:DraftPayload,expectedRevision:string|null,slot='new'):Promise<LocalDraft>{
+  if(nativeStorage()){
+    await migrateToSQLite(scope);
+    const row=await nativeCall<LocalDraft>('save',{scope,slot,payload,expectedRevision});
+    changed();return row;
+  }
   const key=draftKey(scope,slot),encrypted=await encrypt(payload,key),db=await database();
   return new Promise((resolve,reject)=>{
     const tx=db.transaction('drafts','readwrite'),store=tx.objectStore('drafts'),r=store.get(key);let row:LocalDraft;
@@ -62,6 +100,10 @@ export async function saveLocalDraft(scope:DraftScope,payload:DraftPayload,expec
   });
 }
 export async function clearLocalDraft(scope:DraftScope,revisionId:string,slot='new'){
+  if(nativeStorage()){
+    await migrateToSQLite(scope);
+    await nativeCall('clear',{scope,slot,expectedRevision:revisionId});changed();return;
+  }
   const db=await database();
   await new Promise<void>((resolve,reject)=>{
     const tx=db.transaction('drafts','readwrite'),store=tx.objectStore('drafts'),r=store.get(draftKey(scope,slot));
@@ -69,10 +111,44 @@ export async function clearLocalDraft(scope:DraftScope,revisionId:string,slot='n
   });changed();
 }
 let syncing=false;
+async function syncSQLite(scope:DraftScope){
+  await migrateToSQLite(scope);
+  for(let count=0;count<20;count++){
+    const operations=await nativeCall<Array<{operationId:string;revisionId:string;draftId:string;leaseToken:string;payload:DraftPayload}>>('claim',{scope,limit:1});
+    const operation=operations[0];if(!operation)return;
+    const {operationId,leaseToken}=operation;
+    try {
+      const response=await apiClient.put(`sales-drafts/${operation.draftId}`,{owner:scope,revisionId:operation.revisionId,payload:operation.payload},{legalEntityId:scope.legalEntityId,reauth:false});
+      const ack=response.data?.data;
+      const confirmed=response.ok&&response.data?.success===true&&ack?.draftId===operation.draftId&&ack?.revisionId===operation.revisionId;
+      if(confirmed)await nativeCall('ack',{scope,operationId,leaseToken,ack:{draftId:ack.draftId,revisionId:ack.revisionId}});
+      else {
+        const code=response.status===401?'AUTH':response.status===403?'ACCESS':response.status===409?'CONFLICT':(response.status===0||response.status===408||response.status===429||response.status>=500)?'SERVER':response.ok?'INVALID_ACK':'VALIDATION';
+        await nativeCall('reject',{scope,operationId,leaseToken,code});changed();return;
+      }
+    }catch(error){
+      await nativeCall('reject',{scope,operationId,leaseToken,code:'NETWORK'});changed();throw error;
+    }
+    changed();
+  }
+}
+export async function resumeLocalDrafts(scope:DraftScope){
+  if(nativeStorage()){await migrateToSQLite(scope);await nativeCall('resume-auth',{scope});}
+}
+export async function getLocalStorageStatus(scope:DraftScope):Promise<StorageStatus>{
+  if(nativeStorage()){await migrateToSQLite(scope);return nativeCall('stats',{scope});}
+  const rows=(await legacyRows()).filter(row=>row.companyId===scope.companyId&&row.legalEntityId===scope.legalEntityId&&row.userId===scope.userId);
+  return {engine:'indexeddb',schemaVersion:1,pending:rows.filter(row=>!row.synced).length,leased:0,blocked:0};
+}
+export async function backupLocalStorage():Promise<{directory:string;sha256:string;keyProtection:string}>{
+  if(!nativeStorage())throw new Error('Backup SQLite disponível no aplicativo desktop.');
+  return (window as any).ipcRenderer.invoke('offline-backup');
+}
 export async function syncLocalDrafts(scope:DraftScope){
   if(syncing||!navigator.onLine)return;
   syncing=true;
   try {
+    if(nativeStorage()){await syncSQLite(scope);return;}
     const db=await database();
     const rows=await new Promise<LocalDraft[]>((resolve,reject)=>{const r=db.transaction('drafts').objectStore('drafts').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
     for(const row of rows.filter(r=>!r.synced&&r.companyId===scope.companyId&&r.userId===scope.userId&&r.legalEntityId===scope.legalEntityId)){

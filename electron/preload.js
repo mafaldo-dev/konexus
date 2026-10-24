@@ -24,7 +24,7 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     ipcRenderer.send(channel, ...args);
   },
   invoke(channel, value) {
-    if (!['get_update_status','get_installation','draft-encrypt','draft-decrypt'].includes(channel)) throw new Error('Canal IPC não permitido');
+    if (!['get_update_status','get_installation','draft-encrypt','draft-decrypt','offline-store','offline-backup'].includes(channel)) throw new Error('Canal IPC não permitido');
     return ipcRenderer.invoke(channel, value);
   },
 });
