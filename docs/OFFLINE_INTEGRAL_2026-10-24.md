@@ -8,7 +8,7 @@
 
 ## Estado real desta branch
 
-**O ERP integral offline ainda não está implementado.** O desktop já cobre rascunhos de vendas e pedidos de venda com reserva de estoque por estação. Também existe reserva central por estação para títulos financeiros, competências de folha e períodos contábeis, com consumo transacional nas operações finais. Ainda não há réplica local nem fila offline para financeiro, compras, folha, contábil, fiscal ou CRM; documentos fiscais e os demais setores continuam sem reserva por dispositivo. Não publicar esta branch como "offline completo".
+**O ERP integral offline ainda não está implementado.** O desktop já cobre rascunhos e pedidos de venda com reserva de estoque por estação. Nesta branch, também mantém cópia local cifrada dos alvos elegíveis, reservas e fila de operações finais de títulos a receber, contas a pagar, competências de folha e períodos contábeis. Essas operações offline são restritas a baixar, fechar, reabrir ou bloquear alvos que já existem na central; não criam títulos, não calculam folha, não geram lançamentos contábeis e não movimentam banco. Ainda não há réplica geral, criação offline, compras, fiscal ou CRM; documentos fiscais e os demais setores continuam sem reserva por dispositivo. Não publicar esta branch como "offline completo".
 
 ## Atualização em andamento — fechamento do offline de vendas
 
@@ -18,17 +18,18 @@ Trabalho na branch `feat/offline-sales-closure`, ainda **não publicado**. Ele f
 - **Administração de reservas**: a área `/offline` agora expõe, para quem tem `vendas.edit`, todas as reservas do CNPJ (`GET /orders/reservations/all`) com usuário, estação, estado, quantidade, validade e pedido. A reconciliação (`POST /orders/reservations/:id/reconcile`) exige motivo e reautenticação. O item também aparece em Vendas → Reservas offline para Administrador/Gestor/Gerente.
 - **NF-e de pedido offline**: pedido offline nasce com `nfe_status=aguardando_aprovacao` e **não** agenda emissão na criação. A transição para `approved` em `PUT /orders/:id/status` reivindica a emissão uma única vez e agenda a NF-e. Pedido online mantém o comportamento anterior; a definição fiscal para pedido online pendente continua pendente.
 
-Validação executada nesta etapa: backend **201/201**, frontend **152/152**, `tsc --noEmit`, build Vite e Electron **46/46** aprovados; integração SQLite/API/PostgreSQL de reservas de estoque **11/11** e de reservas de domínio **10/10**. A migration 021 ainda exige backup, restauração validada e preflight antes do Neon; a branch não foi mergeada nem publicada. A migration 022, que cria as reservas de domínio, também está apenas nos bancos locais de teste.
+Validação executada nesta etapa: backend **204/204**, frontend **168/168**, `tsc --noEmit`, build Vite e Electron **52/52** aprovados; integração SQLite/API/PostgreSQL de reservas de estoque **11/11**, de reservas de domínio **11/11** e HTTP autenticado de operações offline **1/1**. As migrations 021, 022 e 023 ainda exigem backup, restauração validada e preflight antes do Neon; a branch não foi mergeada nem publicada.
 
 Entregue nesta etapa:
-- **SQLite real no processo principal do Electron** (`node:sqlite` do Electron 45), com WAL, `synchronous=FULL`, foreign keys, transações `BEGIN IMMEDIATE`, verificação de integridade na abertura e schema versionado (`user_version=2`).
+- **SQLite real no processo principal do Electron** (`node:sqlite` do Electron 45), com WAL, `synchronous=FULL`, foreign keys, transações `BEGIN IMMEDIATE`, verificação de integridade na abertura e schema versionado (`user_version=3`).
 - **Criptografia de conteúdo**: rascunhos, reservas e operações da fila são cifrados com AES-256-GCM, com AAD vinculando escopo, revisão/operação e identificadores. A chave de 32 bytes é protegida pelo cofre do sistema (`safeStorage`) e gravada apenas cifrada. Linux com backend `basic_text` é recusado; não há fallback em texto aberto.
 - **Reserva de estoque por estação**: criada online com reautenticação, vinculada a organização, CNPJ, usuário, estação registrada e itens. A central incrementa `product_stock.reserved`; a venda online e as saídas passam a usar `stock - reserved`. A reserva expirada não devolve estoque automaticamente.
 - **Pedido offline**: a estação grava a reserva e a operação em SQLite antes de enfileirar o pedido. Na reconexão, o servidor valida o token de posse, escopo, estação e itens, consome a reserva uma única vez e baixa o estoque físico na mesma transação. O servidor atribui número `P-<n>` (mínimo 100) e força `pending`; número e status enviados pelo cliente são ignorados.
-- **Fila transacional (outbox)**: documento e operação são gravados na mesma transação. A operação tem estado `pending`/`leased`/`blocked`, lease de 60 s, tentativas com backoff, mesmo UUID após reinício e confirmação somente quando o servidor devolve exatamente o pedido, o número e a reserva esperados.
+- **Fila transacional (outbox)**: documento e operação são gravados na mesma transação. A operação tem estado `pending`/`leased`/`blocked`, lease de 60 s, tentativas com backoff, mesmo UUID após reinício e confirmação somente quando o servidor devolve exatamente o pedido, o número e a reserva esperados. O schema v3 aplica o mesmo padrão às operações finais de financeiro, folha e contábil.
 - **Concorrência local**: revisão esperada impede sobrescrita entre janelas; edições pendentes são coalescidas sem apagar uma operação em trânsito; uma gravação já enfileirada não cria revisão nova depois que o pedido entrou na fila imutável.
 - **Migração do IndexedDB**: rascunhos antigos são importados preservando `draftId`/`revisionId`, com conferência de leitura e marcador idempotente. Os originais cifrados no IndexedDB não são apagados.
-- **Backup local**: `VACUUM INTO` gera cópia consistente do SQLite v2, acompanhada da chave cifrada e de manifesto com SHA-256. O backup só é recuperável no mesmo contexto de usuário/máquina do cofre; não é um backup portátil entre computadores.
+- **Migração SQLite v1/v2 → v3**: a abertura executa apenas tabelas novas (`offline_domain_snapshots`, `offline_domain_reservations`, `offline_domain_outbox`) e índices; rascunhos, reservas de estoque, pedidos e recibos existentes não são reescritos. Banco de versão futura falha fechado sem alteração.
+- **Backup local**: `VACUUM INTO` gera cópia consistente do SQLite v3, acompanhada da chave cifrada e de manifesto com SHA-256. O backup só é recuperável no mesmo contexto de usuário/máquina do cofre; não é um backup portátil entre computadores.
 - Rascunhos/pedidos separados por usuário/organização/CNPJ, revisão imutável no PostgreSQL e rejeição de proprietário diferente.
 - Área `/offline` recupera o rascunho SQLite quando a API está inacessível, inclusive após reiniciar o aplicativo. Não concede permissões online a partir do cache. A mesma área lista reservas ativas e permite recuperar reservas órfãs da estação com reautenticação.
 - Pedidos novos admitem `clientRequestId`, bloqueio transacional e hash do conteúdo. Reenvio não duplica pedido, estoque, recebível ou agendamento fiscal. Conteúdo diferente com a mesma chave é recusado.
@@ -38,9 +39,9 @@ O navegador continua usando IndexedDB cifrado e ainda depende de carregar os arq
 
 ### Verificação executada em 24/10
 
-- Backend: **190/190** testes aprovados, zero falhas e zero skips, incluindo PostgreSQL real e a integração de reservas (concorrência, token, expiração, cancelamento, reconciliação, unicidade do número e NF-e após aprovação).
-- Frontend: **148/148** testes, TypeScript e build aprovados; `npm audit` sem alertas. Inclui 16 testes de reservas/pedidos offline e a ponte renderer→IPC (load/save, ACK exato, ACK divergente bloqueado e normalização de erro).
-- Electron: **46/46** testes, sendo **22 de SQLite real**, incluindo transação atômica, conflito entre conexões, lease/expição, reenvio do mesmo UUID, migração v1→v2 idempotente, disco cheio com preservação do rascunho anterior, dois dispositivos isolados, backup restaurável/adulteração detectada, encerramento abrupto após COMMIT, cofre indisponível falhando fechado, reserva cifrada, token de posse, cancelamento forçado e criação/reabertura do cofre com chave protegida.
+- Backend: **204/204** testes aprovados, zero falhas e zero skips, incluindo PostgreSQL real, integração de reservas (concorrência, token, expiração, cancelamento, reconciliação, unicidade do número e NF-e após aprovação) e HTTP autenticado das operações offline de domínio.
+- Frontend: **168/168** testes, TypeScript e build aprovados; `npm audit` sem alertas. Inclui testes de reservas/pedidos offline, da API/fila de domínio e da ponte renderer→IPC (load/save, ACK exato, ACK divergente bloqueado e normalização de erro).
+- Electron: **52/52** testes, incluindo SQLite real, transação atômica, conflito entre conexões, lease/expição, reenvio do mesmo UUID, migrações v1→v3 e v2→v3 idempotentes, disco cheio com preservação do rascunho anterior, dois dispositivos isolados, backup restaurável/adulteração detectada, encerramento abrupto após COMMIT, cofre indisponível falhando fechado, reserva cifrada, token de posse, cancelamento forçado, snapshots/reservas/outbox de domínio e criação/reabertura do cofre com chave protegida.
 - Integração SQLite → API local → PostgreSQL (rascunhos): **10/10** verificações. Inclui queda de rede real (porta fechada), reinício, perda de confirmação, backup antigo reenviado sem duplicar revisão, conflito de conteúdo, isolamento por CNPJ e ausência de texto aberto no arquivo SQLite.
 - Integração SQLite → API local → PostgreSQL (reservas/pedidos): **11/11** verificações. Inclui estação pareada e reautenticação reais, reserva online, gravação cifrada, fila offline imutável, número `P-` mínimo 100, status forçado `pending`, consumo exato, ACK exato, perda de ACK após reinício, reenvio idempotente sem baixar estoque duas vezes, rejeição de conteúdo divergente com o mesmo UUID e ausência do token de posse em texto aberto nos arquivos SQLite. Perfil sintético `qa.*`; nenhum banco de produção foi usado.
 - Navegador (fallback IndexedDB): **6/6** verificações aprovadas — queda da API, recuperação após reinício, conflito entre janelas sem sobrescrita, resposta HTTP 200 com confirmação inválida rejeitada, reconexão com revisão persistida e ausência de formulário em texto aberto no IndexedDB. A confirmação inválida é uma injeção de falha do teste, não um mock do produto.
@@ -48,14 +49,14 @@ O navegador continua usando IndexedDB cifrado e ainda depende de carregar os arq
 - Criptografia Windows anterior: **aprovada** em [run 40098318327](https://github.com/mafaldo-dev/konexus/actions/runs/40098318327), commit `330a6c5` (somente `safeStorage`, antes do SQLite).
 - **SQLite no Windows instalado (histórico, somente rascunhos): aprovado** em [run 40101652759](https://github.com/mafaldo-dev/konexus/actions/runs/40101652759), commit `af7773c`.
 - **Execução Windows (histórico, somente rascunhos): aprovada** em [run 40102304004](https://github.com/mafaldo-dev/konexus/actions/runs/40102304004), commit `baacbca`. Revalidou instalação NSIS, SQLite persistente após reinício, backup, cofre, identidade, desinstalação, **131 testes frontend**, **37 Electron** e audit zero.
-- **Windows no commit atual: aprovado** em [run 40109176563](https://github.com/mafaldo-dev/konexus/actions/runs/40109176563), commit `0cfd06d`. Revalidou instalação NSIS, login renderizado, identidade persistente, cofre, SQLite real, rascunho persistente após reinício, backup cifrado, desinstalação, **146 testes frontend**, **46 Electron**, audit zero e build. O smoke Windows não cria reserva/pedido offline porque não sobe API/PostgreSQL no runner; o fluxo de reserva foi homologado no Linux contra PostgreSQL local.
+- **Windows no commit atual: aprovado** em [run 40109176563](https://github.com/mafaldo-dev/konexus/actions/runs/40109176563), commit `0cfd06d`. Revalidou instalação NSIS, login renderizado, identidade persistente, cofre, SQLite real, rascunho persistente após reinício, backup cifrado, desinstalação, **146 testes frontend**, **46 Electron**, audit zero e build. O smoke Windows não cria reserva/pedido offline porque não sobe API/PostgreSQL no runner; o fluxo de reserva foi homologado no Linux contra PostgreSQL local. **Esta execução é anterior ao schema v3 e às operações de domínio; a nova fatia ainda não foi reexecutada no Windows.**
 
 As mudanças desta etapa foram integradas em `main`. As migrations 019/020 foram aplicadas ao Neon em 24/10/2026 após backup completo e restauração validada; o backend 1.4.3 está publicado no commit `fa1678ee45216f4e4532f6e03ed5644c638ac3a7` com `/health/release` em `ready:true`. A release 1.4.3 do frontend foi publicada em 24/10/2026 às 16:15:13 UTC no commit `29c8bc34fab50795ded6df4511686eca03231cda` ([workflow 40110305595](https://github.com/mafaldo-dev/konexus/actions/runs/40110305595)); o autoUpdater foi verificado por `scripts/audit-update-flow.mjs --tag v1.4.3`.
 
 
 ### Operação e recuperação do SQLite
 
-- Banco: `%APPDATA%/Konexus/offline/konexus.sqlite` no Windows (o caminho exato vem de `userData` do Electron), com WAL e permissões restritas. A chave fica em `key.v1.enc`, cifrada pelo cofre do sistema. O schema v2 guarda rascunhos, reservas cifradas e o outbox de pedidos.
+- Banco: `%APPDATA%/Konexus/offline/konexus.sqlite` no Windows (o caminho exato vem de `userData` do Electron), com WAL e permissões restritas. A chave fica em `key.v1.enc`, cifrada pelo cofre do sistema. O schema v3 guarda rascunhos, reservas de estoque, outbox de pedidos, snapshots de alvos, reservas de domínio e outbox de operações finais.
 - Backup: botão **Criar backup local protegido** na área `/offline`; gera `offline/backups/<data>-<uuid>/` com `konexus.sqlite`, `key.v1.enc` e `manifest.json` (SHA-256). A cópia é consistente, mas continua dependente do cofre do mesmo usuário/máquina.
 - Se a chave sumir, o aplicativo **não cria outra** silenciosamente sobre um banco existente: ele falha e preserva os arquivos para recuperação.
 - Se o cofre estiver indisponível (por exemplo, Linux sem keyring), o SQLite não abre e o app não grava rascunho/reserva em texto aberto. O restante do sistema online continua funcionando.
@@ -76,18 +77,25 @@ O fluxo entregue é deliberadamente restrito a vendas com estoque:
 
 O que a reserva **não** vincula: preço unitário, desconto, total, cliente, vendedor, frete ou condição de pagamento. Esses campos continuam vindo do cliente e o servidor não recalcula o total a partir de uma tabela de preços. A reserva garante exclusividade de estoque/escopo/estação, não a exatidão comercial do pedido.
 
-## Atualização em andamento — reservas financeiras, de folha e contábeis
+## Atualização em andamento — operações offline de financeiro, folha e contábil
 
-Trabalho na branch `feat/offline-sales-closure`, ainda **não publicado nem aplicado no Neon**. A migration aditiva `022_domain_reservations.sql` cria a reserva central de um alvo por estação, sempre no escopo `organização + CNPJ`:
+Trabalho na branch `feat/offline-sales-closure`, ainda **não publicado nem aplicado no Neon**. Duas migrations aditivas completam esta fatia:
+
+- `022_domain_reservations.sql`: reserva central exclusiva de um alvo, vinculada a organização, CNPJ, domínio, estação e usuário. O índice único parcial sobre o alvo ativo impede que duas estações reservem o mesmo título, competência ou período.
+- `023_offline_domain_operations.sql`: recibo idempotente da operação final, com `request_id`, hash do conteúdo, resultado JSON e vínculo com a reserva. A gravação ocorre na mesma transação do consumo da reserva e da alteração do alvo.
+
+Alvos elegíveis:
 
 - **Financeiro a receber**: `order_payments` com status `pending`, `overdue` ou `due_today`.
 - **Financeiro a pagar**: `payment_account` com status `pending` ou `overdue`.
 - **Folha**: `payroll_competencies` com status `open`, `calculated` ou `approved`.
 - **Contábil**: `accounting_periods` com status `open` ou `closed`.
 
-Cada reserva tem UUID, token de posse devolvido uma única vez, hash SHA-256 do token, usuário, estação registrada, CNPJ, validade (5 minutos a 7 dias), correlação e estados `active`/`consumed`/`cancelled`. A criação usa lock consultivo transacional e um índice único parcial sobre o alvo ativo; duas estações não conseguem reservar o mesmo título, competência ou período. Expiração **não** libera o alvo automaticamente: o consumo tardio é permitido e marcado, e a liberação exige cancelamento do dono ou reconciliação administrativa com motivo e reautenticação.
+Cada reserva tem UUID, token de posse devolvido uma única vez, hash SHA-256 do token, usuário, estação registrada, CNPJ, validade (5 minutos a 7 dias), correlação e estados `active`/`consumed`/`cancelled`. A criação usa lock consultivo transacional. Expiração **não** libera o alvo automaticamente: o consumo tardio é permitido e marcado, e a liberação exige cancelamento do dono ou reconciliação administrativa com motivo e reautenticação.
 
-Endpoints entregues (todos exigem sessão, empresa, módulo, permissão, CNPJ e, para criação/cancelamento, estação registrada):
+### Endpoints de reserva
+
+Todos exigem sessão, empresa, módulo, permissão, CNPJ e, para criação/cancelamento, estação registrada. Criação, cancelamento e reconciliação exigem `X-Reauth-Grant`.
 
 | Domínio | Criar/listar da estação | Listar organização | Cancelar | Reconciliar |
 |---|---|---|---|---|
@@ -96,26 +104,58 @@ Endpoints entregues (todos exigem sessão, empresa, módulo, permissão, CNPJ e,
 | Folha | `POST/GET /offline-reservations/payroll-competencies` | `GET .../all` | `POST .../:id/cancel` | `POST .../:id/reconcile` |
 | Contábil | `POST/GET /offline-reservations/accounting-periods` | `GET .../all` | `POST .../:id/cancel` | `POST .../:id/reconcile` |
 
-Permissões: `finance.approve` para reservar título a receber, `finance.edit` para conta a pagar e reconciliação financeira, `rh.approve_payroll` para folha e `contabil.manage_periods` para período contábil. Todas as mutações estão na matriz central de auditoria e exigem `X-Reauth-Grant`.
+Permissões: `finance.approve` para reservar título a receber, `finance.edit` para conta a pagar e reconciliação financeira, `rh.approve_payroll` para folha e `contabil.manage_periods` para período contábil. O contábil também exige o módulo extra `contabil` ativo.
 
-O consumo foi integrado às operações finais quando o cliente envia `reservationId` e `reservationToken` no corpo: `PUT /payments/:id/mark-payd`, `PUT /payment/accounts/:id` com `payment_status=paid`, `POST /rh/payroll/competencies/:id/close` e `POST /accounting/periods/:id/close|reopen|lock`. A reserva é validada e consumida na **mesma transação** da alteração; o consumo revalida o status do alvo e falha fechado se ele já foi pago, cancelado, encerrado ou bloqueado. Sem os campos de reserva, o comportamento online anterior permanece. A operação offline completa desses setores (réplica local, outbox e UI de criação) ainda não foi entregue.
+### Operações finais idempotentes
 
-A área `/offline` ganhou uma seção administrativa de reservas de domínio para quem tem `finance.edit`, `rh.approve_payroll` ou `contabil.manage_periods`. Ela lista apenas reservas ativas do CNPJ e permite reconciliação com motivo e reautenticação; não cria reservas. A criação será ligada aos fluxos offline de cada setor.
+| Operação | Endpoint | Permissão |
+|---|---|---|
+| Baixar título a receber | `POST /offline-domain-operations/financial-receivables/:id/settle` | `finance.approve` |
+| Baixar conta a pagar | `POST /offline-domain-operations/financial-payables/:id/settle` | `finance.edit` |
+| Fechar competência de folha | `POST /offline-domain-operations/payroll-competencies/:id/close` | `rh.approve_payroll` |
+| Fechar período contábil | `POST /offline-domain-operations/accounting-periods/:id/close` | `contabil.manage_periods` |
+| Reabrir período contábil | `POST /offline-domain-operations/accounting-periods/:id/reopen` | `contabil.manage_periods` |
+| Bloquear período contábil | `POST /offline-domain-operations/accounting-periods/:id/lock` | `contabil.manage_periods` |
 
-Validação executada: backend **201/201**, frontend **152/152**, Electron **46/46**, `tsc --noEmit` e build Vite aprovados; integração real PostgreSQL de reservas de domínio **10/10** (concorrência entre estações, escopo por CNPJ, token, alvo exato, expiração, cancelamento, reconciliação, consumo em pagamento/conta a pagar/fechamento de folha/fechamento contábil). A migration 022 foi aplicada e testada apenas em `konexus_multi_test` e `konexus_e2e`; **não foi aplicada no Neon**.
+Toda operação exige estação registrada, CNPJ explícito, `clientRequestId` UUID, `reservationId` e `reservationToken`. O servidor revalida módulo, permissão, CNPJ, estação, alvo, status e token; consome a reserva e grava o recibo na **mesma transação** da alteração. Um reenvio com a mesma chave devolve o resultado anterior (`200` e `replayed: true`); conteúdo diferente com a mesma chave retorna `409 OFFLINE_OPERATION_CONFLICT`. A baixa a receber preserva `transactionId` como `transaction_id` e as observações. Sem os campos de reserva, o comportamento online anterior permanece.
+
+### Réplica local e fila no desktop
+
+O schema SQLite v3 do Electron adiciona três tabelas cifradas, sem fallback em texto aberto:
+
+- `offline_domain_snapshots`: cópia local dos alvos elegíveis, separada por organização/CNPJ/usuário/domínio.
+- `offline_domain_reservations`: reserva e token de posse, com estado efetivo e expiração.
+- `offline_domain_outbox`: operação final imutável, com `clientRequestId`, payload, lease de 60 s, tentativas com backoff e estados `pending`/`leased`/`blocked`/`confirmed`.
+
+A página `/offline/domains`, acessível por `Configurações` e pela área `/offline`, executa o fluxo:
+
+1. Online, atualiza o snapshot a partir de `payments/all?limit=200`, `payment/accounts?limit=200`, `rh/payroll/competencies` e `accounting/periods`, filtrando status elegíveis e o CNPJ ativo.
+2. Ao escolher um alvo, cria a reserva na central com reautenticação. O token só é gravado no SQLite cifrado.
+3. A operação é enfileirada no mesmo ato local; a fila é imutável e uma reserva só pode originar uma operação.
+4. Na reconexão, a fila é retomada com o mesmo UUID. O ACK só confirma se domínio, ação, alvo, reserva e status coincidirem exatamente; caso contrário a operação fica bloqueada.
+5. `401`/`403` de sessão, acesso ou estação bloqueiam a fila até nova autenticação; falhas transitórias voltam para `pending`; `409` e ACK divergente exigem decisão humana.
+6. Cancelar uma reserva exige confirmação da central e só então remove a operação local pendente. Reserva já consumida não é apagada localmente sem reconciliação.
+
+A seção administrativa em `/offline` continua listando reservas ativas do CNPJ para reconciliação; ela não cria reservas.
+
+Validação executada: backend **204/204**, frontend **168/168**, Electron **52/52**, `tsc --noEmit` e build Vite aprovados. A integração real PostgreSQL cobre reservas de domínio **11/11** e o HTTP autenticado das operações offline **1/1**, incluindo `401`, CNPJ obrigatório, estação, permissão, CNPJ divergente, criação `201`, replay `200`, conflito `409`, recibo único, consumo da reserva, baixa a pagar, fechamento de folha, fechamento/reabertura/bloqueio contábil e bloqueio por assinatura. As migrations 021, 022 e 023 foram aplicadas apenas em `konexus_multi_test` e `konexus_e2e`; **não foram aplicadas no Neon**. A branch não foi mergeada nem publicada.
 
 ## Limitações conhecidas desta etapa
 
-- A UI administrativa de reservas está dentro da área `/offline` e exige `vendas.edit`; não há página dedicada, filtros avançados nem ações em lote.
-- Uma resposta perdida na criação da reserva, ou falha ao gravar no cofre depois da criação, pode deixar estoque retido até a recuperação explícita de órfã.
+- A página operacional `/offline/domains` exige o módulo e a permissão de visualização de cada domínio; a seção administrativa em `/offline` exige `vendas.edit`. Não há filtros avançados nem ações em lote.
+- Uma resposta perdida na criação da reserva, ou falha ao gravar no cofre depois da criação, pode deixar o alvo ou o estoque retido até a recuperação explícita de órfã.
 - O pedido offline não recalcula preço/total no servidor; a reserva não é prova de exatidão comercial.
 - A migration `021_order_number_uniqueness.sql` foi aplicada e validada apenas nos bancos locais de teste. O Neon ainda não tem a constraint; até o backup, preflight e aplicação, a proteção contra duplicidade concorrente no banco de produção não está ativa.
 - A emissão assíncrona de NF-e para pedido **online** pendente continua agendada na criação. A correção desta etapa cobre apenas o pedido offline, que nasce `aguardando_aprovacao`; a definição fiscal do fluxo online pendente continua pendente.
 - A emissão de NF-e continua sem homologação com credenciais reais da PlugNotas; o teste usa um serviço simulado.
-- A reserva central por dispositivo já existe para títulos financeiros, competências de folha e períodos contábeis, com consumo transacional nas operações finais. Ainda não existem réplica local, outbox, edição offline nem UI de criação para esses setores; documentos fiscais e o restante da matriz continuam pendentes. A migration 022 também não foi aplicada no Neon.
-- O navegador não cria reserva nem opera pedido offline; continua em rascunho IndexedDB e pedido online.
+- A réplica local e a outbox cobrem apenas **operações finais** de títulos, folha e contábil sobre alvos já existentes. Não há criação de títulos, cálculo de folha, lançamentos contábeis, movimentação bancária, edição offline nem sincronização bidirecional geral; documentos fiscais e o restante da matriz continuam pendentes. As migrations 022 e 023 também não foram aplicadas no Neon.
+- O navegador não cria reserva nem executa operações offline de domínio; continua em rascunho IndexedDB e pedido online. A réplica e a outbox de domínio existem apenas no Electron com cofre disponível.
+- O snapshot local usa as listagens existentes, com limite de 200 quando a API oferece paginação; não é uma réplica completa e pode ficar desatualizado enquanto o dispositivo está isolado.
+- O servidor revalida o status do alvo no envio. Se ele foi alterado por outro usuário, a operação falha e a reserva permanece para reconciliação; não há aplicação cega do conteúdo local.
 - Não houve pentest externo nem validação exaustiva de superfície de ataque. Segurança absoluta não pode ser garantida.
-- O smoke Windows valida instalação, cofre, SQLite, rascunho e backup; ele não executa o fluxo de reserva/pedido offline contra API/PostgreSQL. Esse fluxo foi homologado no Linux; uma execução Windows com backend local ainda é desejável.
+- O smoke Windows valida instalação, cofre, SQLite, rascunho e backup; ele não executa reserva/pedido offline nem operações de domínio contra API/PostgreSQL. Esses fluxos foram homologados no Linux. A execução Windows do schema v3 e das operações de domínio ainda é desejável.
+- Uma resposta perdida na criação da reserva, ou falha ao salvar o token no cofre, pode deixar o alvo retido até cancelamento/reconciliação explícita. Não há liberação automática por expiração.
+- O backup SQLite não é portátil entre computadores: a chave protegida pelo cofre do sistema é necessária. Perda da chave implica perda dos dados locais.
 
 ## Arquitetura necessária para todos os setores
 
@@ -129,8 +169,8 @@ Cada dispositivo precisa de quatro componentes, além da UI:
 ### Reservas por dispositivo
 
 - Estoque: reservar quantidades por produto/CNPJ/dispositivo **no banco central**, descontando-as da disponibilidade dos demais dispositivos e da venda online. Entregue para vendas; os demais setores continuam pendentes.
-- Financeiro: exclusividade central sobre títulos entregue para contas a receber e a pagar; o consumo ocorre na baixa/pagamento. Ainda faltam réplica local, fila offline e limites de caixa; não presumir saldo de banco externo atualizado.
-- Folha/contábil: exclusividade central sobre competência/período entregue; o fechamento consome a reserva. Ainda faltam réplica local e outbox para preparar registros offline; demais dispositivos não podem fechar o mesmo período.
+- Financeiro: exclusividade central e réplica/outbox para baixa de títulos a receber e contas a pagar entregues; o consumo ocorre na baixa/pagamento. Ainda faltam criação de títulos, limites de caixa e saldo bancário externo; não presumir saldo de banco atualizado.
+- Folha/contábil: exclusividade central, réplica e outbox para fechamento de competência e fechamento/reabertura/bloqueio de período entregues; o fechamento consome a reserva. Ainda faltam cálculo completo de folha, lançamentos contábeis offline e eSocial; demais dispositivos não podem fechar o mesmo período.
 - Cadastros/CRM/RH: IDs globais e controle de versão. Edições concorrentes com conteúdo incompatível vão para resolução explícita; não aplicar "último a gravar vence" a dados sensíveis.
 - **Expiração não devolve automaticamente a cota ao estoque central**: a máquina pode ter consumido a cota antes de ficar isolada. A devolução exige reconciliação ou procedimento administrativo que trate essa incerteza.
 - Perda/roubo/restauração de backup do dispositivo não pode reapresentar cotas consumidas. O servidor precisa manter consumo monotônico, IDs de operação e trilha auditável.

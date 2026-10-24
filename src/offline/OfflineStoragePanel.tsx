@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react';
+import {Link} from 'react-router-dom';
 import {useAuth} from '../AuthContext';
 import {backupLocalStorage,DraftScope,getLocalStorageStatus,nativeStorage,StorageStatus} from './salesDrafts';
 import {canReconcileReservation,cancelReservation,listAllServerReservations,listReservations,listServerReservations,reconcileReservation,syncOfflineOrders,StockReservation} from './stockReservations';
@@ -195,7 +196,10 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
     {(canFinanceAdmin||canPayrollAdmin||canAccountingAdmin)&&<div className="rounded border border-slate-300 bg-slate-50 p-2" aria-label="Reservas financeiras, de folha e contábeis">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-medium">Reservas financeiras, de folha e contábeis</p>
-        <button type="button" className="underline text-xs" onClick={()=>setDomainRefresh(value=>value+1)}>Atualizar</button>
+        <div className="flex items-center gap-3">
+          <Link to="/offline/domains" className="underline text-xs">Abrir continuidade operacional</Link>
+          <button type="button" className="underline text-xs" onClick={()=>setDomainRefresh(value=>value+1)}>Atualizar</button>
+        </div>
       </div>
       <p className="text-xs text-slate-600">Somente reservas ativas. Reconciliar libera o alvo na central; exige reautenticação e motivo. O consumo ocorre na operação final do título, competência ou período.</p>
       {!navigator.onLine?<p className="text-xs text-amber-800">Conecte-se à central para consultar e reconciliar reservas.</p>

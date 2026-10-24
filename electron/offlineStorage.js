@@ -68,6 +68,21 @@ function dispatch(store, request) {
     case 'reject-order': return store.rejectOrder(scope, request.operationId, request.leaseToken, request.code);
     case 'resume-order-auth': return store.resumeOrderAuth(scope);
     case 'retry-order': return store.retryOrder(scope, request.operationId);
+    case 'save-domain-snapshot': return store.saveDomainSnapshot(scope, request.domain, request.targets);
+    case 'load-domain-snapshot': return store.loadDomainSnapshot(scope, request.domain);
+    case 'save-domain-reservation': return store.saveDomainReservation(scope, request.domain, request.reservation);
+    case 'load-domain-reservation': return store.loadDomainReservation(scope, request.domain, request.targetId);
+    case 'list-domain-reservations': return store.listDomainReservations(scope, request.domain, request.limit);
+    case 'cancel-domain-reservation': return store.markDomainReservationCancelled(scope, request.reservationId, { force: request.force === true });
+    case 'queue-domain-operation': return store.queueDomainOperation(scope, request.operation);
+    case 'load-domain-operation': return store.loadDomainOperation(scope, request.operationId);
+    case 'list-domain-operations': return store.listDomainOperations(scope, request.limit);
+    case 'claim-domain-operations': return store.claimDomainOperations(scope, request.limit);
+    case 'leased-domain-operation': return store.leasedDomainOperation(scope, request.operationId, request.leaseToken);
+    case 'ack-domain-operation': return store.acknowledgeDomainOperation(scope, request.operationId, request.leaseToken, request.ack);
+    case 'reject-domain-operation': return store.rejectDomainOperation(scope, request.operationId, request.leaseToken, request.code);
+    case 'resume-domain-auth': return store.resumeDomainAuth(scope);
+    case 'retry-domain-operation': return store.retryDomainOperation(scope, request.operationId);
     default: throw new Error('Operação SQLite não permitida.');
   }
 }

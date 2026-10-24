@@ -11,6 +11,10 @@ export type StorageStatus = {
   blocked: number;
   orders?: { pending: number; leased: number; blocked: number; confirmed: number };
   reservations?: { active: number; queued: number; consumed: number; cancelled: number; blocked: number };
+  domains?: {
+    reservations: { active: number; queued: number; consumed: number; cancelled: number; blocked: number };
+    operations: { pending: number; leased: number; blocked: number; confirmed: number };
+  };
 };
 export const nativeStorage = () => Boolean((window as any).ipcRenderer);
 export const nativeCall = async <T,>(method:string,args:Record<string,unknown>):Promise<T> => {

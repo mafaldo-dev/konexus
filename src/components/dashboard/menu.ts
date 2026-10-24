@@ -129,6 +129,7 @@ export const menuItems = [
         { title: 'Notificações', to: '/config/notifications', icon: Bell, access: ['Administrador'] },
         { title: 'Histórico de ações', to: '/config/audit-log', icon: ClipboardList, access: ['Administrador'] },
         { title: 'Estações de trabalho', to: '/config/stations', icon: Monitor, access: ['Administrador'] },
+        { title: 'Continuidade offline', to: '/offline/domains', icon: Monitor, access: ['Administrador', 'Financeiro', 'Gestor', 'Gerente', 'Encarregado', 'Vendedor', 'Conferente', 'Estoquista', 'Compras'] },
       ]
     }
   ]

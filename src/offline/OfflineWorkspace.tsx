@@ -73,7 +73,11 @@ export default function OfflineWorkspace(){
   };
   return <main className="mx-auto max-w-4xl p-6 space-y-4">
     <h1 className="text-2xl font-bold">Área de continuidade offline</h1>
-    <p>Rascunhos, reservas de estoque e pedidos aguardando confirmação neste dispositivo. Estoque livre, financeiro, autorização e emissão fiscal continuam dependendo da validação online.</p>
+    <p>Rascunhos, reservas de estoque e pedidos aguardando confirmação neste dispositivo. Estoque livre, autorização e emissão fiscal continuam dependendo da validação online.</p>
+    <p className="rounded border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
+      Financeiro, folha e contábil têm uma área própria de reservas e operações offline.
+      {' '}<Link className="font-medium underline" to="/offline/domains">Abrir continuidade de domínios</Link>.
+    </p>
     <p role="status" className="rounded bg-blue-50 p-3">{status}</p>
     {scope&&<p>Organização #{scope.companyId} · CNPJ interno #{scope.legalEntityId} · usuário #{scope.userId}</p>}
     {scope&&<OfflineStoragePanel scope={scope}/>}

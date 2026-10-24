@@ -4,10 +4,19 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const ORDER_STATES = ['pending', 'leased', 'blocked', 'confirmed'];
 const RESERVATION_STATES = ['active', 'queued', 'consumed', 'cancelled', 'blocked'];
 const ORDER_ERRORS = ['NETWORK', 'SERVER', 'INVALID_ACK', 'AUTH', 'ACCESS', 'CONFLICT', 'VALIDATION', 'DEVICE'];
+const DOMAIN_KEYS = ['financial_receivable', 'financial_payable', 'payroll_competency', 'accounting_period'];
+const DOMAIN_ACTIONS = {
+  financial_receivable: ['settle'],
+  financial_payable: ['settle'],
+  payroll_competency: ['close'],
+  accounting_period: ['close', 'reopen', 'lock'],
+};
+const DOMAIN_OPERATION_STATES = ['pending', 'leased', 'blocked', 'confirmed'];
+const DOMAIN_ERRORS = [...ORDER_ERRORS, 'LOCAL_CORRUPT'];
 
 const SCHEMA_V1 = `
   CREATE TABLE offline_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL) STRICT;
@@ -80,6 +89,71 @@ const SCHEMA_V2 = `
     ON offline_order_outbox(company_id,legal_entity_id,user_id,state,next_attempt,lease_until);
   CREATE UNIQUE INDEX IF NOT EXISTS offline_order_outbox_reservation
     ON offline_order_outbox(reservation_id);
+`;
+
+const SCHEMA_V3 = `
+  CREATE TABLE IF NOT EXISTS offline_domain_snapshots (
+    company_id INTEGER NOT NULL,
+    legal_entity_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period')),
+    payload_encrypted BLOB NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY(company_id,legal_entity_id,user_id,domain),
+    CHECK(company_id>0 AND legal_entity_id>0 AND user_id>0)
+  ) STRICT;
+
+  CREATE TABLE IF NOT EXISTS offline_domain_reservations (
+    reservation_id TEXT PRIMARY KEY,
+    company_id INTEGER NOT NULL,
+    legal_entity_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period')),
+    target_id INTEGER NOT NULL,
+    device_id INTEGER NOT NULL,
+    device_name TEXT,
+    token_encrypted BLOB NOT NULL,
+    expires_at TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('active','queued','consumed','cancelled','blocked')),
+    operation_id TEXT,
+    error_code TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    CHECK(company_id>0 AND legal_entity_id>0 AND user_id>0 AND target_id>0 AND device_id>0)
+  ) STRICT;
+  CREATE UNIQUE INDEX IF NOT EXISTS offline_domain_reservations_active_target
+    ON offline_domain_reservations(company_id,legal_entity_id,user_id,domain,target_id)
+    WHERE status IN ('active','queued','blocked');
+  CREATE INDEX IF NOT EXISTS offline_domain_reservations_scope
+    ON offline_domain_reservations(company_id,legal_entity_id,user_id,domain,created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS offline_domain_outbox (
+    operation_id TEXT PRIMARY KEY,
+    company_id INTEGER NOT NULL,
+    legal_entity_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period')),
+    action TEXT NOT NULL CHECK(action IN ('settle','close','reopen','lock')),
+    target_id INTEGER NOT NULL,
+    reservation_id TEXT NOT NULL REFERENCES offline_domain_reservations(reservation_id) ON DELETE RESTRICT,
+    payload_encrypted BLOB NOT NULL,
+    token_encrypted BLOB NOT NULL,
+    state TEXT NOT NULL CHECK(state IN ('pending','leased','blocked','confirmed')),
+    attempts INTEGER NOT NULL DEFAULT 0,
+    next_attempt INTEGER NOT NULL DEFAULT 0,
+    lease_token TEXT,
+    lease_until INTEGER,
+    error_code TEXT,
+    server_status TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    confirmed_at INTEGER,
+    CHECK(company_id>0 AND legal_entity_id>0 AND user_id>0 AND target_id>0)
+  ) STRICT;
+  CREATE INDEX IF NOT EXISTS offline_domain_outbox_pending
+    ON offline_domain_outbox(company_id,legal_entity_id,user_id,state,next_attempt,lease_until);
+  CREATE UNIQUE INDEX IF NOT EXISTS offline_domain_outbox_reservation
+    ON offline_domain_outbox(reservation_id);
 `;
 
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
@@ -202,6 +276,116 @@ function validateAck(ack, reservationId) {
   if (ack.reservationId !== reservationId) fail('INVALID_ACK', 'Servidor confirmou outra reserva.');
   return { orderId, orderNumber: ack.orderNumber };
 }
+function validateDomain(domain) {
+  if (!DOMAIN_KEYS.includes(domain)) fail('INVALID_DOMAIN', 'Domínio offline inválido.');
+  return domain;
+}
+function validateDomainAction(domain, action) {
+  validateDomain(domain);
+  if (!DOMAIN_ACTIONS[domain].includes(action)) fail('INVALID_DOMAIN', 'Ação offline não permitida para este domínio.');
+  return action;
+}
+function domainTargetId(value) {
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number <= 0) fail('INVALID_DOMAIN', 'Alvo offline inválido.');
+  return number;
+}
+function validateDomainSnapshot(domain, targets) {
+  validateDomain(domain);
+  if (!Array.isArray(targets) || targets.length > 500) fail('INVALID_DOMAIN', 'Lista local de alvos inválida.');
+  const allowed = ['domain', 'targetId', 'label', 'secondary', 'status', 'amount', 'dueDate', 'reference'];
+  const seen = new Set();
+  const normalized = targets.map(target => {
+    if (!target || typeof target !== 'object' || Array.isArray(target)) fail('INVALID_DOMAIN', 'Alvo local inválido.');
+    if (Object.keys(target).some(key => !allowed.includes(key))) fail('INVALID_DOMAIN', 'Campo de alvo local não permitido.');
+    if (target.domain !== domain) fail('INVALID_DOMAIN', 'Alvo local pertence a outro domínio.');
+    const targetId = domainTargetId(target.targetId);
+    if (seen.has(targetId)) fail('INVALID_DOMAIN', 'Alvo repetido na cópia local.');
+    seen.add(targetId);
+    if (typeof target.label !== 'string' || !target.label.trim() || target.label.length > 240) fail('INVALID_DOMAIN', 'Rótulo do alvo local inválido.');
+    const secondary = target.secondary == null ? null : String(target.secondary);
+    const reference = target.reference == null ? null : String(target.reference);
+    const dueDate = target.dueDate == null ? null : String(target.dueDate);
+    const status = String(target.status || '');
+    if (secondary != null && secondary.length > 300) fail('INVALID_DOMAIN', 'Detalhe do alvo local excede o limite.');
+    if (reference != null && reference.length > 120) fail('INVALID_DOMAIN', 'Referência do alvo local excede o limite.');
+    if (dueDate != null && dueDate.length > 40) fail('INVALID_DOMAIN', 'Data do alvo local inválida.');
+    if (!status || status.length > 40) fail('INVALID_DOMAIN', 'Status do alvo local inválido.');
+    let amount = null;
+    if (target.amount != null) {
+      amount = Number(target.amount);
+      if (!Number.isFinite(amount) || amount < 0) fail('INVALID_DOMAIN', 'Valor do alvo local inválido.');
+    }
+    return { domain, targetId, label: target.label.trim(), secondary, status, amount, dueDate, reference };
+  }).sort((a, b) => a.targetId - b.targetId);
+  const text = JSON.stringify(normalized);
+  if (Buffer.byteLength(text) > 100000) fail('PAYLOAD_TOO_LARGE', 'Cópia local dos alvos excede 100 KB.');
+  return { targets: normalized, text };
+}
+function validateDomainReservation(scope, domain, reservation) {
+  validateScope(scope);
+  validateDomain(domain);
+  if (!reservation || typeof reservation !== 'object' || Array.isArray(reservation)) fail('INVALID_RESERVATION', 'Reserva de domínio inválida.');
+  if (!UUID.test(reservation.id || '')) fail('INVALID_RESERVATION', 'Identificador da reserva de domínio inválido.');
+  if (reservation.domain !== domain) fail('INVALID_RESERVATION', 'Reserva local pertence a outro domínio.');
+  const targetId = domainTargetId(reservation.targetId);
+  if (!Number.isSafeInteger(Number(reservation.deviceId)) || Number(reservation.deviceId) <= 0) fail('INVALID_RESERVATION', 'Dispositivo da reserva inválido.');
+  if (reservation.deviceName != null && (typeof reservation.deviceName !== 'string' || reservation.deviceName.length > 150)) fail('INVALID_RESERVATION', 'Nome do dispositivo inválido.');
+  if (typeof reservation.reservationToken !== 'string' || !/^[A-Za-z0-9_-]{20,256}$/.test(reservation.reservationToken)) fail('INVALID_RESERVATION', 'Prova local da reserva inválida.');
+  if (reservation.status != null && reservation.status !== 'active') fail('INVALID_RESERVATION', 'A reserva local não está ativa.');
+  const expires = new Date(reservation.expiresAt);
+  if (Number.isNaN(expires.getTime())) fail('INVALID_RESERVATION', 'Validade da reserva inválida.');
+  return {
+    id: reservation.id,
+    domain,
+    targetId,
+    token: reservation.reservationToken,
+    deviceId: Number(reservation.deviceId),
+    deviceName: reservation.deviceName || null,
+    expiresAt: expires.toISOString(),
+  };
+}
+function validateDomainPayload(domain, action, payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) fail('INVALID_DOMAIN', 'Conteúdo da operação offline inválido.');
+  const allowedByDomain = {
+    financial_receivable: ['notes', 'transactionId'],
+    financial_payable: ['paymentDate'],
+    payroll_competency: [],
+    accounting_period: ['notes'],
+  };
+  const allowed = allowedByDomain[domain];
+  if (Object.keys(payload).some(key => !allowed.includes(key))) fail('INVALID_DOMAIN', 'Campo da operação offline não permitido.');
+  const normalized = {};
+  if (payload.notes != null) {
+    if (typeof payload.notes !== 'string') fail('INVALID_DOMAIN', 'Observações da operação inválidas.');
+    const notes = payload.notes.trim();
+    const max = domain === 'accounting_period' ? 4000 : 1000;
+    if (notes.length > max) fail('INVALID_DOMAIN', 'Observações da operação excedem o limite.');
+    if (domain === 'accounting_period' && action === 'reopen' && !notes) fail('INVALID_DOMAIN', 'Informe o motivo da reabertura.');
+    normalized.notes = notes || null;
+  }
+  if (payload.paymentDate != null) {
+    const text = String(payload.paymentDate).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || !Number.isFinite(Date.parse(text))) fail('INVALID_DOMAIN', 'Data de pagamento inválida.');
+    normalized.paymentDate = text;
+  }
+  if (domain === 'financial_payable' && !normalized.paymentDate) fail('INVALID_DOMAIN', 'Informe a data de pagamento.');
+  if (payload.transactionId != null) {
+    if (typeof payload.transactionId !== 'string' || payload.transactionId.trim().length > 100) fail('INVALID_DOMAIN', 'Identificação da transação inválida.');
+    normalized.transactionId = payload.transactionId.trim() || null;
+  }
+  const text = JSON.stringify(normalized);
+  if (Buffer.byteLength(text) > 20000) fail('PAYLOAD_TOO_LARGE', 'Operação offline excede 20 KB.');
+  return { payload: normalized, text };
+}
+function validateDomainAck(ack, row) {
+  if (!ack || typeof ack !== 'object' || Array.isArray(ack)) fail('INVALID_ACK', 'Confirmação de domínio inválida.');
+  if (ack.domain !== row.domain) fail('INVALID_ACK', 'Servidor confirmou outro domínio.');
+  if (domainTargetId(ack.targetId) !== row.target_id) fail('INVALID_ACK', 'Servidor confirmou outro alvo.');
+  if (ack.reservationId !== row.reservation_id) fail('INVALID_ACK', 'Servidor confirmou outra reserva.');
+  if (typeof ack.status !== 'string' || !ack.status.trim() || ack.status.length > 40) fail('INVALID_ACK', 'Status final do alvo inválido.');
+  return { domain: ack.domain, targetId: row.target_id, reservationId: row.reservation_id, status: ack.status.trim() };
+}
 
 /** SQLite real no processo principal. Nenhum método recebe SQL ou caminho do renderer. */
 class OfflineStore {
@@ -220,6 +404,7 @@ class OfflineStore {
         this.transaction(() => {
           this.db.exec(SCHEMA_V1);
           this.db.exec(SCHEMA_V2);
+          this.db.exec(SCHEMA_V3);
           this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
           this.db.prepare('INSERT INTO offline_meta(key,value) VALUES(?,?)').run('installation_id', installationId);
           this.db.prepare('INSERT INTO offline_meta(key,value) VALUES(?,?)').run('key_check', this.encrypt('key-check', installationId).toString('base64'));
@@ -229,6 +414,14 @@ class OfflineStore {
         // receipts já gravados. As tabelas novas são independentes.
         this.transaction(() => {
           this.db.exec(SCHEMA_V2);
+          this.db.exec(SCHEMA_V3);
+          this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
+        });
+      } else if (version === 2) {
+        // v2 -> v3: apenas snapshots, reservas e journal de dominios. Nenhuma
+        // tabela existente e reescrita.
+        this.transaction(() => {
+          this.db.exec(SCHEMA_V3);
           this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
         });
       }
@@ -705,6 +898,389 @@ class OfflineStore {
       return this.orderMetadata(this.db.prepare('SELECT * FROM offline_order_outbox WHERE operation_id=?').get(operationId));
     });
   }
+  domainReservationMetadata(row) {
+    if (!row) return null;
+    const expired = row.status === 'active' && new Date(row.expires_at).getTime() <= this.now();
+    return {
+      id: row.reservation_id,
+      reservationId: row.reservation_id,
+      companyId: row.company_id,
+      legalEntityId: row.legal_entity_id,
+      userId: row.user_id,
+      domain: row.domain,
+      targetId: row.target_id,
+      deviceId: row.device_id,
+      deviceName: row.device_name,
+      expiresAt: row.expires_at,
+      status: row.status,
+      effectiveStatus: expired ? 'expired' : row.status,
+      expired,
+      operationId: row.operation_id || null,
+      errorCode: row.error_code || null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+  saveDomainSnapshot(scope, domain, targets) {
+    validateScope(scope);
+    const value = validateDomainSnapshot(domain, targets);
+    const timestamp = this.now();
+    const encrypted = this.encrypt(`${scopeKey(scope)}:domain-snapshot:${domain}`, value.text);
+    this.db.prepare(`INSERT INTO offline_domain_snapshots
+      (company_id,legal_entity_id,user_id,domain,payload_encrypted,updated_at)
+      VALUES(?,?,?,?,?,?)
+      ON CONFLICT(company_id,legal_entity_id,user_id,domain) DO UPDATE SET
+        payload_encrypted=excluded.payload_encrypted,updated_at=excluded.updated_at`)
+      .run(scope.companyId, scope.legalEntityId, scope.userId, domain, encrypted, timestamp);
+    return { domain, targets: value.targets, updatedAt: timestamp };
+  }
+  loadDomainSnapshot(scope, domain) {
+    validateScope(scope);
+    validateDomain(domain);
+    const row = this.db.prepare(`SELECT * FROM offline_domain_snapshots
+      WHERE company_id=? AND legal_entity_id=? AND user_id=? AND domain=?`)
+      .get(scope.companyId, scope.legalEntityId, scope.userId, domain);
+    if (!row) return null;
+    let parsed;
+    try {
+      parsed = JSON.parse(this.decrypt(`${scopeKey(scope)}:domain-snapshot:${domain}`, row.payload_encrypted));
+    } catch (error) {
+      if (error?.code === 'CORRUPT_PAYLOAD') throw error;
+      fail('CORRUPT_PAYLOAD', 'Cópia local de alvos não pôde ser lida.');
+    }
+    const value = validateDomainSnapshot(domain, parsed);
+    return { domain, targets: value.targets, updatedAt: row.updated_at };
+  }
+  saveDomainReservation(scope, domain, reservation) {
+    validateScope(scope);
+    const value = validateDomainReservation(scope, domain, reservation);
+    return this.transaction(() => {
+      const existing = this.db.prepare('SELECT * FROM offline_domain_reservations WHERE reservation_id=?').get(value.id);
+      if (existing) {
+        if (existing.company_id !== scope.companyId || existing.legal_entity_id !== scope.legalEntityId ||
+            existing.user_id !== scope.userId || existing.domain !== domain || existing.target_id !== value.targetId) {
+          fail('CORRUPT_SCOPE', 'Reserva de domínio pertence a outro contexto.');
+        }
+        if (existing.status !== 'active') fail('LOCAL_CONFLICT', 'Reserva de domínio já foi enfileirada ou encerrada.');
+      }
+      const current = this.db.prepare(`SELECT * FROM offline_domain_reservations
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND domain=? AND target_id=?
+          AND status IN ('active','queued','blocked')
+        ORDER BY created_at DESC, rowid DESC LIMIT 1`)
+        .get(scope.companyId, scope.legalEntityId, scope.userId, domain, value.targetId);
+      if (current && current.reservation_id !== value.id) {
+        fail('LOCAL_CONFLICT', 'Já existe uma reserva ativa para este alvo. Cancele-a antes de criar outra.');
+      }
+      const encrypted = this.encrypt(`${scopeKey(scope)}:domain-reservation:${value.id}`, value.token);
+      const timestamp = this.now();
+      this.db.prepare(`INSERT INTO offline_domain_reservations
+        (reservation_id,company_id,legal_entity_id,user_id,domain,target_id,device_id,device_name,
+         token_encrypted,expires_at,status,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?, 'active',?,?)
+        ON CONFLICT(reservation_id) DO UPDATE SET device_name=excluded.device_name,
+          token_encrypted=excluded.token_encrypted,expires_at=excluded.expires_at,error_code=NULL,updated_at=excluded.updated_at`)
+        .run(value.id, scope.companyId, scope.legalEntityId, scope.userId, domain, value.targetId,
+          value.deviceId, value.deviceName, encrypted, value.expiresAt, timestamp, timestamp);
+      return this.domainReservationMetadata(
+        this.db.prepare('SELECT * FROM offline_domain_reservations WHERE reservation_id=?').get(value.id)
+      );
+    });
+  }
+  loadDomainReservation(scope, domain, targetId) {
+    validateScope(scope);
+    validateDomain(domain);
+    const normalizedTargetId = domainTargetId(targetId);
+    const row = this.db.prepare(`SELECT * FROM offline_domain_reservations
+      WHERE company_id=? AND legal_entity_id=? AND user_id=? AND domain=? AND target_id=?
+        AND status IN ('active','queued','blocked')
+      ORDER BY created_at DESC, rowid DESC LIMIT 1`)
+      .get(scope.companyId, scope.legalEntityId, scope.userId, domain, normalizedTargetId);
+    return this.domainReservationMetadata(row);
+  }
+  listDomainReservations(scope, domain = null, limit = 100) {
+    validateScope(scope);
+    if (domain != null) validateDomain(domain);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 200) fail('INVALID_LIMIT', 'Lote inválido.');
+    const rows = domain == null
+      ? this.db.prepare(`SELECT * FROM offline_domain_reservations
+          WHERE company_id=? AND legal_entity_id=? AND user_id=?
+          ORDER BY created_at DESC, rowid DESC LIMIT ?`)
+          .all(scope.companyId, scope.legalEntityId, scope.userId, limit)
+      : this.db.prepare(`SELECT * FROM offline_domain_reservations
+          WHERE company_id=? AND legal_entity_id=? AND user_id=? AND domain=?
+          ORDER BY created_at DESC, rowid DESC LIMIT ?`)
+          .all(scope.companyId, scope.legalEntityId, scope.userId, domain, limit);
+    return rows.map(row => this.domainReservationMetadata(row));
+  }
+  markDomainReservationCancelled(scope, reservationId, { force = false } = {}) {
+    validateScope(scope);
+    if (!UUID.test(reservationId || '')) fail('INVALID_RESERVATION', 'Reserva de domínio inválida.');
+    return this.transaction(() => {
+      const row = this.db.prepare(`SELECT * FROM offline_domain_reservations
+        WHERE reservation_id=? AND company_id=? AND legal_entity_id=? AND user_id=?`)
+        .get(reservationId, scope.companyId, scope.legalEntityId, scope.userId);
+      if (!row) fail('NOT_FOUND', 'Reserva de domínio local não encontrada.');
+      if (row.status === 'queued' && !force) {
+        fail('LOCAL_CONFLICT', 'Existe operação enfileirada usando esta reserva. Sincronize ou resolva a operação antes.');
+      }
+      if (row.status === 'consumed') fail('LOCAL_CONFLICT', 'A reserva já foi consumida por uma operação.');
+      if (row.status === 'cancelled') return this.domainReservationMetadata(row);
+      this.db.prepare("DELETE FROM offline_domain_outbox WHERE reservation_id=? AND state IN ('pending','leased','blocked')")
+        .run(reservationId);
+      this.db.prepare(`UPDATE offline_domain_reservations
+        SET status='cancelled', operation_id=NULL, error_code=NULL, updated_at=? WHERE reservation_id=?`)
+        .run(this.now(), reservationId);
+      return this.domainReservationMetadata(
+        this.db.prepare('SELECT * FROM offline_domain_reservations WHERE reservation_id=?').get(reservationId)
+      );
+    });
+  }
+  domainOperationMetadata(row) {
+    if (!row) return null;
+    return {
+      operationId: row.operation_id,
+      companyId: row.company_id,
+      legalEntityId: row.legal_entity_id,
+      userId: row.user_id,
+      domain: row.domain,
+      action: row.action,
+      targetId: row.target_id,
+      reservationId: row.reservation_id,
+      state: row.state,
+      attempts: row.attempts,
+      errorCode: row.error_code || null,
+      serverStatus: row.server_status || null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      confirmedAt: row.confirmed_at ?? null,
+    };
+  }
+  queueDomainOperation(scope, input) {
+    validateScope(scope);
+    if (!input || typeof input !== 'object' || Array.isArray(input)) fail('INVALID_DOMAIN', 'Operação offline inválida.');
+    const domain = validateDomain(input.domain);
+    const action = validateDomainAction(domain, input.action);
+    const targetId = domainTargetId(input.targetId);
+    if (!UUID.test(input.reservationId || '')) fail('INVALID_RESERVATION', 'Reserva de domínio inválida.');
+    const reservationId = input.reservationId;
+    const operationId = input.operationId || randomUUID();
+    if (!UUID.test(operationId)) fail('INVALID_OPERATION', 'Chave de envio local inválida.');
+    const value = validateDomainPayload(domain, action, input.payload || {});
+    return this.transaction(() => {
+      const previousOperation = this.db.prepare('SELECT * FROM offline_domain_outbox WHERE operation_id=?').get(operationId);
+      if (previousOperation) {
+        if (previousOperation.company_id !== scope.companyId || previousOperation.legal_entity_id !== scope.legalEntityId ||
+            previousOperation.user_id !== scope.userId || previousOperation.domain !== domain ||
+            previousOperation.action !== action || previousOperation.target_id !== targetId ||
+            previousOperation.reservation_id !== reservationId) {
+          fail('LOCAL_CONFLICT', 'Chave local já usada por outra operação.');
+        }
+        let previousPayload;
+        try {
+          previousPayload = this.decrypt(
+            `${scopeKey(scope)}:domain-operation:${operationId}:${reservationId}`,
+            previousOperation.payload_encrypted
+          );
+        } catch {
+          fail('CORRUPT_PAYLOAD', 'Conteúdo local da operação não pôde ser lido.');
+        }
+        if (previousPayload !== value.text) {
+          fail('LOCAL_CONFLICT', 'A chave local já foi usada com outro conteúdo.');
+        }
+        return this.domainOperationMetadata(previousOperation);
+      }
+      const reservation = this.db.prepare(`SELECT * FROM offline_domain_reservations
+        WHERE reservation_id=? AND company_id=? AND legal_entity_id=? AND user_id=? AND domain=? AND target_id=?`)
+        .get(reservationId, scope.companyId, scope.legalEntityId, scope.userId, domain, targetId);
+      if (!reservation) fail('NOT_FOUND', 'Reserva de domínio local não encontrada.');
+      if (reservation.status === 'queued' && reservation.operation_id !== operationId) {
+        fail('LOCAL_CONFLICT', 'Já existe uma operação enfileirada para esta reserva.');
+      }
+      if (reservation.status !== 'active') fail('LOCAL_CONFLICT', 'A reserva não está ativa para enfileirar a operação.');
+      const existingOutbox = this.db.prepare('SELECT * FROM offline_domain_outbox WHERE reservation_id=?').get(reservationId);
+      if (existingOutbox) {
+        if (existingOutbox.operation_id === operationId) return this.domainOperationMetadata(existingOutbox);
+        fail('LOCAL_CONFLICT', 'Já existe uma operação enfileirada para esta reserva.');
+      }
+      let token;
+      try {
+        token = this.decrypt(`${scopeKey(scope)}:domain-reservation:${reservationId}`, reservation.token_encrypted);
+      } catch {
+        fail('CORRUPT_PAYLOAD', 'Prova local da reserva não pôde ser lida. Nenhuma operação foi enfileirada.');
+      }
+      const timestamp = this.now();
+      const encryptedPayload = this.encrypt(
+        `${scopeKey(scope)}:domain-operation:${operationId}:${reservationId}`, value.text
+      );
+      const encryptedToken = this.encrypt(
+        `${scopeKey(scope)}:domain-operation-token:${operationId}:${reservationId}`, token
+      );
+      this.db.prepare(`INSERT INTO offline_domain_outbox
+        (operation_id,company_id,legal_entity_id,user_id,domain,action,target_id,reservation_id,
+         payload_encrypted,token_encrypted,state,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?, 'pending',?,?)`)
+        .run(operationId, scope.companyId, scope.legalEntityId, scope.userId, domain, action, targetId,
+          reservationId, encryptedPayload, encryptedToken, timestamp, timestamp);
+      this.db.prepare(`UPDATE offline_domain_reservations
+        SET status='queued', operation_id=?, error_code=NULL, updated_at=? WHERE reservation_id=?`)
+        .run(operationId, timestamp, reservationId);
+      return this.domainOperationMetadata(
+        this.db.prepare('SELECT * FROM offline_domain_outbox WHERE operation_id=?').get(operationId)
+      );
+    });
+  }
+  loadDomainOperation(scope, operationId) {
+    validateScope(scope);
+    if (!UUID.test(operationId || '')) fail('INVALID_OPERATION', 'Operação local inválida.');
+    return this.domainOperationMetadata(this.db.prepare(`SELECT * FROM offline_domain_outbox
+      WHERE operation_id=? AND company_id=? AND legal_entity_id=? AND user_id=?`)
+      .get(operationId, scope.companyId, scope.legalEntityId, scope.userId));
+  }
+  listDomainOperations(scope, limit = 100) {
+    validateScope(scope);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 200) fail('INVALID_LIMIT', 'Lote inválido.');
+    return this.db.prepare(`SELECT * FROM offline_domain_outbox
+      WHERE company_id=? AND legal_entity_id=? AND user_id=?
+      ORDER BY created_at DESC, rowid DESC LIMIT ?`)
+      .all(scope.companyId, scope.legalEntityId, scope.userId, limit)
+      .map(row => this.domainOperationMetadata(row));
+  }
+  claimDomainOperations(scope, limit = 5) {
+    validateScope(scope);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 20) fail('INVALID_LIMIT', 'Lote inválido.');
+    return this.transaction(() => {
+      const rows = this.db.prepare(`SELECT * FROM offline_domain_outbox
+        WHERE company_id=? AND legal_entity_id=? AND user_id=?
+          AND ((state='pending' AND next_attempt<=?) OR (state='leased' AND lease_until<=?))
+        ORDER BY created_at,rowid LIMIT ?`)
+        .all(scope.companyId, scope.legalEntityId, scope.userId, this.now(), this.now(), limit);
+      const claimed = [];
+      for (const row of rows) {
+        try {
+          const payload = JSON.parse(this.decrypt(
+            `${scopeKey(scope)}:domain-operation:${row.operation_id}:${row.reservation_id}`,
+            row.payload_encrypted
+          ));
+          const reservationToken = this.decrypt(
+            `${scopeKey(scope)}:domain-operation-token:${row.operation_id}:${row.reservation_id}`,
+            row.token_encrypted
+          );
+          const leaseToken = randomUUID();
+          this.db.prepare(`UPDATE offline_domain_outbox
+            SET state='leased', lease_token=?, lease_until=?, attempts=attempts+1, updated_at=?
+            WHERE operation_id=?`)
+            .run(leaseToken, this.now() + 60000, this.now(), row.operation_id);
+          claimed.push({
+            operationId: row.operation_id,
+            domain: row.domain,
+            action: row.action,
+            targetId: row.target_id,
+            reservationId: row.reservation_id,
+            leaseToken,
+            payload,
+            reservationToken,
+          });
+        } catch (error) {
+          if (error?.code !== 'CORRUPT_PAYLOAD') throw error;
+          this.db.prepare(`UPDATE offline_domain_outbox
+            SET state='blocked', lease_token=NULL, lease_until=NULL, error_code='LOCAL_CORRUPT', updated_at=?
+            WHERE operation_id=?`).run(this.now(), row.operation_id);
+          this.db.prepare(`UPDATE offline_domain_reservations
+            SET status='blocked', error_code='LOCAL_CORRUPT', updated_at=? WHERE reservation_id=?`)
+            .run(this.now(), row.reservation_id);
+        }
+      }
+      return claimed;
+    });
+  }
+  leasedDomainOperation(scope, operationId, leaseToken) {
+    validateScope(scope);
+    if (!UUID.test(operationId || '') || !UUID.test(leaseToken || '')) fail('INVALID_OPERATION', 'Operação local inválida.');
+    return this.db.prepare(`SELECT * FROM offline_domain_outbox
+      WHERE operation_id=? AND state='leased' AND lease_token=?
+        AND company_id=? AND legal_entity_id=? AND user_id=?`)
+      .get(operationId, leaseToken, scope.companyId, scope.legalEntityId, scope.userId);
+  }
+  acknowledgeDomainOperation(scope, operationId, leaseToken, ack) {
+    return this.transaction(() => {
+      const row = this.leasedDomainOperation(scope, operationId, leaseToken);
+      if (!row) return { confirmed: false };
+      const confirmed = validateDomainAck(ack, row);
+      const timestamp = this.now();
+      this.db.prepare(`UPDATE offline_domain_outbox
+        SET state='confirmed', server_status=?, confirmed_at=?, updated_at=?,
+            lease_token=NULL, lease_until=NULL, error_code=NULL
+        WHERE operation_id=?`)
+        .run(confirmed.status, timestamp, timestamp, operationId);
+      this.db.prepare(`UPDATE offline_domain_reservations
+        SET status='consumed', error_code=NULL, updated_at=? WHERE reservation_id=?`)
+        .run(timestamp, row.reservation_id);
+      return {
+        confirmed: true,
+        operation: this.domainOperationMetadata(
+          this.db.prepare('SELECT * FROM offline_domain_outbox WHERE operation_id=?').get(operationId)
+        ),
+      };
+    });
+  }
+  rejectDomainOperation(scope, operationId, leaseToken, code) {
+    if (!DOMAIN_ERRORS.includes(code)) fail('INVALID_ERROR', 'Categoria de erro inválida.');
+    return this.transaction(() => {
+      const row = this.leasedDomainOperation(scope, operationId, leaseToken);
+      if (!row) return { retained: false };
+      const blocked = ['AUTH', 'ACCESS', 'CONFLICT', 'VALIDATION', 'INVALID_ACK', 'DEVICE', 'LOCAL_CORRUPT'].includes(code);
+      const state = blocked ? 'blocked' : 'pending';
+      const timestamp = this.now();
+      this.db.prepare(`UPDATE offline_domain_outbox
+        SET state=?, next_attempt=?, lease_token=NULL, lease_until=NULL, error_code=?, updated_at=?
+        WHERE operation_id=?`)
+        .run(state, timestamp + Math.min(60000, 1000 * 2 ** Math.min(row.attempts - 1, 6)), code, timestamp, operationId);
+      if (blocked) {
+        this.db.prepare(`UPDATE offline_domain_reservations
+          SET status='blocked', error_code=?, updated_at=?
+          WHERE reservation_id=? AND status<>'consumed'`)
+          .run(code, timestamp, row.reservation_id);
+      }
+      return { retained: true };
+    });
+  }
+  resumeDomainAuth(scope) {
+    validateScope(scope);
+    return this.transaction(() => {
+      const rows = this.db.prepare(`SELECT operation_id,reservation_id FROM offline_domain_outbox
+        WHERE company_id=? AND legal_entity_id=? AND user_id=?
+          AND state='blocked' AND error_code IN ('AUTH','ACCESS','DEVICE')`)
+        .all(scope.companyId, scope.legalEntityId, scope.userId);
+      for (const row of rows) {
+        this.db.prepare(`UPDATE offline_domain_outbox SET state='pending', next_attempt=0, updated_at=?
+          WHERE operation_id=?`).run(this.now(), row.operation_id);
+        this.db.prepare(`UPDATE offline_domain_reservations SET status='queued', error_code=NULL, updated_at=?
+          WHERE reservation_id=? AND status='blocked'`).run(this.now(), row.reservation_id);
+      }
+      return { resumed: rows.length };
+    });
+  }
+  retryDomainOperation(scope, operationId) {
+    validateScope(scope);
+    if (!UUID.test(operationId || '')) fail('INVALID_OPERATION', 'Operação local inválida.');
+    return this.transaction(() => {
+      const row = this.db.prepare(`SELECT * FROM offline_domain_outbox
+        WHERE operation_id=? AND company_id=? AND legal_entity_id=? AND user_id=?`)
+        .get(operationId, scope.companyId, scope.legalEntityId, scope.userId);
+      if (!row) fail('NOT_FOUND', 'Operação local não encontrada.');
+      if (row.state !== 'blocked') return this.domainOperationMetadata(row);
+      if (row.error_code === 'LOCAL_CORRUPT') {
+        fail('LOCAL_CONFLICT', 'O conteúdo local está corrompido e não pode ser reenviado. Preserve o backup para recuperação.');
+      }
+      this.db.prepare(`UPDATE offline_domain_outbox SET state='pending', next_attempt=0, error_code=NULL, updated_at=?
+        WHERE operation_id=?`).run(this.now(), operationId);
+      this.db.prepare(`UPDATE offline_domain_reservations SET status='queued', error_code=NULL, updated_at=?
+        WHERE reservation_id=? AND status='blocked'`).run(this.now(), row.reservation_id);
+      return this.domainOperationMetadata(
+        this.db.prepare('SELECT * FROM offline_domain_outbox WHERE operation_id=?').get(operationId)
+      );
+    });
+  }
   stats(scope) {
     validateScope(scope);
     const counts = this.db.prepare(`SELECT o.state,count(*) AS count FROM offline_outbox o JOIN offline_documents d ON d.key=o.document_key
@@ -715,10 +1291,20 @@ class OfflineStore {
     const reservationCounts = this.db.prepare(`SELECT status,count(*) AS count FROM offline_stock_reservations
       WHERE company_id=? AND legal_entity_id=? AND user_id=? GROUP BY status`)
       .all(scope.companyId, scope.legalEntityId, scope.userId);
+    const domainReservationCounts = this.db.prepare(`SELECT status,count(*) AS count FROM offline_domain_reservations
+      WHERE company_id=? AND legal_entity_id=? AND user_id=? GROUP BY status`)
+      .all(scope.companyId, scope.legalEntityId, scope.userId);
+    const domainOperationCounts = this.db.prepare(`SELECT state,count(*) AS count FROM offline_domain_outbox
+      WHERE company_id=? AND legal_entity_id=? AND user_id=? GROUP BY state`)
+      .all(scope.companyId, scope.legalEntityId, scope.userId);
     const orders = Object.fromEntries(ORDER_STATES.map(state => [state, 0]));
     for (const row of orderCounts) orders[row.state] = row.count;
     const reservations = Object.fromEntries(RESERVATION_STATES.map(state => [state, 0]));
     for (const row of reservationCounts) reservations[row.status] = row.count;
+    const domainReservations = Object.fromEntries(RESERVATION_STATES.map(state => [state, 0]));
+    for (const row of domainReservationCounts) domainReservations[row.status] = row.count;
+    const domainOperations = Object.fromEntries(DOMAIN_OPERATION_STATES.map(state => [state, 0]));
+    for (const row of domainOperationCounts) domainOperations[row.state] = row.count;
     return {
       engine: 'sqlite',
       schemaVersion: this.schemaVersion(),
@@ -726,6 +1312,7 @@ class OfflineStore {
       ...Object.fromEntries(counts.map(row => [row.state, row.count])),
       orders,
       reservations,
+      domains: { reservations: domainReservations, operations: domainOperations },
     };
   }
   backup(destination) {
