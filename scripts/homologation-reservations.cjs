@@ -47,7 +47,12 @@ const { OfflineStore } = require('../electron/offlineStore');
       signal: AbortSignal.timeout(20000),
     });
     const data = await response.json();
-    assert.equal(response.status, expected, `${method} ${route}: ${JSON.stringify(data)}`);
+    // Nunca imprimir o corpo inteiro: a resposta de criação contém o token de
+    // posse da reserva, que não pode vazar para logs de homologação.
+    const summary = data && typeof data === 'object'
+      ? [data.code, data.error, data.message].filter(Boolean).join(' - ')
+      : '';
+    assert.equal(response.status, expected, `${method} ${route}: HTTP ${response.status}${summary ? ` (${summary})` : ''}`);
     return data;
   };
 
