@@ -130,7 +130,7 @@ PLAYWRIGHT_MODULE=/tmp/opencode/browser/node_modules/playwright/index.mjs node s
 
 Esta seção corrige o estado acima, que é histórico:
 
-- O frontend foi migrado de `react-scripts` para Vite 8/Jest 30. O `npm audit` do frontend e do backend chegou a **zero alertas**; a linha anterior sobre 51 alertas não representa o estado atual.
+- O frontend foi migrado de `react-scripts` para Vite 8/Jest 30. O `npm audit` do frontend e do backend chegou a **zero alertas**; a linha anterior sobre 51 alertas não representa o estado atual. Em 24/10: **16 suítes/131 testes frontend** e **36 testes Electron** (12 de SQLite) aprovados.
 - O Windows instalado foi validado no run [40098318327](https://github.com/mafaldo-dev/konexus/actions/runs/40098318327): instalação NSIS, inicialização do executável, criptografia/recuperação pelo cofre, identidade persistente e desinstalação. A linha "Windows/instalador: Não executado" acima está superada.
 - A branch `feat/offline-isolated` adiciona SQLite no processo principal do Electron para rascunhos de vendas, com criptografia AES-256-GCM, outbox transacional, leases, migração do IndexedDB, backup com manifesto e testes de falha. O detalhe e as limitações estão em `docs/OFFLINE_INTEGRAL_2026-10-24.md`.
 - O SQLite cobre **apenas rascunhos de vendas**. Não há banco local de estoque, financeiro, folha, contábil, fiscal, compras ou CRM; não há reservas por dispositivo; não há login/permissões offline assinados. A arquitetura para os demais setores continua pendente.
