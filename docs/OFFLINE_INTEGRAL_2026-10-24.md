@@ -22,7 +22,7 @@ Entregue nesta etapa:
 - Rascunhos/pedidos separados por usuário/organização/CNPJ, revisão imutável no PostgreSQL e rejeição de proprietário diferente.
 - Área `/offline` recupera o rascunho SQLite quando a API está inacessível, inclusive após reiniciar o aplicativo. Não concede permissões online a partir do cache. A mesma área lista reservas ativas e permite recuperar reservas órfãs da estação com reautenticação.
 - Pedidos novos admitem `clientRequestId`, bloqueio transacional e hash do conteúdo. Reenvio não duplica pedido, estoque, recebível ou agendamento fiscal. Conteúdo diferente com a mesma chave é recusado.
-- Migrations aditivas `019_offline_sales_drafts.sql` e `020_stock_reservations.sql` aplicadas **apenas em PostgreSQL local de testes** nesta etapa. As migrations 015–018 estão no Neon de produção; 019 e 020 não estão.
+- Migrations aditivas `019_offline_sales_drafts.sql` e `020_stock_reservations.sql` aplicadas no Neon de produção em 24/10/2026, após backup custom, restauração validada em banco temporário local e preflight das duas migrations sobre essa cópia. As migrations 015–018 já estavam aplicadas; as tabelas, colunas, índices e triggers de 019/020 foram conferidos no Neon após a aplicação.
 
 O navegador continua usando IndexedDB cifrado e ainda depende de carregar os arquivos da aplicação; não foi entregue PWA/service worker. O cofre do sistema protege o usuário do SO, não substitui um protocolo de autenticação offline por usuário do ERP. **Reserva e pedido offline exigem Electron/SQLite e estação pareada**; no navegador restam rascunhos cifrados e pedido online. Também não há resolução visual completa de conflito bloqueado; o rascunho é preservado e a UI mostra o código, mas a decisão continua manual.
 
@@ -40,7 +40,7 @@ O navegador continua usando IndexedDB cifrado e ainda depende de carregar os arq
 - **Execução Windows (histórico, somente rascunhos): aprovada** em [run 40102304004](https://github.com/mafaldo-dev/konexus/actions/runs/40102304004), commit `baacbca`. Revalidou instalação NSIS, SQLite persistente após reinício, backup, cofre, identidade, desinstalação, **131 testes frontend**, **37 Electron** e audit zero.
 - **Windows no commit atual: aprovado** em [run 40109176563](https://github.com/mafaldo-dev/konexus/actions/runs/40109176563), commit `0cfd06d`. Revalidou instalação NSIS, login renderizado, identidade persistente, cofre, SQLite real, rascunho persistente após reinício, backup cifrado, desinstalação, **146 testes frontend**, **46 Electron**, audit zero e build. O smoke Windows não cria reserva/pedido offline porque não sobe API/PostgreSQL no runner; o fluxo de reserva foi homologado no Linux contra PostgreSQL local.
 
-As mudanças desta etapa ficam em `feat/offline-isolated`, separadas de `main` e do Neon de produção. Nenhuma migration 019/020 foi aplicada ao banco de produção e nenhuma nova release foi publicada.
+As mudanças desta etapa foram integradas em `main`. As migrations 019/020 foram aplicadas ao Neon em 24/10/2026 após backup completo e restauração validada; o backend 1.4.3 está publicado no commit `fa1678ee45216f4e4532f6e03ed5644c638ac3a7` com `/health/release` em `ready:true`. O frontend 1.4.3 está em preparação para a release.
 
 
 ### Operação e recuperação do SQLite
@@ -76,7 +76,7 @@ O que a reserva **não** vincula: preço unitário, desconto, total, cliente, ve
 - Reservas por dispositivo para títulos financeiros, competências de folha/contábil e documentos fiscais não existem. O restante da matriz continua pendente.
 - O navegador não cria reserva nem opera pedido offline; continua em rascunho IndexedDB e pedido online.
 - Não houve pentest externo nem validação exaustiva de superfície de ataque. Segurança absoluta não pode ser garantida.
-- O instalador Windows do commit atual ainda não foi validado; a evidência Windows existente é anterior às reservas.
+- O smoke Windows valida instalação, cofre, SQLite, rascunho e backup; ele não executa o fluxo de reserva/pedido offline contra API/PostgreSQL. Esse fluxo foi homologado no Linux; uma execução Windows com backend local ainda é desejável.
 
 ## Arquitetura necessária para todos os setores
 
