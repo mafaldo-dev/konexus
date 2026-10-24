@@ -16,6 +16,7 @@ import { Order, OrderResponse } from "../../../../types/sales/orders";
 import { Customer, ProductsProps } from "../../../../types";
 import { useInvoiceProductsManagement } from "../../../../hooks/_manager/useProductManagement";
 import { useAuth } from "../../../../AuthContext";
+import { clearLocalDraft, loadLocalDraft, readDraftPayload, saveLocalDraft, syncLocalDrafts, LocalDraft } from '../../../../offline/salesDrafts';
 
 type FormValues = {
   orderDate: string;
@@ -39,7 +40,11 @@ interface OrderFormProps {
   orderId?: number;
 }
 
-export default function OrderForm({ editMode = false, initialData, orderId }: OrderFormProps) {
+export default function OrderForm(props:OrderFormProps) {
+  const {user,activeLegalEntity}=useAuth();
+  return <OrderFormContent key={`${user?.id}:${activeLegalEntity?.id}:${props.orderId||'new'}`} {...props}/>;
+}
+function OrderFormContent({ editMode = false, initialData, orderId }: OrderFormProps) {
   const [products, setProducts] = useState<ProductsProps[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -53,11 +58,17 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   const hasPrefilledData = useRef(false);
 
   const navigate = useNavigate();
-  const { user, activeLegalEntity } = useAuth();
+  const { user, company, activeLegalEntity, hasPermission } = useAuth();
+  const canSaveOrder=hasPermission('vendas',editMode?'edit':'create');
+  const [draftReady,setDraftReady]=useState(false);
+  const [draftStatus,setDraftStatus]=useState('Preparando proteção local…');
+  const draftRef=useRef<LocalDraft | undefined>(undefined);
+  const saveChain=useRef<Promise<any>>(Promise.resolve());
+  const finished=useRef(false);
 
   const isSalesPerson = user?.role === "Vendedor" && user?.sector === "Comercial";
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors }, setValue, getValues, reset, watch } = useForm<FormValues>({
     defaultValues: {
       orderDate: format(new Date(), "yyyy-MM-dd"),
       orderStatus: "pending",
@@ -78,6 +89,51 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
     searchProduct,
     addProductToInvoice,
   } = useInvoiceProductsManagement();
+
+  const scope={companyId:Number(company?.id),legalEntityId:Number(activeLegalEntity?.id),userId:Number(user?.id)};
+  const slot=editMode?`edit-${orderId}`:'new';
+  const draftState=useRef({products,selectedCustomer,addressConfirmed,orderNumber});
+  draftState.current={products,selectedCustomer,addressConfirmed,orderNumber};
+  const persistDraft=()=>{
+    if(!draftReady||finished.current||!scope.companyId||!scope.legalEntityId||!scope.userId)return Promise.resolve();
+    const payload={values:getValues(),...draftState.current,...(editMode?{editOrderId:orderId}:{})};
+    saveChain.current=saveChain.current.catch(()=>{}).then(async()=>{
+      draftRef.current=await saveLocalDraft(scope,payload,draftRef.current?.revisionId||null,slot);
+      setDraftStatus('Salvo neste dispositivo — aguardando sincronização');
+    }).catch(error=>{setDraftStatus(`Falha ao salvar localmente: ${error.message}`);throw error;});
+    return saveChain.current;
+  };
+  useEffect(()=>{
+    let live=true;
+    if(!scope.companyId||!scope.legalEntityId||!scope.userId)return;
+    loadLocalDraft(scope,slot).then(async row=>{
+      if(row){
+        const payload=await readDraftPayload(row);
+        if(!live)return;
+        draftRef.current=row;reset(payload.values);
+        setProducts(payload.products);setSelectedCustomer(payload.selectedCustomer);setAddressConfirmed(payload.addressConfirmed);
+        setDraftStatus(row.synced?'Rascunho recuperado — cópia sincronizada':'Rascunho recuperado deste dispositivo — sincronização pendente');
+      }else setDraftStatus('Salvamento local automático ativo');
+      if(live)setDraftReady(true);
+    }).catch(error=>{if(live)setDraftStatus(`Armazenamento local indisponível: ${error.message}`);});
+    return()=>{live=false;};
+    // O componente é remontado quando usuário/CNPJ/pedido muda.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[scope.companyId,scope.legalEntityId,scope.userId]);
+  useEffect(()=>{
+    if(!draftReady)return;
+    const subscription=watch(()=>{void persistDraft().catch(()=>{});});
+    return()=>subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[draftReady,watch]);
+  useEffect(()=>{if(draftReady)void persistDraft().catch(()=>{});},[draftReady,products,selectedCustomer,addressConfirmed]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{
+    const update=()=>{void loadLocalDraft(scope,slot).then(row=>{
+      if(row?.revisionId===draftRef.current?.revisionId)setDraftStatus(row?.synced?'Salvo no dispositivo e no banco online':row?.error?`Salvo localmente. ${row.error}`:'Salvo localmente — sincronização pendente');
+    }).catch(()=>{});};
+    window.addEventListener('konexus:drafts-changed',update);
+    return()=>window.removeEventListener('konexus:drafts-changed',update);
+  },[scope.companyId,scope.legalEntityId,scope.userId,slot]);
 
   // ==================== EFFECTS ==================== //
 
@@ -310,13 +366,21 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   }, [products.length, selectedCustomer, orderNumber, editMode]);
 
   const onSubmit = async (data: FormValues) => {
-    if (!isSalesPerson) {
+    if (!canSaveOrder) {
       Swal.fire({
         title: "Acesso Restrito",
-        text: "Apenas vendedores do setor comercial podem criar pedidos.",
+        text: "Sua conta não tem permissão para salvar este pedido.",
         icon: "error",
         confirmButtonText: "Entendi"
       });
+      return;
+    }
+    try { await persistDraft(); } catch (error) {
+      await Swal.fire('Não foi possível proteger o rascunho',error instanceof Error?error.message:'Verifique o armazenamento do dispositivo.','error');
+      return;
+    }
+    if(!navigator.onLine){
+      await Swal.fire('Rascunho salvo localmente','Será sincronizado quando a API voltar. A finalização exige estoque, permissões e confirmação online.','info');
       return;
     }
 
@@ -367,6 +431,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
       const totalAmount = products.reduce((acc, p) => acc + p.quantity * p.price, 0);
 
       const orderData: Order = {
+        ...(!editMode&&draftRef.current?{clientRequestId:draftRef.current.draftId}:{}),
         orderDate: data.orderDate,
         orderStatus: "pending",
         orderNumber: orderNumber,
@@ -400,6 +465,9 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
 
       const orderResult = result.ok ? result.data : null;
       if (orderResult && orderResult.id) {
+        finished.current=true;
+        await saveChain.current.catch(()=>{});
+        if(draftRef.current)await clearLocalDraft(scope,draftRef.current.revisionId,slot);
         Swal.fire({
           title: "Sucesso!",
           html: `
@@ -417,12 +485,12 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
         navigate("/sales/orders");
       } else {
         Swal.fire("Erro", `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido.`, "error");
-        if (!editMode) refreshOrderNumber();
+        setDraftStatus('Rascunho preservado. Confira o resultado do envio antes de alterar o número do pedido.');
       }
     } catch (err) {
       console.error(`Erro ao ${editMode ? 'atualizar' : 'criar'} pedido:`, err);
       Swal.fire("Erro", `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido.`, "error");
-      if (!editMode) refreshOrderNumber();
+      setDraftStatus('Rascunho preservado. Confira o resultado do envio antes de alterar o número do pedido.');
     } finally {
       setIsSubmitting(false);
     }
@@ -433,6 +501,11 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
+        <div className="mb-4 rounded border border-blue-200 bg-blue-50 p-3 text-sm" role="status">
+          <strong>{draftStatus}</strong>
+          <p>Rascunho protegido por usuário e CNPJ. A sincronização salva uma cópia online; não reserva estoque nem finaliza a venda.</p>
+          <button type="button" className="mt-2 underline" onClick={()=>{void persistDraft().then(()=>syncLocalDrafts(scope)).catch(error=>setDraftStatus(error.message));}}>Salvar e sincronizar agora</button>
+        </div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             {activeLegalEntity && (
@@ -511,7 +584,7 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
                   <input
                     {...register("salesperson", {
                       required: "Vendedor é obrigatório",
-                      validate: () => isSalesPerson || "Apenas vendedores do setor comercial podem criar pedidos"
+                      validate: () => canSaveOrder || "Sem permissão para salvar pedidos"
                     })}
                     className={`w-full border rounded-lg p-3 ${errors.salesperson ? "border-red-300" : "border-gray-300"
                       } ${isSalesPerson ? "bg-gray-100 cursor-not-allowed" : ""}`}
@@ -765,13 +838,13 @@ export default function OrderForm({ editMode = false, initialData, orderId }: Or
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || !isSalesPerson}
-                className={`px-6 py-3 rounded-lg transition-colors ${isSalesPerson
+                disabled={isSubmitting || !canSaveOrder}
+                className={`px-6 py-3 rounded-lg transition-colors ${canSaveOrder
                   ? "bg-slate-800 text-white hover:bg-slate-900"
                   : "bg-gray-400 text-gray-200 cursor-not-allowed"
                   } disabled:opacity-50`}
               >
-                {!isSalesPerson
+                {!canSaveOrder
                   ? "Acesso Restrito"
                   : isSubmitting
                     ? (editMode ? "Atualizando..." : "Criando...")

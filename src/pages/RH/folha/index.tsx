@@ -413,22 +413,37 @@ export default function PayrollPage() {
     const confirmed = await Swal.fire({
       icon: "question",
       title: "Calcular competência?",
-      text: "O cálculo usa o salário base configurado e somente os eventos lançados. Nenhum imposto ou alíquota legal é presumido.",
+      input: "select",
+      inputOptions: {managerial: "Gerencial — salário e eventos", clt_monthly_2026: "CLT mensal padrão 2026 — INSS, IRRF e FGTS"},
+      inputValue: "managerial",
+      text: "Escolha o modelo. O padrão CLT usa tabelas oficiais de 2026 e aceita somente salário-base integral, sem eventos.",
       showCancelButton: true,
       confirmButtonText: "Calcular",
       cancelButtonText: "Cancelar",
     });
     if (!confirmed.isConfirmed) return;
+    let options;
+    if (confirmed.value === 'clt_monthly_2026') {
+      const scope = await Swal.fire({
+        title: 'Enquadramento CLT mensal padrão',
+        text: 'Confirme: todos os vínculos são CLT ordinários, mês integral, vínculo único, sem dependentes, pensão, afastamentos, adiantamentos ou outros pagamentos no mês. Não inclui férias, 13º, rescisão, aprendiz, doméstico, encargos patronais além do FGTS ou eSocial. Informe pagamento no mesmo mês da competência.',
+        input: 'date', inputValue: new Date().toISOString().slice(0,10),
+        showCancelButton: true, confirmButtonText: 'Confirmar enquadramento e calcular',
+        inputValidator: value => value?.slice(0,7) === item.label ? undefined : 'Informe pagamento no mês da competência.',
+      });
+      if (!scope.isConfirmed) return;
+      options = {model:'clt_monthly_2026',paymentDate:String(scope.value),confirmStandardScope:true};
+    }
     setActionLoading(true);
     setError(null);
-    const response = await calculatePayroll(item.id);
+    const response = await calculatePayroll(item.id, options);
     setActionLoading(false);
     if (!response.ok) {
       setError(response.error || "Não foi possível calcular a folha.");
       return;
     }
     setSuccess(
-      "Cálculo gerencial concluído. Confira a memória de cálculo antes de aprovar."
+      "Cálculo concluído. Confira o modelo e a memória de cálculo antes de aprovar."
     );
     await refreshDetail(item.id);
   };
@@ -663,13 +678,13 @@ export default function PayrollPage() {
             <ShieldCheck className="mt-0.5 h-5 w-5 flex-none" />
             <div>
               <p className="font-semibold">
-                Cálculo gerencial — não substitui a folha legal
+                Folha: modelo gerencial ou CLT mensal padrão 2026
               </p>
               <p className="mt-1 text-xs">
-                O Konexus não insere alíquotas de INSS, IRRF, FGTS ou outras
-                obrigações sem fonte normativa e vigência informadas pelo responsável.
-                Nenhum holerite, guia ou transmissão ao eSocial é gerado por esta
-                tela. O líquido apresentado é gerencial.
+                O modelo CLT padrão usa fontes oficiais de 2026 e enquadramento
+                mensal restrito, confirmado antes do cálculo. O modelo gerencial
+                usa somente salário e eventos configurados. Confira a memória de
+                cada cálculo. Esta tela não emite guias nem transmite eSocial.
               </p>
             </div>
           </div>
@@ -1867,6 +1882,11 @@ export default function PayrollPage() {
                           <ChevronDown className="h-4 w-4" />
                         </span>
                       </summary>
+                      {entry.snapshot?.statutory && <div className="p-3 text-sm bg-blue-50">
+                        <p>Modelo {entry.snapshot.statutory.model} · pagamento {entry.snapshot.statutory.paymentDate}</p>
+                        <p>Base IRRF {formatMoney(entry.snapshot.statutory.irrfBase)} · FGTS do empregador {formatMoney(entry.snapshot.statutory.fgtsEmployer)} (não descontado do empregado).</p>
+                        <p className="text-xs">{entry.snapshot.statutory.scope}</p>
+                      </div>}
                       <div className="overflow-x-auto border-t border-slate-100">
                         <table className="min-w-full divide-y divide-slate-100 text-xs">
                           <thead className="bg-slate-50 text-left uppercase tracking-wide text-slate-500">

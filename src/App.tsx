@@ -7,6 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { NetworkProvider } from "./NetWorkContext";
 import { NetworkToastManager } from "./utils/NetWorkToastManager";
 import { ReauthProvider } from "./components/Reauth";
+import DraftSync from './offline/DraftSync';
 
 
 const App = () => {
@@ -18,6 +19,7 @@ const App = () => {
           <ChatProvider>  
             <ReauthProvider>
               <ToastContainer />
+              <DraftSync />
               <AppRoutes />
             </ReauthProvider>
           </ChatProvider>

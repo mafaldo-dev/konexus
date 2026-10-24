@@ -1,0 +1,25 @@
+{
+  "scope": "Rascunho de vendas e reconexão, não homologação offline de todos os módulos.",
+  "results": [
+    {
+      "name": "recupera rascunho durante queda",
+      "status": "Aprovado"
+    },
+    {
+      "name": "recupera após reinício da interface com API indisponível",
+      "status": "Aprovado"
+    },
+    {
+      "name": "conflito entre janelas preserva versão gravada",
+      "status": "Aprovado"
+    },
+    {
+      "name": "reconexão grava revisão no PostgreSQL",
+      "status": "Aprovado"
+    },
+    {
+      "name": "IndexedDB não armazena formulário em texto aberto",
+      "status": "Aprovado"
+    }
+  ]
+}

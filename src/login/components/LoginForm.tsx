@@ -1,4 +1,5 @@
 import globo from "../../assets/image/iconeGlobo.png";
+import { Link } from 'react-router-dom';
 
 interface LoginFormProps {
   handleSubmit: (e: React.FormEvent) => void;
@@ -40,6 +41,7 @@ export default function LoginForm({ handleSubmit, loading, error, setCredentials
                     </button>
                     {error && <p className="text-red-500 text-sm text-center">{error}</p>}
                 </form>
+                <Link className="block mt-4 text-sm underline text-center" to="/offline">Recuperar rascunho offline</Link>
 
                 <div className="flex items-center justify-end mt-6 text-sm">
                     <div className="flex items-center gap-2">

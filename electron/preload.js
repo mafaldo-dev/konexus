@@ -23,8 +23,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     if (!send.has(channel)) throw new Error('Canal IPC não permitido');
     ipcRenderer.send(channel, ...args);
   },
-  invoke(channel) {
-    if (!['get_update_status','get_installation'].includes(channel)) throw new Error('Canal IPC não permitido');
-    return ipcRenderer.invoke(channel);
+  invoke(channel, value) {
+    if (!['get_update_status','get_installation','draft-encrypt','draft-decrypt'].includes(channel)) throw new Error('Canal IPC não permitido');
+    return ipcRenderer.invoke(channel, value);
   },
 });

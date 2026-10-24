@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, dialog, safeStorage } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
@@ -169,6 +169,13 @@ function startNetworkMonitor(win) {
 }
 
 // ✅ HANDLER PARA SALVAR EXCEL
+for (const channel of ['draft-encrypt','draft-decrypt']) {
+  ipcMain.handle(channel,(event,value)=>{
+    if(!trustedSender(event)||typeof value!=='string'||value.length>300000)throw new Error('Rascunho inválido.');
+    if(!safeStorage.isEncryptionAvailable() || (process.platform==='linux' && safeStorage.getSelectedStorageBackend()==='basic_text'))throw new Error('Cofre do sistema indisponível; armazenamento offline criptografado não disponível.');
+    return channel==='draft-encrypt'?safeStorage.encryptString(value).toString('base64'):safeStorage.decryptString(Buffer.from(value,'base64'));
+  });
+}
 ipcMain.on("save-excel-file", async (event, payload) => {
   const { fileName, buffer } = payload || {};
   if (!trustedSender(event) || typeof fileName !== 'string' || fileName.length > 200 ||

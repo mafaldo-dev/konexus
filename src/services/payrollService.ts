@@ -67,6 +67,7 @@ export interface PayrollEntryItem {
 }
 
 export interface PayrollEntry {
+  snapshot?: { statutory?: { model: string; inss: number; irrf: number; fgtsEmployer: number; paymentDate: string; irrfBase: number; scope: string } | null };
   id: number;
   contributor_id: number;
   contributor_name: string;
@@ -261,10 +262,11 @@ export async function deletePayrollEvent(
 }
 
 export async function calculatePayroll(
-  id: number | string
+  id: number | string,
+  options?: { model: string; paymentDate: string; confirmStandardScope: boolean }
 ): Promise<ApiResponse<PayrollCompetency>> {
   return asObject<PayrollCompetency>(
-    await apiClient.post(`${base}/competencies/${id}/calculate`),
+    await apiClient.post(`${base}/competencies/${id}/calculate`, options),
     ["data"],
     "cálculo da folha"
   );
