@@ -48,6 +48,7 @@ As mudanças desta etapa ficam em `feat/offline-isolated`, separadas de `main` e
 - Se a chave sumir, o aplicativo **não cria outra** silenciosamente sobre um banco existente: ele falha e preserva os arquivos para recuperação.
 - Se o cofre estiver indisponível (por exemplo, Linux sem keyring), o SQLite não abre e o app não grava rascunho em texto aberto. O restante do sistema online continua funcionando.
 - Antes de restaurar um backup, feche o aplicativo; restaure banco e chave no mesmo diretório; abra o app e confira a contagem de pendências. Um backup antigo não deve ser usado como verdade absoluta: o servidor idempotente devolve a mesma confirmação e não duplica a revisão, mas operações posteriores podem ter sido perdidas no intervalo.
+- O módulo `node:sqlite` ainda é marcado como experimental no Electron 45/Node 24. A versão do Electron está fixada; qualquer atualização precisa reexecutar os testes de SQLite, migração, backup e Windows antes de publicar.
 
 ## Arquitetura necessária para todos os setores
 
