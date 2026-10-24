@@ -38,7 +38,7 @@ O navegador continua usando IndexedDB cifrado e ainda depende de carregar os arq
 - Criptografia Windows anterior: **aprovada** em [run 40098318327](https://github.com/mafaldo-dev/konexus/actions/runs/40098318327), commit `330a6c5` (somente `safeStorage`, antes do SQLite).
 - **SQLite no Windows instalado (histórico, somente rascunhos): aprovado** em [run 40101652759](https://github.com/mafaldo-dev/konexus/actions/runs/40101652759), commit `af7773c`.
 - **Execução Windows (histórico, somente rascunhos): aprovada** em [run 40102304004](https://github.com/mafaldo-dev/konexus/actions/runs/40102304004), commit `baacbca`. Revalidou instalação NSIS, SQLite persistente após reinício, backup, cofre, identidade, desinstalação, **131 testes frontend**, **37 Electron** e audit zero.
-- **Windows para o commit atual com reservas: pendente.** As execuções acima precedem a reserva por estação e não validam este código. Não declarar o instalador atual aprovado antes do resultado do workflow `windows-validation.yml`.
+- **Windows no commit atual: aprovado** em [run 40109176563](https://github.com/mafaldo-dev/konexus/actions/runs/40109176563), commit `0cfd06d`. Revalidou instalação NSIS, login renderizado, identidade persistente, cofre, SQLite real, rascunho persistente após reinício, backup cifrado, desinstalação, **146 testes frontend**, **46 Electron**, audit zero e build. O smoke Windows não cria reserva/pedido offline porque não sobe API/PostgreSQL no runner; o fluxo de reserva foi homologado no Linux contra PostgreSQL local.
 
 As mudanças desta etapa ficam em `feat/offline-isolated`, separadas de `main` e do Neon de produção. Nenhuma migration 019/020 foi aplicada ao banco de produção e nenhuma nova release foi publicada.
 
