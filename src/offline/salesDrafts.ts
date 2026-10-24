@@ -5,7 +5,13 @@ type Envelope = { native: true; value: string } | { native: false; iv: Uint8Arra
 export type LocalDraft = DraftScope & { key: string; draftId: string; revisionId: string; updatedAt: string; synced: boolean; error?: string; encrypted?: Envelope; storage?: 'sqlite' };
 export type StorageStatus = { engine: 'sqlite' | 'indexeddb'; schemaVersion: number; pending: number; leased: number; blocked: number };
 const nativeStorage = () => Boolean((window as any).ipcRenderer);
-const nativeCall = <T,>(method:string,args:Record<string,unknown>):Promise<T> => (window as any).ipcRenderer.invoke('offline-store',{method,...args});
+const nativeCall = async <T,>(method:string,args:Record<string,unknown>):Promise<T> => {
+  try{return await (window as any).ipcRenderer.invoke('offline-store',{method,...args});}
+  catch(error){
+    const message=String(error instanceof Error?error.message:error).replace(/^Error invoking remote method '[^']+':\s*(Error:\s*)?/,'');
+    throw new Error(message);
+  }
+};
 const scopeOf = (row:LocalDraft):DraftScope => ({companyId:row.companyId,legalEntityId:row.legalEntityId,userId:row.userId});
 const slotOf = (row:LocalDraft) => row.key.split(':').slice(3).join(':');
 let databasePromise: Promise<IDBDatabase> | undefined;

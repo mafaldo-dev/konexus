@@ -121,7 +121,7 @@ class OfflineStore {
     const draftId = ids.draftId || previous?.draft_id || randomUUID(), revisionId = ids.revisionId || randomUUID();
     const encrypted = this.encrypt(`${key}:${revisionId}:${draftId}`, text), updatedAt = new Date(this.now()).toISOString();
     this.db.prepare(`INSERT INTO offline_documents(key,company_id,legal_entity_id,user_id,slot,draft_id,revision_id,updated_at,encrypted,synced_revision)
-      VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET revision_id=excluded.revision_id,updated_at=excluded.updated_at,encrypted=excluded.encrypted,error_code=NULL,synced_revision=excluded.synced_revision`)
+      VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET draft_id=excluded.draft_id,revision_id=excluded.revision_id,updated_at=excluded.updated_at,encrypted=excluded.encrypted,error_code=NULL,synced_revision=excluded.synced_revision`)
       .run(key, scope.companyId, scope.legalEntityId, scope.userId, slot || 'new', draftId, revisionId, updatedAt, encrypted, ids.synced ? revisionId : previous?.synced_revision || null);
     // Coalesce edições de rascunho ainda não enviadas, preservando operações em trânsito.
     this.db.prepare("DELETE FROM offline_outbox WHERE document_key=? AND state<>'leased'").run(key);
@@ -211,13 +211,14 @@ class OfflineStore {
   }
   clear(scope, slot, expectedRevision) {
     const key = recordKey(scope, slot);
+    if (!UUID.test(expectedRevision || '')) fail('INVALID_REVISION', 'Revisão local inválida.');
     return this.transaction(() => ({ deleted: this.db.prepare('DELETE FROM offline_documents WHERE key=? AND revision_id=?').run(key, expectedRevision).changes === 1 }));
   }
   stats(scope) {
     validateScope(scope);
     const counts = this.db.prepare(`SELECT o.state,count(*) AS count FROM offline_outbox o JOIN offline_documents d ON d.key=o.document_key
       WHERE d.company_id=? AND d.legal_entity_id=? AND d.user_id=? GROUP BY o.state`).all(scope.companyId, scope.legalEntityId, scope.userId);
-    return { engine: 'sqlite', schemaVersion: 1, pending: 0, leased: 0, blocked: 0, ...Object.fromEntries(counts.map(row => [row.state, row.count])) };
+    return { engine: 'sqlite', schemaVersion: this.db.prepare('PRAGMA user_version').get().user_version, pending: 0, leased: 0, blocked: 0, ...Object.fromEntries(counts.map(row => [row.state, row.count])) };
   }
   backup(destination) {
     if (!path.isAbsolute(destination) || fs.existsSync(destination)) throw new Error('Destino de backup inválido.');
