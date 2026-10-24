@@ -8,7 +8,7 @@
 
 ## Estado real desta branch
 
-**O ERP integral offline ainda não está implementado.** O desktop já cobre rascunhos de vendas e pedidos de venda com reserva de estoque por estação. Não há réplica local de estoque para os demais setores, financeiro, compras, folha, contábil, fiscal ou CRM, nem reserva por dispositivo para títulos, competências ou documentos fiscais. Não publicar esta branch como "offline completo".
+**O ERP integral offline ainda não está implementado.** O desktop já cobre rascunhos de vendas e pedidos de venda com reserva de estoque por estação. Também existe reserva central por estação para títulos financeiros, competências de folha e períodos contábeis, com consumo transacional nas operações finais. Ainda não há réplica local nem fila offline para financeiro, compras, folha, contábil, fiscal ou CRM; documentos fiscais e os demais setores continuam sem reserva por dispositivo. Não publicar esta branch como "offline completo".
 
 ## Atualização em andamento — fechamento do offline de vendas
 
@@ -18,7 +18,7 @@ Trabalho na branch `feat/offline-sales-closure`, ainda **não publicado**. Ele f
 - **Administração de reservas**: a área `/offline` agora expõe, para quem tem `vendas.edit`, todas as reservas do CNPJ (`GET /orders/reservations/all`) com usuário, estação, estado, quantidade, validade e pedido. A reconciliação (`POST /orders/reservations/:id/reconcile`) exige motivo e reautenticação. O item também aparece em Vendas → Reservas offline para Administrador/Gestor/Gerente.
 - **NF-e de pedido offline**: pedido offline nasce com `nfe_status=aguardando_aprovacao` e **não** agenda emissão na criação. A transição para `approved` em `PUT /orders/:id/status` reivindica a emissão uma única vez e agenda a NF-e. Pedido online mantém o comportamento anterior; a definição fiscal para pedido online pendente continua pendente.
 
-Validação executada nesta etapa: backend **190/190**, frontend **148/148**, `tsc --noEmit` e build Vite aprovados, integração SQLite/API/PostgreSQL de reservas **11/11**. Os 46 testes Electron não foram reexecutados nesta etapa porque o schema SQLite não mudou. A migration 021 ainda exige backup, restauração validada e preflight antes do Neon; a branch não foi mergeada nem publicada.
+Validação executada nesta etapa: backend **201/201**, frontend **152/152**, `tsc --noEmit`, build Vite e Electron **46/46** aprovados; integração SQLite/API/PostgreSQL de reservas de estoque **11/11** e de reservas de domínio **10/10**. A migration 021 ainda exige backup, restauração validada e preflight antes do Neon; a branch não foi mergeada nem publicada. A migration 022, que cria as reservas de domínio, também está apenas nos bancos locais de teste.
 
 Entregue nesta etapa:
 - **SQLite real no processo principal do Electron** (`node:sqlite` do Electron 45), com WAL, `synchronous=FULL`, foreign keys, transações `BEGIN IMMEDIATE`, verificação de integridade na abertura e schema versionado (`user_version=2`).
@@ -76,6 +76,34 @@ O fluxo entregue é deliberadamente restrito a vendas com estoque:
 
 O que a reserva **não** vincula: preço unitário, desconto, total, cliente, vendedor, frete ou condição de pagamento. Esses campos continuam vindo do cliente e o servidor não recalcula o total a partir de uma tabela de preços. A reserva garante exclusividade de estoque/escopo/estação, não a exatidão comercial do pedido.
 
+## Atualização em andamento — reservas financeiras, de folha e contábeis
+
+Trabalho na branch `feat/offline-sales-closure`, ainda **não publicado nem aplicado no Neon**. A migration aditiva `022_domain_reservations.sql` cria a reserva central de um alvo por estação, sempre no escopo `organização + CNPJ`:
+
+- **Financeiro a receber**: `order_payments` com status `pending`, `overdue` ou `due_today`.
+- **Financeiro a pagar**: `payment_account` com status `pending` ou `overdue`.
+- **Folha**: `payroll_competencies` com status `open`, `calculated` ou `approved`.
+- **Contábil**: `accounting_periods` com status `open` ou `closed`.
+
+Cada reserva tem UUID, token de posse devolvido uma única vez, hash SHA-256 do token, usuário, estação registrada, CNPJ, validade (5 minutos a 7 dias), correlação e estados `active`/`consumed`/`cancelled`. A criação usa lock consultivo transacional e um índice único parcial sobre o alvo ativo; duas estações não conseguem reservar o mesmo título, competência ou período. Expiração **não** libera o alvo automaticamente: o consumo tardio é permitido e marcado, e a liberação exige cancelamento do dono ou reconciliação administrativa com motivo e reautenticação.
+
+Endpoints entregues (todos exigem sessão, empresa, módulo, permissão, CNPJ e, para criação/cancelamento, estação registrada):
+
+| Domínio | Criar/listar da estação | Listar organização | Cancelar | Reconciliar |
+|---|---|---|---|---|
+| A receber | `POST/GET /offline-reservations/financial-receivables` | `GET .../all` | `POST .../:id/cancel` | `POST .../:id/reconcile` |
+| A pagar | `POST/GET /offline-reservations/financial-payables` | `GET .../all` | `POST .../:id/cancel` | `POST .../:id/reconcile` |
+| Folha | `POST/GET /offline-reservations/payroll-competencies` | `GET .../all` | `POST .../:id/cancel` | `POST .../:id/reconcile` |
+| Contábil | `POST/GET /offline-reservations/accounting-periods` | `GET .../all` | `POST .../:id/cancel` | `POST .../:id/reconcile` |
+
+Permissões: `finance.approve` para reservar título a receber, `finance.edit` para conta a pagar e reconciliação financeira, `rh.approve_payroll` para folha e `contabil.manage_periods` para período contábil. Todas as mutações estão na matriz central de auditoria e exigem `X-Reauth-Grant`.
+
+O consumo foi integrado às operações finais quando o cliente envia `reservationId` e `reservationToken` no corpo: `PUT /payments/:id/mark-payd`, `PUT /payment/accounts/:id` com `payment_status=paid`, `POST /rh/payroll/competencies/:id/close` e `POST /accounting/periods/:id/close|reopen|lock`. A reserva é validada e consumida na **mesma transação** da alteração; sem os campos de reserva, o comportamento online anterior permanece. A operação offline completa desses setores (réplica local, outbox e UI de criação) ainda não foi entregue.
+
+A área `/offline` ganhou uma seção administrativa de reservas de domínio para quem tem `finance.edit`, `rh.approve_payroll` ou `contabil.manage_periods`. Ela lista apenas reservas ativas do CNPJ e permite reconciliação com motivo e reautenticação; não cria reservas. A criação será ligada aos fluxos offline de cada setor.
+
+Validação executada: backend **201/201**, frontend **152/152**, Electron **46/46**, `tsc --noEmit` e build Vite aprovados; integração real PostgreSQL de reservas de domínio **10/10** (concorrência entre estações, escopo por CNPJ, token, alvo exato, expiração, cancelamento, reconciliação, consumo em pagamento/conta a pagar/fechamento de folha/fechamento contábil). A migration 022 foi aplicada e testada apenas em `konexus_multi_test` e `konexus_e2e`; **não foi aplicada no Neon**.
+
 ## Limitações conhecidas desta etapa
 
 - A UI administrativa de reservas está dentro da área `/offline` e exige `vendas.edit`; não há página dedicada, filtros avançados nem ações em lote.
@@ -84,7 +112,7 @@ O que a reserva **não** vincula: preço unitário, desconto, total, cliente, ve
 - A migration `021_order_number_uniqueness.sql` foi aplicada e validada apenas nos bancos locais de teste. O Neon ainda não tem a constraint; até o backup, preflight e aplicação, a proteção contra duplicidade concorrente no banco de produção não está ativa.
 - A emissão assíncrona de NF-e para pedido **online** pendente continua agendada na criação. A correção desta etapa cobre apenas o pedido offline, que nasce `aguardando_aprovacao`; a definição fiscal do fluxo online pendente continua pendente.
 - A emissão de NF-e continua sem homologação com credenciais reais da PlugNotas; o teste usa um serviço simulado.
-- Reservas por dispositivo para títulos financeiros, competências de folha/contábil e documentos fiscais não existem. O restante da matriz continua pendente.
+- A reserva central por dispositivo já existe para títulos financeiros, competências de folha e períodos contábeis, com consumo transacional nas operações finais. Ainda não existem réplica local, outbox, edição offline nem UI de criação para esses setores; documentos fiscais e o restante da matriz continuam pendentes. A migration 022 também não foi aplicada no Neon.
 - O navegador não cria reserva nem opera pedido offline; continua em rascunho IndexedDB e pedido online.
 - Não houve pentest externo nem validação exaustiva de superfície de ataque. Segurança absoluta não pode ser garantida.
 - O smoke Windows valida instalação, cofre, SQLite, rascunho e backup; ele não executa o fluxo de reserva/pedido offline contra API/PostgreSQL. Esse fluxo foi homologado no Linux; uma execução Windows com backend local ainda é desejável.
@@ -101,8 +129,8 @@ Cada dispositivo precisa de quatro componentes, além da UI:
 ### Reservas por dispositivo
 
 - Estoque: reservar quantidades por produto/CNPJ/dispositivo **no banco central**, descontando-as da disponibilidade dos demais dispositivos e da venda online. Entregue para vendas; os demais setores continuam pendentes.
-- Financeiro: conceder exclusividade sobre títulos e limites de caixa. Não permitir duas máquinas liquidarem o mesmo título, nem presumir saldo de banco externo atualizado.
-- Folha/contábil: autoridade exclusiva sobre competência/período para aprovação e fechamento. Demais dispositivos podem preparar registros para revisão sem fechar o mesmo período.
+- Financeiro: exclusividade central sobre títulos entregue para contas a receber e a pagar; o consumo ocorre na baixa/pagamento. Ainda faltam réplica local, fila offline e limites de caixa; não presumir saldo de banco externo atualizado.
+- Folha/contábil: exclusividade central sobre competência/período entregue; o fechamento consome a reserva. Ainda faltam réplica local e outbox para preparar registros offline; demais dispositivos não podem fechar o mesmo período.
 - Cadastros/CRM/RH: IDs globais e controle de versão. Edições concorrentes com conteúdo incompatível vão para resolução explícita; não aplicar "último a gravar vence" a dados sensíveis.
 - **Expiração não devolve automaticamente a cota ao estoque central**: a máquina pode ter consumido a cota antes de ficar isolada. A devolução exige reconciliação ou procedimento administrativo que trate essa incerteza.
 - Perda/roubo/restauração de backup do dispositivo não pode reapresentar cotas consumidas. O servidor precisa manter consumo monotônico, IDs de operação e trilha auditável.
@@ -125,7 +153,7 @@ Cada dispositivo precisa de quatro componentes, além da UI:
 | Fiscal | Preparar documento e acompanhar pendência | NF-e autorizada somente por resposta real; contingência exige modalidade fiscal válida |
 | Administração | Consultar configuração previamente autorizada | Mudança de privilégios globais, contratação e revogação exigem coordenação online |
 
-Esta matriz é um **contrato de implementação pendente**, não uma lista de funcionalidades offline já entregues. A linha **Vendas** está entregue somente no fluxo de reserva de estoque/pedido offline descrito acima; as demais linhas continuam pendentes.
+Esta matriz é um **contrato de implementação pendente**, não uma lista de funcionalidades offline já entregues. **Vendas** está entregue somente no fluxo de reserva de estoque/pedido offline descrito acima. **Financeiro** e **Folha/Contábil** têm reserva central e consumo transacional nas operações finais, mas ainda não têm réplica local, fila offline nem UI de criação; as demais linhas continuam pendentes.
 
 ## Critérios de aceite antes de produção
 

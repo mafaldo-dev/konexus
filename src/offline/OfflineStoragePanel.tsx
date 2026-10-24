@@ -2,16 +2,23 @@ import {useEffect,useState} from 'react';
 import {useAuth} from '../AuthContext';
 import {backupLocalStorage,DraftScope,getLocalStorageStatus,nativeStorage,StorageStatus} from './salesDrafts';
 import {canReconcileReservation,cancelReservation,listAllServerReservations,listReservations,listServerReservations,reconcileReservation,syncOfflineOrders,StockReservation} from './stockReservations';
+import {canReconcileDomainReservation,DOMAIN_RESERVATION_ENDPOINTS,DomainReservation,listAllDomainReservations,reconcileDomainReservation} from './domainReservations';
 import Swal from 'sweetalert2';
 
 export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
   const {hasPermission}=useAuth();
   const canAdmin=hasPermission('vendas','edit');
+  const canFinanceAdmin=hasPermission('finance','edit');
+  const canPayrollAdmin=hasPermission('rh','approve_payroll');
+  const canAccountingAdmin=hasPermission('contabil','manage_periods');
   const [status,setStatus]=useState<StorageStatus|null>(null);
   const [error,setError]=useState(''),[backup,setBackup]=useState(''),[busy,setBusy]=useState(false),[syncing,setSyncing]=useState(false);
   const [orphans,setOrphans]=useState<StockReservation[]>([]),[serverError,setServerError]=useState('');
   const [allReservations,setAllReservations]=useState<StockReservation[]>([]),[adminError,setAdminError]=useState('');
   const [reconciling,setReconciling]=useState<string|null>(null);
+  const [domainGroups,setDomainGroups]=useState<Array<{path:string;label:string;items:DomainReservation[]}>>([]);
+  const [domainError,setDomainError]=useState(''),[domainBusy,setDomainBusy]=useState<string|null>(null);
+  const [domainRefresh,setDomainRefresh]=useState(0);
   useEffect(()=>{
     let live=true;
     const refresh=()=>{void getLocalStorageStatus(scope).then(value=>{if(live){setStatus(value);setError('');}}).catch(e=>{if(live)setError(e.message);});};
@@ -54,6 +61,26 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
     window.addEventListener('online',changed);
     return()=>{live=false;window.removeEventListener('konexus:offline-orders-changed',changed);window.removeEventListener('online',changed);};
   },[scope.companyId,scope.legalEntityId,canAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{
+    const entries=[
+      ...(canFinanceAdmin?[DOMAIN_RESERVATION_ENDPOINTS.receivable,DOMAIN_RESERVATION_ENDPOINTS.payable]:[]),
+      ...(canPayrollAdmin?[DOMAIN_RESERVATION_ENDPOINTS.payroll]:[]),
+      ...(canAccountingAdmin?[DOMAIN_RESERVATION_ENDPOINTS.accounting]:[]),
+    ];
+    if(entries.length===0){setDomainGroups([]);setDomainError('');return;}
+    if(!navigator.onLine)return;
+    let live=true;
+    void Promise.all(entries.map(async entry=>({...entry,items:await listAllDomainReservations(scope,entry.path)})))
+      .then(groups=>{if(live){setDomainGroups(groups);setDomainError('');}})
+      .catch(e=>{if(live)setDomainError(e instanceof Error?e.message:String(e));});
+    return()=>{live=false;};
+  },[scope.companyId,scope.legalEntityId,canFinanceAdmin,canPayrollAdmin,canAccountingAdmin,domainRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{
+    const changed=()=>setDomainRefresh(value=>value+1);
+    window.addEventListener('konexus:domain-reservations-changed',changed);
+    window.addEventListener('online',changed);
+    return()=>{window.removeEventListener('konexus:domain-reservations-changed',changed);window.removeEventListener('online',changed);};
+  },[]);
   const createBackup=async()=>{
     setBusy(true);setError('');
     try{const result=await backupLocalStorage();setBackup(`${result.directory} — ${result.keyProtection}`);}
@@ -95,6 +122,25 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
       await Swal.fire('Reserva reconciliada','O estoque voltou ao saldo livre na central.','success');
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível reconciliar a reserva na central.');}
     finally{setReconciling(null);}
+  };
+  const reconcileDomain=async(group:{path:string;label:string},reservation:DomainReservation)=>{
+    const input=await Swal.fire({
+      title:'Reconciliar reserva?',
+      text:`${group.label}: alvo #${reservation.targetId??'—'} da estação #${reservation.deviceId} (${reservation.userName||'usuário não identificado'}). A liberação exige confirmação de senha.`,
+      input:'textarea',
+      inputLabel:'Motivo da reconciliação',
+      inputPlaceholder:'Ex.: estação perdida, resposta não recebida, operação cancelada antes do envio…',
+      inputValidator:(value)=>value?.trim().length>=5?undefined:'Informe um motivo com pelo menos 5 caracteres.',
+      icon:'warning',showCancelButton:true,confirmButtonText:'Reconciliar',cancelButtonText:'Manter'
+    });
+    if(!input.isConfirmed)return;
+    setDomainBusy(reservation.id);setDomainError('');
+    try{
+      await reconcileDomainReservation(scope,group.path,reservation.id,String(input.value||''));
+      setDomainRefresh(value=>value+1);
+      await Swal.fire('Reserva reconciliada','O alvo voltou a ficar disponível na central.','success');
+    }catch(e){setDomainError(e instanceof Error?e.message:'Não foi possível reconciliar a reserva na central.');}
+    finally{setDomainBusy(null);}
   };
   const syncOrders=async()=>{
     setSyncing(true);setError('');
@@ -145,6 +191,36 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
             </li>)}
           </ul>}
       {adminError&&<p role="alert" className="text-amber-800">Administração: {adminError}</p>}
+    </div>}
+    {(canFinanceAdmin||canPayrollAdmin||canAccountingAdmin)&&<div className="rounded border border-slate-300 bg-slate-50 p-2" aria-label="Reservas financeiras, de folha e contábeis">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-medium">Reservas financeiras, de folha e contábeis</p>
+        <button type="button" className="underline text-xs" onClick={()=>setDomainRefresh(value=>value+1)}>Atualizar</button>
+      </div>
+      <p className="text-xs text-slate-600">Somente reservas ativas. Reconciliar libera o alvo na central; exige reautenticação e motivo. O consumo ocorre na operação final do título, competência ou período.</p>
+      {!navigator.onLine?<p className="text-xs text-amber-800">Conecte-se à central para consultar e reconciliar reservas.</p>
+        :domainGroups.every(group=>group.items.every(item=>item.status!=='active'))?<p className="text-xs">Nenhuma reserva ativa para este CNPJ.</p>
+          :domainGroups.map(group=>{
+            const items=group.items.filter(item=>item.status==='active');
+            if(items.length===0)return null;
+            return <div key={group.path} className="mt-2">
+              <p className="text-xs font-medium">{group.label}</p>
+              <ul className="space-y-1">
+                {items.map(reservation=><li key={reservation.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-1">
+                  <span className="text-xs">
+                    <span className="font-mono">{reservation.id.slice(0,8)}…</span>
+                    {' · '}alvo #{reservation.targetId??'—'}
+                    {' · '}{reservation.userName||'usuário não identificado'}
+                    {' · '}estação #{reservation.deviceId}{reservation.deviceName?` (${reservation.deviceName})`:''}
+                    {' · '}{reservation.effectiveStatus}
+                    {' · '}expira {new Date(reservation.expiresAt).toLocaleString('pt-BR')}
+                  </span>
+                  {canReconcileDomainReservation(reservation)&&<button type="button" className="rounded border border-amber-300 bg-white px-2 py-1 text-xs text-amber-900" disabled={domainBusy===reservation.id||!navigator.onLine} onClick={()=>{void reconcileDomain(group,reservation);}}>{domainBusy===reservation.id?'Reconciliando…':'Reconciliar'}</button>}
+                </li>)}
+              </ul>
+            </div>;
+          })}
+      {domainError&&<p role="alert" className="text-amber-800">Reservas: {domainError}</p>}
     </div>}
     {backup&&<p className="break-all">Backup criado: {backup}</p>}
     {serverError&&<p role="alert" className="text-amber-800">Central: {serverError}</p>}
