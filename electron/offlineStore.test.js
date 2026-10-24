@@ -137,6 +137,39 @@ test('dois dispositivos isolados não compartilham arquivo nem enxergam rascunho
   assert.equal(deviceA.stats(scope).pending, 1);
   assert.equal(deviceB.stats(scope).pending, 1);
 });
+test('cofre protegido cria chave, reabre, faz backup e recusa banco sem chave', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'konexus-vault-'));
+  const installation = randomUUID();
+  const safeStorage = {
+    isEncryptionAvailable: () => true,
+    getSelectedStorageBackend: () => 'dpapi',
+    encryptString: value => Buffer.from(`vault:${value}`),
+    decryptString: value => value.toString().slice(6),
+  };
+  const opened = [];
+  t.after(() => { for (const item of opened) { try { item.close(); } catch {} } fs.rmSync(directory, { recursive: true, force: true }); });
+  const first = openProtectedStore(directory, safeStorage, installation);
+  opened.push(first.store);
+  const row = first.store.save(scope, 'new', payload('segredo-do-cofre'), null);
+  const keyFile = path.join(directory, 'offline', 'key.v1.enc');
+  const dbFile = path.join(directory, 'offline', 'konexus.sqlite');
+  assert.equal(fs.existsSync(keyFile), true);
+  assert.equal(fs.existsSync(dbFile), true);
+  if (process.platform !== 'win32') assert.equal(fs.statSync(keyFile).mode & 0o777, 0o600);
+  const backup = first.backup();
+  assert.match(backup.sha256, /^[0-9a-f]{64}$/);
+  assert.equal(fs.existsSync(path.join(backup.directory, 'key.v1.enc')), true);
+  assert.equal(fs.readFileSync(path.join(backup.directory, 'konexus.sqlite')).includes(Buffer.from('segredo-do-cofre')), false);
+  first.store.close();
+  opened.splice(opened.indexOf(first.store), 1);
+  const reopened = openProtectedStore(directory, safeStorage, installation);
+  opened.push(reopened.store);
+  assert.equal(reopened.store.read(scope, 'new', row.revisionId).values.notes, 'segredo-do-cofre');
+  reopened.store.close();
+  opened.splice(opened.indexOf(reopened.store), 1);
+  fs.rmSync(keyFile);
+  assert.throws(() => openProtectedStore(directory, safeStorage, installation), /Chave local ausente/);
+});
 test('backup real reabre com documento e outbox íntegros; adulteração é detectada', t => {
   const f = fixture(t), store = f.open();
   const row = store.save(scope, 'new', payload('backup'), null);
