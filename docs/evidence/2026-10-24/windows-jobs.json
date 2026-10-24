@@ -1,0 +1,161 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 120885117894,
+      "run_id": 40098318327,
+      "workflow_name": "Windows installed application validation",
+      "head_branch": "feat/offline-isolated",
+      "run_url": "https://api.github.com/repos/mafaldo-dev/konexus/actions/runs/40098318327",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOOM2m8s8AAAAcJVCDxg",
+      "head_sha": "330a6c5abd35c1cf3887acb1fdd0662be0818c46",
+      "url": "https://api.github.com/repos/mafaldo-dev/konexus/actions/jobs/120885117894",
+      "html_url": "https://github.com/mafaldo-dev/konexus/actions/runs/40098318327/job/120885117894",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-24T13:28:59Z",
+      "started_at": "2026-10-24T13:29:00Z",
+      "completed_at": "2026-10-24T13:33:12Z",
+      "name": "installed-app",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-24T13:29:01Z",
+          "completed_at": "2026-10-24T13:29:02Z"
+        },
+        {
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-24T13:29:02Z",
+          "completed_at": "2026-10-24T13:29:08Z"
+        },
+        {
+          "name": "Run actions/setup-node@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-24T13:29:08Z",
+          "completed_at": "2026-10-24T13:29:21Z"
+        },
+        {
+          "name": "Run npm ci --legacy-peer-deps --no-fund",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-24T13:29:21Z",
+          "completed_at": "2026-10-24T13:29:51Z"
+        },
+        {
+          "name": "Run npm run test:frontend",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-24T13:29:51Z",
+          "completed_at": "2026-10-24T13:29:55Z"
+        },
+        {
+          "name": "Run npm run test:electron",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-24T13:29:55Z",
+          "completed_at": "2026-10-24T13:29:56Z"
+        },
+        {
+          "name": "Run npm audit --audit-level=low",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-24T13:29:56Z",
+          "completed_at": "2026-10-24T13:29:58Z"
+        },
+        {
+          "name": "Run npm run build",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-24T13:29:58Z",
+          "completed_at": "2026-10-24T13:30:41Z"
+        },
+        {
+          "name": "Build installer without publishing",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-24T13:30:41Z",
+          "completed_at": "2026-10-24T13:32:42Z"
+        },
+        {
+          "name": "Install NSIS and verify executable",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-24T13:32:42Z",
+          "completed_at": "2026-10-24T13:32:59Z"
+        },
+        {
+          "name": "Installed application and persistence smoke",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-24T13:32:59Z",
+          "completed_at": "2026-10-24T13:33:05Z"
+        },
+        {
+          "name": "Uninstall and verify removal",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-24T13:33:05Z",
+          "completed_at": "2026-10-24T13:33:07Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-24T13:33:07Z",
+          "completed_at": "2026-10-24T13:33:08Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-24T13:33:08Z",
+          "completed_at": "2026-10-24T13:33:08Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-24T13:33:08Z",
+          "completed_at": "2026-10-24T13:33:10Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-24T13:33:10Z",
+          "completed_at": "2026-10-24T13:33:10Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/mafaldo-dev/konexus/check-runs/120885117894",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000000023,
+      "runner_name": "GitHub Actions 1000000023",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

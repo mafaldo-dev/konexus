@@ -27,7 +27,7 @@ O navegador ainda depende de carregar os arquivos da aplicação; não foi entre
 - HTTP autenticado: 111 verificações aprovadas, incluindo deduplicação de pedidos, integridade de revisão, proprietário do rascunho, CNPJ e cálculo CLT persistente.
 - Frontend: TypeScript/build aprovados, 126 testes frontend e 24 Electron aprovados; audit npm sem alertas.
 - Browser: 6 verificações aprovadas — queda da API, recuperação após reinício, conflito entre janelas sem sobrescrita, resposta HTTP 200 com confirmação inválida rejeitada, reconexão com revisão persistida e ausência de formulário em texto aberto no objeto IndexedDB. A confirmação inválida é uma injeção de falha do teste, não um mock do produto.
-- Criptografia Windows: teste estendido para validar encrypt/decrypt e recuperação após reinício. Resultado dessa extensão só pode ser aprovado após execução do novo workflow.
+- Criptografia Windows: **aprovada** em [run 40098318327](https://github.com/mafaldo-dev/konexus/actions/runs/40098318327), commit `330a6c5`. Instalação NSIS, executável empacotado, encrypt/decrypt pelo cofre do SO, recuperação do texto cifrado após reinício, persistência da identidade e desinstalação passaram. Testes, build e audit também passaram no Windows. Não equivale a homologação de transações de todos os setores offline.
 
 A primeira execução Windows (`40098122732`) encontrou regressão no contrato de chamada de `calculatePayroll`: foi enviado um segundo argumento `undefined` onde os testes esperavam a chamada original sem corpo. O contrato foi preservado e a suíte local completa foi reexecutada com 126/126 aprovados antes do novo envio. Essa execução Windows falha não foi classificada como aprovada.
 
