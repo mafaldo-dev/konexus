@@ -157,6 +157,7 @@ test('cofre protegido cria chave, reabre, faz backup e recusa banco sem chave', 
   assert.equal(fs.existsSync(dbFile), true);
   if (process.platform !== 'win32') assert.equal(fs.statSync(keyFile).mode & 0o777, 0o600);
   const backup = first.backup();
+  assert.equal(backup.schemaVersion, 2);
   assert.match(backup.sha256, /^[0-9a-f]{64}$/);
   assert.equal(fs.existsSync(path.join(backup.directory, 'key.v1.enc')), true);
   assert.equal(fs.readFileSync(path.join(backup.directory, 'konexus.sqlite')).includes(Buffer.from('segredo-do-cofre')), false);
@@ -201,4 +202,182 @@ test('cofre indisponível falha fechado antes de criar banco ou chave', t => {
   const f = fixture(t);
   assert.throws(() => openProtectedStore(f.directory, { isEncryptionAvailable: () => false }, f.installation), /Cofre/);
   assert.equal(fs.existsSync(path.join(f.directory, 'offline')), false);
+});
+function reservation(overrides = {}) {
+  return {
+    id: randomUUID(),
+    reservationToken: randomBytes(32).toString('base64url'),
+    deviceId: 99,
+    deviceName: 'Estação QA',
+    expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    items: [{ productId: 101, quantity: 2 }],
+    ...overrides,
+  };
+}
+function orderPayload(scope, reservationId, operationId, quantity = 2) {
+  return {
+    orderDate: '2026-10-24',
+    orderStatus: 'pending',
+    customerId: 55,
+    totalAmount: quantity * 10,
+    currency: 'BRL',
+    salesperson: 'QA',
+    carrier: 'QA',
+    payment_method: 'pix',
+    orderItems: [{ productId: 101, quantity, unitPrice: 10 }],
+    clientRequestId: operationId,
+    reservationId,
+  };
+}
+test('SQLite v2: reserva cifrada, fila de pedido, claim, ack exato e limpeza do rascunho', t => {
+  const store = fixture(t).open();
+  const res = store.saveReservation(scope, 'new', reservation());
+  assert.equal(res.status, 'active');
+  assert.equal(res.reservationToken, undefined);
+  assert.deepEqual(res.items, [{ productId: 101, quantity: 2 }]);
+  assert.equal(store.loadReservation(scope, 'new').id, res.id);
+  const raw = store.db.prepare('SELECT token_encrypted FROM offline_stock_reservations WHERE reservation_id=?').get(res.id);
+  assert.equal(Buffer.from(raw.token_encrypted).includes(Buffer.from(res.id)), false);
+  assert.equal(Buffer.from(raw.token_encrypted).includes(Buffer.from('qa-token')), false);
+
+  const draft = store.save(scope, 'new', payload('pedido offline'), null);
+  const operationId = randomUUID();
+  const queued = store.queueOrder(scope, 'new', orderPayload(scope, res.id, operationId), res.id, operationId, draft.revisionId);
+  assert.equal(queued.state, 'pending');
+  assert.equal(queued.draftRevision, draft.revisionId);
+  assert.equal(store.loadReservation(scope, 'new').status, 'queued');
+  assert.throws(() => store.queueOrder(scope, 'new', orderPayload(scope, res.id, randomUUID()), res.id, randomUUID(), draft.revisionId), /enfileirado/);
+
+  const claimed = store.claimOrders(scope)[0];
+  assert.equal(claimed.operationId, operationId);
+  assert.equal(claimed.reservationId, res.id);
+  assert.equal(claimed.payload.customerId, 55);
+  assert.match(claimed.reservationToken, /^[A-Za-z0-9_-]{43}$/);
+  assert.equal(store.claimOrders(scope).length, 0);
+  assert.throws(() => store.acknowledgeOrder(scope, operationId, claimed.leaseToken, { orderId: 1, orderNumber: 'P-1', reservationId: randomUUID() }), /outra reserva/);
+  const acked = store.acknowledgeOrder(scope, operationId, claimed.leaseToken, { orderId: 1, orderNumber: 'P-100', reservationId: res.id });
+  assert.equal(acked.confirmed, true);
+  assert.equal(acked.operation.state, 'confirmed');
+  assert.equal(acked.operation.serverOrderNumber, 'P-100');
+  assert.equal(store.loadReservation(scope, 'new'), null);
+  assert.equal(store.load(scope, 'new'), null);
+  assert.equal(store.listOrders(scope)[0].state, 'confirmed');
+  assert.equal(store.stats(scope).orders.confirmed, 1);
+  assert.equal(store.stats(scope).reservations.consumed, 1);
+  assert.equal(store.acknowledgeOrder(scope, operationId, claimed.leaseToken, { orderId: 1, orderNumber: 'P-100', reservationId: res.id }).confirmed, false);
+});
+test('SQLite v2: lease expira, mesmo UUID é reenviado e ack antigo não confirma', t => {
+  let now = 1000;
+  const store = fixture(t).open({ now: () => now });
+  const res = store.saveReservation(scope, 'new', reservation());
+  const operationId = randomUUID();
+  store.queueOrder(scope, 'new', orderPayload(scope, res.id, operationId), res.id, operationId, null);
+  const first = store.claimOrders(scope)[0];
+  now += 61000;
+  const retry = store.claimOrders(scope)[0];
+  assert.equal(first.operationId, retry.operationId);
+  assert.notEqual(first.leaseToken, retry.leaseToken);
+  assert.equal(store.acknowledgeOrder(scope, operationId, first.leaseToken, { orderId: 1, orderNumber: 'P-1', reservationId: res.id }).confirmed, false);
+  assert.equal(store.acknowledgeOrder(scope, operationId, retry.leaseToken, { orderId: 1, orderNumber: 'P-1', reservationId: res.id }).confirmed, true);
+});
+test('SQLite v2: conflito bloqueia sem reenvio automático, retry manual e AUTH/DEVICE retomam', t => {
+  let now = 1000;
+  const store = fixture(t).open({ now: () => now });
+  const res = store.saveReservation(scope, 'new', reservation());
+  const operationId = randomUUID();
+  store.queueOrder(scope, 'new', orderPayload(scope, res.id, operationId), res.id, operationId, null);
+  let claimed = store.claimOrders(scope)[0];
+  store.rejectOrder(scope, operationId, claimed.leaseToken, 'CONFLICT');
+  assert.equal(store.loadOrder(scope, operationId).state, 'blocked');
+  assert.equal(store.loadReservation(scope, 'new').status, 'blocked');
+  assert.equal(store.claimOrders(scope).length, 0);
+  assert.equal(store.retryOrder(scope, operationId).state, 'pending');
+  assert.equal(store.loadReservation(scope, 'new').status, 'queued');
+
+  claimed = store.claimOrders(scope)[0];
+  store.rejectOrder(scope, operationId, claimed.leaseToken, 'AUTH');
+  assert.equal(store.loadOrder(scope, operationId).state, 'blocked');
+  assert.equal(store.loadReservation(scope, 'new').status, 'blocked');
+  assert.equal(store.resumeOrderAuth(scope).resumed, 1);
+  assert.equal(store.loadOrder(scope, operationId).state, 'pending');
+  assert.equal(store.loadReservation(scope, 'new').status, 'queued');
+
+  claimed = store.claimOrders(scope)[0];
+  store.rejectOrder(scope, operationId, claimed.leaseToken, 'DEVICE');
+  assert.equal(store.loadOrder(scope, operationId).state, 'blocked');
+  now += 1000;
+  assert.equal(store.resumeOrderAuth(scope).resumed, 1);
+  claimed = store.claimOrders(scope)[0];
+  store.rejectOrder(scope, operationId, claimed.leaseToken, 'NETWORK');
+  assert.equal(store.loadOrder(scope, operationId).state, 'pending');
+  assert.equal(store.claimOrders(scope).length, 0);
+});
+test('SQLite v2: payload adulterado bloqueia em vez de vazar ou reenviar', t => {
+  const store = fixture(t).open();
+  const res = store.saveReservation(scope, 'new', reservation());
+  const operationId = randomUUID();
+  store.queueOrder(scope, 'new', orderPayload(scope, res.id, operationId), res.id, operationId, null);
+  store.db.prepare('UPDATE offline_order_outbox SET payload_encrypted=? WHERE operation_id=?').run(Buffer.alloc(40), operationId);
+  assert.deepEqual(store.claimOrders(scope), []);
+  assert.equal(store.loadOrder(scope, operationId).state, 'blocked');
+  assert.equal(store.loadOrder(scope, operationId).errorCode, 'LOCAL_CORRUPT');
+  assert.equal(store.loadReservation(scope, 'new').status, 'blocked');
+  assert.throws(() => store.retryOrder(scope, operationId), /corrompido/);
+});
+test('SQLite v2: migração de banco v1 existente preserva rascunho e cria journal de pedidos', t => {
+  const f = fixture(t);
+  const first = f.open();
+  const draft = first.save(scope, 'new', payload('rascunho v1'), null);
+  first.db.exec('DROP TABLE offline_order_outbox; DROP TABLE offline_stock_reservations; PRAGMA user_version=1;');
+  first.close();
+  const upgraded = f.open();
+  assert.equal(upgraded.schemaVersion(), 2);
+  assert.equal(upgraded.read(scope, 'new', draft.revisionId).values.notes, 'rascunho v1');
+  assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_stock_reservations'").get().name, 'offline_stock_reservations');
+  assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_order_outbox'").get().name, 'offline_order_outbox');
+});
+test('SQLite v2: banco de versão futura falha fechado sem alterar dados', t => {
+  const f = fixture(t), store = f.open();
+  store.db.exec('PRAGMA user_version=3;');
+  store.close();
+  assert.throws(() => f.open(), /versão mais nova/);
+});
+test('SQLite v2: reserva e pedido de outro escopo não são visíveis', t => {
+  const store = fixture(t).open();
+  const res = store.saveReservation(scope, 'new', reservation());
+  assert.equal(store.loadReservation({ ...scope, userId: 31 }, 'new'), null);
+  assert.deepEqual(store.listReservations({ ...scope, userId: 31 }), []);
+  assert.equal(store.loadReservation({ ...scope, legalEntityId: 21 }, 'new'), null);
+  assert.throws(() => store.saveReservation({ ...scope, companyId: NaN }, 'new', reservation()), /inválidos/);
+  const operationId = randomUUID();
+  assert.throws(() => store.queueOrder({ ...scope, userId: 31 }, 'new', orderPayload(scope, res.id, operationId), res.id, operationId, null), /não encontrada/);
+});
+test('SQLite v2: liberar reserva bloqueada remove o journal que não pode mais ser consumido', t => {
+  const store = fixture(t).open();
+  const res = store.saveReservation(scope, 'new', reservation());
+  const operationId = randomUUID();
+  store.queueOrder(scope, 'new', orderPayload(scope, res.id, operationId), res.id, operationId, null);
+  const claimed = store.claimOrders(scope)[0];
+  store.rejectOrder(scope, operationId, claimed.leaseToken, 'VALIDATION');
+  assert.equal(store.loadOrder(scope, operationId).state, 'blocked');
+  const cancelled = store.markReservationCancelled(scope, res.id);
+  assert.equal(cancelled.status, 'cancelled');
+  assert.equal(store.loadOrder(scope, operationId), null);
+  assert.equal(store.listOrders(scope).length, 0);
+  assert.equal(store.markReservationCancelled(scope, res.id).status, 'cancelled');
+  assert.equal(store.loadOrder(scope, operationId), null);
+});
+test('SQLite v2: liberação confirmada pela central remove journal enfileirado ou em voo', t => {
+  const store = fixture(t).open();
+  const res = store.saveReservation(scope, 'new', reservation());
+  const operationId = randomUUID();
+  store.queueOrder(scope, 'new', orderPayload(scope, res.id, operationId), res.id, operationId, null);
+  assert.throws(() => store.markReservationCancelled(scope, res.id), /pedido enfileirado/i);
+  const claimed = store.claimOrders(scope)[0];
+  assert.ok(claimed.leaseToken);
+  const cancelled = store.markReservationCancelled(scope, res.id, { force: true });
+  assert.equal(cancelled.status, 'cancelled');
+  assert.equal(store.loadOrder(scope, operationId), null);
+  assert.deepEqual(store.claimOrders(scope), []);
+  assert.equal(store.stats(scope).orders.confirmed, 0);
 });

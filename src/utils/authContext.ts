@@ -29,6 +29,8 @@ export interface UserInfo {
   access?: AccessType | string;
   sector?: string;
   companyId?: number;
+  stationId?: number | null;
+  stationName?: string | null;
   token?: string;
   isCompanyAdmin?: boolean;
   mustChangePassword?: boolean;

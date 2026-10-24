@@ -14,6 +14,7 @@ describe("fluxo de reautenticacao do cliente HTTP", () => {
     setReauthHandler(null);
     jest.restoreAllMocks();
     localStorage.clear();
+    delete (window as any).ipcRenderer;
   });
 
   function mockFetch(responses: Array<{ status: number; body: any }>) {
@@ -200,7 +201,16 @@ describe("fluxo de reautenticacao do cliente HTTP", () => {
 
     const headers = (calls[0].init.headers || {}) as Record<string, string>;
     expect(headers["X-Station-Token"]).toBe("CODIGO-ESTACAO");
+  });
 
-    localStorage.removeItem("konexus.stationToken");
+  it("também envia a estação no Electron, onde a reserva offline é vinculada à sessão", async () => {
+    (window as any).ipcRenderer = {};
+    localStorage.setItem("konexus.stationToken", "ESTACAO-DESKTOP");
+    const calls = mockFetch([{ status: 200, body: { success: true } }]);
+
+    await apiRequest("orders/reservations", "GET");
+
+    const headers = (calls[0].init.headers || {}) as Record<string, string>;
+    expect(headers["X-Station-Token"]).toBe("ESTACAO-DESKTOP");
   });
 });

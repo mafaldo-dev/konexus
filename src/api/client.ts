@@ -178,8 +178,11 @@ export async function apiRequest<T = any>(
     }
   }
 
-  // Estacao de trabalho da sessao (rotulo do ambiente, nunca prova de identidade).
-  if (typeof localStorage !== "undefined" && !window.ipcRenderer && !headers["X-Station-Token"]) {
+  // Estacao de trabalho da sessao (rotulo do ambiente, nunca prova de
+  // identidade). Vale tambem no Electron: a reserva offline e vinculada a
+  // estacao registrada na sessao; a posse do estoque continua provada pelo
+  // token da reserva guardado no cofre local.
+  if (typeof localStorage !== "undefined" && !headers["X-Station-Token"]) {
     const stationToken = localStorage.getItem(STATION_TOKEN_KEY);
     if (stationToken) {
       headers["X-Station-Token"] = stationToken;

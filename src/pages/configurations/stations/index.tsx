@@ -292,7 +292,8 @@ export default function WorkStationsPage() {
                 <p className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-xs text-emerald-700">
                   <ShieldCheck className="h-4 w-4" />
                   Este computador está vinculado a uma estação
-                  ({linkedCode.slice(0, 6)}-…).
+                  ({linkedCode.slice(0, 6)}-…). Saia e entre novamente para
+                  que a sessão e as reservas offline usem esta estação.
                 </p>
               ) : (
                 <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-700">

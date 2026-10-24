@@ -33,7 +33,7 @@ function openProtectedStore(userData, safeStorage, installationId, platform = pr
       const dbFile = store.backup(path.join(target, 'konexus.sqlite'));
       fs.copyFileSync(keyFile, path.join(target, 'key.v1.enc'), fs.constants.COPYFILE_EXCL);
       fs.chmodSync(path.join(target, 'key.v1.enc'), 0o600);
-      const manifest = { schemaVersion: 1, installationId, createdAt: new Date().toISOString(),
+      const manifest = { schemaVersion: store.schemaVersion(), installationId, createdAt: new Date().toISOString(),
         sha256: createHash('sha256').update(fs.readFileSync(dbFile)).digest('hex'),
         keyProtection: 'Cofre do SO: recuperação requer o mesmo contexto de usuário/máquina ou procedimento de recuperação externo.' };
       fs.writeFileSync(path.join(target, 'manifest.json'), JSON.stringify(manifest, null, 2), { flag: 'wx', mode: 0o600 });
@@ -55,6 +55,19 @@ function dispatch(store, request) {
     case 'resume-auth': return store.resumeAuth(scope);
     case 'clear': return store.clear(scope, slot, request.expectedRevision);
     case 'stats': return store.stats(scope);
+    case 'save-reservation': return store.saveReservation(scope, slot, request.reservation);
+    case 'load-reservation': return store.loadReservation(scope, slot);
+    case 'list-reservations': return store.listReservations(scope, request.limit);
+    case 'cancel-reservation': return store.markReservationCancelled(scope, request.reservationId, { force: request.force === true });
+    case 'queue-order': return store.queueOrder(scope, slot, request.payload, request.reservationId, request.operationId, request.draftRevision);
+    case 'load-order': return store.loadOrder(scope, request.operationId);
+    case 'list-orders': return store.listOrders(scope, request.limit);
+    case 'claim-orders': return store.claimOrders(scope, request.limit);
+    case 'leased-order': return store.leasedOrder(scope, request.operationId, request.leaseToken);
+    case 'ack-order': return store.acknowledgeOrder(scope, request.operationId, request.leaseToken, request.ack);
+    case 'reject-order': return store.rejectOrder(scope, request.operationId, request.leaseToken, request.code);
+    case 'resume-order-auth': return store.resumeOrderAuth(scope);
+    case 'retry-order': return store.retryOrder(scope, request.operationId);
     default: throw new Error('Operação SQLite não permitida.');
   }
 }

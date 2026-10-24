@@ -3,9 +3,17 @@ export type DraftScope = { companyId: number; legalEntityId: number; userId: num
 export type DraftPayload = { values: Record<string, any>; products: any[]; selectedCustomer: any; addressConfirmed: boolean; orderNumber: string; editOrderId?: number };
 type Envelope = { native: true; value: string } | { native: false; iv: Uint8Array; value: ArrayBuffer };
 export type LocalDraft = DraftScope & { key: string; draftId: string; revisionId: string; updatedAt: string; synced: boolean; error?: string; encrypted?: Envelope; storage?: 'sqlite' };
-export type StorageStatus = { engine: 'sqlite' | 'indexeddb'; schemaVersion: number; pending: number; leased: number; blocked: number };
-const nativeStorage = () => Boolean((window as any).ipcRenderer);
-const nativeCall = async <T,>(method:string,args:Record<string,unknown>):Promise<T> => {
+export type StorageStatus = {
+  engine: 'sqlite' | 'indexeddb';
+  schemaVersion: number;
+  pending: number;
+  leased: number;
+  blocked: number;
+  orders?: { pending: number; leased: number; blocked: number; confirmed: number };
+  reservations?: { active: number; queued: number; consumed: number; cancelled: number; blocked: number };
+};
+export const nativeStorage = () => Boolean((window as any).ipcRenderer);
+export const nativeCall = async <T,>(method:string,args:Record<string,unknown>):Promise<T> => {
   try{return await (window as any).ipcRenderer.invoke('offline-store',{method,...args});}
   catch(error){
     const message=String(error instanceof Error?error.message:error).replace(/^Error invoking remote method '[^']+':\s*(Error:\s*)?/,'');
@@ -144,9 +152,9 @@ export async function resumeLocalDrafts(scope:DraftScope){
 export async function getLocalStorageStatus(scope:DraftScope):Promise<StorageStatus>{
   if(nativeStorage()){await migrateToSQLite(scope);return nativeCall('stats',{scope});}
   const rows=(await legacyRows()).filter(row=>row.companyId===scope.companyId&&row.legalEntityId===scope.legalEntityId&&row.userId===scope.userId);
-  return {engine:'indexeddb',schemaVersion:1,pending:rows.filter(row=>!row.synced).length,leased:0,blocked:0};
+  return {engine:'indexeddb',schemaVersion:1,pending:rows.filter(row=>!row.synced).length,leased:0,blocked:0,orders:{pending:0,leased:0,blocked:0,confirmed:0},reservations:{active:0,queued:0,consumed:0,cancelled:0,blocked:0}};
 }
-export async function backupLocalStorage():Promise<{directory:string;sha256:string;keyProtection:string}>{
+export async function backupLocalStorage():Promise<{directory:string;sha256:string;keyProtection:string;schemaVersion?:number}>{
   if(!nativeStorage())throw new Error('Backup SQLite disponível no aplicativo desktop.');
   return (window as any).ipcRenderer.invoke('offline-backup');
 }

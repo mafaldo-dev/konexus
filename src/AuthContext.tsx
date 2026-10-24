@@ -358,6 +358,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             employeeResponse.data?.token
           ) {
             const { user: empUser, token: employeeToken } = employeeResponse.data;
+            const employeeStation = (employeeResponse.data as any).station;
             userLegalEntities = Array.isArray((employeeResponse.data as any).legalEntities)
               ? (employeeResponse.data as any).legalEntities
               : [];
@@ -375,6 +376,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               designation: empUser.sector || "Geral",
               sector: empUser.sector || "Geral",
               companyId: empUser.companyId,
+              stationId: employeeStation?.id ?? null,
+              stationName: employeeStation?.name ?? null,
               isCompanyAdmin: Boolean(empUser.isCompanyAdmin),
               mustChangePassword: Boolean(empUser.mustChangePassword),
               modules: empUser.modules || [],

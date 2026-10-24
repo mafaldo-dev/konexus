@@ -10,5 +10,6 @@ export interface ProductsProps {
   minimum_stock?: number,
   coast: number,
   stock?: number
+  reserved?: number
 
 }

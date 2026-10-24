@@ -1,6 +1,7 @@
 import { useState, useEffect, Fragment } from "react";
 import Swal from "sweetalert2";
 import { Menu, Transition } from "@headlessui/react";
+import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../../AuthContext";
 
@@ -20,6 +21,7 @@ import { useConferenceModal } from "../../../../hooks/useConferenceModal";
 import ConferenceModal from "./confereceModal";
 import { DataStateVariant } from "../../../../components/ui/DataState";
 import { getResponseDataState } from "../../../../api/responseState";
+import { listOfflineOrders, syncOfflineOrders, OfflineOrder } from "../../../../offline/stockReservations";
 
 type OrderStatus = "pending" | "approved" | "in_progress" | "shipped" | "cancelled" | "backout" | any
 
@@ -31,11 +33,35 @@ export default function OrderList() {
   const [loadErrorVariant, setLoadErrorVariant] =
     useState<DataStateVariant>("error");
   const { isModalOpen, selectedOrder, openModal, closeModal, setSelectedOrder } = useConferenceModal();
-  const { user, company } = useAuth();
+  const { user, company, activeLegalEntity } = useAuth();
+  const navigate = useNavigate();
+  const [offlineOrders, setOfflineOrders] = useState<OfflineOrder[]>([]);
 
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
   const [documentType, setDocumentType] = useState<"purchase_order" | "label_70x30" | "label_100x100" | "separation_list">("purchase_order");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+
+  useEffect(() => {
+    const hasNative = Boolean((window as any).ipcRenderer);
+    const scope = {
+      companyId: Number(company?.id),
+      legalEntityId: Number(activeLegalEntity?.id),
+      userId: Number(user?.id),
+    };
+    if (!hasNative || !scope.companyId || !scope.legalEntityId || !scope.userId) {
+      setOfflineOrders([]);
+      return;
+    }
+    let live = true;
+    const refresh = () => {
+      void listOfflineOrders(scope, 100)
+        .then((rows) => { if (live) setOfflineOrders(rows.filter((row) => row.state !== 'confirmed')); })
+        .catch(() => { if (live) setOfflineOrders([]); });
+    };
+    refresh();
+    window.addEventListener('konexus:offline-orders-changed', refresh);
+    return () => { live = false; window.removeEventListener('konexus:offline-orders-changed', refresh); };
+  }, [company?.id, activeLegalEntity?.id, user?.id]);
 
   const loadOrders = async () => {
     try {
@@ -560,6 +586,25 @@ export default function OrderList() {
             </div>
             <p className="text-gray-600 font-medium">Gerencie a separação e envio dos pedidos</p>
           </motion.div>
+
+          {offlineOrders.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <strong className="text-amber-900">{offlineOrders.length} pedido(s) offline neste computador</strong>
+                  <p className="mt-1 text-amber-800">
+                    {offlineOrders.filter((order) => order.state === 'blocked').length > 0
+                      ? `${offlineOrders.filter((order) => order.state === 'blocked').length} bloqueado(s) exige(m) revisão da reserva. Nenhum conteúdo foi descartado.`
+                      : 'Aguardando confirmação exata do servidor; o número definitivo ainda não foi atribuído.'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => navigate('/offline')} className="rounded border border-amber-400 bg-white px-3 py-2 text-amber-900">Abrir continuidade</button>
+                  <button type="button" onClick={() => { void syncOfflineOrders({ companyId: Number(company?.id), legalEntityId: Number(activeLegalEntity?.id), userId: Number(user?.id) }); }} className="rounded bg-slate-800 px-3 py-2 text-white">Sincronizar agora</button>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Abas */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>

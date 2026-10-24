@@ -11,6 +11,7 @@ interface ProductData {
   coast?: number;
   price?: number;
   stock?: number | any
+  reserved?: number
 }
 
 export const useInvoiceProductsManagement = () => {
@@ -44,6 +45,7 @@ export const useInvoiceProductsManagement = () => {
           coast: product.coast,
           price: product.price,
           stock: product.stock,
+          reserved: product.reserved,
         } as ProductData);
         setUnitCost(product.coast || product.price || 0);
         setQuantity(1);
