@@ -9,6 +9,7 @@ const database = () => databasePromise ||= new Promise<IDBDatabase>((resolve,rej
   const request=indexedDB.open('konexus-offline-v1',1);
   request.onupgradeneeded=()=>{request.result.createObjectStore('drafts',{keyPath:'key'});request.result.createObjectStore('keys');};
   request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+  request.onblocked=()=>reject(new Error('Feche outras janelas do Konexus para atualizar o armazenamento local.'));
 });
 export const draftKey=(s:DraftScope,slot='new')=>`${s.companyId}:${s.legalEntityId}:${s.userId}:${slot}`;
 async function get<T>(store:string,key:IDBValidKey):Promise<T|undefined>{
@@ -77,12 +78,14 @@ export async function syncLocalDrafts(scope:DraftScope){
     for(const row of rows.filter(r=>!r.synced&&r.companyId===scope.companyId&&r.userId===scope.userId&&r.legalEntityId===scope.legalEntityId)){
       const payload=await readDraftPayload(row);
       const response=await apiClient.put(`sales-drafts/${row.draftId}`,{owner:scope,revisionId:row.revisionId,payload},{legalEntityId:scope.legalEntityId,reauth:false});
+      const acknowledgment=response.data?.data;
+      const confirmed=response.ok && response.data?.success===true && acknowledgment?.draftId===row.draftId && acknowledgment?.revisionId===row.revisionId;
       await new Promise<void>((resolve,reject)=>{
         const tx=db.transaction('drafts','readwrite'),store=tx.objectStore('drafts'),r=store.get(row.key);
-        r.onsuccess=()=>{if(r.result?.revisionId===row.revisionId)store.put({...r.result,synced:response.ok,error:response.ok?undefined:response.error||'Sincronização pendente'});};
+        r.onsuccess=()=>{if(r.result?.revisionId===row.revisionId)store.put({...r.result,synced:confirmed,error:confirmed?undefined:response.error||'O servidor não confirmou esta revisão. Sincronização pendente.'});};
         tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);
       });changed();
-      if(!response.ok)break;
+      if(!confirmed)break;
     }
   } finally {syncing=false;}
 }

@@ -36,6 +36,18 @@ try {
   check('conflito entre janelas preserva versão gravada',true);
   await second.close();
   await context.unroute('http://localhost:3010/**');
+  const rejectedAck=page.waitForResponse(r=>r.url().includes('/sales-drafts/')&&r.request().method()==='PUT');
+  await context.route('http://localhost:3010/sales-drafts/*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({success:true,data:{draftId:'wrong',revisionId:'wrong'}})}));
+  await page.evaluate(()=>window.dispatchEvent(new Event('online')));
+  await rejectedAck;
+  await page.waitForFunction(()=>new Promise(resolve=>{
+    const r=indexedDB.open('konexus-offline-v1');r.onsuccess=()=>{
+      const q=r.result.transaction('drafts').objectStore('drafts').getAll();
+      q.onsuccess=()=>resolve(q.result.some(x=>!x.synced&&x.error?.includes('não confirmou')));
+    };
+  }));
+  check('HTTP 200 sem confirmação da revisão não marca sincronizado',true);
+  await context.unroute('http://localhost:3010/sales-drafts/*');
   await page.evaluate(()=>window.dispatchEvent(new Event('online')));
   await page.getByText('Rascunho sincronizado com o banco online. Entre no sistema para revisar e finalizar.').waitFor({timeout:45000});
   const remote=await page.evaluate(async entityId=>{

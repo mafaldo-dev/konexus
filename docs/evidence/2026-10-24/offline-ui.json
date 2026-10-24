@@ -14,6 +14,10 @@
       "status": "Aprovado"
     },
     {
+      "name": "HTTP 200 sem confirmação da revisão não marca sincronizado",
+      "status": "Aprovado"
+    },
+    {
       "name": "reconexão grava revisão no PostgreSQL",
       "status": "Aprovado"
     },

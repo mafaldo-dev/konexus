@@ -266,7 +266,9 @@ export async function calculatePayroll(
   options?: { model: string; paymentDate: string; confirmStandardScope: boolean }
 ): Promise<ApiResponse<PayrollCompetency>> {
   return asObject<PayrollCompetency>(
-    await apiClient.post(`${base}/competencies/${id}/calculate`, options),
+    await (options
+      ? apiClient.post(`${base}/competencies/${id}/calculate`, options)
+      : apiClient.post(`${base}/competencies/${id}/calculate`)),
     ["data"],
     "cálculo da folha"
   );

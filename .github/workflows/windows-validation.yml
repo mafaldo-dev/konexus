@@ -8,6 +8,7 @@ on:
       - 'vite.config.mjs'
       - 'package*.json'
       - 'electron/**'
+      - 'src/**'
   workflow_dispatch:
 permissions:
   contents: read

@@ -26,8 +26,10 @@ O navegador ainda depende de carregar os arquivos da aplicação; não foi entre
 - Backend: 178 testes aprovados, zero falhas e zero skips, incluindo PostgreSQL real.
 - HTTP autenticado: 111 verificações aprovadas, incluindo deduplicação de pedidos, integridade de revisão, proprietário do rascunho, CNPJ e cálculo CLT persistente.
 - Frontend: TypeScript/build aprovados, 126 testes frontend e 24 Electron aprovados; audit npm sem alertas.
-- Browser: queda da API, recuperação após reinício da interface, reconexão e conferência da revisão online; o conteúdo do formulário não aparece em texto aberto no objeto IndexedDB.
+- Browser: 6 verificações aprovadas — queda da API, recuperação após reinício, conflito entre janelas sem sobrescrita, resposta HTTP 200 com confirmação inválida rejeitada, reconexão com revisão persistida e ausência de formulário em texto aberto no objeto IndexedDB. A confirmação inválida é uma injeção de falha do teste, não um mock do produto.
 - Criptografia Windows: teste estendido para validar encrypt/decrypt e recuperação após reinício. Resultado dessa extensão só pode ser aprovado após execução do novo workflow.
+
+A primeira execução Windows (`40098122732`) encontrou regressão no contrato de chamada de `calculatePayroll`: foi enviado um segundo argumento `undefined` onde os testes esperavam a chamada original sem corpo. O contrato foi preservado e a suíte local completa foi reexecutada com 126/126 aprovados antes do novo envio. Essa execução Windows falha não foi classificada como aprovada.
 
 As mudanças desta etapa ficam em `feat/offline-isolated`, separadas de `main` e do Neon de produção. Nenhuma migration 019 foi aplicada ao banco de produção e nenhuma nova release foi publicada.
 
