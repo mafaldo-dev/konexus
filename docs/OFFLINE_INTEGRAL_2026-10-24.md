@@ -10,6 +10,16 @@
 
 **O ERP integral offline ainda não está implementado.** O desktop já cobre rascunhos de vendas e pedidos de venda com reserva de estoque por estação. Não há réplica local de estoque para os demais setores, financeiro, compras, folha, contábil, fiscal ou CRM, nem reserva por dispositivo para títulos, competências ou documentos fiscais. Não publicar esta branch como "offline completo".
 
+## Atualização em andamento — fechamento do offline de vendas
+
+Trabalho na branch `feat/offline-sales-closure`, ainda **não publicado**. Ele fecha três lacunas do fluxo de vendas já entregue:
+
+- **Numeração única**: a migration aditiva `021_order_number_uniqueness.sql` cria índices únicos por organização/CNPJ para `Orders.orderNumber`. Online e offline compartilham a série `P-`; as duas gravações usam o mesmo advisory lock por CNPJ e a violação do índice vira HTTP 409, inclusive se um cliente tentar gravar diretamente no banco. A migration foi aplicada e testada apenas nos bancos locais de teste; **ainda não foi aplicada no Neon**.
+- **Administração de reservas**: a área `/offline` agora expõe, para quem tem `vendas.edit`, todas as reservas do CNPJ (`GET /orders/reservations/all`) com usuário, estação, estado, quantidade, validade e pedido. A reconciliação (`POST /orders/reservations/:id/reconcile`) exige motivo e reautenticação. O item também aparece em Vendas → Reservas offline para Administrador/Gestor/Gerente.
+- **NF-e de pedido offline**: pedido offline nasce com `nfe_status=aguardando_aprovacao` e **não** agenda emissão na criação. A transição para `approved` em `PUT /orders/:id/status` reivindica a emissão uma única vez e agenda a NF-e. Pedido online mantém o comportamento anterior; a definição fiscal para pedido online pendente continua pendente.
+
+Validação executada nesta etapa: backend **190/190**, frontend **148/148**, `tsc --noEmit` e build Vite aprovados, integração SQLite/API/PostgreSQL de reservas **11/11**. Os 46 testes Electron não foram reexecutados nesta etapa porque o schema SQLite não mudou. A migration 021 ainda exige backup, restauração validada e preflight antes do Neon; a branch não foi mergeada nem publicada.
+
 Entregue nesta etapa:
 - **SQLite real no processo principal do Electron** (`node:sqlite` do Electron 45), com WAL, `synchronous=FULL`, foreign keys, transações `BEGIN IMMEDIATE`, verificação de integridade na abertura e schema versionado (`user_version=2`).
 - **Criptografia de conteúdo**: rascunhos, reservas e operações da fila são cifrados com AES-256-GCM, com AAD vinculando escopo, revisão/operação e identificadores. A chave de 32 bytes é protegida pelo cofre do sistema (`safeStorage`) e gravada apenas cifrada. Linux com backend `basic_text` é recusado; não há fallback em texto aberto.
@@ -28,8 +38,8 @@ O navegador continua usando IndexedDB cifrado e ainda depende de carregar os arq
 
 ### Verificação executada em 24/10
 
-- Backend: **188/188** testes aprovados, zero falhas e zero skips, incluindo PostgreSQL real e a integração de reservas (concorrência, token, expiração, cancelamento e reconciliação).
-- Frontend: **146/146** testes, TypeScript e build aprovados; `npm audit` sem alertas. Inclui 14 testes de reservas/pedidos offline e a ponte renderer→IPC (load/save, ACK exato, ACK divergente bloqueado e normalização de erro).
+- Backend: **190/190** testes aprovados, zero falhas e zero skips, incluindo PostgreSQL real e a integração de reservas (concorrência, token, expiração, cancelamento, reconciliação, unicidade do número e NF-e após aprovação).
+- Frontend: **148/148** testes, TypeScript e build aprovados; `npm audit` sem alertas. Inclui 16 testes de reservas/pedidos offline e a ponte renderer→IPC (load/save, ACK exato, ACK divergente bloqueado e normalização de erro).
 - Electron: **46/46** testes, sendo **22 de SQLite real**, incluindo transação atômica, conflito entre conexões, lease/expição, reenvio do mesmo UUID, migração v1→v2 idempotente, disco cheio com preservação do rascunho anterior, dois dispositivos isolados, backup restaurável/adulteração detectada, encerramento abrupto após COMMIT, cofre indisponível falhando fechado, reserva cifrada, token de posse, cancelamento forçado e criação/reabertura do cofre com chave protegida.
 - Integração SQLite → API local → PostgreSQL (rascunhos): **10/10** verificações. Inclui queda de rede real (porta fechada), reinício, perda de confirmação, backup antigo reenviado sem duplicar revisão, conflito de conteúdo, isolamento por CNPJ e ausência de texto aberto no arquivo SQLite.
 - Integração SQLite → API local → PostgreSQL (reservas/pedidos): **11/11** verificações. Inclui estação pareada e reautenticação reais, reserva online, gravação cifrada, fila offline imutável, número `P-` mínimo 100, status forçado `pending`, consumo exato, ACK exato, perda de ACK após reinício, reenvio idempotente sem baixar estoque duas vezes, rejeição de conteúdo divergente com o mesmo UUID e ausência do token de posse em texto aberto nos arquivos SQLite. Perfil sintético `qa.*`; nenhum banco de produção foi usado.
@@ -68,11 +78,12 @@ O que a reserva **não** vincula: preço unitário, desconto, total, cliente, ve
 
 ## Limitações conhecidas desta etapa
 
-- Não há UI administrativa dedicada para `GET /orders/reservations/all` e `POST /orders/reservations/:id/reconcile`; a recuperação exposta é a da própria estação. A reconciliação administrativa existe na API e exige permissão de edição em vendas.
+- A UI administrativa de reservas está dentro da área `/offline` e exige `vendas.edit`; não há página dedicada, filtros avançados nem ações em lote.
 - Uma resposta perdida na criação da reserva, ou falha ao gravar no cofre depois da criação, pode deixar estoque retido até a recuperação explícita de órfã.
 - O pedido offline não recalcula preço/total no servidor; a reserva não é prova de exatidão comercial.
-- `Orders.orderNumber` não tem constraint única. A numeração offline é serializada no servidor, mas um cliente online malicioso ainda poderia enviar um `P-<n>` e colidir.
-- A emissão assíncrona de NF-e continua agendada na criação do pedido, inclusive para pedido offline forçado a `pending`. Alterar isso exige definição de produto/fiscal; não foi homologado com credenciais reais.
+- A migration `021_order_number_uniqueness.sql` foi aplicada e validada apenas nos bancos locais de teste. O Neon ainda não tem a constraint; até o backup, preflight e aplicação, a proteção contra duplicidade concorrente no banco de produção não está ativa.
+- A emissão assíncrona de NF-e para pedido **online** pendente continua agendada na criação. A correção desta etapa cobre apenas o pedido offline, que nasce `aguardando_aprovacao`; a definição fiscal do fluxo online pendente continua pendente.
+- A emissão de NF-e continua sem homologação com credenciais reais da PlugNotas; o teste usa um serviço simulado.
 - Reservas por dispositivo para títulos financeiros, competências de folha/contábil e documentos fiscais não existem. O restante da matriz continua pendente.
 - O navegador não cria reserva nem opera pedido offline; continua em rascunho IndexedDB e pedido online.
 - Não houve pentest externo nem validação exaustiva de superfície de ataque. Segurança absoluta não pode ser garantida.
@@ -139,4 +150,4 @@ A memória persistida registra versão, bases, faixas, deduções, redutor, data
 
 ## Rotação Neon
 
-Continua bloqueada por falta de acesso à gestão de secrets do Render/Neon. A conexão SQL local permite trabalhar no banco, mas não atualizar a configuração da API em produção. Não alterar a senha isoladamente: primeiro preparar a credencial substituta e atualizar o deploy, validar conexões novas e só então revogar a antiga. Nenhuma rotação foi declarada executada.
+**Adiada por decisão do responsável até o go-live.** O sistema ainda não entrou em operação e não há dados reais em produção; a credencial exposta não deve ser usada para novos ambientes. Antes de liberar o sistema para operação real, executar o cutover com credencial substituta, atualizar o Render, validar conexões e escrita e só então revogar a senha antiga. O `JWT_SECRET` também deve ser rotacionado nesse momento, invalidando sessões antigas. Nenhuma rotação foi declarada executada.

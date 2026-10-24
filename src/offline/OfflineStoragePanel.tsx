@@ -1,12 +1,17 @@
 import {useEffect,useState} from 'react';
+import {useAuth} from '../AuthContext';
 import {backupLocalStorage,DraftScope,getLocalStorageStatus,nativeStorage,StorageStatus} from './salesDrafts';
-import {cancelReservation,listReservations,listServerReservations,syncOfflineOrders,StockReservation} from './stockReservations';
+import {canReconcileReservation,cancelReservation,listAllServerReservations,listReservations,listServerReservations,reconcileReservation,syncOfflineOrders,StockReservation} from './stockReservations';
 import Swal from 'sweetalert2';
 
 export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
+  const {hasPermission}=useAuth();
+  const canAdmin=hasPermission('vendas','edit');
   const [status,setStatus]=useState<StorageStatus|null>(null);
   const [error,setError]=useState(''),[backup,setBackup]=useState(''),[busy,setBusy]=useState(false),[syncing,setSyncing]=useState(false);
   const [orphans,setOrphans]=useState<StockReservation[]>([]),[serverError,setServerError]=useState('');
+  const [allReservations,setAllReservations]=useState<StockReservation[]>([]),[adminError,setAdminError]=useState('');
+  const [reconciling,setReconciling]=useState<string|null>(null);
   useEffect(()=>{
     let live=true;
     const refresh=()=>{void getLocalStorageStatus(scope).then(value=>{if(live){setStatus(value);setError('');}}).catch(e=>{if(live)setError(e.message);});};
@@ -30,6 +35,25 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
     window.addEventListener('online',backOnline);
     return()=>{live=false;window.removeEventListener('konexus:drafts-changed',draftsChanged);window.removeEventListener('konexus:offline-orders-changed',ordersChanged);window.removeEventListener('online',backOnline);};
   },[scope.companyId,scope.legalEntityId,scope.userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{
+    if(!canAdmin){setAllReservations([]);setAdminError('');return;}
+    let live=true;
+    const refresh=async()=>{
+      if(!navigator.onLine)return;
+      try{
+        const data=await listAllServerReservations(scope);
+        if(live){setAllReservations(data);setAdminError('');}
+      }catch(e){
+        const message=e instanceof Error?e.message:String(e);
+        if(live)setAdminError(message);
+      }
+    };
+    void refresh();
+    const changed=()=>{void refresh();};
+    window.addEventListener('konexus:offline-orders-changed',changed);
+    window.addEventListener('online',changed);
+    return()=>{live=false;window.removeEventListener('konexus:offline-orders-changed',changed);window.removeEventListener('online',changed);};
+  },[scope.companyId,scope.legalEntityId,canAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
   const createBackup=async()=>{
     setBusy(true);setError('');
     try{const result=await backupLocalStorage();setBackup(`${result.directory} — ${result.keyProtection}`);}
@@ -52,6 +76,25 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
       await Swal.fire('Reserva liberada','O estoque voltou ao saldo livre na central.','success');
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível liberar a reserva na central.');}
     finally{setBusy(false);}
+  };
+  const reconcile=async(reservation:StockReservation)=>{
+    const quantity=reservation.totalQuantity??reservation.items.reduce((sum,item)=>sum+Number(item.quantity),0);
+    const input=await Swal.fire({
+      title:'Reconciliar reserva?',
+      text:`Reserva ${reservation.id.slice(0,8)}… da estação #${reservation.deviceId} (${reservation.userName||'usuário não identificado'}), com ${quantity} unidade(s). A reconciliação libera o estoque na central e exige confirmação de senha.`,
+      input:'textarea',
+      inputLabel:'Motivo da reconciliação',
+      inputPlaceholder:'Ex.: estação perdida, resposta não recebida, pedido cancelado antes do envio…',
+      inputValidator:(value)=>value?.trim().length>=5?undefined:'Informe um motivo com pelo menos 5 caracteres.',
+      icon:'warning',showCancelButton:true,confirmButtonText:'Reconciliar',cancelButtonText:'Manter'
+    });
+    if(!input.isConfirmed)return;
+    setReconciling(reservation.id);setError('');
+    try{
+      await reconcileReservation(scope,reservation.id,String(input.value||''));
+      await Swal.fire('Reserva reconciliada','O estoque voltou ao saldo livre na central.','success');
+    }catch(e){setError(e instanceof Error?e.message:'Não foi possível reconciliar a reserva na central.');}
+    finally{setReconciling(null);}
   };
   const syncOrders=async()=>{
     setSyncing(true);setError('');
@@ -78,6 +121,30 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
           <button type="button" className="rounded border border-red-300 bg-white px-2 py-1 text-xs text-red-700" disabled={busy} onClick={()=>{void cancelOrphan(reservation);}}>Liberar</button>
         </li>)}
       </ul>
+    </div>}
+    {canAdmin&&<div className="rounded border border-slate-300 bg-slate-50 p-2" aria-label="Administração de reservas">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-medium">Reservas da organização neste CNPJ</p>
+        <button type="button" className="underline text-xs" onClick={()=>window.dispatchEvent(new Event('konexus:offline-orders-changed'))}>Atualizar</button>
+      </div>
+      <p className="text-xs text-slate-600">Visão de todas as estações. Reconciliar libera o estoque retido na central; exige reautenticação e motivo. Pedidos consumidos ou já cancelados não podem ser reconciliados.</p>
+      {!navigator.onLine?<p className="text-xs text-amber-800">Conecte-se à central para consultar e reconciliar reservas.</p>
+        :allReservations.length===0?<p className="text-xs">Nenhuma reserva encontrada para este CNPJ.</p>
+          :<ul className="mt-2 space-y-1">
+            {allReservations.map(reservation=><li key={reservation.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-1">
+              <span className="text-xs">
+                <span className="font-mono">{reservation.id.slice(0,8)}…</span>
+                {' · '}{reservation.userName||'usuário não identificado'}
+                {' · '}estação #{reservation.deviceId}{reservation.deviceName?` (${reservation.deviceName})`:''}
+                {' · '}{reservation.effectiveStatus}
+                {' · '}{reservation.totalQuantity??reservation.items.reduce((sum,item)=>sum+Number(item.quantity),0)} un.
+                {' · '}expira {new Date(reservation.expiresAt).toLocaleString('pt-BR')}
+                {reservation.orderId?` · pedido #${reservation.orderId}`:''}
+              </span>
+              {canReconcileReservation(reservation)&&<button type="button" className="rounded border border-amber-300 bg-white px-2 py-1 text-xs text-amber-900" disabled={reconciling===reservation.id||!navigator.onLine} onClick={()=>{void reconcile(reservation);}}>{reconciling===reservation.id?'Reconciliando…':'Reconciliar'}</button>}
+            </li>)}
+          </ul>}
+      {adminError&&<p role="alert" className="text-amber-800">Administração: {adminError}</p>}
     </div>}
     {backup&&<p className="break-all">Backup criado: {backup}</p>}
     {serverError&&<p role="alert" className="text-amber-800">Central: {serverError}</p>}

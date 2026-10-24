@@ -154,6 +154,34 @@ it('não chama a API sem rede e não libera reserva sem confirmação do servido
   Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true });
 });
 
+it('lista todas as reservas do CNPJ e reconcilia somente com motivo e reautenticação', async () => {
+  const active = savedReservation({ userName: 'Gestor QA', itemCount: 1, totalQuantity: 2 });
+  jest.spyOn(apiClient, 'get').mockResolvedValue({
+    ok: true, status: 200, error: null, data: { success: true, data: [active] },
+  });
+  await expect(reservations.listAllServerReservations(scope)).resolves.toEqual([active]);
+  expect(apiClient.get).toHaveBeenCalledWith('orders/reservations/all', {
+    legalEntityId: 902, reauth: false,
+  });
+
+  const reconciled = { ...active, status: 'cancelled', effectiveStatus: 'cancelled' };
+  jest.spyOn(apiClient, 'post').mockResolvedValue({
+    ok: true, status: 200, error: null, data: { success: true, data: reconciled },
+  });
+  await expect(reservations.reconcileReservation(scope, active.id, '  estação perdida  ')).resolves.toEqual(reconciled);
+  expect(apiClient.post).toHaveBeenCalledWith(`orders/reservations/${active.id}/reconcile`, {
+    reason: 'estação perdida',
+  }, { legalEntityId: 902, reauth: true });
+
+  await expect(reservations.reconcileReservation(scope, active.id, '   ')).rejects.toThrow('motivo');
+});
+
+it('permite reconciliar apenas reserva ativa', () => {
+  expect(reservations.canReconcileReservation({ status: 'active' })).toBe(true);
+  expect(reservations.canReconcileReservation({ status: 'consumed' })).toBe(false);
+  expect(reservations.canReconcileReservation({ status: 'cancelled' })).toBe(false);
+});
+
 it('compara a reserva com os itens exatos e trava apenas estados pendentes', () => {
   const reservation = savedReservation();
   expect(reservations.reservationMatchesProducts(reservation as any, [{ id: '501', quantity: 2 }])).toBe(true);

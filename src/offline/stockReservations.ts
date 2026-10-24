@@ -17,6 +17,11 @@ export type StockReservation = {
   items: ReservationItem[];
   errorCode?: string | null;
   expired?: boolean;
+  userName?: string | null;
+  itemCount?: number;
+  totalQuantity?: number;
+  consumedAt?: string | null;
+  cancelReason?: string | null;
 };
 
 export type OfflineOrderState = 'pending' | 'leased' | 'blocked' | 'confirmed';
@@ -122,6 +127,40 @@ export async function listServerReservations(scope: DraftScope): Promise<StockRe
     throw new Error(errorMessage(response, 'Não foi possível listar as reservas desta estação.'));
   }
   return Array.isArray(response.data.data) ? response.data.data as StockReservation[] : [];
+}
+
+export async function listAllServerReservations(scope: DraftScope): Promise<StockReservation[]> {
+  const response = await apiClient.get('orders/reservations/all', {
+    legalEntityId: scope.legalEntityId,
+    reauth: false,
+  });
+  if (!response.ok || response.data?.success !== true) {
+    throw new Error(errorMessage(response, 'Não foi possível listar as reservas da organização.'));
+  }
+  return Array.isArray(response.data.data) ? response.data.data as StockReservation[] : [];
+}
+
+export function canReconcileReservation(reservation: Pick<StockReservation, 'status'>): boolean {
+  return reservation.status === 'active';
+}
+
+export async function reconcileReservation(
+  scope: DraftScope,
+  reservationId: string,
+  reason: string
+): Promise<StockReservation> {
+  if (!navigator.onLine) throw new Error('A reconciliação da reserva exige conexão com a autoridade central.');
+  if (!reason?.trim()) throw new Error('Informe o motivo da reconciliação.');
+  const response = await apiClient.post(
+    `orders/reservations/${reservationId}/reconcile`,
+    { reason: reason.trim() },
+    { legalEntityId: scope.legalEntityId, reauth: true }
+  );
+  if (!response.ok || response.data?.success !== true) {
+    throw new Error(errorMessage(response, 'O servidor não reconciliou a reserva. O estoque continua reservado.'));
+  }
+  changed();
+  return response.data.data as StockReservation;
 }
 
 export async function cancelReservation(scope: DraftScope, reservationId: string, reason: string): Promise<StockReservation> {

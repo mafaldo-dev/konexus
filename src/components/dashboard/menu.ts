@@ -30,6 +30,7 @@ export const menuItems = [
       submenu: [
         { title: 'Pedidos', to: '/sales/orders', icon: ShoppingBag, access: ['Administrador', 'Vendedor', 'Gestor', 'Compras', 'Gerente', 'Encarregado'] },
         { title: 'Orçamentos', to: '/sales/order-list', icon: FileText, access: ['Administrador', 'Vendedor','Conferente', 'Estoquista', 'Gestor',  'Gerente', 'Encarregado']},
+        { title: 'Reservas offline', to: '/offline', icon: Monitor, access: ['Administrador', 'Gestor', 'Gerente'] },
       ]
     },
     {
