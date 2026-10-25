@@ -82,6 +82,7 @@ Esse passo não deve ser descrito como "compras offline completo". Recebimento f
 - `tsc --noEmit`, build Vite e `npm audit --omit=dev` (frontend e backend) sem vulnerabilidades.
 - A migration 024 foi aplicada na restauração local do Neon e os checks de domínio/ação foram conferidos; não houve aplicação em produção.
 - O teste HTTP autenticado de operações offline continua **1/1** e agora cobre a rota de compra: `403` sem permissão, `404` com CNPJ divergente, `201` na aprovação, `200` no replay, `409` no conflito e consumo da reserva. A matriz de operações protegidas também cobre a nova rota.
+- Commits desta fatia: backend `31cd530`, frontend `a817629`, ambos na branch `feat/offline-sales-closure`; não mergeados nem publicados.
 
 ## 5. Critérios para a próxima liberação
 
