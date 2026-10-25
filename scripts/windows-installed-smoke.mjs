@@ -14,6 +14,7 @@ const sqliteScope={companyId:900001,legalEntityId:900002,userId:900003};
 const domainCases = [
   ['financial_receivable', 'settle'], ['financial_payable', 'settle'],
   ['payroll_competency', 'close'], ['accounting_period', 'close'], ['purchase_order', 'approve'],
+  ['crm_activity', 'complete'], ['training_enrollment', 'attend'],
 ].map(([domain, action], index) => ({ domain, action, targetId: index + 1, reservationId: randomUUID(), operationId: randomUUID() }));
 async function openApp(previousCipher,previousDraft) {
   const app=await _electron.launch({executablePath,timeout:60000});
@@ -34,7 +35,7 @@ async function openApp(previousCipher,previousDraft) {
     results.push({name:previousCipher?'Cofre offline recuperado após reinício':'Cofre offline Windows: criptografia e leitura',status:'Aprovado'});
     const stats=await page.evaluate(scope=>window.ipcRenderer.invoke('offline-store',{method:'stats',scope}),sqliteScope);
     assert.equal(stats.engine,'sqlite');
-    assert.equal(stats.schemaVersion,4);
+    assert.equal(stats.schemaVersion,5);
     const invoke = request => page.evaluate(request => window.ipcRenderer.invoke('offline-store',request), {scope:sqliteScope,...request});
     for (const item of domainCases) {
       if (!previousDraft) {
@@ -51,7 +52,7 @@ async function openApp(previousCipher,previousDraft) {
         assert.equal(operation.domain,item.domain);
       }
     }
-    results.push({name:previousDraft?'Filas de cinco domínios preservadas após reinício':'Schema v4: reservas e filas de cinco domínios via IPC',status:'Aprovado',scope:'Fixtures locais; não valida sincronização com a API'});
+    results.push({name:previousDraft?'Filas de sete domínios preservadas após reinício':'Schema v5: reservas e filas de sete domínios via IPC',status:'Aprovado',scope:'Fixtures locais; não valida sincronização com a API'});
     let draft;
     if(!previousDraft){
       draft=await page.evaluate(scope=>window.ipcRenderer.invoke('offline-store',{method:'save',scope,slot:'new',expectedRevision:null,payload:{values:{notes:'SQLite-Windows-persisted-draft'},products:[]}}),sqliteScope);

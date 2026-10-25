@@ -51,6 +51,8 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
+  { key: 'crm_activity', label: 'CRM', module: 'crm', viewAction: 'view', operateAction: 'edit', icon: CalendarRange },
+  { key: 'training_enrollment', label: 'Treinamentos', module: 'rh', viewAction: 'view', operateAction: 'manage_training', icon: Users },
   { key: 'financial_receivable', label: 'A receber', module: 'finance', viewAction: 'view', operateAction: 'approve', icon: Wallet },
   { key: 'financial_payable', label: 'A pagar', module: 'finance', viewAction: 'view', operateAction: 'edit', icon: Landmark },
   { key: 'payroll_competency', label: 'Folha', module: 'rh', viewAction: 'view_payroll', operateAction: 'approve_payroll', icon: Users },
@@ -81,7 +83,7 @@ const isLiveReservation = (reservation: DomainLocalReservation | undefined) =>
   Boolean(reservation && ['active', 'queued', 'blocked'].includes(reservation.status));
 
 export default function DomainOfflineWorkspace() {
-  const { user, hasPermission, isCompanyAdmin } = useAuth();
+  const { user, hasPermission, hasModule, isCompanyAdmin } = useAuth();
   const [scope] = useState<DraftScope | null>(() => {
     try {
       const userData = JSON.parse(localStorage.getItem('userData') || 'null');
@@ -97,8 +99,8 @@ export default function DomainOfflineWorkspace() {
 
   const availableTabs = useMemo(
     () =>
-      TABS.filter(tab => isCompanyAdmin || hasPermission(tab.module, tab.viewAction)),
-    [hasPermission, isCompanyAdmin]
+      TABS.filter(tab => hasModule(tab.module) && (isCompanyAdmin || hasPermission(tab.module, tab.viewAction))),
+    [hasPermission, hasModule, isCompanyAdmin]
   );
   const [domain, setDomain] = useState<DomainKey>(availableTabs[0]?.key || 'financial_receivable');
   const [snapshot, setSnapshot] = useState<DomainSnapshot | null>(null);
@@ -370,7 +372,7 @@ export default function DomainOfflineWorkspace() {
     <main className="mx-auto max-w-7xl space-y-5 p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Continuidade offline — Financeiro, folha, contábil e compras</h1>
+          <h1 className="text-2xl font-bold">Continuidade offline por setor</h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-600">
             As reservas são criadas online com confirmação de identidade e vinculadas a este computador, usuário e CNPJ.
             Depois de reservar, a operação final pode ser preparada sem internet e sincronizada com recibo idempotente.
@@ -414,7 +416,7 @@ export default function DomainOfflineWorkspace() {
 
       {availableTabs.length === 0 && (
         <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          Seu perfil não possui permissão de leitura ou operação em financeiro, folha, contábil ou compras.
+          Seu perfil não possui permissão nos setores disponíveis para continuidade offline.
         </p>
       )}
 
@@ -546,7 +548,14 @@ export default function DomainOfflineWorkspace() {
                       className="mt-1 block w-full rounded border p-2 font-normal" placeholder="Ex.: PIX-2026-0001" />
                   </label>
                 )}
-                {domain !== 'payroll_competency' && (
+                {domain === 'training_enrollment' && form.action === 'complete' && (
+                  <label className="block text-sm font-medium">Nota (opcional)
+                    <input type="number" min={0} max={100} step="0.01" value={formValues.grade ?? ''}
+                      onChange={event => setFormValues({ ...formValues, grade: event.target.value === '' ? null : Number(event.target.value) })}
+                      className="mt-1 block w-full rounded border p-2" />
+                  </label>
+                )}
+                {!['payroll_competency', 'crm_activity', 'financial_payable'].includes(domain) && (
                   <label className={`block text-sm font-medium ${domain === 'financial_payable' ? 'md:col-span-2' : ''}`}>
                     {form.action === 'reopen' ? 'Motivo da reabertura' : 'Observações (opcional)'}
                     <textarea rows={3} maxLength={domain === 'accounting_period' ? 4000 : 1000} value={formValues.notes || ''} onChange={event => setFormValues({ ...formValues, notes: event.target.value })}

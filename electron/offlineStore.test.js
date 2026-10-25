@@ -157,7 +157,7 @@ test('cofre protegido cria chave, reabre, faz backup e recusa banco sem chave', 
   assert.equal(fs.existsSync(dbFile), true);
   if (process.platform !== 'win32') assert.equal(fs.statSync(keyFile).mode & 0o777, 0o600);
   const backup = first.backup();
-  assert.equal(backup.schemaVersion, 4);
+  assert.equal(backup.schemaVersion, 5);
   assert.match(backup.sha256, /^[0-9a-f]{64}$/);
   assert.equal(fs.existsSync(path.join(backup.directory, 'key.v1.enc')), true);
   assert.equal(fs.readFileSync(path.join(backup.directory, 'konexus.sqlite')).includes(Buffer.from('segredo-do-cofre')), false);
@@ -331,7 +331,7 @@ test('SQLite v4: migração de banco v1 existente preserva rascunho e cria journ
   first.db.exec('DROP TABLE offline_order_outbox; DROP TABLE offline_stock_reservations; PRAGMA user_version=1;');
   first.close();
   const upgraded = f.open();
-  assert.equal(upgraded.schemaVersion(), 4);
+  assert.equal(upgraded.schemaVersion(), 5);
   assert.equal(upgraded.read(scope, 'new', draft.revisionId).values.notes, 'rascunho v1');
   assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_stock_reservations'").get().name, 'offline_stock_reservations');
   assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_order_outbox'").get().name, 'offline_order_outbox');
@@ -341,7 +341,7 @@ test('SQLite v4: migração de banco v1 existente preserva rascunho e cria journ
 });
 test('SQLite v4: banco de versão futura falha fechado sem alterar dados', t => {
   const f = fixture(t), store = f.open();
-  store.db.exec('PRAGMA user_version=5;');
+  store.db.exec('PRAGMA user_version=6;');
   store.close();
   assert.throws(() => f.open(), /versão mais nova/);
 });
@@ -527,7 +527,7 @@ test('SQLite v4: migração de banco v2 preserva dados e cria tabelas de domíni
   first.db.exec('DROP TABLE offline_domain_outbox; DROP TABLE offline_domain_reservations; DROP TABLE offline_domain_snapshots; PRAGMA user_version=2;');
   first.close();
   const upgraded = f.open();
-  assert.equal(upgraded.schemaVersion(), 4);
+  assert.equal(upgraded.schemaVersion(), 5);
   assert.equal(upgraded.read(scope, 'new', draft.revisionId).values.notes, 'rascunho v2');
   for (const name of ['offline_domain_snapshots', 'offline_domain_reservations', 'offline_domain_outbox']) {
     assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name).name, name);
@@ -560,7 +560,7 @@ test('SQLite v4: migração de banco v3 preserva domínios e libera compras', t 
   first.close();
 
   const upgraded = f.open();
-  assert.equal(upgraded.schemaVersion(), 4);
+  assert.equal(upgraded.schemaVersion(), 5);
   assert.equal(upgraded.loadDomainSnapshot(scope, domain).targets[0].targetId, 501);
   assert.equal(upgraded.loadDomainOperation(scope, operationId).state, 'pending');
   assert.equal(upgraded.loadDomainReservation(scope, domain, 501).status, 'queued');
@@ -610,4 +610,42 @@ test('SQLite v4: compra offline aceita somente aprovação de pedido pendente', 
   });
   assert.equal(ack.confirmed, true);
   assert.equal(ack.operation.serverStatus, 'approved');
+});
+test('SQLite v5: migração v4 preserva fila cifrada e permite CRM/treinamento', t => {
+  const f = fixture(t), old = f.open();
+  // Fixture v4 real: os CHECKs antigos recusam os dois novos dominios/acoes.
+  // As tabelas ainda estao vazias; conservar os indices do schema anterior.
+  const oldSchema = old.db.prepare(`SELECT sql FROM sqlite_master WHERE sql IS NOT NULL
+    AND tbl_name IN ('offline_domain_snapshots','offline_domain_reservations','offline_domain_outbox')
+    ORDER BY CASE type WHEN 'table' THEN 0 ELSE 1 END`).all();
+  old.db.exec('DROP TABLE offline_domain_outbox; DROP TABLE offline_domain_reservations; DROP TABLE offline_domain_snapshots;');
+  for (const { sql } of oldSchema) old.db.exec(sql.replaceAll(",'crm_activity','training_enrollment'", '').replaceAll(",'complete','attend','absent'", ''));
+  assert.throws(() => old.saveDomainSnapshot(scope, 'crm_activity', [domainTarget('crm_activity', 1)]), /CHECK constraint/);
+  const res = old.saveDomainReservation(scope, 'purchase_order', domainReservation('purchase_order', 1201));
+  const operationId = randomUUID();
+  old.queueDomainOperation(scope, { domain: 'purchase_order', action: 'approve', targetId: 1201, reservationId: res.id, operationId, payload: { notes: 'preservar-v4' } });
+  const encrypted = old.db.prepare('SELECT payload_encrypted FROM offline_domain_outbox WHERE operation_id=?').get(operationId).payload_encrypted;
+  old.db.exec('PRAGMA user_version=4;');
+  old.close();
+  const upgraded = f.open();
+  assert.equal(upgraded.schemaVersion(), 5);
+  assert.deepEqual(upgraded.db.prepare('PRAGMA foreign_key_check').all(), []);
+  assert.deepEqual(upgraded.db.prepare('SELECT payload_encrypted FROM offline_domain_outbox WHERE operation_id=?').get(operationId).payload_encrypted, encrypted);
+  assert.equal(upgraded.loadDomainOperation(scope, operationId).state, 'pending');
+  let nextTargetId = 2000;
+  for (const [domain, action, status, payload] of [
+    ['crm_activity', 'complete', 'completed', {}],
+    ['training_enrollment', 'complete', 'completed', { grade: 95, notes: 'conclusão' }],
+    ['training_enrollment', 'attend', 'attended', { notes: 'presença' }],
+  ]) {
+    const targetId = ++nextTargetId;
+    const reservation = upgraded.saveDomainReservation(scope, domain, domainReservation(domain, targetId));
+    const id = randomUUID();
+    upgraded.queueDomainOperation(scope, { domain, action, targetId, reservationId: reservation.id, operationId: id, payload });
+    const claimed = upgraded.claimDomainOperations(scope).find(item => item.operationId === id);
+    assert.deepEqual(claimed.payload, payload);
+    assert.equal(upgraded.acknowledgeDomainOperation(scope, id, claimed.leaseToken, { domain, targetId, reservationId: reservation.id, status }).confirmed, true);
+  }
+  const reservation = upgraded.saveDomainReservation(scope, 'training_enrollment', domainReservation('training_enrollment', 1301));
+  assert.throws(() => upgraded.queueDomainOperation(scope, { domain: 'training_enrollment', action: 'complete', targetId: 1301, reservationId: reservation.id, operationId: randomUUID(), payload: { grade: 101 } }), /Nota inválida/);
 });

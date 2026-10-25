@@ -6,8 +6,8 @@ export type DomainKey =
   | 'financial_payable'
   | 'payroll_competency'
   | 'accounting_period'
-  | 'purchase_order';
-export type DomainAction = 'settle' | 'close' | 'reopen' | 'lock' | 'approve';
+  | 'purchase_order' | 'crm_activity' | 'training_enrollment';
+export type DomainAction = 'settle' | 'close' | 'reopen' | 'lock' | 'approve' | 'complete' | 'attend' | 'absent';
 export type DomainReservationState = 'active' | 'queued' | 'consumed' | 'cancelled' | 'blocked';
 export type DomainOperationState = 'pending' | 'leased' | 'blocked' | 'confirmed';
 
@@ -67,6 +67,7 @@ export type DomainOperation = {
 };
 
 export type DomainOperationPayload = {
+  grade?: number | null;
   notes?: string;
   paymentDate?: string;
   transactionId?: string;
@@ -90,6 +91,8 @@ type DomainConfig = {
 };
 
 export const DOMAIN_OFFLINE_CONFIG: Record<DomainKey, DomainConfig> = {
+  crm_activity: { path: 'crm-activities', label: 'Atividades CRM', listEndpoint: 'offline-reservations/crm-activities/targets' },
+  training_enrollment: { path: 'training-enrollments', label: 'Inscrições em treinamento', listEndpoint: 'offline-reservations/training-enrollments/targets' },
   financial_receivable: {
     path: 'financial-receivables',
     label: 'Títulos a receber',
@@ -129,7 +132,7 @@ const changed = () => {
 };
 const requireDesktop = () => {
   if (!nativeStorage()) {
-    throw new Error('A continuidade offline de financeiro, folha, contábil e compras exige o aplicativo desktop com SQLite protegido.');
+    throw new Error('As operações offline por setor exigem o aplicativo desktop com SQLite protegido.');
   }
 };
 const errorMessage = (response: { error?: string | null }, fallback: string) =>
@@ -250,6 +253,9 @@ async function fetchTargets(scope: DraftScope, domain: DomainKey): Promise<Domai
   const rows = Array.isArray(response.data?.data) ? response.data.data : [];
   return rows
     .map((row: any) =>
+      domain === 'crm_activity' || domain === 'training_enrollment'
+        ? { domain, targetId: Number(row.id), label: String(row.label), secondary: textOrNull(row.secondary), status: String(row.status), amount: null, dueDate: null, reference: `#${row.id}` }
+        :
       domain === 'financial_receivable'
         ? normalizeReceivable(row)
         : domain === 'financial_payable'
@@ -520,6 +526,8 @@ export async function resumeDomainOperations(scope: DraftScope): Promise<void> {
 }
 
 export function domainTargetActions(domain: DomainKey, status: string): DomainAction[] {
+  if (domain === 'crm_activity') return status === 'pending' ? ['complete'] : [];
+  if (domain === 'training_enrollment') return status === 'attended' ? ['complete', 'absent'] : ['enrolled', 'absent'].includes(status) ? ['attend', 'absent'] : [];
   if (domain === 'financial_receivable') {
     return RECEIVABLE_STATUSES.includes(status) ? ['settle'] : [];
   }
@@ -538,6 +546,9 @@ export function domainTargetActions(domain: DomainKey, status: string): DomainAc
 }
 
 export function domainActionLabel(action: DomainAction): string {
+  if (action === 'complete') return 'Concluir';
+  if (action === 'attend') return 'Registrar presença';
+  if (action === 'absent') return 'Registrar ausência';
   if (action === 'settle') return 'Baixar';
   if (action === 'close') return 'Fechar';
   if (action === 'reopen') return 'Reabrir';
@@ -556,6 +567,10 @@ export function domainStatusLabel(status: string): string {
     approved: 'Aprovado',
     closed: 'Fechado',
     locked: 'Bloqueado',
+    enrolled: 'Inscrito',
+    attended: 'Presença registrada',
+    absent: 'Ausente',
+    completed: 'Concluído',
   };
   return labels[status] || status;
 }

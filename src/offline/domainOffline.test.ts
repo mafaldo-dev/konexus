@@ -126,6 +126,16 @@ it('filtra períodos contábeis pelo CNPJ ativo e ignora bloqueados', async () =
   expect(snapshot.targets[0]).toEqual(expect.objectContaining({ targetId: 1, label: 'Outubro/2026' }));
 });
 
+it.each(['crm_activity', 'training_enrollment'] as const)('carrega alvos de %s da projeção por CNPJ', async domain => {
+  jest.spyOn(apiClient, 'get').mockResolvedValue({ ok: true, status: 200, error: null, data: { success: true, data: [{ id: 41, label: 'Alvo QA', secondary: 'Detalhe', status: domain === 'crm_activity' ? 'pending' : 'enrolled' }] } });
+  invoke.mockResolvedValue({});
+  const snapshot = await domainOffline.refreshDomainTargets(scope, domain);
+  expect(snapshot.targets[0]).toEqual(expect.objectContaining({ domain, targetId: 41, label: 'Alvo QA' }));
+  expect(apiClient.get).toHaveBeenCalledWith(domainOffline.DOMAIN_OFFLINE_CONFIG[domain].listEndpoint, { legalEntityId: 902, reauth: false });
+  expect(domainOffline.domainTargetActions(domain, snapshot.targets[0].status)).toEqual(domain === 'crm_activity' ? ['complete'] : ['attend', 'absent']);
+  expect(domainOffline.domainTargetActions('training_enrollment', 'completed')).toEqual([]);
+});
+
 it('cria a reserva online com reautenticação e salva o token no SQLite', async () => {
   const reservation = localReservation();
   jest.spyOn(apiClient, 'post').mockResolvedValue({

@@ -31,6 +31,8 @@ export type DomainReservationEndpoint = {
 };
 
 export const DOMAIN_RESERVATION_ENDPOINTS = {
+  crm: { path: 'crm-activities', label: 'Atividades CRM' },
+  training: { path: 'training-enrollments', label: 'Inscrições em treinamento' },
   receivable: { path: 'financial-receivables', label: 'Títulos a receber' },
   payable: { path: 'financial-payables', label: 'Contas a pagar' },
   payroll: { path: 'payroll-competencies', label: 'Competências de folha' },

@@ -1,5 +1,7 @@
 # Continuidade da homologação — 25/10/2026
 
+> Etapa posterior: [operações offline de CRM e treinamentos](OFFLINE_CRM_TREINAMENTOS_2026-10-25.md), com SQLite v5 e migration 025 ainda local.
+
 Atualização posterior ao `RELATORIO_PENDENCIAS_2026-10-25.md`.
 
 ## Migration 024 no Neon — concluída

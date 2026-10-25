@@ -22,8 +22,12 @@ Use frontend e backend da branch `feat/offline-sales-closure`, com migrations at
 
 ## Outros domínios já implementados
 
+### CRM e treinamentos (branch com migration 025)
+
+Após aplicar a migration 025 no ambiente de homologação, use as abas CRM e Treinamentos para reservar uma atividade ou inscrição, desligar a rede, enfileirar a operação e reiniciar. Reconecte e verifique a confirmação e o status na central. A conclusão da inscrição exige presença já persistida; cada reserva cobre uma operação. A nota deve ficar entre 0 e 100. Verifique a recusa de operação em outro CNPJ e por um perfil sem a permissão do setor.
+
 Repita reserva → rede desligada → operação → reinício → reconexão para baixa a receber, baixa a pagar, fechamento de folha previamente aprovada e transições de período contábil. Verifique o status persistido na central e a confirmação da fila.
 
 Registre para cada caso: versão/commit, CNPJ de teste, estação, alvo, UUID da operação, resultado esperado/obtido e captura de eventual erro. Não registre tokens ou senhas.
 
-Este roteiro não cobre recebimento de compras, transferências, CRM, treinamentos, devoluções ou cadastros offline: esses fluxos continuam pendentes de implementação.
+Este roteiro não cobre recebimento de compras, transferências, criação/edição de CRM e treinamentos, devoluções ou cadastros offline: esses fluxos continuam pendentes de implementação.
