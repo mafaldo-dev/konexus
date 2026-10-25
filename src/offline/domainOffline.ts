@@ -6,8 +6,8 @@ export type DomainKey =
   | 'financial_payable'
   | 'payroll_competency'
   | 'accounting_period'
-  | 'purchase_order' | 'crm_activity' | 'training_enrollment';
-export type DomainAction = 'settle' | 'close' | 'reopen' | 'lock' | 'approve' | 'complete' | 'attend' | 'absent';
+  | 'purchase_order' | 'crm_activity' | 'training_enrollment' | 'stock_movement' | 'purchase_return';
+export type DomainAction = 'settle' | 'close' | 'reopen' | 'lock' | 'approve' | 'complete' | 'attend' | 'absent' | 'entry' | 'exit' | 'adjust' | 'transfer' | 'receive';
 export type DomainReservationState = 'active' | 'queued' | 'consumed' | 'cancelled' | 'blocked';
 export type DomainOperationState = 'pending' | 'leased' | 'blocked' | 'confirmed';
 
@@ -29,6 +29,7 @@ export type DomainSnapshot = {
 };
 
 export type DomainLocalReservation = {
+  allocation?: { action?: DomainAction; quantity?: number; productId?: number; direction?: string; destinationLegalEntityId?: number | null; items?: Array<{productId:number;quantity:number}> };
   id: string;
   reservationId: string;
   companyId: number;
@@ -91,6 +92,8 @@ type DomainConfig = {
 };
 
 export const DOMAIN_OFFLINE_CONFIG: Record<DomainKey, DomainConfig> = {
+  stock_movement: { path: 'stock-movements', label: 'Estoque e transferências', listEndpoint: 'offline-reservations/stock-movements/targets' },
+  purchase_return: { path: 'purchase-returns', label: 'Devoluções de compra', listEndpoint: 'offline-reservations/purchase-returns/targets' },
   crm_activity: { path: 'crm-activities', label: 'Atividades CRM', listEndpoint: 'offline-reservations/crm-activities/targets' },
   training_enrollment: { path: 'training-enrollments', label: 'Inscrições em treinamento', listEndpoint: 'offline-reservations/training-enrollments/targets' },
   financial_receivable: {
@@ -253,7 +256,7 @@ async function fetchTargets(scope: DraftScope, domain: DomainKey): Promise<Domai
   const rows = Array.isArray(response.data?.data) ? response.data.data : [];
   return rows
     .map((row: any) =>
-      domain === 'crm_activity' || domain === 'training_enrollment'
+      domain === 'crm_activity' || domain === 'training_enrollment' || domain === 'stock_movement' || domain === 'purchase_return'
         ? { domain, targetId: Number(row.id), label: String(row.label), secondary: textOrNull(row.secondary), status: String(row.status), amount: null, dueDate: null, reference: `#${row.id}` }
         :
       domain === 'financial_receivable'
@@ -316,7 +319,8 @@ export async function reserveDomainTarget(
   scope: DraftScope,
   domain: DomainKey,
   targetId: number,
-  ttlMinutes = 24 * 60
+  ttlMinutes = 24 * 60,
+  allocation: { action?: DomainAction; quantity?: number; direction?: string; destinationLegalEntityId?: number } = {}
 ): Promise<DomainLocalReservation> {
   requireDesktop();
   if (!navigator.onLine) {
@@ -325,7 +329,7 @@ export async function reserveDomainTarget(
   const config = DOMAIN_OFFLINE_CONFIG[domain];
   const response = await apiClient.post(
     `offline-reservations/${config.path}`,
-    { targetId, ttlMinutes },
+    { ...allocation, targetId, ttlMinutes },
     { legalEntityId: scope.legalEntityId, reauth: true }
   );
   if (!response.ok || response.data?.success !== true || !response.data?.data?.id) {
@@ -470,6 +474,7 @@ export async function syncDomainOperations(scope: DraftScope): Promise<void> {
         throw error;
       }
       const data = response.data?.data;
+      const expectedStatus: Record<DomainAction,string> = {settle:'paid',close:'closed',reopen:'open',lock:'locked',approve:'approved',complete:'completed',attend:'attended',absent:'absent',entry:'completed',exit:'completed',adjust:'completed',transfer:'completed',receive:'received'};
       const confirmed =
         response.ok &&
         response.data?.success === true &&
@@ -478,8 +483,7 @@ export async function syncDomainOperations(scope: DraftScope): Promise<void> {
         data.action === operation.action &&
         Number(data.targetId) === Number(operation.targetId) &&
         data.reservationId === operation.reservationId &&
-        typeof data.status === 'string' &&
-        data.status.length > 0;
+        data.status === expectedStatus[operation.action];
       if (confirmed) {
         await nativeCall('ack-domain-operation', {
           scope,
@@ -526,6 +530,8 @@ export async function resumeDomainOperations(scope: DraftScope): Promise<void> {
 }
 
 export function domainTargetActions(domain: DomainKey, status: string): DomainAction[] {
+  if (domain === 'stock_movement') return [];
+  if (domain === 'purchase_return') return status === 'approved' ? ['receive'] : status === 'pending_approval' ? ['approve'] : [];
   if (domain === 'crm_activity') return status === 'pending' ? ['complete'] : [];
   if (domain === 'training_enrollment') return status === 'attended' ? ['complete', 'absent'] : ['enrolled', 'absent'].includes(status) ? ['attend', 'absent'] : [];
   if (domain === 'financial_receivable') {
@@ -546,6 +552,11 @@ export function domainTargetActions(domain: DomainKey, status: string): DomainAc
 }
 
 export function domainActionLabel(action: DomainAction): string {
+  if (action === 'entry') return 'Registrar entrada';
+  if (action === 'exit') return 'Registrar saída';
+  if (action === 'adjust') return 'Registrar ajuste';
+  if (action === 'transfer') return 'Transferir';
+  if (action === 'receive') return 'Registrar saída da devolução';
   if (action === 'complete') return 'Concluir';
   if (action === 'attend') return 'Registrar presença';
   if (action === 'absent') return 'Registrar ausência';

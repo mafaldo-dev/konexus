@@ -4,12 +4,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 const ORDER_STATES = ['pending', 'leased', 'blocked', 'confirmed'];
 const RESERVATION_STATES = ['active', 'queued', 'consumed', 'cancelled', 'blocked'];
 const ORDER_ERRORS = ['NETWORK', 'SERVER', 'INVALID_ACK', 'AUTH', 'ACCESS', 'CONFLICT', 'VALIDATION', 'DEVICE'];
-const DOMAIN_KEYS = ['financial_receivable', 'financial_payable', 'payroll_competency', 'accounting_period', 'purchase_order', 'crm_activity', 'training_enrollment'];
+const DOMAIN_KEYS = ['financial_receivable', 'financial_payable', 'payroll_competency', 'accounting_period', 'purchase_order', 'crm_activity', 'training_enrollment', 'stock_movement', 'purchase_return'];
 const DOMAIN_ACTIONS = {
+  stock_movement: ['entry','exit','adjust','transfer'],
+  purchase_return: ['approve','receive'],
   crm_activity: ['complete'],
   training_enrollment: ['attend', 'absent', 'complete'],
   financial_receivable: ['settle'],
@@ -19,6 +21,12 @@ const DOMAIN_ACTIONS = {
   purchase_order: ['approve'],
 };
 const DOMAIN_OPERATION_STATES = ['pending', 'leased', 'blocked', 'confirmed'];
+const DOMAIN_SQL_KEYS = DOMAIN_KEYS.map(key => `'${key}'`).join(',');
+const DOMAIN_SQL_ACTIONS = [...new Set(Object.values(DOMAIN_ACTIONS).flat())].map(key => `'${key}'`).join(',');
+const SCHEMA_ALLOCATIONS = `CREATE TABLE IF NOT EXISTS offline_domain_allocations (
+  reservation_id TEXT PRIMARY KEY REFERENCES offline_domain_reservations(reservation_id) ON DELETE CASCADE,
+  payload_encrypted BLOB NOT NULL
+) STRICT;`;
 const DOMAIN_ERRORS = [...ORDER_ERRORS, 'LOCAL_CORRUPT'];
 
 const SCHEMA_V1 = `
@@ -99,7 +107,7 @@ const SCHEMA_DOMAINS = `
     company_id INTEGER NOT NULL,
     legal_entity_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order','crm_activity','training_enrollment')),
+    domain TEXT NOT NULL CHECK(domain IN (${DOMAIN_SQL_KEYS})),
     payload_encrypted BLOB NOT NULL,
     updated_at INTEGER NOT NULL,
     PRIMARY KEY(company_id,legal_entity_id,user_id,domain),
@@ -111,7 +119,7 @@ const SCHEMA_DOMAINS = `
     company_id INTEGER NOT NULL,
     legal_entity_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order','crm_activity','training_enrollment')),
+    domain TEXT NOT NULL CHECK(domain IN (${DOMAIN_SQL_KEYS})),
     target_id INTEGER NOT NULL,
     device_id INTEGER NOT NULL,
     device_name TEXT,
@@ -135,8 +143,8 @@ const SCHEMA_DOMAINS = `
     company_id INTEGER NOT NULL,
     legal_entity_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order','crm_activity','training_enrollment')),
-    action TEXT NOT NULL CHECK(action IN ('settle','close','reopen','lock','approve','complete','attend','absent')),
+    domain TEXT NOT NULL CHECK(domain IN (${DOMAIN_SQL_KEYS})),
+    action TEXT NOT NULL CHECK(action IN (${DOMAIN_SQL_ACTIONS})),
     target_id INTEGER NOT NULL,
     reservation_id TEXT NOT NULL REFERENCES offline_domain_reservations(reservation_id) ON DELETE RESTRICT,
     payload_encrypted BLOB NOT NULL,
@@ -160,7 +168,7 @@ const SCHEMA_DOMAINS = `
 `;
 
 /**
- * v3/v4 -> v5: SQLite nao altera CHECK constraints. Reconstruimos apenas as tres
+ * v3/v4/v5 -> v6: SQLite nao altera CHECK constraints. Reconstruimos apenas as tres
  * tabelas de dominio, preservando snapshots, reservas, outbox e tokens
  * cifrados. A migracao roda com foreign_keys desligado e em transacao.
  */
@@ -169,7 +177,7 @@ const MIGRATE_DOMAIN_TABLES = `
     company_id INTEGER NOT NULL,
     legal_entity_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order','crm_activity','training_enrollment')),
+    domain TEXT NOT NULL CHECK(domain IN (${DOMAIN_SQL_KEYS})),
     payload_encrypted BLOB NOT NULL,
     updated_at INTEGER NOT NULL,
     PRIMARY KEY(company_id,legal_entity_id,user_id,domain),
@@ -187,7 +195,7 @@ const MIGRATE_DOMAIN_TABLES = `
     company_id INTEGER NOT NULL,
     legal_entity_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order','crm_activity','training_enrollment')),
+    domain TEXT NOT NULL CHECK(domain IN (${DOMAIN_SQL_KEYS})),
     target_id INTEGER NOT NULL,
     device_id INTEGER NOT NULL,
     device_name TEXT,
@@ -214,8 +222,8 @@ const MIGRATE_DOMAIN_TABLES = `
     company_id INTEGER NOT NULL,
     legal_entity_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order','crm_activity','training_enrollment')),
-    action TEXT NOT NULL CHECK(action IN ('settle','close','reopen','lock','approve','complete','attend','absent')),
+    domain TEXT NOT NULL CHECK(domain IN (${DOMAIN_SQL_KEYS})),
+    action TEXT NOT NULL CHECK(action IN (${DOMAIN_SQL_ACTIONS})),
     target_id INTEGER NOT NULL,
     reservation_id TEXT NOT NULL REFERENCES offline_domain_reservations(reservation_id) ON DELETE RESTRICT,
     payload_encrypted BLOB NOT NULL,
@@ -253,7 +261,7 @@ const MIGRATE_DOMAIN_TABLES = `
   CREATE UNIQUE INDEX offline_domain_outbox_reservation
     ON offline_domain_outbox(reservation_id);
 
-  PRAGMA user_version=5;
+  PRAGMA user_version=6;
 `;
 
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
@@ -448,6 +456,8 @@ function validateDomainReservation(scope, domain, reservation) {
 function validateDomainPayload(domain, action, payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) fail('INVALID_DOMAIN', 'Conteúdo da operação offline inválido.');
   const allowedByDomain = {
+    stock_movement: ['notes'],
+    purchase_return: ['notes'],
     crm_activity: [],
     training_enrollment: action === 'complete' ? ['notes', 'grade'] : ['notes'],
     financial_receivable: ['notes', 'transactionId'],
@@ -459,6 +469,7 @@ function validateDomainPayload(domain, action, payload) {
   const allowed = allowedByDomain[domain];
   if (Object.keys(payload).some(key => !allowed.includes(key))) fail('INVALID_DOMAIN', 'Campo da operação offline não permitido.');
   const normalized = {};
+  if (['stock_movement','purchase_return'].includes(domain) && (typeof payload.notes !== 'string' || payload.notes.trim().length < 5)) fail('INVALID_DOMAIN', 'Informe o motivo da operação.');
   if (payload.grade != null) {
     if (typeof payload.grade !== 'number' || !Number.isFinite(payload.grade) || payload.grade < 0 || payload.grade > 100) fail('INVALID_DOMAIN', 'Nota inválida.');
     normalized.grade = payload.grade;
@@ -491,6 +502,8 @@ function validateDomainAck(ack, row) {
   if (domainTargetId(ack.targetId) !== row.target_id) fail('INVALID_ACK', 'Servidor confirmou outro alvo.');
   if (ack.reservationId !== row.reservation_id) fail('INVALID_ACK', 'Servidor confirmou outra reserva.');
   if (typeof ack.status !== 'string' || !ack.status.trim() || ack.status.length > 40) fail('INVALID_ACK', 'Status final do alvo inválido.');
+  const expected = {settle:'paid',close:'closed',reopen:'open',lock:'locked',approve:'approved',complete:'completed',attend:'attended',absent:'absent',entry:'completed',exit:'completed',adjust:'completed',transfer:'completed',receive:'received'}[row.action];
+  if (ack.status !== expected) fail('INVALID_ACK', 'Status final não corresponde à operação.');
   return { domain: ack.domain, targetId: row.target_id, reservationId: row.reservation_id, status: ack.status.trim() };
 }
 
@@ -530,8 +543,8 @@ class OfflineStore {
           this.db.exec(SCHEMA_DOMAINS);
           this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
         });
-      } else if (version === 3 || version === 4) {
-        // v3/v4 -> v5: amplia os CHECKs de dominio/acao. foreign_keys fica
+      } else if (version === 3 || version === 4 || version === 5) {
+        // v3/v4/v5 -> v6: amplia os CHECKs de dominio/acao. foreign_keys fica
         // desligado apenas durante a reconstrucao e e restaurado no finally.
         this.db.exec('PRAGMA foreign_keys=OFF;');
         try {
@@ -542,6 +555,7 @@ class OfflineStore {
           this.db.exec('PRAGMA foreign_keys=ON;');
         }
       }
+      this.db.exec(SCHEMA_ALLOCATIONS);
       // A versão 2 foi usada durante o desenvolvimento antes da coluna de
       // revisão do rascunho. Garante a coluna sem exigir uma versão nova.
       const orderColumns = this.db.prepare('PRAGMA table_info(offline_order_outbox)').all();
@@ -1018,8 +1032,11 @@ class OfflineStore {
   domainReservationMetadata(row) {
     if (!row) return null;
     const expired = row.status === 'active' && new Date(row.expires_at).getTime() <= this.now();
+    const details = this.db.prepare('SELECT payload_encrypted FROM offline_domain_allocations WHERE reservation_id=?').get(row.reservation_id);
+    const allocation = details ? JSON.parse(this.decrypt(`${row.company_id}:${row.legal_entity_id}:${row.user_id}:domain-allocation:${row.reservation_id}`, details.payload_encrypted)) : {};
     return {
       id: row.reservation_id,
+      allocation,
       reservationId: row.reservation_id,
       companyId: row.company_id,
       legalEntityId: row.legal_entity_id,
@@ -1089,6 +1106,8 @@ class OfflineStore {
         fail('LOCAL_CONFLICT', 'Já existe uma reserva ativa para este alvo. Cancele-a antes de criar outra.');
       }
       const encrypted = this.encrypt(`${scopeKey(scope)}:domain-reservation:${value.id}`, value.token);
+      const allocationText = JSON.stringify(reservation.allocation || {});
+      if (Buffer.byteLength(allocationText) > 20000) fail('INVALID_RESERVATION', 'Quota excede o limite local.');
       const timestamp = this.now();
       this.db.prepare(`INSERT INTO offline_domain_reservations
         (reservation_id,company_id,legal_entity_id,user_id,domain,target_id,device_id,device_name,
@@ -1098,6 +1117,8 @@ class OfflineStore {
           token_encrypted=excluded.token_encrypted,expires_at=excluded.expires_at,error_code=NULL,updated_at=excluded.updated_at`)
         .run(value.id, scope.companyId, scope.legalEntityId, scope.userId, domain, value.targetId,
           value.deviceId, value.deviceName, encrypted, value.expiresAt, timestamp, timestamp);
+      this.db.prepare('INSERT INTO offline_domain_allocations(reservation_id,payload_encrypted) VALUES(?,?) ON CONFLICT(reservation_id) DO UPDATE SET payload_encrypted=excluded.payload_encrypted')
+        .run(value.id, this.encrypt(`${scopeKey(scope)}:domain-allocation:${value.id}`, allocationText));
       return this.domainReservationMetadata(
         this.db.prepare('SELECT * FROM offline_domain_reservations WHERE reservation_id=?').get(value.id)
       );
@@ -1214,6 +1235,9 @@ class OfflineStore {
         fail('LOCAL_CONFLICT', 'Já existe uma operação enfileirada para esta reserva.');
       }
       if (reservation.status !== 'active') fail('LOCAL_CONFLICT', 'A reserva não está ativa para enfileirar a operação.');
+      if (['stock_movement','purchase_return'].includes(domain) && this.domainReservationMetadata(reservation).allocation.action !== action) {
+        fail('INVALID_DOMAIN', 'A operação deve corresponder à quota reservada.');
+      }
       const existingOutbox = this.db.prepare('SELECT * FROM offline_domain_outbox WHERE reservation_id=?').get(reservationId);
       if (existingOutbox) {
         if (existingOutbox.operation_id === operationId) return this.domainOperationMetadata(existingOutbox);

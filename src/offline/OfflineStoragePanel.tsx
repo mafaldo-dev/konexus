@@ -15,6 +15,7 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
   const canPurchaseAdmin=hasPermission('compras','edit');
   const canCrmAdmin=hasModule('crm')&&hasPermission('crm','edit');
   const canTrainingAdmin=hasPermission('rh','manage_training');
+  const canStockAdmin=hasPermission('estoque','move');
   const [status,setStatus]=useState<StorageStatus|null>(null);
   const [error,setError]=useState(''),[backup,setBackup]=useState(''),[busy,setBusy]=useState(false),[syncing,setSyncing]=useState(false);
   const [orphans,setOrphans]=useState<StockReservation[]>([]),[serverError,setServerError]=useState('');
@@ -73,6 +74,8 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
       ...(canPurchaseAdmin?[DOMAIN_RESERVATION_ENDPOINTS.purchase]:[]),
       ...(canCrmAdmin?[DOMAIN_RESERVATION_ENDPOINTS.crm]:[]),
       ...(canTrainingAdmin?[DOMAIN_RESERVATION_ENDPOINTS.training]:[]),
+      ...(canStockAdmin?[DOMAIN_RESERVATION_ENDPOINTS.stock]:[]),
+      ...(canPurchaseAdmin&&canStockAdmin?[DOMAIN_RESERVATION_ENDPOINTS.returns]:[]),
     ];
     if(entries.length===0){setDomainGroups([]);setDomainError('');return;}
     if(!navigator.onLine)return;
@@ -81,7 +84,7 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
       .then(groups=>{if(live){setDomainGroups(groups);setDomainError('');}})
       .catch(e=>{if(live)setDomainError(e instanceof Error?e.message:String(e));});
     return()=>{live=false;};
-  },[scope.companyId,scope.legalEntityId,canFinanceAdmin,canPayrollAdmin,canAccountingAdmin,canPurchaseAdmin,canCrmAdmin,canTrainingAdmin,domainRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[scope.companyId,scope.legalEntityId,canFinanceAdmin,canPayrollAdmin,canAccountingAdmin,canPurchaseAdmin,canCrmAdmin,canTrainingAdmin,canStockAdmin,domainRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{
     const changed=()=>setDomainRefresh(value=>value+1);
     window.addEventListener('konexus:domain-reservations-changed',changed);
@@ -199,7 +202,7 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
           </ul>}
       {adminError&&<p role="alert" className="text-amber-800">Administração: {adminError}</p>}
     </div>}
-    {(canFinanceAdmin||canPayrollAdmin||canAccountingAdmin||canPurchaseAdmin||canCrmAdmin||canTrainingAdmin)&&<div className="rounded border border-slate-300 bg-slate-50 p-2" aria-label="Reservas por setor">
+    {(canFinanceAdmin||canPayrollAdmin||canAccountingAdmin||canPurchaseAdmin||canCrmAdmin||canTrainingAdmin||canStockAdmin)&&<div className="rounded border border-slate-300 bg-slate-50 p-2" aria-label="Reservas por setor">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-medium">Reservas por setor</p>
         <div className="flex items-center gap-3">

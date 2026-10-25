@@ -35,7 +35,7 @@ async function openApp(previousCipher,previousDraft) {
     results.push({name:previousCipher?'Cofre offline recuperado após reinício':'Cofre offline Windows: criptografia e leitura',status:'Aprovado'});
     const stats=await page.evaluate(scope=>window.ipcRenderer.invoke('offline-store',{method:'stats',scope}),sqliteScope);
     assert.equal(stats.engine,'sqlite');
-    assert.equal(stats.schemaVersion,5);
+    assert.equal(stats.schemaVersion,6);
     const invoke = request => page.evaluate(request => window.ipcRenderer.invoke('offline-store',request), {scope:sqliteScope,...request});
     for (const item of domainCases) {
       if (!previousDraft) {
@@ -52,7 +52,7 @@ async function openApp(previousCipher,previousDraft) {
         assert.equal(operation.domain,item.domain);
       }
     }
-    results.push({name:previousDraft?'Filas de sete domínios preservadas após reinício':'Schema v5: reservas e filas de sete domínios via IPC',status:'Aprovado',scope:'Fixtures locais; não valida sincronização com a API'});
+    results.push({name:previousDraft?'Filas de sete domínios preservadas após reinício':'Schema v6: reservas e filas de sete domínios via IPC',status:'Aprovado',scope:'Fixtures locais; não valida sincronização com a API'});
     let draft;
     if(!previousDraft){
       draft=await page.evaluate(scope=>window.ipcRenderer.invoke('offline-store',{method:'save',scope,slot:'new',expectedRevision:null,payload:{values:{notes:'SQLite-Windows-persisted-draft'},products:[]}}),sqliteScope);

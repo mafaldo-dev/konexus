@@ -51,6 +51,8 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
+  { key: 'stock_movement', label: 'Estoque', module: 'estoque', viewAction: 'view', operateAction: 'move', icon: ShoppingCart },
+  { key: 'purchase_return', label: 'Devoluções', module: 'compras', viewAction: 'view', operateAction: 'edit', icon: ShoppingCart },
   { key: 'crm_activity', label: 'CRM', module: 'crm', viewAction: 'view', operateAction: 'edit', icon: CalendarRange },
   { key: 'training_enrollment', label: 'Treinamentos', module: 'rh', viewAction: 'view', operateAction: 'manage_training', icon: Users },
   { key: 'financial_receivable', label: 'A receber', module: 'finance', viewAction: 'view', operateAction: 'approve', icon: Wallet },
@@ -83,7 +85,7 @@ const isLiveReservation = (reservation: DomainLocalReservation | undefined) =>
   Boolean(reservation && ['active', 'queued', 'blocked'].includes(reservation.status));
 
 export default function DomainOfflineWorkspace() {
-  const { user, hasPermission, hasModule, isCompanyAdmin } = useAuth();
+  const { user, hasPermission, hasModule, isCompanyAdmin, legalEntities } = useAuth();
   const [scope] = useState<DraftScope | null>(() => {
     try {
       const userData = JSON.parse(localStorage.getItem('userData') || 'null');
@@ -116,7 +118,7 @@ export default function DomainOfflineWorkspace() {
   const alive = useRef(true);
 
   const tab = TABS.find(item => item.key === domain) || TABS[0];
-  const canOperate = isCompanyAdmin || hasPermission(tab.module, tab.operateAction);
+  const canOperate = (isCompanyAdmin || hasPermission(tab.module, tab.operateAction)) && (domain !== 'purchase_return' || hasPermission('estoque','move'));
 
   const loadLocal = useCallback(async () => {
     if (!scope) return;
@@ -225,7 +227,29 @@ export default function DomainOfflineWorkspace() {
     setBusyTarget(target.targetId);
     setError('');
     try {
-      await reserveDomainTarget(scope, domain, target.targetId);
+      const allocation: { action?: DomainAction; quantity?: number; direction?: string; destinationLegalEntityId?: number } = {};
+      if (domain === 'stock_movement') {
+        const selected = await Swal.fire({ title: 'Operação de estoque', input: 'select', inputOptions: { entry: 'Entrada', exit: 'Saída', adjust: 'Ajuste de saldo (variação)', transfer: 'Transferência entre CNPJs' }, showCancelButton: true });
+        if (!selected.isConfirmed) return;
+        allocation.action = selected.value;
+        const qty = await Swal.fire({ title: 'Quantidade a reservar', input: 'number', inputAttributes: { min: '1', max: '1000000', step: '1' }, showCancelButton: true,
+          inputValidator: value => Number.isSafeInteger(Number(value)) && Number(value)>0 && Number(value)<=1000000 ? undefined : 'Informe uma quantidade inteira positiva.' });
+        if (!qty.isConfirmed) return;
+        allocation.quantity = Number(qty.value);
+        if (allocation.action === 'adjust') {
+          const direction = await Swal.fire({ title: 'Direção do ajuste', input: 'select', inputOptions: { entry: 'Acrescentar ao saldo', exit: 'Reduzir o saldo' }, showCancelButton: true });
+          if (!direction.isConfirmed) return;
+          allocation.direction = direction.value;
+        }
+        if (allocation.action === 'transfer') {
+          const destinations = legalEntities.filter(entity => Number(entity.id) !== scope.legalEntityId);
+          if (!destinations.length) throw new Error('Nenhum outro CNPJ acessível para transferência.');
+          const destination = await Swal.fire({ title: 'CNPJ de destino', input: 'select', inputOptions: Object.fromEntries(destinations.map(entity => [String(entity.id), entity.legalName])), showCancelButton: true });
+          if (!destination.isConfirmed) return;
+          allocation.destinationLegalEntityId = Number(destination.value);
+        }
+      }
+      await reserveDomainTarget(scope, domain, target.targetId, 24 * 60, allocation);
       if (alive.current) setMessage(`Alvo ${target.label} reservado para esta estação. A operação já pode ser preparada offline.`);
       await loadLocal();
     } catch (reserveError) {
@@ -466,7 +490,7 @@ export default function DomainOfflineWorkspace() {
                 {(snapshot?.targets || []).map(target => {
                   const reservation = reservationFor(target.targetId);
                   const operation = operationFor(reservation);
-                  const actions = domainTargetActions(domain, target.status);
+                  const actions = reservation?.allocation?.action ? [reservation.allocation.action] : domainTargetActions(domain, target.status);
                   return (
                     <tr key={target.targetId} className="align-top hover:bg-slate-50/70">
                       <td className="px-3 py-3 font-medium">{target.label}<div className="text-xs font-normal text-slate-500">{target.reference || '—'}</div></td>
@@ -535,6 +559,8 @@ export default function DomainOfflineWorkspace() {
               <p className="mt-1 text-xs text-sky-900">
                 Reserva {form.reservation.id.slice(0, 8)}… · a operação será gravada na fila local e confirmada pela central com recibo idempotente.
               </p>
+              {form.reservation.allocation?.quantity && <p className="mt-2 text-sm">Quantidade reservada: {form.reservation.allocation.quantity} · direção: {form.reservation.allocation.direction === 'exit' ? 'saída' : 'entrada'}{form.reservation.allocation.destinationLegalEntityId ? ` · CNPJ destino #${form.reservation.allocation.destinationLegalEntityId}` : ''}</p>}
+              {domain === 'purchase_return' && form.reservation.allocation?.items?.map(item => <p key={item.productId} className="mt-1 text-sm">Produto #{item.productId}: {item.quantity} unidade(s) reservada(s) para devolução.</p>)}
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 {domain === 'financial_payable' && (
                   <label className="block text-sm font-medium">Data de pagamento

@@ -165,6 +165,16 @@ it('avisa quando a central reservou mas o cofre local não salvou', async () => 
   );
 });
 
+it('reserva transferência com quantidade e destino vinculados e reautenticação', async () => {
+  const allocation = { action: 'transfer' as const, quantity: 3, destinationLegalEntityId: 904 };
+  const reservation = localReservation({ domain: 'stock_movement', allocation });
+  jest.spyOn(apiClient, 'post').mockResolvedValue({ ok: true, status: 201, error: null, data: { success: true, data: reservation } });
+  invoke.mockResolvedValue(reservation);
+  await domainOffline.reserveDomainTarget(scope, 'stock_movement', 501, 1440, allocation);
+  expect(apiClient.post).toHaveBeenCalledWith('offline-reservations/stock-movements', { ...allocation, targetId: 501, ttlMinutes: 1440 }, { legalEntityId: 902, reauth: true });
+  expect(invoke).toHaveBeenCalledWith('offline-store', { method: 'save-domain-reservation', scope, domain: 'stock_movement', reservation });
+});
+
 it('enfileira a operação com UUID local e payload permitido', async () => {
   const operation = { operationId: crypto.randomUUID(), state: 'pending' };
   invoke.mockResolvedValue(operation);
@@ -221,7 +231,7 @@ it('sincroniza no endpoint do domínio e confirma somente ACK exato', async () =
   });
 });
 
-it('recusa ACK divergente e bloqueia a operação', async () => {
+it.each(['target', 'status'])('recusa ACK com %s divergente e bloqueia a operação', async mismatch => {
   const operation = claimedOperation({ domain: 'accounting_period', action: 'close', targetId: 801, payload: { notes: 'Fechamento' } });
   invoke.mockImplementation(async (_channel, request) => {
     if (request.method === 'claim-domain-operations') {
@@ -233,8 +243,8 @@ it('recusa ACK divergente e bloqueia a operação', async () => {
   jest.spyOn(apiClient, 'post').mockResolvedValue({
     ok: true, status: 201, error: null,
     data: { success: true, data: {
-      domain: operation.domain, action: operation.action, targetId: 999,
-      reservationId: operation.reservationId, status: 'closed',
+      domain: operation.domain, action: operation.action, targetId: mismatch === 'target' ? 999 : operation.targetId,
+      reservationId: operation.reservationId, status: mismatch === 'status' ? 'approved' : 'closed',
     } },
   });
 

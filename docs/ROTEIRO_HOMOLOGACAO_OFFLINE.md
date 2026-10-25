@@ -1,5 +1,7 @@
 # Roteiro manual — aprovação e continuidade offline
 
+Para estoque, ajustes, transferências e devoluções, use também o [roteiro específico](OFFLINE_ESTOQUE_DEVOLUCOES_2026-10-25.md#roteiro-manual), com migrations até 026 e SQLite v6.
+
 Use frontend e backend da branch `feat/offline-sales-closure`, com migrations até 024. A release pública 1.4.3 ainda não contém essas alterações. O smoke CI usa uma URL de API local e não gera uma release para uso operacional.
 
 ## Pedido online e aprovação
