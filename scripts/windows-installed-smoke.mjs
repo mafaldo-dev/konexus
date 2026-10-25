@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 const {_electron}=await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 assert.equal(process.platform,'win32','Este smoke requer Windows nativo.');
 const executablePath=process.env.INSTALLED_EXE;
@@ -10,6 +11,10 @@ const output=process.env.SMOKE_OUTPUT || 'windows-evidence';
 await mkdir(output,{recursive:true});
 const results=[];
 const sqliteScope={companyId:900001,legalEntityId:900002,userId:900003};
+const domainCases = [
+  ['financial_receivable', 'settle'], ['financial_payable', 'settle'],
+  ['payroll_competency', 'close'], ['accounting_period', 'close'], ['purchase_order', 'approve'],
+].map(([domain, action], index) => ({ domain, action, targetId: index + 1, reservationId: randomUUID(), operationId: randomUUID() }));
 async function openApp(previousCipher,previousDraft) {
   const app=await _electron.launch({executablePath,timeout:60000});
   try {
@@ -29,6 +34,24 @@ async function openApp(previousCipher,previousDraft) {
     results.push({name:previousCipher?'Cofre offline recuperado após reinício':'Cofre offline Windows: criptografia e leitura',status:'Aprovado'});
     const stats=await page.evaluate(scope=>window.ipcRenderer.invoke('offline-store',{method:'stats',scope}),sqliteScope);
     assert.equal(stats.engine,'sqlite');
+    assert.equal(stats.schemaVersion,4);
+    const invoke = request => page.evaluate(request => window.ipcRenderer.invoke('offline-store',request), {scope:sqliteScope,...request});
+    for (const item of domainCases) {
+      if (!previousDraft) {
+        await invoke({method:'save-domain-reservation',domain:item.domain,reservation:{
+          id:item.reservationId,domain:item.domain,legalEntityId:sqliteScope.legalEntityId,
+          targetId:item.targetId,targetIds:[item.targetId],deviceId:900004,deviceName:'Windows QA',
+          userId:sqliteScope.userId,status:'active',expiresAt:new Date(Date.now()+3600000).toISOString(),
+          reservationToken:'qa-local-token-not-issued-by-central',
+        }});
+        await invoke({method:'queue-domain-operation',operation:{...item,payload:item.domain==='financial_payable'?{paymentDate:'2026-10-25'}:{}}});
+      } else {
+        const operation=await invoke({method:'load-domain-operation',operationId:item.operationId});
+        assert.equal(operation.state,'pending');
+        assert.equal(operation.domain,item.domain);
+      }
+    }
+    results.push({name:previousDraft?'Filas de cinco domínios preservadas após reinício':'Schema v4: reservas e filas de cinco domínios via IPC',status:'Aprovado',scope:'Fixtures locais; não valida sincronização com a API'});
     let draft;
     if(!previousDraft){
       draft=await page.evaluate(scope=>window.ipcRenderer.invoke('offline-store',{method:'save',scope,slot:'new',expectedRevision:null,payload:{values:{notes:'SQLite-Windows-persisted-draft'},products:[]}}),sqliteScope);
