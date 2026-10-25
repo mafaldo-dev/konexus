@@ -47,7 +47,7 @@ Este relatório consolida o estado real da branch `feat/offline-sales-closure` d
 | P1 | RH/treinamentos offline | Pendente. Inscrições, presença e conclusão não têm réplica/outbox. |
 | P1 | Fiscal offline | Pendente e parcialmente bloqueado: NF-e autorizada só pode existir com resposta real; contingência exige modalidade válida. |
 | P1 | Devoluções de compra offline | Pendente. O fluxo online existe, mas não há reserva/outbox por dispositivo. |
-| P1 | Cadastros e administração offline | Pendente. Produtos, clientes, fornecedores, usuários e permissões exigem controle de versão/conflito explícito. |
+| P1 | Cadastros e administração offline | Implementado na branch com migration 027 e SQLite v7: clientes, fornecedores, produtos, CRM, treinamentos, cargos e colaboradores com idempotência, versão otimista, referências `local:` e auditoria. Falta homologação Windows e aplicação da 027 no Neon. |
 | P1 | NF-e de pedido online pendente | Pendente. O fluxo offline nasce `aguardando_aprovacao`; o pedido online pendente ainda agenda emissão na criação. Falta a UI de aprovação pendente → aprovado. |
 | P2 | Folha legal completa, eSocial e holerite | Fora do escopo atual. O modelo `clt_monthly_2026` é restrito e não substitui apuração legal completa. |
 | P2 | Integrações bancárias e fiscais reais | Bloqueadas por credenciais, certificados e ambientes externos. Nenhuma transmissão real foi simulada como aprovada. |

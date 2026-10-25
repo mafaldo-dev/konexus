@@ -1,8 +1,8 @@
 # Continuidade da homologação — 25/10/2026
 
-> Etapa mais recente: [estoque, transferências e devoluções offline](OFFLINE_ESTOQUE_DEVOLUCOES_2026-10-25.md), SQLite v6 e migration 026 validada localmente.
+> Etapa mais recente: [cadastros, CRM, treinamentos e administração offline](OFFLINE_CADASTROS_2026-10-25.md), SQLite v7 e migration 027 validada apenas em bancos locais.
 
-> Etapa posterior: [operações offline de CRM e treinamentos](OFFLINE_CRM_TREINAMENTOS_2026-10-25.md), com SQLite v5 e migration 025 ainda local.
+> Etapas anteriores: [estoque, transferências e devoluções offline](OFFLINE_ESTOQUE_DEVOLUCOES_2026-10-25.md), SQLite v6 e migration 026 local; [operações offline de CRM e treinamentos](OFFLINE_CRM_TREINAMENTOS_2026-10-25.md), SQLite v5 e migration 025 local.
 
 Atualização posterior ao `RELATORIO_PENDENCIAS_2026-10-25.md`.
 

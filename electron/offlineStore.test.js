@@ -157,7 +157,7 @@ test('cofre protegido cria chave, reabre, faz backup e recusa banco sem chave', 
   assert.equal(fs.existsSync(dbFile), true);
   if (process.platform !== 'win32') assert.equal(fs.statSync(keyFile).mode & 0o777, 0o600);
   const backup = first.backup();
-  assert.equal(backup.schemaVersion, 6);
+  assert.equal(backup.schemaVersion, 7);
   assert.match(backup.sha256, /^[0-9a-f]{64}$/);
   assert.equal(fs.existsSync(path.join(backup.directory, 'key.v1.enc')), true);
   assert.equal(fs.readFileSync(path.join(backup.directory, 'konexus.sqlite')).includes(Buffer.from('segredo-do-cofre')), false);
@@ -331,7 +331,7 @@ test('SQLite v4: migração de banco v1 existente preserva rascunho e cria journ
   first.db.exec('DROP TABLE offline_order_outbox; DROP TABLE offline_stock_reservations; PRAGMA user_version=1;');
   first.close();
   const upgraded = f.open();
-  assert.equal(upgraded.schemaVersion(), 6);
+  assert.equal(upgraded.schemaVersion(), 7);
   assert.equal(upgraded.read(scope, 'new', draft.revisionId).values.notes, 'rascunho v1');
   assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_stock_reservations'").get().name, 'offline_stock_reservations');
   assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_order_outbox'").get().name, 'offline_order_outbox');
@@ -339,9 +339,118 @@ test('SQLite v4: migração de banco v1 existente preserva rascunho e cria journ
   assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_domain_reservations'").get().name, 'offline_domain_reservations');
   assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_domain_outbox'").get().name, 'offline_domain_outbox');
 });
+test('SQLite v7: cadastro offline cifrado, fila idempotente, ACK e conflito', t => {
+  const store = fixture(t).open();
+  const localId = `local:${randomUUID()}`;
+  const record = store.saveRecord(scope, 'customer', {
+    localId, remoteId: null, baseVersion: null, status: 'draft',
+    payload: { name: 'Cliente local confidencial', code: 'C1', email: 'c@example.test' },
+  });
+  assert.equal(record.status, 'draft');
+  assert.equal(store.listRecords(scope, 'customer').length, 1);
+  const raw = store.db.prepare('SELECT payload_encrypted FROM offline_records WHERE local_id=?').get(localId);
+  assert.equal(raw.payload_encrypted.includes(Buffer.from('Cliente local confidencial')), false);
+  const operationId = randomUUID();
+  const queued = store.queueRecordOperation(scope, {
+    operationId, recordType: 'customer', operation: 'create', localId,
+    remoteId: null, baseVersion: null,
+    payload: { name: 'Cliente local confidencial', code: 'C1', email: 'c@example.test' },
+  });
+  assert.equal(queued.state, 'pending');
+  const claimed = store.claimRecordOperations(scope)[0];
+  assert.equal(claimed.operationId, operationId);
+  assert.equal(claimed.payload.name, 'Cliente local confidencial');
+  assert.equal(store.claimRecordOperations(scope).length, 0);
+  const ack = store.acknowledgeRecordOperation(scope, operationId, claimed.leaseToken, {
+    recordType: 'customer', operation: 'create', localId, id: 501, version: '2026-10-25T12:00:00.000Z',
+  });
+  assert.equal(ack.confirmed, true);
+  const synced = store.loadRecord(scope, 'customer', localId);
+  assert.equal(synced.remoteId, 501);
+  assert.equal(synced.status, 'synced');
+  assert.equal(synced.baseVersion, '2026-10-25T12:00:00.000Z');
+  assert.equal(store.stats(scope).records.synced, 1);
+  assert.equal(store.stats(scope).recordOperations.confirmed, 1);
+  assert.throws(() => store.queueRecordOperation(scope, {
+    operationId: randomUUID(), recordType: 'customer', operation: 'create', localId,
+    remoteId: null, baseVersion: null, payload: { name: 'Duplicado' },
+  }), /já foi sincronizado/);
+
+  const updateId = randomUUID();
+  store.queueRecordOperation(scope, {
+    operationId: updateId, recordType: 'customer', operation: 'update', localId,
+    remoteId: 501, baseVersion: synced.baseVersion,
+    payload: { name: 'Cliente local editado' },
+  });
+  const update = store.claimRecordOperations(scope)[0];
+  assert.equal(update.operation, 'update');
+  store.rejectRecordOperation(scope, updateId, update.leaseToken, 'CONFLICT');
+  assert.equal(store.loadRecord(scope, 'customer', localId).status, 'conflict');
+  assert.throws(() => store.saveRecord(scope, 'customer', {
+    localId, remoteId: 501, baseVersion: synced.baseVersion, status: 'draft', payload: { name: 'x' },
+  }), /enfileirado|conflito/);
+  assert.equal(store.retryRecordOperation(scope, updateId).state, 'pending');
+  assert.equal(store.loadRecord(scope, 'customer', localId).status, 'queued');
+  assert.throws(() => store.queueRecordOperation(scope, {
+    operationId: randomUUID(), recordType: 'desconhecido', operation: 'create', localId: `local:${randomUUID()}`, payload: {},
+  }), /Tipo de registro/);
+});
+
+test('SQLite v7: descartar conflito remove registro e operação bloqueada', t => {
+  const store = fixture(t).open();
+  const localId = `local:${randomUUID()}`, operationId = randomUUID();
+  store.saveRecord(scope, 'customer', {
+    localId, remoteId: null, baseVersion: null, status: 'draft', payload: { name: 'Conflito', code: 'C9' },
+  });
+  store.queueRecordOperation(scope, {
+    operationId, recordType: 'customer', operation: 'create', localId,
+    remoteId: null, baseVersion: null, payload: { name: 'Conflito', code: 'C9' },
+  });
+  const claimed = store.claimRecordOperations(scope)[0];
+  store.rejectRecordOperation(scope, operationId, claimed.leaseToken, 'CONFLICT');
+  assert.equal(store.loadRecord(scope, 'customer', localId).status, 'conflict');
+  assert.equal(store.listRecordOperations(scope).length, 1);
+  assert.equal(store.deleteRecord(scope, 'customer', localId).deleted, true);
+  assert.equal(store.loadRecord(scope, 'customer', localId), null);
+  assert.equal(store.listRecordOperations(scope).length, 0);
+  assert.equal(store.stats(scope).recordOperations.blocked, 0);
+});
+
+test('SQLite v7: senha inicial de colaborador é removida após o ACK', t => {
+  const store = fixture(t).open();
+  const localId = `local:${randomUUID()}`;
+  const operationId = randomUUID();
+  const password = 'SenhaInicialMuitoSecreta#2026';
+  store.saveRecord(scope, 'admin_user', {
+    localId, remoteId: null, baseVersion: null, status: 'draft',
+    payload: { username: 'novo.colaborador', password, roleId: 9, legalEntityIds: [20] },
+  });
+  store.queueRecordOperation(scope, {
+    operationId, recordType: 'admin_user', operation: 'create', localId,
+    remoteId: null, baseVersion: null,
+    payload: { username: 'novo.colaborador', password, roleId: 9, legalEntityIds: [20] },
+  });
+  const claimed = store.claimRecordOperations(scope)[0];
+  const ack = store.acknowledgeRecordOperation(scope, operationId, claimed.leaseToken, {
+    recordType: 'admin_user', operation: 'create', localId, id: 777, version: '2026-10-25T12:00:00.000Z',
+  });
+  assert.equal(ack.confirmed, true);
+  const synced = store.loadRecord(scope, 'admin_user', localId);
+  assert.equal(synced.status, 'synced');
+  assert.equal(synced.payload.password, undefined);
+  const rawRecord = store.db.prepare('SELECT payload_encrypted FROM offline_records WHERE local_id=?').get(localId);
+  const rawOperation = store.db.prepare('SELECT payload_encrypted FROM offline_record_outbox WHERE operation_id=?').get(operationId);
+  assert.equal(Buffer.from(rawRecord.payload_encrypted).includes(Buffer.from(password)), false);
+  assert.equal(Buffer.from(rawOperation.payload_encrypted).includes(Buffer.from(password)), false);
+  assert.deepEqual(JSON.parse(store.decrypt('10:20:30:record-operation:' + operationId, rawOperation.payload_encrypted)), {});
+  const decryptedRecord = JSON.parse(store.decrypt('10:20:30:record:admin_user:' + localId, rawRecord.payload_encrypted));
+  assert.equal(decryptedRecord.password, undefined);
+  assert.equal(decryptedRecord.username, 'novo.colaborador');
+});
+
 test('SQLite v4: banco de versão futura falha fechado sem alterar dados', t => {
   const f = fixture(t), store = f.open();
-  store.db.exec('PRAGMA user_version=7;');
+  store.db.exec('PRAGMA user_version=8;');
   store.close();
   assert.throws(() => f.open(), /versão mais nova/);
 });
@@ -527,7 +636,7 @@ test('SQLite v4: migração de banco v2 preserva dados e cria tabelas de domíni
   first.db.exec('DROP TABLE offline_domain_outbox; DROP TABLE offline_domain_reservations; DROP TABLE offline_domain_snapshots; PRAGMA user_version=2;');
   first.close();
   const upgraded = f.open();
-  assert.equal(upgraded.schemaVersion(), 6);
+  assert.equal(upgraded.schemaVersion(), 7);
   assert.equal(upgraded.read(scope, 'new', draft.revisionId).values.notes, 'rascunho v2');
   for (const name of ['offline_domain_snapshots', 'offline_domain_reservations', 'offline_domain_outbox']) {
     assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name).name, name);
@@ -560,7 +669,7 @@ test('SQLite v4: migração de banco v3 preserva domínios e libera compras', t 
   first.close();
 
   const upgraded = f.open();
-  assert.equal(upgraded.schemaVersion(), 6);
+  assert.equal(upgraded.schemaVersion(), 7);
   assert.equal(upgraded.loadDomainSnapshot(scope, domain).targets[0].targetId, 501);
   assert.equal(upgraded.loadDomainOperation(scope, operationId).state, 'pending');
   assert.equal(upgraded.loadDomainReservation(scope, domain, 501).status, 'queued');
@@ -630,7 +739,7 @@ test('SQLite v5: migração v4 preserva fila cifrada e permite CRM/treinamento',
   old.db.exec('PRAGMA user_version=4;');
   old.close();
   const upgraded = f.open();
-  assert.equal(upgraded.schemaVersion(), 6);
+  assert.equal(upgraded.schemaVersion(), 7);
   assert.deepEqual(upgraded.db.prepare('PRAGMA foreign_key_check').all(), []);
   assert.deepEqual(upgraded.db.prepare('SELECT payload_encrypted FROM offline_domain_outbox WHERE operation_id=?').get(operationId).payload_encrypted, encrypted);
   assert.equal(upgraded.loadDomainOperation(scope, operationId).state, 'pending');
@@ -656,7 +765,7 @@ test('SQLite v6: quota cifrada persiste, restringe ação e exige status exato n
   first.db.exec('DROP TABLE offline_domain_allocations; PRAGMA user_version=5;');
   first.close();
   let store=f.open();
-  assert.equal(store.schemaVersion(),6);
+  assert.equal(store.schemaVersion(),7);
   const allocation={action:'transfer',quantity:3,direction:'exit',productId:90,destinationLegalEntityId:21,items:[{productId:90,quantity:3}]};
   const res=store.saveDomainReservation(scope,'stock_movement',domainReservation('stock_movement',901,{allocation}));
   const blob=store.db.prepare('SELECT payload_encrypted FROM offline_domain_allocations WHERE reservation_id=?').get(res.id).payload_encrypted;

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const ORDER_STATES = ['pending', 'leased', 'blocked', 'confirmed'];
 const RESERVATION_STATES = ['active', 'queued', 'consumed', 'cancelled', 'blocked'];
 const ORDER_ERRORS = ['NETWORK', 'SERVER', 'INVALID_ACK', 'AUTH', 'ACCESS', 'CONFLICT', 'VALIDATION', 'DEVICE'];
@@ -27,6 +27,56 @@ const SCHEMA_ALLOCATIONS = `CREATE TABLE IF NOT EXISTS offline_domain_allocation
   reservation_id TEXT PRIMARY KEY REFERENCES offline_domain_reservations(reservation_id) ON DELETE CASCADE,
   payload_encrypted BLOB NOT NULL
 ) STRICT;`;
+const RECORD_TYPES = ['customer','supplier','product','crm_lead','crm_opportunity','crm_activity','training_category','training','training_session','training_enrollment','admin_role','admin_user'];
+const RECORD_OPERATIONS = ['create','update'];
+const RECORD_STATES = ['draft','queued','synced','conflict'];
+const RECORD_OUTBOX_STATES = ['pending','leased','blocked','confirmed'];
+const SCHEMA_RECORDS = `
+  CREATE TABLE IF NOT EXISTS offline_records (
+    company_id INTEGER NOT NULL,
+    legal_entity_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    record_type TEXT NOT NULL,
+    local_id TEXT NOT NULL,
+    remote_id INTEGER,
+    base_version TEXT,
+    status TEXT NOT NULL CHECK(status IN ('draft','queued','synced','conflict')),
+    payload_encrypted BLOB NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY(company_id,legal_entity_id,user_id,record_type,local_id),
+    CHECK(company_id>0 AND legal_entity_id>0 AND user_id>0)
+  ) STRICT;
+  CREATE INDEX IF NOT EXISTS offline_records_owner
+    ON offline_records(company_id,legal_entity_id,user_id,record_type,updated_at DESC);
+  CREATE TABLE IF NOT EXISTS offline_record_outbox (
+    operation_id TEXT PRIMARY KEY,
+    company_id INTEGER NOT NULL,
+    legal_entity_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    record_type TEXT NOT NULL,
+    operation TEXT NOT NULL CHECK(operation IN ('create','update')),
+    local_id TEXT NOT NULL,
+    remote_id INTEGER,
+    base_version TEXT,
+    payload_encrypted BLOB NOT NULL,
+    state TEXT NOT NULL CHECK(state IN ('pending','leased','blocked','confirmed')),
+    attempts INTEGER NOT NULL DEFAULT 0,
+    next_attempt INTEGER NOT NULL DEFAULT 0,
+    lease_token TEXT,
+    lease_until INTEGER,
+    error_code TEXT,
+    result_encrypted BLOB,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    confirmed_at INTEGER,
+    CHECK(company_id>0 AND legal_entity_id>0 AND user_id>0)
+  ) STRICT;
+  CREATE INDEX IF NOT EXISTS offline_record_outbox_pending
+    ON offline_record_outbox(company_id,legal_entity_id,user_id,state,next_attempt,lease_until);
+  CREATE UNIQUE INDEX IF NOT EXISTS offline_record_outbox_local
+    ON offline_record_outbox(company_id,legal_entity_id,user_id,record_type,local_id,operation)
+    WHERE state<>'confirmed';
+`;
 const DOMAIN_ERRORS = [...ORDER_ERRORS, 'LOCAL_CORRUPT'];
 
 const SCHEMA_V1 = `
@@ -261,7 +311,7 @@ const MIGRATE_DOMAIN_TABLES = `
   CREATE UNIQUE INDEX offline_domain_outbox_reservation
     ON offline_domain_outbox(reservation_id);
 
-  PRAGMA user_version=6;
+  PRAGMA user_version=${SCHEMA_VERSION};
 `;
 
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
@@ -273,6 +323,20 @@ function validateScope(scope) {
 }
 function scopeKey(scope) {
   return `${scope.companyId}:${scope.legalEntityId}:${scope.userId}`;
+}
+function validateRecordType(type) {
+  if (!RECORD_TYPES.includes(type)) fail('INVALID_RECORD', 'Tipo de registro local inválido.');
+}
+function validateRecordLocalId(localId, operation) {
+  if (typeof localId !== 'string' || localId.length > 80) fail('INVALID_RECORD', 'Identificador local do registro inválido.');
+  if (operation === 'create' && !/^local:[0-9a-f-]{36}$/i.test(localId)) fail('INVALID_RECORD', 'Registro novo exige identificador local.');
+  if (operation === 'update' && !/^(local|central):[0-9a-f-]{36}$/i.test(localId) && !/^central:\d+$/.test(localId)) fail('INVALID_RECORD', 'Registro existente inválido.');
+}
+function validateRecordPayload(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) fail('INVALID_RECORD', 'Dados do registro inválidos.');
+  const text = JSON.stringify(payload);
+  if (Buffer.byteLength(text) > 100000) fail('PAYLOAD_TOO_LARGE', 'Registro offline excede 100 KB.');
+  return text;
 }
 function recordKey(scope, slot = 'new') {
   validateScope(scope);
@@ -525,6 +589,7 @@ class OfflineStore {
           this.db.exec(SCHEMA_V1);
           this.db.exec(SCHEMA_V2);
           this.db.exec(SCHEMA_DOMAINS);
+          this.db.exec(SCHEMA_RECORDS);
           this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
           this.db.prepare('INSERT INTO offline_meta(key,value) VALUES(?,?)').run('installation_id', installationId);
           this.db.prepare('INSERT INTO offline_meta(key,value) VALUES(?,?)').run('key_check', this.encrypt('key-check', installationId).toString('base64'));
@@ -535,12 +600,14 @@ class OfflineStore {
         this.transaction(() => {
           this.db.exec(SCHEMA_V2);
           this.db.exec(SCHEMA_DOMAINS);
+          this.db.exec(SCHEMA_RECORDS);
           this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
         });
       } else if (version === 2) {
         // v2 -> atual: cria snapshots, reservas e journal de dominios.
         this.transaction(() => {
           this.db.exec(SCHEMA_DOMAINS);
+          this.db.exec(SCHEMA_RECORDS);
           this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
         });
       } else if (version === 3 || version === 4 || version === 5) {
@@ -550,12 +617,19 @@ class OfflineStore {
         try {
           this.transaction(() => {
             this.db.exec(MIGRATE_DOMAIN_TABLES);
+            this.db.exec(SCHEMA_RECORDS);
           });
         } finally {
           this.db.exec('PRAGMA foreign_keys=ON;');
         }
+      } else if (version === 6) {
+        this.transaction(() => {
+          this.db.exec(SCHEMA_RECORDS);
+          this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
+        });
       }
       this.db.exec(SCHEMA_ALLOCATIONS);
+      this.db.exec(SCHEMA_RECORDS);
       // A versão 2 foi usada durante o desenvolvimento antes da coluna de
       // revisão do rascunho. Garante a coluna sem exigir uma versão nova.
       const orderColumns = this.db.prepare('PRAGMA table_info(offline_order_outbox)').all();
@@ -1422,6 +1496,342 @@ class OfflineStore {
       );
     });
   }
+  recordMetadata(row, includePayload = true) {
+    if (!row) return null;
+    const scope = { companyId: row.company_id, legalEntityId: row.legal_entity_id, userId: row.user_id };
+    let payload = null;
+    if (includePayload) {
+      try {
+        payload = JSON.parse(this.decrypt(
+          `${scopeKey(scope)}:record:${row.record_type}:${row.local_id}`,
+          row.payload_encrypted
+        ));
+      } catch (error) {
+        if (error?.code === 'CORRUPT_PAYLOAD') throw error;
+        fail('CORRUPT_PAYLOAD', 'Cópia local do registro não pôde ser lida.');
+      }
+    }
+    return {
+      localId: row.local_id,
+      recordType: row.record_type,
+      remoteId: row.remote_id == null ? null : Number(row.remote_id),
+      baseVersion: row.base_version,
+      status: row.status,
+      payload,
+      updatedAt: row.updated_at,
+    };
+  }
+  recordOperationMetadata(row) {
+    if (!row) return null;
+    const scope = { companyId: row.company_id, legalEntityId: row.legal_entity_id, userId: row.user_id };
+    let result = null;
+    if (row.result_encrypted) {
+      try {
+        result = JSON.parse(this.decrypt(
+          `${scopeKey(scope)}:record-operation-result:${row.operation_id}`,
+          row.result_encrypted
+        ));
+      } catch { result = null; }
+    }
+    return {
+      operationId: row.operation_id,
+      recordType: row.record_type,
+      operation: row.operation,
+      localId: row.local_id,
+      remoteId: row.remote_id == null ? null : Number(row.remote_id),
+      baseVersion: row.base_version,
+      state: row.state,
+      attempts: row.attempts,
+      errorCode: row.error_code,
+      result,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+  saveRecord(scope, recordType, record) {
+    validateScope(scope);
+    validateRecordType(recordType);
+    if (!record || typeof record !== 'object') fail('INVALID_RECORD', 'Registro local inválido.');
+    const operation = record.remoteId ? 'update' : 'create';
+    validateRecordLocalId(record.localId, operation);
+    if (!RECORD_STATES.includes(record.status)) fail('INVALID_RECORD', 'Estado local do registro inválido.');
+    if (record.remoteId != null && (!Number.isInteger(record.remoteId) || record.remoteId <= 0)) fail('INVALID_RECORD', 'Identificador central inválido.');
+    const payloadText = validateRecordPayload(record.payload);
+    const timestamp = this.now();
+    return this.transaction(() => {
+      const existing = this.db.prepare(`SELECT * FROM offline_records
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+        .get(scope.companyId, scope.legalEntityId, scope.userId, recordType, record.localId);
+      if (existing && ['queued','conflict'].includes(existing.status)) {
+        const pending = this.db.prepare(`SELECT operation_id FROM offline_record_outbox
+          WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=? AND state<>'confirmed'`)
+          .get(scope.companyId, scope.legalEntityId, scope.userId, recordType, record.localId);
+        if (pending) fail('LOCAL_CONFLICT', 'Registro enfileirado ou em conflito; use a fila para reenviar ou descarte antes de editar.');
+      }
+      const encrypted = this.encrypt(`${scopeKey(scope)}:record:${recordType}:${record.localId}`, payloadText);
+      this.db.prepare(`INSERT INTO offline_records
+        (company_id,legal_entity_id,user_id,record_type,local_id,remote_id,base_version,status,payload_encrypted,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(company_id,legal_entity_id,user_id,record_type,local_id) DO UPDATE SET
+          remote_id=excluded.remote_id, base_version=excluded.base_version, status=excluded.status,
+          payload_encrypted=excluded.payload_encrypted, updated_at=excluded.updated_at`)
+        .run(scope.companyId, scope.legalEntityId, scope.userId, recordType, record.localId,
+          record.remoteId || null, record.baseVersion || null, record.status, encrypted, timestamp);
+      return this.recordMetadata(this.db.prepare(`SELECT * FROM offline_records
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+        .get(scope.companyId, scope.legalEntityId, scope.userId, recordType, record.localId));
+    });
+  }
+  listRecords(scope, recordType = null, limit = 100) {
+    validateScope(scope);
+    if (recordType != null) validateRecordType(recordType);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 200) fail('INVALID_LIMIT', 'Lote inválido.');
+    const rows = recordType == null
+      ? this.db.prepare(`SELECT * FROM offline_records WHERE company_id=? AND legal_entity_id=? AND user_id=?
+          ORDER BY updated_at DESC, rowid DESC LIMIT ?`).all(scope.companyId, scope.legalEntityId, scope.userId, limit)
+      : this.db.prepare(`SELECT * FROM offline_records WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=?
+          ORDER BY updated_at DESC, rowid DESC LIMIT ?`).all(scope.companyId, scope.legalEntityId, scope.userId, recordType, limit);
+    return rows.map(row => this.recordMetadata(row));
+  }
+  loadRecord(scope, recordType, localId) {
+    validateScope(scope);
+    validateRecordType(recordType);
+    const row = this.db.prepare(`SELECT * FROM offline_records
+      WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+      .get(scope.companyId, scope.legalEntityId, scope.userId, recordType, localId);
+    return this.recordMetadata(row);
+  }
+  deleteRecord(scope, recordType, localId) {
+    validateScope(scope);
+    validateRecordType(recordType);
+    return this.transaction(() => {
+      const row = this.db.prepare(`SELECT status FROM offline_records
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+        .get(scope.companyId, scope.legalEntityId, scope.userId, recordType, localId);
+      if (!row) fail('NOT_FOUND', 'Registro local não encontrado.');
+      if (row.status === 'queued') fail('LOCAL_CONFLICT', 'Registro enfileirado não pode ser excluído.');
+      this.db.prepare(`DELETE FROM offline_record_outbox
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?
+          AND state<>'confirmed'`)
+        .run(scope.companyId, scope.legalEntityId, scope.userId, recordType, localId);
+      return { deleted: this.db.prepare(`DELETE FROM offline_records
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+        .run(scope.companyId, scope.legalEntityId, scope.userId, recordType, localId).changes === 1 };
+    });
+  }
+  queueRecordOperation(scope, operation) {
+    validateScope(scope);
+    if (!operation || typeof operation !== 'object') fail('INVALID_RECORD', 'Operação local inválida.');
+    if (!UUID.test(operation.operationId || '')) fail('INVALID_OPERATION', 'Operação local inválida.');
+    validateRecordType(operation.recordType);
+    if (!RECORD_OPERATIONS.includes(operation.operation)) fail('INVALID_RECORD', 'Operação de registro inválida.');
+    validateRecordLocalId(operation.localId, operation.operation);
+    if (operation.operation === 'update' && (!Number.isInteger(operation.remoteId) || operation.remoteId <= 0)) {
+      fail('INVALID_RECORD', 'Edição exige o identificador central do registro.');
+    }
+    const payloadText = validateRecordPayload(operation.payload);
+    const timestamp = this.now();
+    return this.transaction(() => {
+      if (operation.operation === 'create') {
+        const confirmedCreate = this.db.prepare(`SELECT operation_id FROM offline_record_outbox
+          WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?
+            AND operation='create' AND state='confirmed' LIMIT 1`)
+          .get(scope.companyId, scope.legalEntityId, scope.userId, operation.recordType, operation.localId);
+        if (confirmedCreate) fail('LOCAL_CONFLICT', 'Este registro já foi sincronizado; use a edição.');
+      }
+      const existing = this.db.prepare(`SELECT * FROM offline_record_outbox
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=? AND state<>'confirmed'
+        ORDER BY created_at DESC, rowid DESC LIMIT 1`)
+        .get(scope.companyId, scope.legalEntityId, scope.userId, operation.recordType, operation.localId);
+      if (existing) {
+        if (existing.operation !== operation.operation) fail('LOCAL_CONFLICT', 'Já existe uma operação de outro tipo para este registro.');
+        const encrypted = this.encrypt(`${scopeKey(scope)}:record-operation:${existing.operation_id}`, payloadText);
+        const recordEncrypted = this.encrypt(`${scopeKey(scope)}:record:${operation.recordType}:${operation.localId}`, payloadText);
+        this.db.prepare(`UPDATE offline_record_outbox SET payload_encrypted=?,remote_id=?,base_version=?,state='pending',
+          next_attempt=0,lease_token=NULL,lease_until=NULL,error_code=NULL,updated_at=? WHERE operation_id=?`)
+          .run(encrypted, operation.remoteId || null, operation.baseVersion || null, timestamp, existing.operation_id);
+        this.db.prepare(`UPDATE offline_records SET status='queued',remote_id=?,base_version=?,payload_encrypted=?,updated_at=?
+          WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+          .run(operation.remoteId || null, operation.baseVersion || null, recordEncrypted, timestamp,
+            scope.companyId, scope.legalEntityId, scope.userId, operation.recordType, operation.localId);
+        return this.recordOperationMetadata(this.db.prepare('SELECT * FROM offline_record_outbox WHERE operation_id=?').get(existing.operation_id));
+      }
+      const encrypted = this.encrypt(`${scopeKey(scope)}:record-operation:${operation.operationId}`, payloadText);
+      const recordEncrypted = this.encrypt(`${scopeKey(scope)}:record:${operation.recordType}:${operation.localId}`, payloadText);
+      this.db.prepare(`INSERT INTO offline_record_outbox
+        (operation_id,company_id,legal_entity_id,user_id,record_type,operation,local_id,remote_id,base_version,
+         payload_encrypted,state,attempts,next_attempt,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,'pending',0,0,?,?)`)
+        .run(operation.operationId, scope.companyId, scope.legalEntityId, scope.userId, operation.recordType,
+          operation.operation, operation.localId, operation.remoteId || null, operation.baseVersion || null,
+          encrypted, timestamp, timestamp);
+      this.db.prepare(`INSERT INTO offline_records
+        (company_id,legal_entity_id,user_id,record_type,local_id,remote_id,base_version,status,payload_encrypted,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(company_id,legal_entity_id,user_id,record_type,local_id) DO UPDATE SET
+          remote_id=excluded.remote_id,base_version=excluded.base_version,status='queued',
+          payload_encrypted=excluded.payload_encrypted,updated_at=excluded.updated_at`)
+        .run(scope.companyId, scope.legalEntityId, scope.userId, operation.recordType, operation.localId,
+          operation.remoteId || null, operation.baseVersion || null, 'queued', recordEncrypted, timestamp);
+      return this.recordOperationMetadata(this.db.prepare('SELECT * FROM offline_record_outbox WHERE operation_id=?').get(operation.operationId));
+    });
+  }
+  listRecordOperations(scope, limit = 100) {
+    validateScope(scope);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 200) fail('INVALID_LIMIT', 'Lote inválido.');
+    return this.db.prepare(`SELECT * FROM offline_record_outbox
+      WHERE company_id=? AND legal_entity_id=? AND user_id=? ORDER BY created_at DESC, rowid DESC LIMIT ?`)
+      .all(scope.companyId, scope.legalEntityId, scope.userId, limit)
+      .map(row => this.recordOperationMetadata(row));
+  }
+  claimRecordOperations(scope, limit = 5) {
+    validateScope(scope);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 20) fail('INVALID_LIMIT', 'Lote inválido.');
+    return this.transaction(() => {
+      const rows = this.db.prepare(`SELECT * FROM offline_record_outbox
+        WHERE company_id=? AND legal_entity_id=? AND user_id=?
+          AND ((state='pending' AND next_attempt<=?) OR (state='leased' AND lease_until<=?))
+        ORDER BY created_at,rowid LIMIT ?`)
+        .all(scope.companyId, scope.legalEntityId, scope.userId, this.now(), this.now(), limit);
+      const claimed = [];
+      for (const row of rows) {
+        try {
+          const payload = JSON.parse(this.decrypt(
+            `${scopeKey(scope)}:record-operation:${row.operation_id}`,
+            row.payload_encrypted
+          ));
+          const leaseToken = randomUUID();
+          this.db.prepare(`UPDATE offline_record_outbox SET state='leased',lease_token=?,lease_until=?,attempts=attempts+1,updated_at=?
+            WHERE operation_id=?`).run(leaseToken, this.now() + 60000, this.now(), row.operation_id);
+          claimed.push({
+            operationId: row.operation_id,
+            recordType: row.record_type,
+            operation: row.operation,
+            localId: row.local_id,
+            remoteId: row.remote_id == null ? null : Number(row.remote_id),
+            baseVersion: row.base_version,
+            leaseToken,
+            payload,
+          });
+        } catch (error) {
+          if (error?.code !== 'CORRUPT_PAYLOAD') throw error;
+          this.db.prepare(`UPDATE offline_record_outbox SET state='blocked',lease_token=NULL,lease_until=NULL,error_code='LOCAL_CORRUPT',updated_at=?
+            WHERE operation_id=?`).run(this.now(), row.operation_id);
+          this.db.prepare(`UPDATE offline_records SET status='conflict',updated_at=?
+            WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+            .run(this.now(), scope.companyId, scope.legalEntityId, scope.userId, row.record_type, row.local_id);
+        }
+      }
+      return claimed;
+    });
+  }
+  leasedRecordOperation(scope, operationId, leaseToken) {
+    validateScope(scope);
+    return this.db.prepare(`SELECT * FROM offline_record_outbox
+      WHERE operation_id=? AND company_id=? AND legal_entity_id=? AND user_id=? AND state='leased'
+        AND lease_token=? AND lease_until>?`)
+      .get(operationId, scope.companyId, scope.legalEntityId, scope.userId, leaseToken, this.now());
+  }
+  acknowledgeRecordOperation(scope, operationId, leaseToken, ack) {
+    return this.transaction(() => {
+      const row = this.leasedRecordOperation(scope, operationId, leaseToken);
+      if (!row) return { confirmed: false };
+      if (!ack || typeof ack !== 'object') fail('INVALID_ACK', 'Confirmação de registro inválida.');
+      if (ack.recordType !== row.record_type || ack.operation !== row.operation || ack.localId !== row.local_id) {
+        fail('INVALID_ACK', 'Servidor confirmou outro registro.');
+      }
+      if (!Number.isInteger(ack.id) || ack.id <= 0) fail('INVALID_ACK', 'Identificador central inválido.');
+      const version = ack.version == null ? null : String(ack.version);
+      const timestamp = this.now();
+      const result = this.encrypt(`${scopeKey(scope)}:record-operation-result:${operationId}`,
+        JSON.stringify({ id: ack.id, version, replayed: Boolean(ack.replayed) }));
+      this.db.prepare(`UPDATE offline_record_outbox SET state='confirmed',remote_id=?,result_encrypted=?,confirmed_at=?,updated_at=?,
+        lease_token=NULL,lease_until=NULL,error_code=NULL WHERE operation_id=?`)
+        .run(ack.id, result, timestamp, timestamp, operationId);
+      this.db.prepare(`UPDATE offline_records SET remote_id=?,base_version=?,status='synced',updated_at=?
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+        .run(ack.id, version, timestamp, scope.companyId, scope.legalEntityId, scope.userId, row.record_type, row.local_id);
+      if (row.record_type === 'admin_user' && row.operation === 'create') {
+        // A senha inicial só é necessária até a confirmação. Depois do ACK,
+        // remove o segredo do registro e da operação local confirmada.
+        const local = this.db.prepare(`SELECT payload_encrypted FROM offline_records
+          WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+          .get(scope.companyId, scope.legalEntityId, scope.userId, row.record_type, row.local_id);
+        if (local) {
+          try {
+            const recordAad = `${scopeKey(scope)}:record:${row.record_type}:${row.local_id}`;
+            const payload = JSON.parse(this.decrypt(recordAad, local.payload_encrypted));
+            if (payload && Object.prototype.hasOwnProperty.call(payload, 'password')) {
+              delete payload.password;
+              this.db.prepare(`UPDATE offline_records SET payload_encrypted=?
+                WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+                .run(this.encrypt(recordAad, JSON.stringify(payload)), scope.companyId, scope.legalEntityId,
+                  scope.userId, row.record_type, row.local_id);
+            }
+          } catch (error) {
+            if (error?.code !== 'CORRUPT_PAYLOAD') throw error;
+          }
+        }
+        const cleared = this.encrypt(`${scopeKey(scope)}:record-operation:${operationId}`, '{}');
+        this.db.prepare('UPDATE offline_record_outbox SET payload_encrypted=? WHERE operation_id=?')
+          .run(cleared, operationId);
+      }
+      return {
+        confirmed: true,
+        operation: this.recordOperationMetadata(this.db.prepare('SELECT * FROM offline_record_outbox WHERE operation_id=?').get(operationId)),
+      };
+    });
+  }
+  rejectRecordOperation(scope, operationId, leaseToken, code) {
+    if (!DOMAIN_ERRORS.includes(code)) fail('INVALID_ERROR', 'Categoria de erro inválida.');
+    return this.transaction(() => {
+      const row = this.leasedRecordOperation(scope, operationId, leaseToken);
+      if (!row) return { retained: false };
+      const blocked = ['AUTH','ACCESS','CONFLICT','VALIDATION','INVALID_ACK','DEVICE','LOCAL_CORRUPT'].includes(code);
+      const state = blocked ? 'blocked' : 'pending';
+      const timestamp = this.now();
+      this.db.prepare(`UPDATE offline_record_outbox SET state=?,next_attempt=?,lease_token=NULL,lease_until=NULL,error_code=?,updated_at=?
+        WHERE operation_id=?`).run(state, timestamp + Math.min(60000, 1000 * 2 ** Math.min(row.attempts - 1, 6)), code, timestamp, operationId);
+      this.db.prepare(`UPDATE offline_records SET status=?,updated_at=?
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+        .run(blocked ? 'conflict' : 'queued', timestamp, scope.companyId, scope.legalEntityId, scope.userId, row.record_type, row.local_id);
+      return { retained: true };
+    });
+  }
+  retryRecordOperation(scope, operationId) {
+    validateScope(scope);
+    if (!UUID.test(operationId || '')) fail('INVALID_OPERATION', 'Operação local inválida.');
+    return this.transaction(() => {
+      const row = this.db.prepare(`SELECT * FROM offline_record_outbox
+        WHERE operation_id=? AND company_id=? AND legal_entity_id=? AND user_id=?`)
+        .get(operationId, scope.companyId, scope.legalEntityId, scope.userId);
+      if (!row) fail('NOT_FOUND', 'Operação local não encontrada.');
+      if (row.state !== 'blocked') return this.recordOperationMetadata(row);
+      if (row.error_code === 'LOCAL_CORRUPT') fail('LOCAL_CONFLICT', 'O conteúdo local está corrompido e não pode ser reenviado.');
+      this.db.prepare(`UPDATE offline_record_outbox SET state='pending',next_attempt=0,error_code=NULL,updated_at=? WHERE operation_id=?`)
+        .run(this.now(), operationId);
+      this.db.prepare(`UPDATE offline_records SET status='queued',updated_at=?
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+        .run(this.now(), scope.companyId, scope.legalEntityId, scope.userId, row.record_type, row.local_id);
+      return this.recordOperationMetadata(this.db.prepare('SELECT * FROM offline_record_outbox WHERE operation_id=?').get(operationId));
+    });
+  }
+  resumeRecordAuth(scope) {
+    validateScope(scope);
+    return this.transaction(() => {
+      const rows = this.db.prepare(`SELECT operation_id,record_type,local_id FROM offline_record_outbox
+        WHERE company_id=? AND legal_entity_id=? AND user_id=? AND state='blocked' AND error_code IN ('AUTH','ACCESS','DEVICE')`)
+        .all(scope.companyId, scope.legalEntityId, scope.userId);
+      for (const row of rows) {
+        this.db.prepare(`UPDATE offline_record_outbox SET state='pending',next_attempt=0,updated_at=? WHERE operation_id=?`)
+          .run(this.now(), row.operation_id);
+        this.db.prepare(`UPDATE offline_records SET status='queued',updated_at=?
+          WHERE company_id=? AND legal_entity_id=? AND user_id=? AND record_type=? AND local_id=?`)
+          .run(this.now(), scope.companyId, scope.legalEntityId, scope.userId, row.record_type, row.local_id);
+      }
+      return { resumed: rows.length };
+    });
+  }
   stats(scope) {
     validateScope(scope);
     const counts = this.db.prepare(`SELECT o.state,count(*) AS count FROM offline_outbox o JOIN offline_documents d ON d.key=o.document_key
@@ -1438,6 +1848,12 @@ class OfflineStore {
     const domainOperationCounts = this.db.prepare(`SELECT state,count(*) AS count FROM offline_domain_outbox
       WHERE company_id=? AND legal_entity_id=? AND user_id=? GROUP BY state`)
       .all(scope.companyId, scope.legalEntityId, scope.userId);
+    const recordCounts = this.db.prepare(`SELECT status,count(*) AS count FROM offline_records
+      WHERE company_id=? AND legal_entity_id=? AND user_id=? GROUP BY status`)
+      .all(scope.companyId, scope.legalEntityId, scope.userId);
+    const recordOperationCounts = this.db.prepare(`SELECT state,count(*) AS count FROM offline_record_outbox
+      WHERE company_id=? AND legal_entity_id=? AND user_id=? GROUP BY state`)
+      .all(scope.companyId, scope.legalEntityId, scope.userId);
     const orders = Object.fromEntries(ORDER_STATES.map(state => [state, 0]));
     for (const row of orderCounts) orders[row.state] = row.count;
     const reservations = Object.fromEntries(RESERVATION_STATES.map(state => [state, 0]));
@@ -1446,6 +1862,10 @@ class OfflineStore {
     for (const row of domainReservationCounts) domainReservations[row.status] = row.count;
     const domainOperations = Object.fromEntries(DOMAIN_OPERATION_STATES.map(state => [state, 0]));
     for (const row of domainOperationCounts) domainOperations[row.state] = row.count;
+    const records = Object.fromEntries(RECORD_STATES.map(state => [state, 0]));
+    for (const row of recordCounts) records[row.status] = row.count;
+    const recordOperations = Object.fromEntries(RECORD_OUTBOX_STATES.map(state => [state, 0]));
+    for (const row of recordOperationCounts) recordOperations[row.state] = row.count;
     return {
       engine: 'sqlite',
       schemaVersion: this.schemaVersion(),
@@ -1454,6 +1874,8 @@ class OfflineStore {
       orders,
       reservations,
       domains: { reservations: domainReservations, operations: domainOperations },
+      records,
+      recordOperations,
     };
   }
   backup(destination) {

@@ -3,6 +3,7 @@ import AdministrationScreen from '../components/AdminScreen';
 import LoginPage from '../login';
 import OfflineWorkspace from '../offline/OfflineWorkspace';
 import DomainOfflineWorkspace from '../offline/DomainOfflineWorkspace';
+import RecordOfflineWorkspace from '../offline/RecordOfflineWorkspace';
 import ChangePasswordPage from '../pages/ChangePassword';
 import SystemAdminWorkspace from '../pages/system-admin';
 import OrdersList from '../pages/sales/orders/components/orders-list';
@@ -62,6 +63,7 @@ const AppRoutes = () => {
       <Route path="/" element={<LoginPage />} />
       <Route path="/offline" element={<OfflineWorkspace />} />
       <Route path="/offline/domains" element={<DomainOfflineWorkspace />} />
+      <Route path="/offline/records" element={<RecordOfflineWorkspace />} />
 
       {/* ==================== PAINEL ADMINISTRATIVO GLOBAL (F1) ==================== */}
       <Route path="/system-admin" element={<SystemAdminWorkspace />} />

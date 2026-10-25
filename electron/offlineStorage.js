@@ -83,6 +83,18 @@ function dispatch(store, request) {
     case 'reject-domain-operation': return store.rejectDomainOperation(scope, request.operationId, request.leaseToken, request.code);
     case 'resume-domain-auth': return store.resumeDomainAuth(scope);
     case 'retry-domain-operation': return store.retryDomainOperation(scope, request.operationId);
+    case 'save-record': return store.saveRecord(scope, request.recordType, request.record);
+    case 'list-records': return store.listRecords(scope, request.recordType, request.limit);
+    case 'load-record': return store.loadRecord(scope, request.recordType, request.localId);
+    case 'delete-record': return store.deleteRecord(scope, request.recordType, request.localId);
+    case 'queue-record-operation': return store.queueRecordOperation(scope, request.operation);
+    case 'list-record-operations': return store.listRecordOperations(scope, request.limit);
+    case 'claim-record-operations': return store.claimRecordOperations(scope, request.limit);
+    case 'leased-record-operation': return store.leasedRecordOperation(scope, request.operationId, request.leaseToken);
+    case 'ack-record-operation': return store.acknowledgeRecordOperation(scope, request.operationId, request.leaseToken, request.ack);
+    case 'reject-record-operation': return store.rejectRecordOperation(scope, request.operationId, request.leaseToken, request.code);
+    case 'retry-record-operation': return store.retryRecordOperation(scope, request.operationId);
+    case 'resume-record-auth': return store.resumeRecordAuth(scope);
     default: throw new Error('Operação SQLite não permitida.');
   }
 }

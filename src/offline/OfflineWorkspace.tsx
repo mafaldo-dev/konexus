@@ -76,7 +76,8 @@ export default function OfflineWorkspace(){
     <p>Rascunhos, reservas de estoque e pedidos aguardando confirmação neste dispositivo. Estoque livre, autorização e emissão fiscal continuam dependendo da validação online.</p>
     <p className="rounded border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
       Financeiro, folha e contábil têm uma área própria de reservas e operações offline.
-      {' '}<Link className="font-medium underline" to="/offline/domains">Abrir continuidade de domínios</Link>.
+      {' '}<Link className="font-medium underline" to="/offline/domains">Abrir continuidade de domínios</Link>{' '}
+      <Link className="font-medium underline" to="/offline/records">Abrir cadastros offline</Link>.
     </p>
     <p role="status" className="rounded bg-blue-50 p-3">{status}</p>
     {scope&&<p>Organização #{scope.companyId} · CNPJ interno #{scope.legalEntityId} · usuário #{scope.userId}</p>}

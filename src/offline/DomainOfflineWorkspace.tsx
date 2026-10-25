@@ -401,6 +401,9 @@ export default function DomainOfflineWorkspace() {
             As reservas são criadas online com confirmação de identidade e vinculadas a este computador, usuário e CNPJ.
             Depois de reservar, a operação final pode ser preparada sem internet e sincronizada com recibo idempotente.
           </p>
+          <Link className="mt-2 inline-flex text-sm font-medium underline" to="/offline/records">
+            Abrir cadastros offline
+          </Link>
         </div>
         <Link className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm hover:bg-slate-50" to="/offline">
           <ArrowLeft size={16} /> Continuidade de vendas
