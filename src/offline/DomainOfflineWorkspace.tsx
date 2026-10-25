@@ -10,6 +10,7 @@ import {
   Landmark,
   RefreshCw,
   ShieldCheck,
+  ShoppingCart,
   Users,
   Wallet,
   XCircle,
@@ -54,6 +55,7 @@ const TABS: Tab[] = [
   { key: 'financial_payable', label: 'A pagar', module: 'finance', viewAction: 'view', operateAction: 'edit', icon: Landmark },
   { key: 'payroll_competency', label: 'Folha', module: 'rh', viewAction: 'view_payroll', operateAction: 'approve_payroll', icon: Users },
   { key: 'accounting_period', label: 'Contábil', module: 'contabil', viewAction: 'view', operateAction: 'manage_periods', icon: CalendarRange },
+  { key: 'purchase_order', label: 'Compras', module: 'compras', viewAction: 'view', operateAction: 'edit', icon: ShoppingCart },
 ];
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -368,7 +370,7 @@ export default function DomainOfflineWorkspace() {
     <main className="mx-auto max-w-7xl space-y-5 p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Continuidade offline — Financeiro, folha e contábil</h1>
+          <h1 className="text-2xl font-bold">Continuidade offline — Financeiro, folha, contábil e compras</h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-600">
             As reservas são criadas online com confirmação de identidade e vinculadas a este computador, usuário e CNPJ.
             Depois de reservar, a operação final pode ser preparada sem internet e sincronizada com recibo idempotente.
@@ -412,7 +414,7 @@ export default function DomainOfflineWorkspace() {
 
       {availableTabs.length === 0 && (
         <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          Seu perfil não possui permissão de leitura ou operação em financeiro, folha ou contábil.
+          Seu perfil não possui permissão de leitura ou operação em financeiro, folha, contábil ou compras.
         </p>
       )}
 
@@ -552,6 +554,7 @@ export default function DomainOfflineWorkspace() {
                   </label>
                 )}
                 {domain === 'payroll_competency' && <p className="text-sm text-sky-900 md:col-span-2">O fechamento usa a competência aprovada e o cálculo já gravados na central. Nenhum valor é recalculado offline.</p>}
+                {domain === 'purchase_order' && <p className="text-sm text-sky-900 md:col-span-2">A aprovação altera somente o status do pedido já existente. Ela não recebe estoque, não gera conta a pagar e não emite documento fiscal.</p>}
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button type="button" onClick={() => void submitForm()} disabled={busyTarget === form.target.targetId}
@@ -619,7 +622,7 @@ export default function DomainOfflineWorkspace() {
 
       <p className="flex items-start gap-2 text-xs text-slate-500">
         <XCircle size={14} className="mt-0.5 shrink-0" />
-        A reserva não calcula folha, não cria lançamentos contábeis e não movimenta banco. Ela apenas garante exclusividade do alvo e permite registrar a operação final já validada pela central.
+        A reserva não calcula folha, não cria lançamentos contábeis, não movimenta banco e não recebe compras. Ela apenas garante exclusividade do alvo e permite registrar a operação final já validada pela central.
       </p>
     </main>
   );

@@ -77,6 +77,35 @@ it('atualiza a cópia local de títulos a receber somente com alvos elegíveis',
   });
 });
 
+it('carrega pedidos de compra pendentes e ignora os já aprovados', async () => {
+  jest.spyOn(apiClient, 'get').mockResolvedValue({
+    ok: true,
+    status: 200,
+    error: null,
+    data: {
+      success: true,
+      data: [
+        { id: 601, orderNumber: 'PC-1', orderStatus: 'pending', totalCost: '250.00', orderDate: '2026-10-25', supplierName: 'Fornecedor QA' },
+        { id: 602, orderNumber: 'PC-2', orderStatus: 'approved', totalCost: '99.00', orderDate: '2026-10-25', supplierName: 'Fornecedor QA' },
+      ],
+    },
+  });
+  invoke.mockResolvedValue({ domain: 'purchase_order', targets: [], updatedAt: 1 });
+
+  const snapshot = await domainOffline.refreshDomainTargets(scope, 'purchase_order');
+
+  expect(apiClient.get).toHaveBeenCalledWith('purchase/all?limit=200', { legalEntityId: 902, reauth: false });
+  expect(snapshot.targets).toHaveLength(1);
+  expect(snapshot.targets[0]).toEqual(expect.objectContaining({
+    domain: 'purchase_order',
+    targetId: 601,
+    label: 'Pedido PC-1',
+    secondary: 'Fornecedor QA',
+    status: 'pending',
+    amount: 250,
+  }));
+});
+
 it('filtra períodos contábeis pelo CNPJ ativo e ignora bloqueados', async () => {
   jest.spyOn(apiClient, 'get').mockResolvedValue({
     ok: true,
@@ -255,4 +284,6 @@ it('oferece apenas ações compatíveis com o estado do alvo', () => {
   expect(domainOffline.domainTargetActions('accounting_period', 'open')).toEqual(['close', 'lock']);
   expect(domainOffline.domainTargetActions('accounting_period', 'closed')).toEqual(['reopen', 'lock']);
   expect(domainOffline.domainTargetActions('accounting_period', 'locked')).toEqual([]);
+  expect(domainOffline.domainTargetActions('purchase_order', 'pending')).toEqual(['approve']);
+  expect(domainOffline.domainTargetActions('purchase_order', 'approved')).toEqual([]);
 });

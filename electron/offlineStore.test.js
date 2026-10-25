@@ -157,7 +157,7 @@ test('cofre protegido cria chave, reabre, faz backup e recusa banco sem chave', 
   assert.equal(fs.existsSync(dbFile), true);
   if (process.platform !== 'win32') assert.equal(fs.statSync(keyFile).mode & 0o777, 0o600);
   const backup = first.backup();
-  assert.equal(backup.schemaVersion, 3);
+  assert.equal(backup.schemaVersion, 4);
   assert.match(backup.sha256, /^[0-9a-f]{64}$/);
   assert.equal(fs.existsSync(path.join(backup.directory, 'key.v1.enc')), true);
   assert.equal(fs.readFileSync(path.join(backup.directory, 'konexus.sqlite')).includes(Buffer.from('segredo-do-cofre')), false);
@@ -324,14 +324,14 @@ test('SQLite v2: payload adulterado bloqueia em vez de vazar ou reenviar', t => 
   assert.equal(store.loadReservation(scope, 'new').status, 'blocked');
   assert.throws(() => store.retryOrder(scope, operationId), /corrompido/);
 });
-test('SQLite v3: migração de banco v1 existente preserva rascunho e cria journals de pedidos e domínios', t => {
+test('SQLite v4: migração de banco v1 existente preserva rascunho e cria journals de pedidos e domínios', t => {
   const f = fixture(t);
   const first = f.open();
   const draft = first.save(scope, 'new', payload('rascunho v1'), null);
   first.db.exec('DROP TABLE offline_order_outbox; DROP TABLE offline_stock_reservations; PRAGMA user_version=1;');
   first.close();
   const upgraded = f.open();
-  assert.equal(upgraded.schemaVersion(), 3);
+  assert.equal(upgraded.schemaVersion(), 4);
   assert.equal(upgraded.read(scope, 'new', draft.revisionId).values.notes, 'rascunho v1');
   assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_stock_reservations'").get().name, 'offline_stock_reservations');
   assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_order_outbox'").get().name, 'offline_order_outbox');
@@ -339,9 +339,9 @@ test('SQLite v3: migração de banco v1 existente preserva rascunho e cria journ
   assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_domain_reservations'").get().name, 'offline_domain_reservations');
   assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='offline_domain_outbox'").get().name, 'offline_domain_outbox');
 });
-test('SQLite v3: banco de versão futura falha fechado sem alterar dados', t => {
+test('SQLite v4: banco de versão futura falha fechado sem alterar dados', t => {
   const f = fixture(t), store = f.open();
-  store.db.exec('PRAGMA user_version=4;');
+  store.db.exec('PRAGMA user_version=5;');
   store.close();
   assert.throws(() => f.open(), /versão mais nova/);
 });
@@ -411,7 +411,7 @@ function domainTarget(domain, targetId, overrides = {}) {
     ...overrides,
   };
 }
-test('SQLite v3: snapshot de domínio é cifrado, isolado por escopo e validado ao ler', t => {
+test('SQLite v4: snapshot de domínio é cifrado, isolado por escopo e validado ao ler', t => {
   const store = fixture(t).open();
   const targets = [domainTarget('financial_receivable', 501), domainTarget('financial_receivable', 502, { label: 'Alvo 502' })];
   const saved = store.saveDomainSnapshot(scope, 'financial_receivable', targets);
@@ -427,7 +427,7 @@ test('SQLite v3: snapshot de domínio é cifrado, isolado por escopo e validado 
     operations: { pending: 0, leased: 0, blocked: 0, confirmed: 0 },
   });
 });
-test('SQLite v3: reserva e operação de domínio cifradas, claim, ack exato e consumo', t => {
+test('SQLite v4: reserva e operação de domínio cifradas, claim, ack exato e consumo', t => {
   const store = fixture(t).open();
   const domain = 'financial_receivable';
   const res = store.saveDomainReservation(scope, domain, domainReservation(domain, 501));
@@ -475,7 +475,7 @@ test('SQLite v3: reserva e operação de domínio cifradas, claim, ack exato e c
   assert.equal(store.stats(scope).domains.operations.confirmed, 1);
   assert.equal(store.stats(scope).domains.reservations.consumed, 1);
 });
-test('SQLite v3: conflito bloqueia sem reenvio automático; retry manual e AUTH retomam', t => {
+test('SQLite v4: conflito bloqueia sem reenvio automático; retry manual e AUTH retomam', t => {
   const store = fixture(t).open();
   const domain = 'financial_payable';
   const res = store.saveDomainReservation(scope, domain, domainReservation(domain, 701));
@@ -501,7 +501,7 @@ test('SQLite v3: conflito bloqueia sem reenvio automático; retry manual e AUTH 
   assert.equal(acked.confirmed, true);
   assert.equal(store.loadDomainReservation(scope, domain, 701), null);
 });
-test('SQLite v3: payload adulterado bloqueia em vez de reenviar; liberação forçada remove journal', t => {
+test('SQLite v4: payload adulterado bloqueia em vez de reenviar; liberação forçada remove journal', t => {
   const store = fixture(t).open();
   const domain = 'accounting_period';
   const res = store.saveDomainReservation(scope, domain, domainReservation(domain, 801, { status: 'active' }));
@@ -521,20 +521,20 @@ test('SQLite v3: payload adulterado bloqueia em vez de reenviar; liberação for
   assert.equal(store.loadDomainOperation(scope, operationId), null);
   assert.deepEqual(store.claimDomainOperations(scope), []);
 });
-test('SQLite v3: migração de banco v2 preserva dados e cria tabelas de domínio', t => {
+test('SQLite v4: migração de banco v2 preserva dados e cria tabelas de domínio', t => {
   const f = fixture(t), first = f.open();
   const draft = first.save(scope, 'new', payload('rascunho v2'), null);
   first.db.exec('DROP TABLE offline_domain_outbox; DROP TABLE offline_domain_reservations; DROP TABLE offline_domain_snapshots; PRAGMA user_version=2;');
   first.close();
   const upgraded = f.open();
-  assert.equal(upgraded.schemaVersion(), 3);
+  assert.equal(upgraded.schemaVersion(), 4);
   assert.equal(upgraded.read(scope, 'new', draft.revisionId).values.notes, 'rascunho v2');
   for (const name of ['offline_domain_snapshots', 'offline_domain_reservations', 'offline_domain_outbox']) {
     assert.equal(upgraded.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name).name, name);
   }
   assert.equal(upgraded.stats(scope).domains.operations.pending, 0);
 });
-test('SQLite v3: reserva de domínio de outro escopo e ação inválida são recusadas', t => {
+test('SQLite v4: reserva de domínio de outro escopo e ação inválida são recusadas', t => {
   const store = fixture(t).open();
   const domain = 'payroll_competency';
   const res = store.saveDomainReservation(scope, domain, domainReservation(domain, 901));
@@ -545,4 +545,69 @@ test('SQLite v3: reserva de domínio de outro escopo e ação inválida são rec
   assert.throws(() => store.queueDomainOperation(scope, {
     domain, action: 'close', targetId: 902, reservationId: res.id, operationId: randomUUID(), payload: {},
   }), /não encontrada/);
+});
+test('SQLite v4: migração de banco v3 preserva domínios e libera compras', t => {
+  const f = fixture(t), first = f.open();
+  const domain = 'financial_receivable';
+  const res = first.saveDomainReservation(scope, domain, domainReservation(domain, 501));
+  first.saveDomainSnapshot(scope, domain, [domainTarget(domain, 501)]);
+  const operationId = randomUUID();
+  first.queueDomainOperation(scope, {
+    domain, action: 'settle', targetId: 501, reservationId: res.id, operationId,
+    payload: { notes: 'Antes da migração' },
+  });
+  first.db.exec('PRAGMA user_version=3;');
+  first.close();
+
+  const upgraded = f.open();
+  assert.equal(upgraded.schemaVersion(), 4);
+  assert.equal(upgraded.loadDomainSnapshot(scope, domain).targets[0].targetId, 501);
+  assert.equal(upgraded.loadDomainOperation(scope, operationId).state, 'pending');
+  assert.equal(upgraded.loadDomainReservation(scope, domain, 501).status, 'queued');
+
+  const purchaseDomain = 'purchase_order';
+  const purchaseRes = upgraded.saveDomainReservation(
+    scope,
+    purchaseDomain,
+    domainReservation(purchaseDomain, 1001)
+  );
+  const purchaseOperationId = randomUUID();
+  upgraded.queueDomainOperation(scope, {
+    domain: purchaseDomain,
+    action: 'approve',
+    targetId: 1001,
+    reservationId: purchaseRes.id,
+    operationId: purchaseOperationId,
+    payload: { notes: 'Aprovado offline' },
+  });
+  const claimed = upgraded.claimDomainOperations(scope).find(item => item.domain === purchaseDomain);
+  assert.equal(claimed.domain, purchaseDomain);
+  assert.equal(claimed.action, 'approve');
+  assert.deepEqual(claimed.payload, { notes: 'Aprovado offline' });
+  const ack = upgraded.acknowledgeDomainOperation(scope, purchaseOperationId, claimed.leaseToken, {
+    domain: purchaseDomain, targetId: 1001, reservationId: purchaseRes.id, status: 'approved',
+  });
+  assert.equal(ack.confirmed, true);
+  assert.equal(upgraded.loadDomainReservation(scope, purchaseDomain, 1001), null);
+});
+test('SQLite v4: compra offline aceita somente aprovação de pedido pendente', t => {
+  const store = fixture(t).open();
+  const domain = 'purchase_order';
+  const res = store.saveDomainReservation(scope, domain, domainReservation(domain, 1101));
+  assert.throws(() => store.queueDomainOperation(scope, {
+    domain, action: 'settle', targetId: 1101, reservationId: res.id,
+    operationId: randomUUID(), payload: {},
+  }), /não permitida/);
+  const operationId = randomUUID();
+  const queued = store.queueDomainOperation(scope, {
+    domain, action: 'approve', targetId: 1101, reservationId: res.id, operationId,
+    payload: { notes: 'Pedido aprovado no desktop' },
+  });
+  assert.equal(queued.state, 'pending');
+  const claimed = store.claimDomainOperations(scope)[0];
+  const ack = store.acknowledgeDomainOperation(scope, operationId, claimed.leaseToken, {
+    domain, targetId: 1101, reservationId: res.id, status: 'approved',
+  });
+  assert.equal(ack.confirmed, true);
+  assert.equal(ack.operation.serverStatus, 'approved');
 });

@@ -5,8 +5,9 @@ export type DomainKey =
   | 'financial_receivable'
   | 'financial_payable'
   | 'payroll_competency'
-  | 'accounting_period';
-export type DomainAction = 'settle' | 'close' | 'reopen' | 'lock';
+  | 'accounting_period'
+  | 'purchase_order';
+export type DomainAction = 'settle' | 'close' | 'reopen' | 'lock' | 'approve';
 export type DomainReservationState = 'active' | 'queued' | 'consumed' | 'cancelled' | 'blocked';
 export type DomainOperationState = 'pending' | 'leased' | 'blocked' | 'confirmed';
 
@@ -109,12 +110,18 @@ export const DOMAIN_OFFLINE_CONFIG: Record<DomainKey, DomainConfig> = {
     label: 'Períodos contábeis',
     listEndpoint: 'accounting/periods',
   },
+  purchase_order: {
+    path: 'purchase-orders',
+    label: 'Pedidos de compra',
+    listEndpoint: 'purchase/all?limit=200',
+  },
 };
 
 const RECEIVABLE_STATUSES = ['pending', 'overdue', 'due_today'];
 const PAYABLE_STATUSES = ['pending', 'overdue'];
 const PAYROLL_STATUSES = ['open', 'calculated', 'approved'];
 const ACCOUNTING_STATUSES = ['open', 'closed'];
+const PURCHASE_ORDER_STATUSES = ['pending'];
 
 const changed = () => {
   window.dispatchEvent(new Event('konexus:domain-offline-changed'));
@@ -122,7 +129,7 @@ const changed = () => {
 };
 const requireDesktop = () => {
   if (!nativeStorage()) {
-    throw new Error('A continuidade offline de financeiro, folha e contábil exige o aplicativo desktop com SQLite protegido.');
+    throw new Error('A continuidade offline de financeiro, folha, contábil e compras exige o aplicativo desktop com SQLite protegido.');
   }
 };
 const errorMessage = (response: { error?: string | null }, fallback: string) =>
@@ -194,6 +201,24 @@ function normalizePayroll(row: any): DomainTarget | null {
   };
 }
 
+function normalizePurchaseOrder(row: any): DomainTarget | null {
+  const status = String(row?.orderStatus ?? row?.orderstatus ?? '');
+  if (!row || !PURCHASE_ORDER_STATUSES.includes(status)) return null;
+  const targetId = Number(row.id);
+  if (!Number.isSafeInteger(targetId) || targetId <= 0) return null;
+  const orderNumber = textOrNull(row.orderNumber ?? row.ordernumber);
+  return {
+    domain: 'purchase_order',
+    targetId,
+    label: orderNumber ? `Pedido ${orderNumber}` : `Pedido de compra #${targetId}`,
+    secondary: textOrNull(row.supplierName ?? row.suppliername),
+    status,
+    amount: numberOrNull(row.totalCost ?? row.totalcost),
+    dueDate: dateOrNull(row.orderDate ?? row.orderdate),
+    reference: orderNumber || `#${targetId}`,
+  };
+}
+
 function normalizeAccounting(row: any, scope: DraftScope): DomainTarget | null {
   if (!row || !ACCOUNTING_STATUSES.includes(String(row.status))) return null;
   if (Number(row.legal_entity_id) !== Number(scope.legalEntityId)) return null;
@@ -231,7 +256,9 @@ async function fetchTargets(scope: DraftScope, domain: DomainKey): Promise<Domai
           ? normalizePayable(row)
           : domain === 'payroll_competency'
             ? normalizePayroll(row)
-            : normalizeAccounting(row, scope)
+            : domain === 'purchase_order'
+              ? normalizePurchaseOrder(row)
+              : normalizeAccounting(row, scope)
     )
     .filter((target: DomainTarget | null): target is DomainTarget => Boolean(target))
     .sort((a: DomainTarget, b: DomainTarget) => a.targetId - b.targetId);
@@ -502,6 +529,9 @@ export function domainTargetActions(domain: DomainKey, status: string): DomainAc
   if (domain === 'payroll_competency') {
     return status === 'approved' ? ['close'] : [];
   }
+  if (domain === 'purchase_order') {
+    return PURCHASE_ORDER_STATUSES.includes(status) ? ['approve'] : [];
+  }
   if (status === 'open') return ['close', 'lock'];
   if (status === 'closed') return ['reopen', 'lock'];
   return [];
@@ -511,6 +541,7 @@ export function domainActionLabel(action: DomainAction): string {
   if (action === 'settle') return 'Baixar';
   if (action === 'close') return 'Fechar';
   if (action === 'reopen') return 'Reabrir';
+  if (action === 'approve') return 'Aprovar';
   return 'Bloquear';
 }
 

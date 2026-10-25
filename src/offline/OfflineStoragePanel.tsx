@@ -12,6 +12,7 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
   const canFinanceAdmin=hasPermission('finance','edit');
   const canPayrollAdmin=hasPermission('rh','approve_payroll');
   const canAccountingAdmin=hasPermission('contabil','manage_periods');
+  const canPurchaseAdmin=hasPermission('compras','edit');
   const [status,setStatus]=useState<StorageStatus|null>(null);
   const [error,setError]=useState(''),[backup,setBackup]=useState(''),[busy,setBusy]=useState(false),[syncing,setSyncing]=useState(false);
   const [orphans,setOrphans]=useState<StockReservation[]>([]),[serverError,setServerError]=useState('');
@@ -67,6 +68,7 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
       ...(canFinanceAdmin?[DOMAIN_RESERVATION_ENDPOINTS.receivable,DOMAIN_RESERVATION_ENDPOINTS.payable]:[]),
       ...(canPayrollAdmin?[DOMAIN_RESERVATION_ENDPOINTS.payroll]:[]),
       ...(canAccountingAdmin?[DOMAIN_RESERVATION_ENDPOINTS.accounting]:[]),
+      ...(canPurchaseAdmin?[DOMAIN_RESERVATION_ENDPOINTS.purchase]:[]),
     ];
     if(entries.length===0){setDomainGroups([]);setDomainError('');return;}
     if(!navigator.onLine)return;
@@ -75,7 +77,7 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
       .then(groups=>{if(live){setDomainGroups(groups);setDomainError('');}})
       .catch(e=>{if(live)setDomainError(e instanceof Error?e.message:String(e));});
     return()=>{live=false;};
-  },[scope.companyId,scope.legalEntityId,canFinanceAdmin,canPayrollAdmin,canAccountingAdmin,domainRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[scope.companyId,scope.legalEntityId,canFinanceAdmin,canPayrollAdmin,canAccountingAdmin,canPurchaseAdmin,domainRefresh]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{
     const changed=()=>setDomainRefresh(value=>value+1);
     window.addEventListener('konexus:domain-reservations-changed',changed);
@@ -193,15 +195,15 @@ export default function OfflineStoragePanel({scope}:{scope:DraftScope}){
           </ul>}
       {adminError&&<p role="alert" className="text-amber-800">Administração: {adminError}</p>}
     </div>}
-    {(canFinanceAdmin||canPayrollAdmin||canAccountingAdmin)&&<div className="rounded border border-slate-300 bg-slate-50 p-2" aria-label="Reservas financeiras, de folha e contábeis">
+    {(canFinanceAdmin||canPayrollAdmin||canAccountingAdmin||canPurchaseAdmin)&&<div className="rounded border border-slate-300 bg-slate-50 p-2" aria-label="Reservas financeiras, de folha, contábeis e de compras">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-medium">Reservas financeiras, de folha e contábeis</p>
+        <p className="font-medium">Reservas financeiras, de folha, contábeis e de compras</p>
         <div className="flex items-center gap-3">
           <Link to="/offline/domains" className="underline text-xs">Abrir continuidade operacional</Link>
           <button type="button" className="underline text-xs" onClick={()=>setDomainRefresh(value=>value+1)}>Atualizar</button>
         </div>
       </div>
-      <p className="text-xs text-slate-600">Somente reservas ativas. Reconciliar libera o alvo na central; exige reautenticação e motivo. O consumo ocorre na operação final do título, competência ou período.</p>
+      <p className="text-xs text-slate-600">Somente reservas ativas. Reconciliar libera o alvo na central; exige reautenticação e motivo. O consumo ocorre na operação final do título, competência, período ou pedido de compra.</p>
       {!navigator.onLine?<p className="text-xs text-amber-800">Conecte-se à central para consultar e reconciliar reservas.</p>
         :domainGroups.every(group=>group.items.every(item=>item.status!=='active'))?<p className="text-xs">Nenhuma reserva ativa para este CNPJ.</p>
           :domainGroups.map(group=>{

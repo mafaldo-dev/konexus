@@ -4,16 +4,17 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const ORDER_STATES = ['pending', 'leased', 'blocked', 'confirmed'];
 const RESERVATION_STATES = ['active', 'queued', 'consumed', 'cancelled', 'blocked'];
 const ORDER_ERRORS = ['NETWORK', 'SERVER', 'INVALID_ACK', 'AUTH', 'ACCESS', 'CONFLICT', 'VALIDATION', 'DEVICE'];
-const DOMAIN_KEYS = ['financial_receivable', 'financial_payable', 'payroll_competency', 'accounting_period'];
+const DOMAIN_KEYS = ['financial_receivable', 'financial_payable', 'payroll_competency', 'accounting_period', 'purchase_order'];
 const DOMAIN_ACTIONS = {
   financial_receivable: ['settle'],
   financial_payable: ['settle'],
   payroll_competency: ['close'],
   accounting_period: ['close', 'reopen', 'lock'],
+  purchase_order: ['approve'],
 };
 const DOMAIN_OPERATION_STATES = ['pending', 'leased', 'blocked', 'confirmed'];
 const DOMAIN_ERRORS = [...ORDER_ERRORS, 'LOCAL_CORRUPT'];
@@ -91,12 +92,12 @@ const SCHEMA_V2 = `
     ON offline_order_outbox(reservation_id);
 `;
 
-const SCHEMA_V3 = `
+const SCHEMA_V4 = `
   CREATE TABLE IF NOT EXISTS offline_domain_snapshots (
     company_id INTEGER NOT NULL,
     legal_entity_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period')),
+    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order')),
     payload_encrypted BLOB NOT NULL,
     updated_at INTEGER NOT NULL,
     PRIMARY KEY(company_id,legal_entity_id,user_id,domain),
@@ -108,7 +109,7 @@ const SCHEMA_V3 = `
     company_id INTEGER NOT NULL,
     legal_entity_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period')),
+    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order')),
     target_id INTEGER NOT NULL,
     device_id INTEGER NOT NULL,
     device_name TEXT,
@@ -132,8 +133,8 @@ const SCHEMA_V3 = `
     company_id INTEGER NOT NULL,
     legal_entity_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period')),
-    action TEXT NOT NULL CHECK(action IN ('settle','close','reopen','lock')),
+    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order')),
+    action TEXT NOT NULL CHECK(action IN ('settle','close','reopen','lock','approve')),
     target_id INTEGER NOT NULL,
     reservation_id TEXT NOT NULL REFERENCES offline_domain_reservations(reservation_id) ON DELETE RESTRICT,
     payload_encrypted BLOB NOT NULL,
@@ -154,6 +155,103 @@ const SCHEMA_V3 = `
     ON offline_domain_outbox(company_id,legal_entity_id,user_id,state,next_attempt,lease_until);
   CREATE UNIQUE INDEX IF NOT EXISTS offline_domain_outbox_reservation
     ON offline_domain_outbox(reservation_id);
+`;
+
+/**
+ * v3 -> v4: SQLite nao altera CHECK constraints. Reconstruimos apenas as tres
+ * tabelas de dominio, preservando snapshots, reservas, outbox e tokens
+ * cifrados. A migracao roda com foreign_keys desligado e em transacao.
+ */
+const SCHEMA_V4_MIGRATION = `
+  CREATE TABLE offline_domain_snapshots_v4 (
+    company_id INTEGER NOT NULL,
+    legal_entity_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order')),
+    payload_encrypted BLOB NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY(company_id,legal_entity_id,user_id,domain),
+    CHECK(company_id>0 AND legal_entity_id>0 AND user_id>0)
+  ) STRICT;
+  INSERT INTO offline_domain_snapshots_v4
+    (company_id,legal_entity_id,user_id,domain,payload_encrypted,updated_at)
+    SELECT company_id,legal_entity_id,user_id,domain,payload_encrypted,updated_at
+      FROM offline_domain_snapshots;
+  DROP TABLE offline_domain_snapshots;
+  ALTER TABLE offline_domain_snapshots_v4 RENAME TO offline_domain_snapshots;
+
+  CREATE TABLE offline_domain_reservations_v4 (
+    reservation_id TEXT PRIMARY KEY,
+    company_id INTEGER NOT NULL,
+    legal_entity_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order')),
+    target_id INTEGER NOT NULL,
+    device_id INTEGER NOT NULL,
+    device_name TEXT,
+    token_encrypted BLOB NOT NULL,
+    expires_at TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('active','queued','consumed','cancelled','blocked')),
+    operation_id TEXT,
+    error_code TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    CHECK(company_id>0 AND legal_entity_id>0 AND user_id>0 AND target_id>0 AND device_id>0)
+  ) STRICT;
+  INSERT INTO offline_domain_reservations_v4
+    (reservation_id,company_id,legal_entity_id,user_id,domain,target_id,device_id,device_name,
+     token_encrypted,expires_at,status,operation_id,error_code,created_at,updated_at)
+    SELECT reservation_id,company_id,legal_entity_id,user_id,domain,target_id,device_id,device_name,
+           token_encrypted,expires_at,status,operation_id,error_code,created_at,updated_at
+      FROM offline_domain_reservations;
+  DROP TABLE offline_domain_reservations;
+  ALTER TABLE offline_domain_reservations_v4 RENAME TO offline_domain_reservations;
+
+  CREATE TABLE offline_domain_outbox_v4 (
+    operation_id TEXT PRIMARY KEY,
+    company_id INTEGER NOT NULL,
+    legal_entity_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    domain TEXT NOT NULL CHECK(domain IN ('financial_receivable','financial_payable','payroll_competency','accounting_period','purchase_order')),
+    action TEXT NOT NULL CHECK(action IN ('settle','close','reopen','lock','approve')),
+    target_id INTEGER NOT NULL,
+    reservation_id TEXT NOT NULL REFERENCES offline_domain_reservations(reservation_id) ON DELETE RESTRICT,
+    payload_encrypted BLOB NOT NULL,
+    token_encrypted BLOB NOT NULL,
+    state TEXT NOT NULL CHECK(state IN ('pending','leased','blocked','confirmed')),
+    attempts INTEGER NOT NULL DEFAULT 0,
+    next_attempt INTEGER NOT NULL DEFAULT 0,
+    lease_token TEXT,
+    lease_until INTEGER,
+    error_code TEXT,
+    server_status TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    confirmed_at INTEGER,
+    CHECK(company_id>0 AND legal_entity_id>0 AND user_id>0 AND target_id>0)
+  ) STRICT;
+  INSERT INTO offline_domain_outbox_v4
+    (operation_id,company_id,legal_entity_id,user_id,domain,action,target_id,reservation_id,
+     payload_encrypted,token_encrypted,state,attempts,next_attempt,lease_token,lease_until,
+     error_code,server_status,created_at,updated_at,confirmed_at)
+    SELECT operation_id,company_id,legal_entity_id,user_id,domain,action,target_id,reservation_id,
+           payload_encrypted,token_encrypted,state,attempts,next_attempt,lease_token,lease_until,
+           error_code,server_status,created_at,updated_at,confirmed_at
+      FROM offline_domain_outbox;
+  DROP TABLE offline_domain_outbox;
+  ALTER TABLE offline_domain_outbox_v4 RENAME TO offline_domain_outbox;
+
+  CREATE UNIQUE INDEX offline_domain_reservations_active_target
+    ON offline_domain_reservations(company_id,legal_entity_id,user_id,domain,target_id)
+    WHERE status IN ('active','queued','blocked');
+  CREATE INDEX offline_domain_reservations_scope
+    ON offline_domain_reservations(company_id,legal_entity_id,user_id,domain,created_at DESC);
+  CREATE INDEX offline_domain_outbox_pending
+    ON offline_domain_outbox(company_id,legal_entity_id,user_id,state,next_attempt,lease_until);
+  CREATE UNIQUE INDEX offline_domain_outbox_reservation
+    ON offline_domain_outbox(reservation_id);
+
+  PRAGMA user_version=4;
 `;
 
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
@@ -352,6 +450,7 @@ function validateDomainPayload(domain, action, payload) {
     financial_payable: ['paymentDate'],
     payroll_competency: [],
     accounting_period: ['notes'],
+    purchase_order: ['notes'],
   };
   const allowed = allowedByDomain[domain];
   if (Object.keys(payload).some(key => !allowed.includes(key))) fail('INVALID_DOMAIN', 'Campo da operação offline não permitido.');
@@ -404,7 +503,7 @@ class OfflineStore {
         this.transaction(() => {
           this.db.exec(SCHEMA_V1);
           this.db.exec(SCHEMA_V2);
-          this.db.exec(SCHEMA_V3);
+          this.db.exec(SCHEMA_V4);
           this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
           this.db.prepare('INSERT INTO offline_meta(key,value) VALUES(?,?)').run('installation_id', installationId);
           this.db.prepare('INSERT INTO offline_meta(key,value) VALUES(?,?)').run('key_check', this.encrypt('key-check', installationId).toString('base64'));
@@ -414,16 +513,27 @@ class OfflineStore {
         // receipts já gravados. As tabelas novas são independentes.
         this.transaction(() => {
           this.db.exec(SCHEMA_V2);
-          this.db.exec(SCHEMA_V3);
+          this.db.exec(SCHEMA_V4);
           this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
         });
       } else if (version === 2) {
-        // v2 -> v3: apenas snapshots, reservas e journal de dominios. Nenhuma
-        // tabela existente e reescrita.
+        // v2 -> v4: cria snapshots, reservas e journal de dominios ja com o
+        // dominio de compras. Nenhuma tabela existente e reescrita.
         this.transaction(() => {
-          this.db.exec(SCHEMA_V3);
+          this.db.exec(SCHEMA_V4);
           this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
         });
+      } else if (version === 3) {
+        // v3 -> v4: amplia os CHECKs de dominio/acao. foreign_keys fica
+        // desligado apenas durante a reconstrucao e e restaurado no finally.
+        this.db.exec('PRAGMA foreign_keys=OFF;');
+        try {
+          this.transaction(() => {
+            this.db.exec(SCHEMA_V4_MIGRATION);
+          });
+        } finally {
+          this.db.exec('PRAGMA foreign_keys=ON;');
+        }
       }
       // A versão 2 foi usada durante o desenvolvimento antes da coluna de
       // revisão do rascunho. Garante a coluna sem exigir uma versão nova.

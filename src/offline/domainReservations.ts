@@ -35,6 +35,7 @@ export const DOMAIN_RESERVATION_ENDPOINTS = {
   payable: { path: 'financial-payables', label: 'Contas a pagar' },
   payroll: { path: 'payroll-competencies', label: 'Competências de folha' },
   accounting: { path: 'accounting-periods', label: 'Períodos contábeis' },
+  purchase: { path: 'purchase-orders', label: 'Pedidos de compra' },
 } as const;
 
 const changed = () => window.dispatchEvent(new Event('konexus:domain-reservations-changed'));
