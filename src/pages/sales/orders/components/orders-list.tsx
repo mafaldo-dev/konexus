@@ -197,6 +197,7 @@ export default function OrderList() {
           : order
       );
       setOrders(updatedOrders);
+      return true;
     } catch (error) {
       console.error("Erro ao atualizar status do pedido:", error);
       await Swal.fire({
@@ -208,6 +209,7 @@ export default function OrderList() {
         icon: "error",
         confirmButtonColor: "#d33",
       });
+      return false;
     }
   };
 
@@ -218,7 +220,7 @@ export default function OrderList() {
   ) => {
     const result = await Swal.fire({
       title: "Tem certeza?",
-      html: message.replace(/\n/g, "<br>"),
+      text: message,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#2563eb",
@@ -228,6 +230,13 @@ export default function OrderList() {
     });
 
     if (result.isConfirmed) {
+      if (newStatus === 'approved') {
+        if (await updateOrderStatusInDb(orderId, newStatus)) {
+          await loadOrders();
+          await Swal.fire({ title: 'Pedido aprovado', text: 'Consulte o resultado da emissão na área fiscal.', icon: 'success' });
+        }
+        return;
+      }
       const { value: motivo } = await Swal.fire({
         title: "Motivo do estorno",
         input: "textarea",

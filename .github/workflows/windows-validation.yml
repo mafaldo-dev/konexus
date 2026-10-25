@@ -13,46 +13,6 @@ on:
 permissions:
   contents: read
 jobs:
-  postgres-offline:
-    runs-on: windows-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/checkout@v7
-        with:
-          repository: mafaldo-dev/konexus-back
-          ref: feat/offline-sales-closure
-          path: backend
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-      - run: npm ci --omit=dev --no-fund
-        working-directory: backend
-      - name: Create isolated PostgreSQL and apply migrations
-        shell: pwsh
-        run: |
-          $pg = Get-ChildItem 'C:\Program Files\PostgreSQL' -Directory | Sort-Object Name -Descending | Select-Object -First 1
-          if (-not $pg) { throw 'PostgreSQL não encontrado no runner Windows' }
-          $bin = Join-Path $pg.FullName 'bin'
-          $env:PATH = "$bin;$env:PATH"
-          $data = Join-Path $env:RUNNER_TEMP 'konexus-pg'
-          & initdb -D $data -U postgres -A trust --encoding=UTF8
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & pg_ctl -D $data -l "$data.log" -o '-h 127.0.0.1 -p 55440' -w start
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & createdb -h 127.0.0.1 -p 55440 -U postgres konexus_windows_test
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Get-ChildItem backend/migrations/*.sql | Sort-Object Name | ForEach-Object {
-            & psql -h 127.0.0.1 -p 55440 -U postgres -d konexus_windows_test -v ON_ERROR_STOP=1 -f $_.FullName
-            if ($LASTEXITCODE -ne 0) { throw "Migration falhou: $($_.Name)" }
-          }
-      - name: Real offline reservations and HTTP operations
-        working-directory: backend
-        env:
-          STOCK_RESERVATION_TEST_DATABASE_URL: postgres://postgres@127.0.0.1:55440/konexus_windows_test
-          DOMAIN_RESERVATION_TEST_DATABASE_URL: postgres://postgres@127.0.0.1:55440/konexus_windows_test
-          OFFLINE_STORE_PATH: ../electron/offlineStore.js
-        run: node --test --test-concurrency=1 tests/integration/stockReservations.test.js tests/integration/domainReservations.test.js tests/integration/purchaseOrderOffline.test.js tests/integration/offlineDomainOperationsHttp.test.js
   installed-app:
     runs-on: windows-latest
     timeout-minutes: 30

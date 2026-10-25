@@ -1,5 +1,7 @@
 # Relatório de pendências — 25/10/2026
 
+> Atualização posterior: [continuidade da homologação](CONTINUIDADE_2026-10-25.md). A migration 024 já foi aplicada no Neon; aprovação online/NF-e e a homologação Windows avançaram após este registro.
+
 Este relatório consolida o estado real da branch `feat/offline-sales-closure` depois da aplicação das migrations 021, 022 e 023 no Neon e da implementação local da primeira fatia de compras (migration 024). Ele separa o que foi executado do que continua pendente. Não representa autorização para merge, deploy ou liberação comercial.
 
 ## 1. Estado executado nesta rodada

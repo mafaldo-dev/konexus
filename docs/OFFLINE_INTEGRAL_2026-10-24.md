@@ -1,5 +1,7 @@
 # Offline integral em computadores isolados
 
+> Estado mais recente: [continuidade de 25/10/2026](CONTINUIDADE_2026-10-25.md), incluindo aplicação da migration 024 no Neon e correção de aprovação/NF-e online. As referências abaixo a 024 pendente registram a etapa anterior.
+
 ## Decisões confirmadas pelo usuário
 
 1. Os computadores podem perder também o acesso entre si; não se pode depender de servidor LAN.
