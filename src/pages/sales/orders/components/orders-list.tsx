@@ -33,7 +33,7 @@ export default function OrderList() {
   const [loadErrorVariant, setLoadErrorVariant] =
     useState<DataStateVariant>("error");
   const { isModalOpen, selectedOrder, openModal, closeModal, setSelectedOrder } = useConferenceModal();
-  const { user, company, activeLegalEntity } = useAuth();
+  const { user, company, activeLegalEntity, hasPermission } = useAuth();
   const navigate = useNavigate();
   const [offlineOrders, setOfflineOrders] = useState<OfflineOrder[]>([]);
 
@@ -350,6 +350,11 @@ export default function OrderList() {
   const ActionMenu = ({ order }: { order: OrderResponse }) => {
     const options = () => {
       switch (order.orderStatus) {
+        case "pending":
+          return hasPermission('vendas', 'edit') ? [{
+            label: "Aprovar pedido",
+            action: () => confirmAndUpdateStatus(order.id, "approved", `Aprovar o pedido ${order.orderNumber}? A aprovação permitirá o processamento da NF-e.`),
+          }] : [];
         case "approved":
           return [
             {
@@ -610,7 +615,7 @@ export default function OrderList() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <div className="space-y-6">
               <div className="grid w-full grid-cols-3 bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-                {(["approved", "in_progress", "shipped"] as OrderStatus[]).map((status) => (
+                {(["pending", "approved", "in_progress", "shipped"] as OrderStatus[]).map((status) => (
                   <button
                     key={status}
                     onClick={() => setSelectedTab(status)}
