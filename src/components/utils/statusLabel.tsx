@@ -51,6 +51,7 @@ export const mapOrderStatus = (status: string): string => {
     'in_progress': 'in_progress',
     'shipped': 'shipped',
     'cancelled': 'cancelled',
+    'canceled': 'cancelled',
     'delivered': 'delivered',
     'backout': 'backout'
   };

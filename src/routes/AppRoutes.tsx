@@ -348,6 +348,11 @@ const AppRoutes = () => {
       />
 
       {/* ==================== CONTABILIDADE (extra do Financeiro) ==================== */}
+      <Route path="/financer/contabilidade/conexao-fiscal" element={
+        <DesignationCheck allowed={['Administrador', 'Contador', 'Financeiro']}>
+          <PlugNotasConfigDashboard />
+        </DesignationCheck>
+      } />
       <Route
         path="/financer/contabilidade/painel"
         element={

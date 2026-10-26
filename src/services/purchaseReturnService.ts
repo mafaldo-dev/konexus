@@ -48,6 +48,7 @@ export interface PurchaseReturn {
   fiscal_status: string;
   financial_credit_registered?: boolean;
   created_at: string;
+  updated_at: string;
   approved_at?: string | null;
   received_at?: string | null;
   items?: PurchaseReturnItem[];
@@ -172,7 +173,7 @@ export async function createPurchaseReturn(
 
 export async function updatePurchaseReturn(
   id: number | string,
-  payload: Omit<PurchaseReturnInput, "purchaseOrderId" | "idempotencyKey">
+  payload: Omit<PurchaseReturnInput, "purchaseOrderId" | "idempotencyKey"> & { baseVersion: string }
 ): Promise<ApiResponse<PurchaseReturn>> {
   return asObject<PurchaseReturn>(
     await apiClient.patch(`${base}/${id}`, payload),

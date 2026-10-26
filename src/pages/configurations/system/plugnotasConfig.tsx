@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import {Link} from 'react-router-dom';
 import {
   AlertTriangle, CheckCircle2, Eye, EyeOff, Info, Loader2,
   Settings, Save, RefreshCw, Building2, Key, Shield, Upload,
@@ -9,10 +10,20 @@ import { useSystemStatus, StatusMessageType } from '../../../SystemStatusContext
 import { maskCpfCnpj } from '../../../utils/masks';
 import { PlugNotasConfig } from '../../../types/financial/plugnotas';
 import { useAuth } from '../../../AuthContext';
-import { getPlugNotasConfig, savePlugNotasConfig, togglePlugNotas } from '../../../services/plugnotasService';
+import { getPlugNotasConfig, savePlugNotasConfig, togglePlugNotas, testPlugNotasConnection } from '../../../services/plugnotasService';
 
 
 export default function PlugNotasManagementPanel() {
+  const {activeLegalEntity} = useAuth();
+  return <PlugNotasForm key={activeLegalEntity?.id || 'sem-cnpj'} />;
+}
+
+function PlugNotasForm() {
+  const {activeLegalEntity} = useAuth();
+  const [loadError, setLoadError] = useState('');
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ok:boolean;message:string}|null>(null);
+  const testRevision = useRef(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -26,8 +37,8 @@ export default function PlugNotasManagementPanel() {
   const [formData, setFormData] = useState<PlugNotasConfig>({
     company_id: 0,
     api_key: '',
-    cnpj: '',
-    razao_social: '',
+    cnpj: activeLegalEntity?.cnpj || '',
+    razao_social: activeLegalEntity?.legalName || '',
     ambiente: 'homologacao',
     producao: false,
     ativo: true,
@@ -39,9 +50,13 @@ export default function PlugNotasManagementPanel() {
   }, []);
 
   const loadConfig = async () => {
+    testRevision.current++;
+    setTestResult(null);
     try {
       setIsLoading(true);
+      setLoadError('');
       const response = await getPlugNotasConfig();
+      if (!response.ok) throw new Error(response.error || 'Não foi possível consultar a configuração fiscal.');
 
       if (response.ok && response.data?.configured && response.data.data) {
         setIsConfigured(true);
@@ -51,9 +66,13 @@ export default function PlugNotasManagementPanel() {
           senha_certificado: '',
           senha_prefeitura: '',
         });
+      } else {
+        setIsConfigured(false);
+        setFormData(previous => ({...previous, cnpj: response.data?.company?.cnpj || activeLegalEntity?.cnpj || '',
+          razao_social: response.data?.company?.razao_social || activeLegalEntity?.legalName || ''}));
       }
     } catch (error: any) {
-      console.error('❌ Erro ao carregar config:', error);
+      setLoadError(error.message);
       addMessage(StatusMessageType.ERROR, 'Erro ao carregar configuração', error.message);
     } finally {
       setIsLoading(false);
@@ -61,6 +80,8 @@ export default function PlugNotasManagementPanel() {
   };
 
   const handleInputChange = (field: keyof PlugNotasConfig, value: any) => {
+    testRevision.current++;
+    setTestResult(null);
     if (field === 'cnpj') value = maskCpfCnpj(value);
     
     if (field === 'ambiente') {
@@ -113,7 +134,7 @@ export default function PlugNotasManagementPanel() {
       return;
     }
 
-    if (formData.producao && formData.certificado_pfx && !formData.senha_certificado) {
+    if (formData.certificado_pfx && !formData.senha_certificado) {
       addMessage(StatusMessageType.WARNING, 'Informe a senha do certificado');
       return;
     }
@@ -146,15 +167,28 @@ export default function PlugNotasManagementPanel() {
         setFormData(prev => ({ ...prev, ativo }));
         addMessage(StatusMessageType.INFO, 
           `PlugNotas ${ativo ? 'ativado' : 'desativado'}`);
-      }
+      } else addMessage(StatusMessageType.ERROR, 'Erro ao alterar status', response.error || undefined);
     } catch (error: any) {
       addMessage(StatusMessageType.ERROR, 'Erro ao alterar status', error.message);
     }
   };
 
+  const handleTest = async () => {
+    const revision = ++testRevision.current;
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      const response = await testPlugNotasConnection({api_key: formData.api_key.trim() || undefined, ambiente: formData.ambiente});
+      if (revision === testRevision.current) setTestResult({ok: response.ok && response.data?.success === true,
+        message: response.ok ? response.data?.message || 'Conexão verificada.' : response.error || 'Não foi possível conectar ao provedor.'});
+    } catch {if (revision === testRevision.current) setTestResult({ok:false,message:'Não foi possível conectar ao provedor. Verifique sua conexão e tente novamente.'});}
+    finally {setIsTesting(false);}
+  };
+
   return (
     <Dashboard>
       <div className="max-w-4xl mx-auto p-6">
+        <Link to="/financer/contabilidade/painel" className="mb-4 inline-block text-sm text-blue-700">Voltar à Contabilidade</Link>
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -163,10 +197,10 @@ export default function PlugNotasManagementPanel() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-800">
-                Gerenciar PlugNotas
+                Conexão fiscal e homologação
               </h1>
               <p className="text-sm text-slate-500">
-                Configure apenas o essencial para emitir NF-e
+                Integração PlugNotas do CNPJ selecionado · {activeLegalEntity?.cnpj || 'Selecione um CNPJ'}
               </p>
             </div>
           </div>
@@ -175,7 +209,7 @@ export default function PlugNotasManagementPanel() {
             <div className="flex items-center gap-3">
               {formData.status_certificado === 'valido' && (
                 <div className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                  ✓ Certificado OK
+                  Validade cadastrada vigente
                 </div>
               )}
               <div className={`px-4 py-2 rounded-full text-sm font-medium ${
@@ -188,6 +222,17 @@ export default function PlugNotasManagementPanel() {
             </div>
           )}
         </div>
+
+        <section className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+          <h2 className="font-semibold">Configuração pelo contador da empresa</h2>
+          <p className="mt-2">Cadastre a empresa e vincule o certificado A1 no painel do provedor. Aqui, informe a chave API, selecione homologação e teste a conexão. O contador deve conferir os dados tributários e acompanhar as emissões de teste antes de configurar produção.</p>
+          <p className="mt-2">O cadastro de certificado abaixo armazena a configuração no Konexus; não envia automaticamente o certificado ao provedor.</p>
+          <p className="mt-2">Conexão bem-sucedida confirma acesso ao provedor; a homologação depende do resultado real das notas. A chave salva não é exibida: deixe em branco para mantê-la.</p>
+          <button type="button" onClick={handleTest} disabled={isLoading || isSaving || isTesting || Boolean(loadError) || !activeLegalEntity || (!isConfigured && !formData.api_key.trim())}
+            className="mt-3 rounded bg-blue-700 px-4 py-2 font-medium text-white disabled:opacity-50">{isTesting ? 'Testando conexão…' : 'Testar conexão com o provedor'}</button>
+          {testResult && <p role={testResult.ok ? 'status' : 'alert'} className={`mt-3 ${testResult.ok ? 'text-emerald-800' : 'text-red-700'}`}>{testResult.message}</p>}
+        </section>
+        {loadError && <p role="alert" className="mb-4 text-red-700">{loadError}</p>}
 
         {isLoading ? (
           <div className="flex justify-center py-20">
@@ -486,7 +531,7 @@ export default function PlugNotasManagementPanel() {
             <div className="flex gap-3">
               <button
                 onClick={handleSave}
-                disabled={isSaving}
+                disabled={isSaving || isTesting || Boolean(loadError) || !activeLegalEntity}
                 className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center gap-2 font-medium transition-colors"
               >
                 {isSaving ? (

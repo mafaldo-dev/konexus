@@ -35,6 +35,7 @@ import {
   approvePurchaseReturn,
   cancelPurchaseReturn,
   createPurchaseReturn,
+  updatePurchaseReturn,
   getEligiblePurchaseOrder,
   getPurchaseReturn,
   getPurchaseReturnSummary,
@@ -75,6 +76,7 @@ const ReturnsPage: React.FC = () => {
   const [search, setSearch] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingReturn, setEditingReturn] = useState<PurchaseReturn | null>(null);
   const [orders, setOrders] = useState<EligiblePurchaseOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [orderId, setOrderId] = useState("");
@@ -127,6 +129,7 @@ const ReturnsPage: React.FC = () => {
   }, [load]);
 
   const openCreate = async () => {
+    setEditingReturn(null);
     setCreateOpen(true);
     setOrdersLoading(true);
     setOrderId("");
@@ -175,6 +178,27 @@ const ReturnsPage: React.FC = () => {
     setOrderLoading(false);
   };
 
+  const openEdit = async (record: PurchaseReturn) => {
+    setActionLoading(true);
+    setError(null);
+    const response = await getEligiblePurchaseOrder(record.purchase_order_id);
+    setActionLoading(false);
+    if (!response.ok || !response.data) {
+      setError(response.error || "Não foi possível carregar os itens do pedido.");
+      return;
+    }
+    setEditingReturn(record);
+    setOrders([response.data]);
+    setOrderId(String(record.purchase_order_id));
+    setOrderDetail(response.data);
+    setReason(record.reason);
+    setNotes(record.notes || "");
+    setRequiresNfe(record.requires_nfe);
+    setQuantities(Object.fromEntries((record.items || []).map(item => [String(item.purchase_order_item_id), String(item.quantity)])));
+    setDetail(null);
+    setCreateOpen(true);
+  };
+
   const selectedItems = useMemo(() => {
     if (!orderDetail) return [];
     return orderDetail.items
@@ -217,7 +241,7 @@ const ReturnsPage: React.FC = () => {
     }
     setSaving(true);
     setError(null);
-    const response = await createPurchaseReturn({
+    const payload = {
       purchaseOrderId: orderDetail.id,
       reason: reason.trim(),
       notes: notes.trim() || undefined,
@@ -227,7 +251,10 @@ const ReturnsPage: React.FC = () => {
         purchaseOrderItemId: item.id,
         quantity: item.returnQuantity,
       })),
-    });
+    };
+    const response = editingReturn
+      ? await updatePurchaseReturn(editingReturn.id, {reason: payload.reason, notes: payload.notes, requiresNfe, items: payload.items, baseVersion: editingReturn.updated_at})
+      : await createPurchaseReturn(payload);
     setSaving(false);
     if (!response.ok || !response.data) {
       setError(response.error || "Não foi possível criar a devolução.");
@@ -236,7 +263,7 @@ const ReturnsPage: React.FC = () => {
     setCreateOpen(false);
     setDetail(response.data);
     setSuccess(
-      "Rascunho criado. O estoque só será ajustado após aprovação e confirmação do recebimento físico."
+      `Rascunho ${editingReturn ? "atualizado" : "criado"}. O estoque só será ajustado após aprovação e confirmação do recebimento físico.`
     );
     await load();
   };
@@ -613,7 +640,7 @@ const ReturnsPage: React.FC = () => {
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Nova devolução de compra"
+        title={editingReturn ? "Editar devolução de compra" : "Nova devolução de compra"}
         description="Selecione um pedido entregue. As quantidades já devolvidas em outros processos são descontadas."
         wide
         footer={
@@ -654,6 +681,7 @@ const ReturnsPage: React.FC = () => {
                 Pedido de compra
               </span>
               <select
+                disabled={Boolean(editingReturn)}
                 value={orderId}
                 onChange={(event) => void selectOrder(event.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2"
@@ -803,6 +831,12 @@ const ReturnsPage: React.FC = () => {
             >
               Fechar
             </button>
+            {detail && canEdit && detail.status === "draft" && (
+              <button type="button" disabled={actionLoading || detailLoading} onClick={() => void openEdit(detail)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 disabled:opacity-50">
+                Editar rascunho
+              </button>
+            )}
             {detail && canEdit && detail.status === "draft" && (
               <button
                 type="button"

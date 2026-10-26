@@ -2,6 +2,7 @@ import { apiClient } from '../api/client';
 import { DraftScope, nativeCall, nativeStorage } from './salesDrafts';
 
 export type RecordType =
+  | 'purchase_return'
   | 'customer' | 'supplier' | 'product'
   | 'crm_lead' | 'crm_opportunity' | 'crm_activity'
   | 'training_category' | 'training' | 'training_session' | 'training_enrollment'
@@ -33,7 +34,8 @@ export type RecordDefinition = {
   admin: boolean;
   fields: RecordField[];
 };
-export type RecordOption = { id: number; label: string; secondary?: string | null; legalEntityId?: number };
+export type RecordOption = { id: number; label: string; secondary?: string | null; legalEntityId?: number;
+  items?: Array<{id:number;label:string;quantity:number;eligibleQuantity:number}> };
 export type RecordOptions = Record<string, RecordOption[]>;
 export type LocalRecordStatus = 'draft' | 'queued' | 'synced' | 'conflict';
 export type LocalRecord = {
@@ -99,6 +101,7 @@ const writeCache = (key: string, value: unknown) => {
 };
 
 export const RECORD_GROUPS: Array<{ key: string; label: string; types: RecordType[] }> = [
+  { key: 'compras', label: 'Compras', types: ['purchase_return'] },
   { key: 'cadastros', label: 'Cadastros', types: ['customer', 'supplier', 'product'] },
   { key: 'crm', label: 'CRM', types: ['crm_lead', 'crm_opportunity', 'crm_activity'] },
   { key: 'treinamentos', label: 'Treinamentos', types: ['training_category', 'training', 'training_session', 'training_enrollment'] },
@@ -139,7 +142,7 @@ export function recordDefinition(catalog: RecordDefinition[], type: RecordType):
 }
 export function recordDisplayLabel(record: LocalRecord): string {
   const payload = record.payload || {};
-  return String(payload.name || payload.title || payload.username || payload.sessionId || `#${record.remoteId || record.localId.slice(-6)}`);
+  return String(payload.name || payload.title || payload.reason || payload.username || payload.sessionId || `#${record.remoteId || record.localId.slice(-6)}`);
 }
 export function recordSecondary(record: LocalRecord): string {
   const payload = record.payload || {};

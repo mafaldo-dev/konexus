@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, FileText, PlusCircle } from "lucide-react";
 
 import { getAccountingDashboard } from "../../../services/accountingService";
+import {useAuth} from '../../../AuthContext';
 import {
   AccountingPage,
   Card,
@@ -19,6 +20,7 @@ import {
  * contabilizados da empresa. Sem dados, os cards ficam zerados.
  */
 export default function AccountingDashboardPage() {
+  const {hasPermission,hasModule,isCompanyAdmin} = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +53,8 @@ export default function AccountingDashboardPage() {
       description="Indicadores calculados a partir dos lançamentos contabilizados da sua empresa."
       actions={
         <>
+          {hasModule('nfe') && (isCompanyAdmin || hasPermission('nfe','configure')) &&
+            <Link to="/financer/contabilidade/conexao-fiscal" className={linkButtonClass}>Conexão fiscal / homologação</Link>}
           <select
             value={year}
             onChange={(event) => setYear(event.target.value)}

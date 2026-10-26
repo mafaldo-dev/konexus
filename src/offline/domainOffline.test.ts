@@ -77,7 +77,7 @@ it('atualiza a cópia local de títulos a receber somente com alvos elegíveis',
   });
 });
 
-it('carrega pedidos de compra pendentes e ignora os já aprovados', async () => {
+it('carrega compras pendentes para aprovar e aprovadas para receber', async () => {
   jest.spyOn(apiClient, 'get').mockResolvedValue({
     ok: true,
     status: 200,
@@ -95,7 +95,7 @@ it('carrega pedidos de compra pendentes e ignora os já aprovados', async () => 
   const snapshot = await domainOffline.refreshDomainTargets(scope, 'purchase_order');
 
   expect(apiClient.get).toHaveBeenCalledWith('purchase/all?limit=200', { legalEntityId: 902, reauth: false });
-  expect(snapshot.targets).toHaveLength(1);
+  expect(snapshot.targets).toHaveLength(2);
   expect(snapshot.targets[0]).toEqual(expect.objectContaining({
     domain: 'purchase_order',
     targetId: 601,
@@ -133,7 +133,7 @@ it.each(['crm_activity', 'training_enrollment'] as const)('carrega alvos de %s d
   expect(snapshot.targets[0]).toEqual(expect.objectContaining({ domain, targetId: 41, label: 'Alvo QA' }));
   expect(apiClient.get).toHaveBeenCalledWith(domainOffline.DOMAIN_OFFLINE_CONFIG[domain].listEndpoint, { legalEntityId: 902, reauth: false });
   expect(domainOffline.domainTargetActions(domain, snapshot.targets[0].status)).toEqual(domain === 'crm_activity' ? ['complete'] : ['attend', 'absent']);
-  expect(domainOffline.domainTargetActions('training_enrollment', 'completed')).toEqual([]);
+  expect(domainOffline.domainTargetActions('training_enrollment', 'completed')).toEqual(['certificate']);
 });
 
 it('cria a reserva online com reautenticação e salva o token no SQLite', async () => {
@@ -305,5 +305,5 @@ it('oferece apenas ações compatíveis com o estado do alvo', () => {
   expect(domainOffline.domainTargetActions('accounting_period', 'closed')).toEqual(['reopen', 'lock']);
   expect(domainOffline.domainTargetActions('accounting_period', 'locked')).toEqual([]);
   expect(domainOffline.domainTargetActions('purchase_order', 'pending')).toEqual(['approve']);
-  expect(domainOffline.domainTargetActions('purchase_order', 'approved')).toEqual([]);
+  expect(domainOffline.domainTargetActions('purchase_order', 'approved')).toEqual(['receive']);
 });

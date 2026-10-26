@@ -11,6 +11,11 @@ import { formatMoney, formatDateTime, inputClass, Modal, Field } from '../Financ
 
 const labels:Record<CrmResource,string>={leads:'Leads',opportunities:'Oportunidades',activities:'Agenda comercial'};
 const initial={name:'',email:'',phone:'',source:'',title:'',amount:'0.00',ownerId:'',customerId:'',leadId:'',stageId:'',expectedCloseDate:'',notes:'',opportunityId:'',kind:'task',dueAt:''};
+const localDateTime=(value?:string)=>{
+  if(!value)return '';
+  const date=new Date(value);
+  return Number.isFinite(date.getTime())?new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+};
 
 export default function CrmWorkspace() {
   const {hasPermission,user}=useAuth();
@@ -71,7 +76,7 @@ export default function CrmWorkspace() {
 
   const open=(row?:CrmRecord)=>{
     setEditing(row || null);
-    setForm({...initial,...(row?{title:row.title||'',name:row.name||'',amount:row.amount||'0.00',notes:row.notes||''}:{}),
+    setForm({...initial,...(row?{title:row.title||'',name:row.name||'',amount:row.amount||'0.00',notes:row.notes||'',kind:row.kind||'task',dueAt:localDateTime(row.due_at)}:{}),
       ownerId:String(row?.owner_id || user?.id || ''),stageId:String(row?.stage_id || stages.find(s=>s.outcome==='open')?.id || '')});
     setRequestId(crypto.randomUUID());setModal(true);
   };
@@ -95,7 +100,9 @@ export default function CrmWorkspace() {
     event.preventDefault();if(saving)return;setSaving(true);setError('');
     try {
       const input=editing
-        ? {version:editing.version,ownerId:Number(form.ownerId),notes:form.notes,...(tab==='leads'?{name:form.name}:{title:form.title,amount:form.amount})}
+        ? {version:editing.version,ownerId:Number(form.ownerId),...(tab==='activities'
+          ? {title:form.title,kind:form.kind,dueAt:new Date(form.dueAt).toISOString()}
+          : {notes:form.notes,...(tab==='leads'?{name:form.name}:{title:form.title,amount:form.amount})})}
         : {...form,requestId,ownerId:Number(form.ownerId),stageId:Number(form.stageId),
           customerId:form.customerId?Number(form.customerId):undefined,leadId:form.leadId?Number(form.leadId):undefined,
           opportunityId:form.opportunityId?Number(form.opportunityId):undefined,
@@ -169,6 +176,7 @@ export default function CrmWorkspace() {
         <td>{tab==='activities'?(row.completed_at?'Concluída':'Pendente'):({new:'Novo',qualified:'Qualificado',disqualified:'Desqualificado',converted:'Convertido'}[row.status||'']||row.status)}</td>
         <td className="space-x-3">{canEdit&&tab==='leads'&&row.status!=='converted'&&<><button onClick={()=>open(row)}>Editar</button><button disabled={saving} onClick={()=>void change(row,{status:'qualified'})}>Qualificar</button><button disabled={saving} onClick={()=>void change(row,{status:'disqualified'})}>Desqualificar</button></>}
           <button onClick={()=>showHistory(row)}>Histórico</button>
+          {canEdit&&tab==='activities'&&!row.completed_at&&<button disabled={saving} onClick={()=>open(row)}>Editar</button>}
           {tab==='leads'&&row.status==='qualified'&&canCreate&&<button onClick={()=>{setTab('opportunities');open();setForm({...initial,title:row.name||'',leadId:String(row.id),ownerId:String(row.owner_id),stageId:String(stages.find(s=>s.outcome==='open')?.id||'')});}}>Converter em oportunidade</button>}
           {canArchive&&tab==='leads'&&row.status!=='converted'&&<button disabled={saving} onClick={()=>void archive(row)}>Arquivar</button>}
           {canEdit&&tab==='activities'&&!row.completed_at&&<button disabled={saving} onClick={async()=>{setSaving(true);const result=await crmService.complete(row.id);if(result.ok)await load();else setError(result.error||'Falha ao concluir.');setSaving(false);}}>Concluir</button>}
@@ -187,7 +195,7 @@ export default function CrmWorkspace() {
           <Field label="Etapa inicial"><select required className={inputClass} value={form.stageId} onChange={e=>setForm({...form,stageId:e.target.value})}>{stages.filter(s=>s.outcome==='open').map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
           {field('expectedCloseDate','Previsão de fechamento','date')}
         </>}</>}
-        {tab==='activities'&&<>{field('opportunityId','Número da oportunidade','number',true)}{field('dueAt','Data e hora local','datetime-local',true)}<Field label="Tipo"><select className={inputClass} value={form.kind} onChange={e=>setForm({...form,kind:e.target.value})}>{Object.entries({task:'Tarefa',call:'Ligação',meeting:'Reunião',visit:'Visita',follow_up:'Retorno',note:'Anotação'}).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></Field></>}
+        {tab==='activities'&&<>{!editing&&field('opportunityId','Número da oportunidade','number',true)}{field('dueAt','Data e hora local','datetime-local',true)}<Field label="Tipo"><select className={inputClass} value={form.kind} onChange={e=>setForm({...form,kind:e.target.value})}>{Object.entries({task:'Tarefa',call:'Ligação',meeting:'Reunião',visit:'Visita',follow_up:'Retorno',note:'Anotação'}).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></Field></>}
         {tab!=='activities'&&field('notes','Observações')}
         <div className="flex justify-end gap-2"><Button type="button" onClick={()=>setModal(false)} disabled={saving}>Cancelar</Button><Button type="submit" disabled={saving}>{saving?'Salvando…':'Salvar'}</Button></div>
       </form>

@@ -15,7 +15,10 @@ const domainCases = [
   ['financial_receivable', 'settle'], ['financial_payable', 'settle'],
   ['payroll_competency', 'close'], ['accounting_period', 'close'], ['purchase_order', 'approve'],
   ['crm_activity', 'complete'], ['training_enrollment', 'attend'],
+  ['purchase_order', 'receive'], ['training_enrollment', 'certificate'],
 ].map(([domain, action], index) => ({ domain, action, targetId: index + 1, reservationId: randomUUID(), operationId: randomUUID() }));
+const returnLocalId=`local:${randomUUID()}`;
+const returnOperationId=randomUUID();
 async function openApp(previousCipher,previousDraft) {
   const app=await _electron.launch({executablePath,timeout:60000});
   try {
@@ -35,7 +38,7 @@ async function openApp(previousCipher,previousDraft) {
     results.push({name:previousCipher?'Cofre offline recuperado após reinício':'Cofre offline Windows: criptografia e leitura',status:'Aprovado'});
     const stats=await page.evaluate(scope=>window.ipcRenderer.invoke('offline-store',{method:'stats',scope}),sqliteScope);
     assert.equal(stats.engine,'sqlite');
-    assert.equal(stats.schemaVersion,6);
+    assert.equal(stats.schemaVersion,8);
     const invoke = request => page.evaluate(request => window.ipcRenderer.invoke('offline-store',request), {scope:sqliteScope,...request});
     for (const item of domainCases) {
       if (!previousDraft) {
@@ -52,7 +55,16 @@ async function openApp(previousCipher,previousDraft) {
         assert.equal(operation.domain,item.domain);
       }
     }
-    results.push({name:previousDraft?'Filas de sete domínios preservadas após reinício':'Schema v6: reservas e filas de sete domínios via IPC',status:'Aprovado',scope:'Fixtures locais; não valida sincronização com a API'});
+    results.push({name:previousDraft?'Nove operações de domínio preservadas após reinício':'Schema v8: nove operações de domínio via IPC',status:'Aprovado',scope:'Fixtures locais; não valida sincronização com a API'});
+    if(!previousDraft){
+      const payload={purchaseOrderId:99,reason:'Devolução Windows QA',items:[{purchaseOrderItemId:101,quantity:1}]};
+      await invoke({method:'save-record',recordType:'purchase_return',record:{localId:returnLocalId,remoteId:null,baseVersion:null,status:'draft',payload}});
+      await invoke({method:'queue-record-operation',operation:{operationId:returnOperationId,recordType:'purchase_return',operation:'create',localId:returnLocalId,remoteId:null,baseVersion:null,payload}});
+    }else{
+      const rows=await invoke({method:'list-records',recordType:'purchase_return'});
+      assert.ok(rows.some(row=>row.localId===returnLocalId && row.status==='queued'));
+      results.push({name:'Devolução cifrada e enfileirada preservada após reinício',status:'Aprovado'});
+    }
     let draft;
     if(!previousDraft){
       draft=await page.evaluate(scope=>window.ipcRenderer.invoke('offline-store',{method:'save',scope,slot:'new',expectedRevision:null,payload:{values:{notes:'SQLite-Windows-persisted-draft'},products:[]}}),sqliteScope);

@@ -98,6 +98,50 @@ export interface TrainingInput {
 
 const base = "rh/trainings";
 
+export interface TrainingCertificate {
+  id: number;
+  code: string;
+  issued_at: string;
+  snapshot: Record<string, unknown>;
+}
+
+export async function getTrainingCertificate(enrollmentId: number): Promise<ApiResponse<TrainingCertificate>> {
+  return pickData(await apiClient.get(`${base}/enrollments/${enrollmentId}/certificate`), body => body?.data, 'certificado do treinamento');
+}
+
+export async function downloadTrainingCertificate(certificate: TrainingCertificate) {
+  const {jsPDF} = await import('jspdf');
+  const pdf = new jsPDF();
+  const snapshot = certificate.snapshot;
+  let y = 25;
+  const line = (text: string, size = 12) => {
+    pdf.setFontSize(size);
+    const lines: string[] = pdf.splitTextToSize(text, 170);
+    for (const part of lines) {
+      if (y > 275) { pdf.addPage(); y = 25; }
+      pdf.text(part, 20, y);
+      y += size * 0.5 + 2;
+    }
+    y += 4;
+  };
+  const value = (key: string) => snapshot[key] == null ? 'Não informado' : String(snapshot[key]);
+  const date = (raw: unknown) => raw && Number.isFinite(Date.parse(String(raw))) ? new Date(String(raw)).toLocaleDateString('pt-BR') : 'Não informada';
+  line('CERTIFICADO DE TREINAMENTO', 20);
+  line(value('employerLegalName'), 14);
+  line(`CNPJ: ${value('employerCnpj')}`);
+  line(`Participante: ${value('contributorName')}`, 14);
+  line(`Treinamento: ${value('trainingTitle')}`);
+  if (snapshot.sessionTitle) line(`Turma: ${value('sessionTitle')}`);
+  line(`Modalidade: ${value('modality')} · Carga horária: ${value('workloadHours')} horas`);
+  line(`Período: ${date(snapshot.startsAt)} a ${date(snapshot.endsAt)}`);
+  line(`Conclusão: ${date(snapshot.completedAt)}`);
+  if (snapshot.grade != null) line(`Nota: ${value('grade')}`);
+  line(`Emitido em: ${date(certificate.issued_at)}`);
+  line(`Código do registro: ${certificate.code}`, 10);
+  line('Documento gerado a partir dos dados preservados na emissão do certificado no Konexus.', 10);
+  pdf.save(`certificado-${certificate.id}.pdf`);
+}
+
 export async function listTrainingCategories(): Promise<
   ApiResponse<TrainingCategory[]>
 > {

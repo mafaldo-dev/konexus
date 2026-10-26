@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 const ORDER_STATES = ['pending', 'leased', 'blocked', 'confirmed'];
 const RESERVATION_STATES = ['active', 'queued', 'consumed', 'cancelled', 'blocked'];
 const ORDER_ERRORS = ['NETWORK', 'SERVER', 'INVALID_ACK', 'AUTH', 'ACCESS', 'CONFLICT', 'VALIDATION', 'DEVICE'];
@@ -13,12 +13,12 @@ const DOMAIN_ACTIONS = {
   stock_movement: ['entry','exit','adjust','transfer'],
   purchase_return: ['approve','receive'],
   crm_activity: ['complete'],
-  training_enrollment: ['attend', 'absent', 'complete'],
+  training_enrollment: ['attend', 'absent', 'complete', 'certificate'],
   financial_receivable: ['settle'],
   financial_payable: ['settle'],
   payroll_competency: ['close'],
   accounting_period: ['close', 'reopen', 'lock'],
-  purchase_order: ['approve'],
+  purchase_order: ['approve','receive'],
 };
 const DOMAIN_OPERATION_STATES = ['pending', 'leased', 'blocked', 'confirmed'];
 const DOMAIN_SQL_KEYS = DOMAIN_KEYS.map(key => `'${key}'`).join(',');
@@ -27,7 +27,7 @@ const SCHEMA_ALLOCATIONS = `CREATE TABLE IF NOT EXISTS offline_domain_allocation
   reservation_id TEXT PRIMARY KEY REFERENCES offline_domain_reservations(reservation_id) ON DELETE CASCADE,
   payload_encrypted BLOB NOT NULL
 ) STRICT;`;
-const RECORD_TYPES = ['customer','supplier','product','crm_lead','crm_opportunity','crm_activity','training_category','training','training_session','training_enrollment','admin_role','admin_user'];
+const RECORD_TYPES = ['purchase_return','customer','supplier','product','crm_lead','crm_opportunity','crm_activity','training_category','training','training_session','training_enrollment','admin_role','admin_user'];
 const RECORD_OPERATIONS = ['create','update'];
 const RECORD_STATES = ['draft','queued','synced','conflict'];
 const RECORD_OUTBOX_STATES = ['pending','leased','blocked','confirmed'];
@@ -218,7 +218,7 @@ const SCHEMA_DOMAINS = `
 `;
 
 /**
- * v3/v4/v5 -> v6: SQLite nao altera CHECK constraints. Reconstruimos apenas as tres
+ * v3-v7 -> v8: SQLite nao altera CHECK constraints. Reconstruimos apenas as tres
  * tabelas de dominio, preservando snapshots, reservas, outbox e tokens
  * cifrados. A migracao roda com foreign_keys desligado e em transacao.
  */
@@ -566,7 +566,7 @@ function validateDomainAck(ack, row) {
   if (domainTargetId(ack.targetId) !== row.target_id) fail('INVALID_ACK', 'Servidor confirmou outro alvo.');
   if (ack.reservationId !== row.reservation_id) fail('INVALID_ACK', 'Servidor confirmou outra reserva.');
   if (typeof ack.status !== 'string' || !ack.status.trim() || ack.status.length > 40) fail('INVALID_ACK', 'Status final do alvo inválido.');
-  const expected = {settle:'paid',close:'closed',reopen:'open',lock:'locked',approve:'approved',complete:'completed',attend:'attended',absent:'absent',entry:'completed',exit:'completed',adjust:'completed',transfer:'completed',receive:'received'}[row.action];
+  const expected = {settle:'paid',close:'closed',reopen:'open',lock:'locked',approve:'approved',complete:'completed',attend:'attended',absent:'absent',entry:'completed',exit:'completed',adjust:'completed',transfer:'completed',receive:'received',certificate:'certified'}[row.action];
   if (ack.status !== expected) fail('INVALID_ACK', 'Status final não corresponde à operação.');
   return { domain: ack.domain, targetId: row.target_id, reservationId: row.reservation_id, status: ack.status.trim() };
 }
@@ -610,8 +610,8 @@ class OfflineStore {
           this.db.exec(SCHEMA_RECORDS);
           this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
         });
-      } else if (version === 3 || version === 4 || version === 5) {
-        // v3/v4/v5 -> v6: amplia os CHECKs de dominio/acao. foreign_keys fica
+      } else if (version >= 3 && version < 8) {
+        // v3-v7 -> v8: amplia os CHECKs de dominio/acao. foreign_keys fica
         // desligado apenas durante a reconstrucao e e restaurado no finally.
         this.db.exec('PRAGMA foreign_keys=OFF;');
         try {
@@ -622,11 +622,6 @@ class OfflineStore {
         } finally {
           this.db.exec('PRAGMA foreign_keys=ON;');
         }
-      } else if (version === 6) {
-        this.transaction(() => {
-          this.db.exec(SCHEMA_RECORDS);
-          this.db.exec(`PRAGMA user_version=${SCHEMA_VERSION};`);
-        });
       }
       this.db.exec(SCHEMA_ALLOCATIONS);
       this.db.exec(SCHEMA_RECORDS);

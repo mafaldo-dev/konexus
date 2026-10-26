@@ -7,7 +7,7 @@ export type DomainKey =
   | 'payroll_competency'
   | 'accounting_period'
   | 'purchase_order' | 'crm_activity' | 'training_enrollment' | 'stock_movement' | 'purchase_return';
-export type DomainAction = 'settle' | 'close' | 'reopen' | 'lock' | 'approve' | 'complete' | 'attend' | 'absent' | 'entry' | 'exit' | 'adjust' | 'transfer' | 'receive';
+export type DomainAction = 'settle' | 'close' | 'reopen' | 'lock' | 'approve' | 'complete' | 'attend' | 'absent' | 'entry' | 'exit' | 'adjust' | 'transfer' | 'receive' | 'certificate';
 export type DomainReservationState = 'active' | 'queued' | 'consumed' | 'cancelled' | 'blocked';
 export type DomainOperationState = 'pending' | 'leased' | 'blocked' | 'confirmed';
 
@@ -127,7 +127,7 @@ const RECEIVABLE_STATUSES = ['pending', 'overdue', 'due_today'];
 const PAYABLE_STATUSES = ['pending', 'overdue'];
 const PAYROLL_STATUSES = ['open', 'calculated', 'approved'];
 const ACCOUNTING_STATUSES = ['open', 'closed'];
-const PURCHASE_ORDER_STATUSES = ['pending'];
+const PURCHASE_ORDER_STATUSES = ['pending','approved','in_progress'];
 
 const changed = () => {
   window.dispatchEvent(new Event('konexus:domain-offline-changed'));
@@ -474,7 +474,7 @@ export async function syncDomainOperations(scope: DraftScope): Promise<void> {
         throw error;
       }
       const data = response.data?.data;
-      const expectedStatus: Record<DomainAction,string> = {settle:'paid',close:'closed',reopen:'open',lock:'locked',approve:'approved',complete:'completed',attend:'attended',absent:'absent',entry:'completed',exit:'completed',adjust:'completed',transfer:'completed',receive:'received'};
+      const expectedStatus: Record<DomainAction,string> = {settle:'paid',close:'closed',reopen:'open',lock:'locked',approve:'approved',complete:'completed',attend:'attended',absent:'absent',entry:'completed',exit:'completed',adjust:'completed',transfer:'completed',receive:'received',certificate:'certified'};
       const confirmed =
         response.ok &&
         response.data?.success === true &&
@@ -533,7 +533,7 @@ export function domainTargetActions(domain: DomainKey, status: string): DomainAc
   if (domain === 'stock_movement') return [];
   if (domain === 'purchase_return') return status === 'approved' ? ['receive'] : status === 'pending_approval' ? ['approve'] : [];
   if (domain === 'crm_activity') return status === 'pending' ? ['complete'] : [];
-  if (domain === 'training_enrollment') return status === 'attended' ? ['complete', 'absent'] : ['enrolled', 'absent'].includes(status) ? ['attend', 'absent'] : [];
+  if (domain === 'training_enrollment') return status === 'completed' ? ['certificate'] : status === 'attended' ? ['complete', 'absent'] : ['enrolled', 'absent'].includes(status) ? ['attend', 'absent'] : [];
   if (domain === 'financial_receivable') {
     return RECEIVABLE_STATUSES.includes(status) ? ['settle'] : [];
   }
@@ -544,20 +544,21 @@ export function domainTargetActions(domain: DomainKey, status: string): DomainAc
     return status === 'approved' ? ['close'] : [];
   }
   if (domain === 'purchase_order') {
-    return PURCHASE_ORDER_STATUSES.includes(status) ? ['approve'] : [];
+    return status === 'pending' ? ['approve'] : ['approved','in_progress'].includes(status) ? ['receive'] : [];
   }
   if (status === 'open') return ['close', 'lock'];
   if (status === 'closed') return ['reopen', 'lock'];
   return [];
 }
 
-export function domainActionLabel(action: DomainAction): string {
+export function domainActionLabel(action: DomainAction, domain?: DomainKey): string {
   if (action === 'entry') return 'Registrar entrada';
   if (action === 'exit') return 'Registrar saída';
   if (action === 'adjust') return 'Registrar ajuste';
   if (action === 'transfer') return 'Transferir';
-  if (action === 'receive') return 'Registrar saída da devolução';
+  if (action === 'receive') return domain === 'purchase_order' ? 'Receber compra integral' : 'Registrar saída da devolução';
   if (action === 'complete') return 'Concluir';
+  if (action === 'certificate') return 'Solicitar certificado';
   if (action === 'attend') return 'Registrar presença';
   if (action === 'absent') return 'Registrar ausência';
   if (action === 'settle') return 'Baixar';

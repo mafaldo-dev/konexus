@@ -12,6 +12,10 @@
 import { apiClient, ApiResponse } from "../api/client";
 import { asList, asObject } from "../api/payload";
 
+export async function receivePurchaseOrder(id: number, requestId: string) {
+  return asObject<{id:number;status:string;receiptId:string}>(await apiClient.post(`purchase/${id}/receive`,{requestId}), ['data'], 'recebimento da compra');
+}
+
 export interface PurchaseOrderItem {
   productid: string | number;
   quantity: number;

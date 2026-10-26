@@ -78,7 +78,7 @@ export async function savePlugNotasConfig(
  * Testa a conexao com a PlugNotas.
  */
 export async function testPlugNotasConnection(
-  data: { api_key: string; ambiente?: string }
+  data: { api_key?: string; ambiente?: string }
 ): Promise<ApiResponse<any>> {
   return apiClient.post("plugnotas/config/test", data);
 }

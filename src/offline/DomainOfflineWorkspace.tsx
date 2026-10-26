@@ -493,7 +493,8 @@ export default function DomainOfflineWorkspace() {
                 {(snapshot?.targets || []).map(target => {
                   const reservation = reservationFor(target.targetId);
                   const operation = operationFor(reservation);
-                  const actions = reservation?.allocation?.action ? [reservation.allocation.action] : domainTargetActions(domain, target.status);
+                  const actions = (reservation?.allocation?.action ? [reservation.allocation.action] : domainTargetActions(domain, target.status))
+                    .filter(action => domain !== 'purchase_order' || action !== 'receive' || isCompanyAdmin || hasPermission('estoque','move'));
                   return (
                     <tr key={target.targetId} className="align-top hover:bg-slate-50/70">
                       <td className="px-3 py-3 font-medium">{target.label}<div className="text-xs font-normal text-slate-500">{target.reference || '—'}</div></td>
@@ -514,7 +515,7 @@ export default function DomainOfflineWorkspace() {
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex flex-wrap justify-end gap-2">
-                          {!reservation && canOperate && (
+                          {!reservation && canOperate && actions.length > 0 && (
                             <button type="button" onClick={() => void reserve(target)} disabled={!navigator.onLine || busyTarget === target.targetId}
                               className="rounded border border-slate-900 px-2 py-1 text-xs font-medium hover:bg-slate-900 hover:text-white disabled:opacity-50">
                               {busyTarget === target.targetId ? 'Reservando…' : 'Reservar'}
@@ -523,7 +524,7 @@ export default function DomainOfflineWorkspace() {
                           {reservation?.status === 'active' && canOperate && actions.map(action => (
                             <button key={action} type="button" onClick={() => openForm(target, action)}
                               className="rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-700">
-                              {domainActionLabel(action)}
+                              {domainActionLabel(action, domain)}
                             </button>
                           ))}
                           {reservation && operation?.state === 'blocked' && canOperate && (
@@ -558,7 +559,7 @@ export default function DomainOfflineWorkspace() {
 
           {form && (
             <div className="rounded-xl border border-sky-200 bg-sky-50 p-4">
-              <h3 className="font-semibold">{domainActionLabel(form.action)} — {form.target.label}</h3>
+              <h3 className="font-semibold">{domainActionLabel(form.action, domain)} — {form.target.label}</h3>
               <p className="mt-1 text-xs text-sky-900">
                 Reserva {form.reservation.id.slice(0, 8)}… · a operação será gravada na fila local e confirmada pela central com recibo idempotente.
               </p>
@@ -633,7 +634,7 @@ export default function DomainOfflineWorkspace() {
                   {domainOperations.map(operation => (
                     <li key={operation.operationId} className="flex flex-wrap items-center justify-between gap-2 py-2">
                       <div>
-                        <span className="font-medium">{domainActionLabel(operation.action)} · {targetLabel(operation.targetId)}</span>
+                        <span className="font-medium">{domainActionLabel(operation.action, domain)} · {targetLabel(operation.targetId)}</span>
                         <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${statusClass(operation.state)}`}>{domainStatusLabel(operation.state)}</span>
                         <div className="text-xs text-slate-500">
                           {formatTimestamp(operation.updatedAt)}{operation.errorCode ? ` · ${operation.errorCode}` : ''}{operation.serverStatus ? ` · central: ${domainStatusLabel(operation.serverStatus)}` : ''}

@@ -1,10 +1,11 @@
 import { Eye, Download, MoreVertical, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Swal from 'sweetalert2';
 import {
   updatePurchaseOrder,
   getPurchaseOrderByNumber,
+  receivePurchaseOrder,
 } from '../../../services/purchaseService';
 import DocumentViewer from '../../../utils/screenOptions';
 import { getStatusColor, getStatusLabel, mapOrderStatus, ORDER_STATUS } from '../../../components/utils/statusLabel';
@@ -22,9 +23,9 @@ interface QuotationsListProps {
 }
 
 // Lista de opções para o select de status (formato array para Swal)
-const STATUS_OPTIONS = Object.entries(ORDER_STATUS).map(([value, config]: [string, any]) => ({
+const STATUS_OPTIONS = ['pending','approved','in_progress','canceled'].map(value => ({
   value,
-  label: config.label
+  label: ORDER_STATUS[value === 'canceled' ? 'cancelled' : value].label
 }));
 
 export default function QuotationsList({
@@ -36,6 +37,25 @@ export default function QuotationsList({
 }: QuotationsListProps) {
   const { hasPermission } = useAuth();
   const canEditPurchase = hasPermission('compras', 'edit');
+  const canReceive = canEditPurchase && hasPermission('estoque','move');
+  const receiptRequests = useRef<Record<number,string>>({});
+  const [receiving, setReceiving] = useState(false);
+  const handleReceive = async (order: any) => {
+    if (receiving) return;
+    setOpenMenuId(null);
+    const answer = await Swal.fire({title:'Confirmar recebimento integral?',text:'Confirme que todos os itens chegaram. A operação registra entrada física no estoque deste CNPJ.',icon:'question',showCancelButton:true,confirmButtonText:'Receber compra'});
+    if (!answer.isConfirmed) return;
+    setReceiving(true);
+    try {
+      const id = Number(order.id);
+      const requestId = receiptRequests.current[id] ||= crypto.randomUUID();
+      const response = await receivePurchaseOrder(id,requestId);
+      if (!response.ok || !response.data) throw new Error(response.error || 'Não foi possível confirmar o recebimento.');
+      await Swal.fire({title:'Compra recebida',text:'Entrada de estoque registrada.',icon:'success'});
+      onUpdate?.();
+    } catch (error) { await Swal.fire({title:'Recebimento não confirmado',text:error instanceof Error ? error.message : 'Tente novamente.',icon:'error'}); }
+    finally {setReceiving(false);}
+  };
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [showViewer, setShowViewer] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -143,7 +163,7 @@ export default function QuotationsList({
     setOpenMenuId(null);
     
     // Normalizar o status atual
-    const currentStatus = mapOrderStatus(order.orderStatus ?? order.orderstatus);
+    const currentStatus = String(order.orderStatus ?? order.orderstatus).replace('cancelled','canceled');
 
     // Gerar opções HTML
     const optionsHtml = STATUS_OPTIONS.map((option) =>
@@ -331,7 +351,9 @@ export default function QuotationsList({
                                     Visualizar
                                   </button>
 
-                                  {canEditPurchase && (
+                                  {canReceive && ['approved','in_progress'].includes(order.orderStatus ?? order.orderstatus) && <button disabled={receiving}
+                                    onClick={()=>void handleReceive(order)} className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-emerald-700 hover:bg-slate-50 disabled:opacity-50">Receber compra integral</button>}
+                                  {canEditPurchase && !['received','delivered','completed'].includes(order.orderStatus ?? order.orderstatus) && (
                                     <button
                                       onClick={() => handleUpdateStatus(order)}
                                       className="w-full px-4 py-2 text-left flex gap-2 hover:bg-slate-50"

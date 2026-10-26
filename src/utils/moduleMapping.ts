@@ -124,6 +124,7 @@ const SUBMENU_REQUIREMENTS: Array<{
   { prefix: "/config/audit-log", anyOf: [["audit", "view"]] },
   { prefix: "/config/stations", anyOf: [["audit", "manage_stations"]] },
   { prefix: "/financer/contabilidade/painel", anyOf: [["contabil", "reports"]] },
+  { prefix: "/financer/contabilidade/conexao-fiscal", anyOf: [["nfe", "configure"]] },
   { prefix: "/financer/contabilidade/plano-de-contas", anyOf: [["contabil", "manage_plan"]] },
   { prefix: "/financer/contabilidade/lancamentos", anyOf: [["contabil", "create"]] },
   { prefix: "/financer/contabilidade/livro-diario", anyOf: [["contabil", "reports"]] },

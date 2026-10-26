@@ -46,6 +46,8 @@ import {
   getTraining,
   getTrainingSummary,
   issueTrainingCertificate,
+  getTrainingCertificate,
+  downloadTrainingCertificate,
   listTrainings,
   listTrainingCategories,
   setTrainingAttendance,
@@ -484,6 +486,18 @@ export default function TrainingPage() {
       confirmButtonText: "Fechar",
     });
     await refreshDetail(detail.id);
+  };
+
+  const downloadCertificate = async (enrollment: TrainingEnrollment) => {
+    setActionLoading(true);
+    setError(null);
+    try {
+      const response = await getTrainingCertificate(enrollment.id);
+      if (!response.ok || !response.data) throw new Error(response.error || 'Não foi possível carregar o certificado.');
+      await downloadTrainingCertificate(response.data);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Não foi possível baixar o certificado.');
+    } finally { setActionLoading(false); }
   };
 
   const cancelTrainingAction = async (item: Training) => {
@@ -1239,6 +1253,9 @@ export default function TrainingPage() {
                           </td>
                           <td className="px-3 py-2">
                             <div className="flex flex-wrap justify-end gap-1">
+                              {enrollment.certificate_code && <button type="button" disabled={actionLoading}
+                                onClick={() => void downloadCertificate(enrollment)}
+                                className="rounded border border-violet-200 px-2 py-1 text-xs text-violet-700 disabled:opacity-50">Baixar certificado</button>}
                               {canManage &&
                                 ["enrolled", "attended", "absent"].includes(
                                   enrollment.status

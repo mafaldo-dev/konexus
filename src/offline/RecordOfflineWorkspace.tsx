@@ -231,7 +231,7 @@ export default function RecordOfflineWorkspace() {
   }, [form?.localId, form?.remoteId, scope, definition]);
 
   const setField = (key: string, value: any) => {
-    setForm(current => current ? { ...current, payload: { ...current.payload, [key]: value } } : current);
+    setForm(current => current ? { ...current, payload: { ...current.payload, ...(activeType === 'purchase_return' && key === 'purchaseOrderId' ? {items: []} : {}), [key]: value } } : current);
   };
   const setAddressField = (key: string, value: string) => {
     setForm(current => current ? {
@@ -268,8 +268,12 @@ export default function RecordOfflineWorkspace() {
     if (!form || !definition || !scope) return;
     setFormError('');
     const payload = { ...form.payload };
+    if (activeType === 'purchase_return' && (!Array.isArray(payload.items) || !payload.items.length)) {
+      setFormError('Selecione ao menos um item para devolver.');
+      return;
+    }
     for (const field of definition.fields) {
-      if (field.createOnly && !form.isNew) { delete payload[field.key]; continue; }
+      if (field.createOnly && form.remoteId) { delete payload[field.key]; continue; }
       if (field.type === 'json' && field.key === 'permissions') {
         const text = jsonDrafts.permissions.trim();
         if (text) {
@@ -314,7 +318,7 @@ export default function RecordOfflineWorkspace() {
       }
     }
     for (const field of definition.fields) {
-      if (field.createOnly && !form.isNew) continue;
+      if (field.createOnly && form.remoteId) continue;
       if (field.key === 'permissions' && payload.permissions === undefined) continue;
       if (field.key === 'legalEntityIds' && payload.legalEntityIds === undefined) continue;
       if (field.required && (payload[field.key] === undefined || payload[field.key] === null || payload[field.key] === '')) {
@@ -394,6 +398,25 @@ export default function RecordOfflineWorkspace() {
 
   const renderField = (field: RecordField) => {
     const value = form?.payload[field.key];
+    if (activeType === 'purchase_return' && field.key === 'items') {
+      const order = options.purchase_order?.find(item => Number(item.id) === Number(form?.payload.purchaseOrderId));
+      return <fieldset key={field.key} className="space-y-2 rounded border p-3 md:col-span-2">
+        <legend className="font-medium">Itens a devolver</legend>
+        <p className="text-xs text-slate-600">Saldo da última consulta. A central revalida as quantidades ao sincronizar. A devolução será criada como rascunho.</p>
+        {!order?.items?.length && <p>Selecione um pedido recebido nas opções atualizadas online.</p>}
+        {order?.items?.map(item => <label key={item.id} className="flex items-center justify-between gap-3 text-sm">
+          <span>{item.label} · saldo consultado: {item.eligibleQuantity}</span>
+          <input aria-label={`Devolver ${item.label}`} className="w-24 rounded border p-2" type="number" min={0} max={Number(item.eligibleQuantity)} step={1}
+            value={(Array.isArray(value) ? value : []).find(row => Number(row.purchaseOrderItemId) === Number(item.id))?.quantity ?? 0}
+            onChange={event => {
+              const rows = (Array.isArray(value) ? value : []).filter(row => Number(row.purchaseOrderItemId) !== Number(item.id));
+              const quantity = Number(event.target.value);
+              if (quantity > 0) rows.push({purchaseOrderItemId: Number(item.id), quantity});
+              setField('items', rows);
+            }}/>
+        </label>)}
+      </fieldset>;
+    }
     if (field.type === 'boolean') {
       return (
         <label className="flex items-center gap-2 text-sm" key={field.key}>
@@ -408,6 +431,7 @@ export default function RecordOfflineWorkspace() {
           <span className="font-medium">{field.label}{field.required ? ' *' : ''}</span>
           <select
             className="mt-1 w-full rounded border p-2"
+            disabled={activeType === 'purchase_return' && field.key === 'purchaseOrderId' && Boolean(form?.remoteId)}
             value={value == null ? '' : String(value)}
             onChange={event => {
               const next = event.target.value;
@@ -635,7 +659,7 @@ export default function RecordOfflineWorkspace() {
                 {form.remoteId && <p className="mt-1 text-xs text-slate-500">Registro central #{form.remoteId} · versão {form.baseVersion}</p>}
                 {!form.isNew && form.record?.status === 'synced' && <p className="mt-1 text-xs text-amber-700">A edição será aplicada somente se a versão central ainda for esta.</p>}
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {definition?.fields.filter(field => !(field.createOnly && !form.isNew)).map(renderField)}
+                  {definition?.fields.filter(field => !(field.createOnly && form.remoteId)).map(renderField)}
                 </div>
                 {formError && <p className="mt-3 rounded border border-rose-300 bg-rose-50 p-2 text-sm text-rose-900">{formError}</p>}
                 <div className="mt-4 flex gap-2">

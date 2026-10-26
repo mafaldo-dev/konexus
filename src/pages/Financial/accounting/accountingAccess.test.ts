@@ -31,6 +31,13 @@ const PERMISSIONS: PermissionGroup[] = [
 const CONTRATED = [...FREEMIUM, "contabil"];
 
 describe("classificacao do modulo de Contabilidade", () => {
+  it('permite conexão fiscal ao contador autorizado, sem conceder acesso só pelo nome do cargo', () => {
+    const path='/financer/contabilidade/conexao-fiscal';
+    const permission=[{moduleKey:'nfe',actions:['configure']}];
+    expect(canAccessRoute(path,[...CONTRATED,'nfe'],'Contador',permission,false)).toBe(true);
+    expect(canAccessRoute(path,[...CONTRATED,'nfe'],'Contador',PERMISSIONS,false)).toBe(false);
+    expect(canAccessRoute(path,CONTRATED,'Contador',permission,false)).toBe(false);
+  });
   it("nao aparece para empresa sem contratacao do extra", () => {
     expect(
       canAccessSubmenuWithPermissions(
