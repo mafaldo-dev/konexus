@@ -28,7 +28,7 @@ export default function ProductUpdatesPanel() {
 
   const visibleUpdates = useMemo(
     () =>
-      getVisibleProductUpdates(PRODUCT_UPDATES, {
+      getVisibleProductUpdates(PRODUCT_UPDATES.filter(update => update.highlight), {
         availableModules: modules,
         permissions,
         isCompanyAdmin,
@@ -42,7 +42,7 @@ export default function ProductUpdatesPanel() {
   );
 
   const listedUpdates = useMemo(
-    () => filterProductUpdates(visibleUpdates, selectedModule),
+    () => filterProductUpdates(visibleUpdates, selectedModule).slice(0, 5),
     [visibleUpdates, selectedModule]
   );
 
@@ -56,7 +56,7 @@ export default function ProductUpdatesPanel() {
           <Settings className="w-5 h-5 text-gray-500" />
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          Novidades disponíveis na sua empresa, por módulo e versão.
+          Até cinco novidades para facilitar o seu trabalho, conforme os módulos disponíveis na empresa.
         </p>
       </div>
 

@@ -12,6 +12,8 @@ interface Column<T> {
 }
 
 interface DynamicTableProps<T> {
+  /** Desabilite quando a consulta já possui paginação no servidor. */
+  pagination?: boolean;
   data: T[];
   columns: Column<T>[];
   emptyMessage?: string;
@@ -34,6 +36,7 @@ interface DynamicTableProps<T> {
 }
 
 export function DynamicTable<T extends Record<string, any>>({
+  pagination = true,
   data,
   columns,
   emptyMessage = "Não há dados disponíveis.",
@@ -90,10 +93,11 @@ export function DynamicTable<T extends Record<string, any>>({
   }, [data.length, page, totalPages]);
 
   const paginatedData = useMemo(() => {
+    if (!pagination) return data;
     const start = (page - 1) * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
     return data.slice(start, end);
-  }, [data, page]);
+  }, [data, page, pagination]);
 
   const nextPage = () => setPage(p => Math.min(p + 1, totalPages));
   const prevPage = () => setPage(p => Math.max(p - 1, 1));
@@ -194,7 +198,7 @@ export function DynamicTable<T extends Record<string, any>>({
       {/* -------------------------
          PAGINAÇÃO FOOTER
       ------------------------- */}
-      {data.length > 0 && (
+      {pagination && data.length > 0 && (
         <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
           <button
             onClick={prevPage}

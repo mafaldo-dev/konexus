@@ -1,14 +1,13 @@
 import { useMemo, useState } from "react";
 import {
-  AlertCircle,
   ChevronLeft,
   ChevronRight,
   Filter,
-  Loader2,
   RefreshCw,
   Search,
   X,
 } from "lucide-react";
+import {DynamicTable} from '../../utils/Table/DynamicTable';
 
 import {
   describeAuditEvent,
@@ -126,6 +125,20 @@ export default function AuditEventsView({
     onFiltersChange({ ...filters, [key]: value });
     onPageChange(1);
   };
+
+  const columns = [
+    {key:'created_at',header:'Data e hora',render:(event:AuditViewEvent)=><button type="button" className="whitespace-nowrap text-left text-slate-700 hover:underline" onClick={()=>setSelected(event)} aria-label={`Detalhes do evento de ${event.username || 'usuário não identificado'} em ${formatDateTime(event.created_at)}`}>{formatDateTime(event.created_at)}</button>},
+    ...(companyNames ? [{key:'company_id',header:'Empresa',render:(event:AuditViewEvent)=>event.company_id ? companyNames[event.company_id] || `#${event.company_id}` : 'Administrador global'}] : []),
+    {key:'legal_entity_id',header:'CNPJ emitente',render:(event:AuditViewEvent)=>event.legal_entity_name
+      ? <span><span className="block">{event.legal_entity_name}</span><span className="block text-xs text-slate-500">{event.legal_entity_cnpj}</span></span> : 'Não aplicável'},
+    {key:'username',header:'Usuário',render:(event:AuditViewEvent)=>event.username || '—'},
+    {key:'station_name',header:'Estação',render:(event:AuditViewEvent)=>event.station_name || '—'},
+    {key:'module_key',header:'Módulo',render:(event:AuditViewEvent)=>getModuleLabel(event.module_key)},
+    {key:'action',header:'Operação',render:(event:AuditViewEvent)=>getActionLabel(event.action)},
+    {key:'entity_id',header:'Registro',render:(event:AuditViewEvent)=>`${getEntityLabel(event.entity_type)}${event.entity_id ? ` nº ${event.entity_id}` : ''}`},
+    {key:'outcome',header:'Resultado',render:(event:AuditViewEvent)=><span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${event.outcome==='success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : event.outcome==='denied' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>{getOutcomeLabel(event.outcome)}</span>},
+    {key:'reauth_outcome',header:'Identidade',render:(event:AuditViewEvent)=>getReauthLabel(event.reauth_outcome)},
+  ];
 
   return (
     <div className="space-y-4">
@@ -280,105 +293,11 @@ export default function AuditEventsView({
         </div>
       </div>
 
-      {error ? (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-          <AlertCircle className="h-4 w-4" />
-          {error}
-        </div>
-      ) : null}
-
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Carregando o histórico...
-          </div>
-        ) : events.length === 0 ? (
-          <div className="py-16 text-center text-sm text-slate-500">
-            Nenhum evento encontrado com os filtros selecionados.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Data e hora</th>
-                  {companyNames ? <th className="px-4 py-3">Empresa</th> : null}
-                  <th className="px-4 py-3">CNPJ emitente</th>
-                  <th className="px-4 py-3">Usuário</th>
-                  <th className="px-4 py-3">Estação</th>
-                  <th className="px-4 py-3">Módulo</th>
-                  <th className="px-4 py-3">Operação</th>
-                  <th className="px-4 py-3">Registro</th>
-                  <th className="px-4 py-3">Resultado</th>
-                  <th className="px-4 py-3">Identidade</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {events.map((event) => (
-                  <tr
-                    key={event.id}
-                    onClick={() => setSelected(event)}
-                    className="cursor-pointer hover:bg-slate-50"
-                  >
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                      {formatDateTime(event.created_at)}
-                    </td>
-                    {companyNames ? (
-                      <td className="px-4 py-3 text-slate-600">
-                        {event.company_id
-                          ? companyNames[event.company_id] || `#${event.company_id}`
-                          : "Administrador global"}
-                      </td>
-                    ) : null}
-                    <td className="px-4 py-3 text-slate-600">
-                      {event.legal_entity_name ? (
-                        <span>
-                          <span className="block text-slate-800">{event.legal_entity_name}</span>
-                          {event.legal_entity_cnpj ? <span className="block text-[11px] text-slate-500">{event.legal_entity_cnpj}</span> : null}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">Não aplicável</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-800">
-                      {event.username || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {event.station_name || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {getModuleLabel(event.module_key)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {getActionLabel(event.action)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {getEntityLabel(event.entity_type)}
-                      {event.entity_id ? ` nº ${event.entity_id}` : ""}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                          event.outcome === "success"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : event.outcome === "denied"
-                              ? "border-rose-200 bg-rose-50 text-rose-700"
-                              : "border-amber-200 bg-amber-50 text-amber-700"
-                        }`}
-                      >
-                        {getOutcomeLabel(event.outcome)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {getReauthLabel(event.reauth_outcome)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <div className="space-y-3">
+        <DynamicTable data={events} columns={columns} width="100%" pagination={false}
+          loading={loading} loadingMessage="Carregando o histórico..." error={error} onRetry={onRefresh}
+          emptyMessage="Nenhum evento encontrado com os filtros selecionados." emptyDescription="Ajuste os filtros para consultar outras operações."
+          onRowClick={event=>setSelected(event)} />
 
         <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-xs text-slate-500">
           <span>

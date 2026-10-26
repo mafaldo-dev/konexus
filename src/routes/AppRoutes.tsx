@@ -2,6 +2,7 @@ import { Navigate, Routes, Route } from 'react-router-dom';
 import AdministrationScreen from '../components/AdminScreen';
 import LoginPage from '../login';
 import OfflineWorkspace from '../offline/OfflineWorkspace';
+import Dashboard from '../components/dashboard/Dashboard';
 import DomainOfflineWorkspace from '../offline/DomainOfflineWorkspace';
 import RecordOfflineWorkspace from '../offline/RecordOfflineWorkspace';
 import ChangePasswordPage from '../pages/ChangePassword';
@@ -61,9 +62,9 @@ const AppRoutes = () => {
     <Routes>
       {/* ==================== ÁREA DE LOGIN ==================== */}
       <Route path="/" element={<LoginPage />} />
-      <Route path="/offline" element={<OfflineWorkspace />} />
-      <Route path="/offline/domains" element={<DomainOfflineWorkspace />} />
-      <Route path="/offline/records" element={<RecordOfflineWorkspace />} />
+      <Route path="/offline" element={<Dashboard><OfflineWorkspace /></Dashboard>} />
+      <Route path="/offline/domains" element={<Dashboard><DomainOfflineWorkspace /></Dashboard>} />
+      <Route path="/offline/records" element={<Dashboard><RecordOfflineWorkspace /></Dashboard>} />
 
       {/* ==================== PAINEL ADMINISTRATIVO GLOBAL (F1) ==================== */}
       <Route path="/system-admin" element={<SystemAdminWorkspace />} />

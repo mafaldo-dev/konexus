@@ -33,6 +33,8 @@ export type ProductUpdateModuleKey =
 export type ProductUpdateVisibility = "standard" | "contract";
 
 export interface ProductUpdate {
+  /** Destaque funcional selecionado para o resumo do painel. */
+  highlight?: boolean;
   id: string;
   /** Módulo do sistema (mesma chave usada pelo backend). */
   module: ProductUpdateModuleKey;
@@ -70,6 +72,36 @@ export const UPDATE_MODULE_LABELS: Record<ProductUpdateModuleKey, string> = {
  * Novidades do produto, da mais recente para a mais antiga.
  */
 export const PRODUCT_UPDATES: ProductUpdate[] = [
+  {
+    id:'1.4.4-compras-recebimento', module:'compras', version:'1.4.4', highlight:true,
+    title:'Receba compras e prepare devoluções sem retrabalho',
+    description:'Confirme o recebimento integral com entrada no estoque. Prepare devoluções sem internet e sincronize depois, sem duplicar registros.',
+    releasedAt:'2026-10-26', visibility:'standard', status:'published', evidence:'Release 1.4.4: recebimentos e devoluções',
+  },
+  {
+    id:'1.4.4-cadastros-offline', module:'gestao', version:'1.4.4', highlight:true,
+    title:'Continue os cadastros mesmo sem internet',
+    description:'No aplicativo desktop, crie e edite clientes, fornecedores e produtos offline. Ao reconectar, o sistema sincroniza e sinaliza alterações conflitantes.',
+    releasedAt:'2026-10-26', visibility:'standard', status:'published', evidence:'Release 1.4.4: cadastros offline',
+  },
+  {
+    id:'1.4.4-estoque-reservado', module:'estoque', version:'1.4.4', highlight:true,
+    title:'Movimente estoque com reservas por computador',
+    description:'Prepare entradas, saídas, ajustes e transferências para trabalhar offline. As reservas protegem o saldo e evitam consumir a mesma quantidade duas vezes.',
+    releasedAt:'2026-10-26', visibility:'standard', status:'published', evidence:'Release 1.4.4: operações reservadas de estoque',
+  },
+  {
+    id:'1.4.4-certificados', module:'rh', version:'1.4.4', highlight:true,
+    title:'Baixe os certificados dos treinamentos concluídos',
+    description:'Gere o PDF com os dados preservados na emissão. Solicitações preparadas offline são processadas quando a conexão volta.',
+    releasedAt:'2026-10-26', visibility:'standard', status:'published', evidence:'Release 1.4.4: certificados e PDF',
+  },
+  {
+    id:'1.4.4-crm-continuidade', module:'crm', version:'1.4.4', highlight:true,
+    title:'Mantenha a agenda comercial em dia',
+    description:'Edite atividades e prepare oportunidades a partir de leads qualificados, inclusive offline. O histórico é preservado na sincronização.',
+    releasedAt:'2026-10-26', visibility:'contract', status:'published', evidence:'Release 1.4.4: edição CRM e conversão de leads',
+  },
   {
     id:'1.4.2-permissoes-por-tela', module:'gestao', version:'1.4.2',
     title:'Permissões por tela e por operação',
