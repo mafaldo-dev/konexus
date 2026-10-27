@@ -35,6 +35,9 @@ export interface SystemAdminCompany {
   email: string | null;
   phone: string | null;
   installation_id: number;
+  active: boolean;
+  deactivated_at: string | null;
+  deactivation_reason: string | null;
   createdat: string;
   users_count: number;
   subscription_id: number | null;
@@ -414,6 +417,19 @@ export const systemAdminService = {
 
   createCompany: (payload: CreateCompanyPayload) =>
     request<CreateCompanyResult>("admin/system/companies", "POST", payload),
+
+  setCompanyActive: async (
+    companyId: number,
+    active: boolean,
+    reason?: string | null
+  ) => {
+    const data = await request<{ company: SystemAdminCompany }>(
+      `admin/system/companies/${companyId}/status`,
+      "PATCH",
+      { active, reason: reason ?? null }
+    );
+    return data.company;
+  },
 
   listSubscriptions: async () => {
     const data = await request<{ subscriptions: SystemAdminSubscription[] }>(

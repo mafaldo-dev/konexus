@@ -87,7 +87,17 @@ export default function CompanyDetailsModal({ open, companyId, onClose }: Props)
           <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
             <CompanyAvatar name={company.name} className="h-12 w-12 text-sm" />
             <div className="min-w-0 flex-1">
-              <p className="text-base font-bold text-slate-900">{company.name}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-base font-bold text-slate-900">{company.name}</p>
+                <StatusBadge
+                  label={company.active === false ? "Desativada" : "Ativa"}
+                  className={
+                    company.active === false
+                      ? "bg-rose-50 text-rose-700 ring-rose-200"
+                      : "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                  }
+                />
+              </div>
               <p className="text-xs text-slate-500">
                 {company.cnpj || "CNPJ não informado"} · ID #{company.id}
               </p>
@@ -111,6 +121,21 @@ export default function CompanyDetailsModal({ open, companyId, onClose }: Props)
               </div>
             </div>
           </div>
+
+          {company.active === false ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-4">
+              <p className="text-sm font-semibold text-rose-800">Empresa desativada</p>
+              <p className="mt-1 text-xs text-rose-700">
+                Desativada em {formatDateTime(company.deactivated_at)}. Os usuários não
+                conseguem entrar enquanto a empresa permanecer desativada.
+              </p>
+              {company.deactivation_reason ? (
+                <p className="mt-2 text-xs text-rose-700">
+                  <strong>Motivo:</strong> {company.deactivation_reason}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-200 p-4">

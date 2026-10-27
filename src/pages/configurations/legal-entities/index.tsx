@@ -91,6 +91,7 @@ export default function LegalEntitiesPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const canManage = Boolean(isCompanyAdmin);
+  const cnpjLocked = Boolean(editing?.cnpj);
 
   const load = async () => {
     try {
@@ -181,6 +182,7 @@ export default function LegalEntitiesPage() {
       if (!response.ok) throw new Error(response.error || "Falha ao salvar empresa.");
       await Swal.fire("Sucesso", editing ? "Empresa atualizada." : "Empresa incluída. O CNPJ já pode ser selecionado para novas operações.", "success");
       setFormOpen(false);
+      window.dispatchEvent(new Event("konexus:access-changed"));
       await load();
     } catch (error: any) {
       await Swal.fire("Não foi possível salvar", error.message || "Verifique os dados e a capacidade contratada.", "error");
@@ -460,7 +462,26 @@ export default function LegalEntitiesPage() {
             <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
               <Field label="Razão social *"><input required value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></Field>
               <Field label="Nome fantasia"><input value={form.tradeName || ""} onChange={(e) => setForm({ ...form, tradeName: e.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></Field>
-              <Field label="CNPJ" hint={editing ? "O CNPJ não pode ser alterado após existir operação vinculada." : "14 dígitos; validado no backend."}><input value={form.cnpj || ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} disabled={Boolean(editing)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100" /></Field>
+              <Field
+                label="CNPJ"
+                hint={
+                  editing
+                    ? cnpjLocked
+                      ? "O CNPJ desta empresa já está cadastrado. Para trocar, cadastre uma nova empresa jurídica."
+                      : "Informe o CNPJ da empresa principal. Após a primeira operação vinculada, ele não poderá ser alterado."
+                    : "14 dígitos; validado no backend."
+                }
+              >
+                <input
+                  value={form.cnpj || ""}
+                  onChange={(e) => setForm({ ...form, cnpj: e.target.value })}
+                  disabled={cnpjLocked}
+                  required={!editing}
+                  inputMode="numeric"
+                  placeholder="00.000.000/0000-00"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100"
+                />
+              </Field>
               <Field label="Regime tributário"><select value={form.taxRegime || ""} onChange={(e) => setForm({ ...form, taxRegime: e.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><option value="">Selecione</option>{Object.entries(TAX_REGIME_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
               <Field label="Inscrição estadual"><input value={form.stateRegistration || ""} onChange={(e) => setForm({ ...form, stateRegistration: e.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></Field>
               <Field label="Inscrição municipal"><input value={form.municipalRegistration || ""} onChange={(e) => setForm({ ...form, municipalRegistration: e.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></Field>

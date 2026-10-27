@@ -63,6 +63,12 @@ export default function DashboardTab({ refreshKey, onNavigate, onNewCompany }: P
   }, [refreshKey]);
 
   const metrics = data?.metrics;
+  const activeCompanies = (data?.companies || []).filter(
+    (company) => company.active !== false
+  );
+  const inactiveCompanies = (data?.companies || []).filter(
+    (company) => company.active === false
+  );
   const maxPlanTotal = Math.max(1, ...(data?.planDistribution || []).map((item) => item.total));
   const supportCounts = new Map(
     (data?.supportDistribution || []).map((item) => [item.status, item.total])
@@ -101,7 +107,7 @@ export default function DashboardTab({ refreshKey, onNavigate, onNewCompany }: P
             <StatCard
               title="Empresas"
               value={metrics?.companies ?? 0}
-              subtitle="Cadastradas na plataforma"
+              subtitle={`${activeCompanies.length} ativa(s) · ${inactiveCompanies.length} desativada(s)`}
               icon={Building2}
               tone="blue"
             />
@@ -210,7 +216,8 @@ export default function DashboardTab({ refreshKey, onNavigate, onNewCompany }: P
               <div>
                 <h2 className="text-sm font-bold text-slate-900">Empresas da plataforma</h2>
                 <p className="text-xs text-slate-500">
-                  Visão consolidada de assinatura, suporte e usuários.
+                  Visão consolidada das empresas ativas. Desativadas ficam em Empresas
+                  &gt; Desativadas.
                 </p>
               </div>
               <Button variant="outline" size="sm" onClick={() => onNavigate("companies")}>
@@ -219,12 +226,12 @@ export default function DashboardTab({ refreshKey, onNavigate, onNewCompany }: P
               </Button>
             </div>
 
-            {(data?.companies || []).length === 0 ? (
+            {activeCompanies.length === 0 ? (
               <div className="p-5">
                 <EmptyState
                   icon={Building2}
-                  title="Nenhuma empresa cadastrada"
-                  description="Cadastre a primeira empresa para começar a acompanhar a operação."
+                  title="Nenhuma empresa ativa"
+                  description="Cadastre uma empresa ou reative uma empresa na aba Empresas > Desativadas."
                   action={
                     <Button size="sm" onClick={onNewCompany}>
                       <Plus className="h-4 w-4" />
@@ -247,7 +254,7 @@ export default function DashboardTab({ refreshKey, onNavigate, onNewCompany }: P
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {data?.companies.map((company) => (
+                    {activeCompanies.map((company) => (
                       <tr key={company.id} className="transition hover:bg-slate-50/70">
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-3">
